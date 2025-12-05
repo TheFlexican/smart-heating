@@ -1,0 +1,236 @@
+import axios from 'axios'
+import { Area, Device, DeviceAdd, ScheduleEntry, LearningStats, HassEntity, WindowSensorConfig, PresenceSensorConfig } from './types'
+
+const API_BASE = '/api/smart_heating'
+
+export const getZones = async (): Promise<Area[]> => {
+  const response = await axios.get(`${API_BASE}/areas`)
+  return response.data.areas
+}
+
+export const getZone = async (areaId: string): Promise<Area> => {
+  const response = await axios.get(`${API_BASE}/areas/${areaId}`)
+  return response.data
+}
+
+export const addDeviceToZone = async (
+  areaId: string,
+  device: DeviceAdd
+): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/devices`, device)
+}
+
+export const removeDeviceFromZone = async (
+  areaId: string,
+  deviceId: string
+): Promise<void> => {
+  await axios.delete(`${API_BASE}/areas/${areaId}/devices/${deviceId}`)
+}
+
+export const setZoneTemperature = async (
+  areaId: string,
+  temperature: number
+): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/temperature`, { temperature })
+}
+
+export const enableZone = async (areaId: string): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/enable`)
+}
+
+export const disableZone = async (areaId: string): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/disable`)
+}
+
+export const getDevices = async (): Promise<Device[]> => {
+  const response = await axios.get(`${API_BASE}/devices`)
+  return response.data.devices
+}
+
+export const getStatus = async (): Promise<any> => {
+  const response = await axios.get(`${API_BASE}/status`)
+  return response.data
+}
+
+export const getConfig = async (): Promise<any> => {
+  const response = await axios.get(`${API_BASE}/config`)
+  return response.data
+}
+
+export const getEntityState = async (entityId: string): Promise<any> => {
+  const response = await axios.get(`${API_BASE}/entity_state/${entityId}`)
+  return response.data
+}
+
+export const addScheduleToZone = async (
+  areaId: string,
+  schedule: Omit<ScheduleEntry, 'id'>
+): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/schedules`, schedule)
+}
+
+export const removeScheduleFromZone = async (
+  areaId: string,
+  scheduleId: string
+): Promise<void> => {
+  await axios.delete(`${API_BASE}/areas/${areaId}/schedules/${scheduleId}`)
+}
+
+export const getLearningStats = async (areaId: string): Promise<LearningStats> => {
+  const response = await axios.get(`${API_BASE}/areas/${areaId}/learning`)
+  return response.data.stats
+}
+
+// ========== v0.3.0 API Functions ==========
+
+// Preset Modes
+export const setPresetMode = async (
+  areaId: string,
+  presetMode: string
+): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/preset_mode`, { preset_mode: presetMode })
+}
+
+// Boost Mode
+export const setBoostMode = async (
+  areaId: string,
+  duration: number,
+  temperature?: number
+): Promise<void> => {
+  const data: any = { duration }
+  if (temperature !== undefined) {
+    data.temperature = temperature
+  }
+  await axios.post(`${API_BASE}/areas/${areaId}/boost`, data)
+}
+
+export const cancelBoost = async (areaId: string): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/cancel_boost`)
+}
+
+// Frost Protection (global)
+export const setFrostProtection = async (
+  enabled: boolean,
+  temperature: number
+): Promise<void> => {
+  await axios.post(`${API_BASE}/frost_protection`, {
+    enabled,
+    temperature
+  })
+}
+
+// Window Sensors
+export const getBinarySensorEntities = async (): Promise<HassEntity[]> => {
+  const response = await axios.get(`${API_BASE}/entities/binary_sensor`)
+  return response.data.entities
+}
+
+export const addWindowSensor = async (
+  areaId: string,
+  config: WindowSensorConfig
+): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/window_sensors`, config)
+}
+
+export const removeWindowSensor = async (
+  areaId: string,
+  sensorEntityId: string
+): Promise<void> => {
+  await axios.delete(`${API_BASE}/areas/${areaId}/window_sensors/${sensorEntityId}`)
+}
+
+// Presence Sensors
+export const addPresenceSensor = async (
+  areaId: string,
+  config: PresenceSensorConfig
+): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/presence_sensors`, config)
+}
+
+export const removePresenceSensor = async (
+  areaId: string,
+  sensorEntityId: string
+): Promise<void> => {
+  await axios.delete(`${API_BASE}/areas/${areaId}/presence_sensors/${sensorEntityId}`)
+}
+
+// HVAC Mode
+export const setHvacMode = async (
+  areaId: string,
+  hvacMode: string
+): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/hvac_mode`, {
+    hvac_mode: hvacMode
+  })
+}
+
+// Schedule Copying
+export const copySchedule = async (
+  sourceAreaId: string,
+  targetAreaId: string,
+  sourceDays?: string[],
+  targetDays?: string[]
+): Promise<void> => {
+  const data: any = {
+    source_area_id: sourceAreaId,
+    target_area_id: targetAreaId
+  }
+  if (sourceDays) {
+    data.source_days = sourceDays
+  }
+  if (targetDays) {
+    data.target_days = targetDays
+  }
+  await axios.post(`${API_BASE}/copy_schedule`, data)
+}
+
+// History Management
+export const getHistoryConfig = async (): Promise<{
+  retention_days: number
+  record_interval_seconds: number
+  record_interval_minutes: number
+}> => {
+  const response = await axios.get(`${API_BASE}/history/config`)
+  return response.data
+}
+
+export const setHistoryRetention = async (days: number): Promise<void> => {
+  await axios.post(`${API_BASE}/history/config`, {
+    retention_days: days
+  })
+}
+
+export const getHistory = async (
+  areaId: string,
+  options?: {
+    hours?: number
+    startTime?: string
+    endTime?: string
+  }
+): Promise<{
+  area_id: string
+  hours?: number
+  start_time?: string
+  end_time?: string
+  entries: Array<{
+    timestamp: string
+    current_temperature: number
+    target_temperature: number
+    state: string
+  }>
+  count: number
+}> => {
+  const params = new URLSearchParams()
+  if (options?.hours) {
+    params.append('hours', options.hours.toString())
+  }
+  if (options?.startTime) {
+    params.append('start_time', options.startTime)
+  }
+  if (options?.endTime) {
+    params.append('end_time', options.endTime)
+  }
+  
+  const response = await axios.get(`${API_BASE}/areas/${areaId}/history?${params.toString()}`)
+  return response.data
+}

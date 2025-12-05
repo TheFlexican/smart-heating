@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          cd smart_heating/frontend
+          rm -rf node_modules package-lock.json
+          npm install
+      
+      - name: Build frontend
+        run: |
+          cd smart_heating/frontend
+          npm run build
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: smart_heating/frontend/dist/
+          retention-days: 7
+
+  lint:
+    name: Lint Python Code
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      
+      - name: Install dependencies
+        run: |
+          pip install flake8
+      
+      - name: Lint with flake8
+        run: |
+          # Stop on syntax errors or undefined names
+          flake8 smart_heating --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Exit-zero treats all errors as warnings
+          flake8 smart_heating --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
