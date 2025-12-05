@@ -397,11 +397,14 @@ class SmartHeatingAPIView(HomeAssistantView):
         device_registry = dr.async_get(self.hass)
         area_registry = ar.async_get(self.hass)
         
-        # Find entities that are from MQTT and could be heating-related
+        # Find entities that are from MQTT/Zigbee2MQTT and could be heating-related
         heating_platforms = ["climate", "sensor", "number", "switch"]
         
+        _LOGGER.info("Discovering devices from MQTT and Zigbee2MQTT platforms")
+        
         for entity in entity_registry.entities.values():
-            # Check if entity is from MQTT integration
+            # Check if entity is from MQTT or Zigbee2MQTT integration
+            # Note: Zigbee2MQTT creates entities with platform "mqtt"
             if entity.platform == "mqtt":
                 # Get entity state for additional info
                 state = self.hass.states.get(entity.entity_id)
@@ -419,9 +422,12 @@ class SmartHeatingAPIView(HomeAssistantView):
                     if device_class == "temperature":
                         device_type = "temperature_sensor"
                     else:
-                        # Fallback to unit check
+                        # Fallback to unit check - be more inclusive
                         unit = state.attributes.get("unit_of_measurement", "")
-                        if "°C" in unit or "°F" in unit or "temperature" in entity.entity_id.lower():
+                        entity_lower = entity.entity_id.lower()
+                        if ("°C" in unit or "°F" in unit or 
+                            "temperature" in entity_lower or "temp" in entity_lower or
+                            "thermostat" in entity_lower):
                             device_type = "temperature_sensor"
                         else:
                             continue  # Skip non-temperature sensors
@@ -496,7 +502,13 @@ class SmartHeatingAPIView(HomeAssistantView):
                 
                 # Skip devices assigned to hidden areas (any method)
                 if assigned_to_hidden_area:
+                    _LOGGER.debug("Skipping device %s - assigned to hidden area", entity.entity_id)
                     continue
+                
+                _LOGGER.debug(
+                    "Discovered device: %s (type: %s, domain: %s, HA area: %s)",
+                    entity.entity_id, device_type, entity.domain, ha_area_name or "none"
+                )
                 
                 devices.append({
                     "id": entity.entity_id,
@@ -515,6 +527,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                     }
                 })
         
+        _LOGGER.info("Device discovery complete: found %d devices", len(devices))
         return web.json_response({"devices": devices})
 
     async def refresh_devices(self, request: web.Request) -> web.Response:
