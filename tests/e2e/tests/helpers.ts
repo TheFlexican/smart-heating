@@ -20,17 +20,16 @@ export async function login(page: Page) {
 export async function navigateToSmartHeating(page: Page) {
   await login(page);
   // Navigate directly to Smart Heating UI
-  await page.goto('/smart_heating_ui');
+  await page.goto('http://localhost:8123/smart-heating');
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(2000); // Give React time to load
 }
 
 export async function navigateToArea(page: Page, areaName: string) {
-  await navigateToSmartHeating(page);
   // Wait for areas to load
   await page.waitForTimeout(1000);
-  // Click on the area card
-  const areaCard = page.locator(`text=${areaName}`).first();
+  // Click on the area card - try multiple selectors
+  const areaCard = page.getByText(areaName, { exact: false }).first();
   await areaCard.waitFor({ state: 'visible', timeout: 10000 });
   await areaCard.click();
   await page.waitForLoadState('networkidle');

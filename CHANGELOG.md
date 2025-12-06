@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### ✨ Added - Global Preset Temperatures (v0.4.3)
+
+**Global Preset System**
+- **Global Temperature Defaults**: Configure default temperatures for all preset modes in one place
+  - Away, Eco, Comfort, Home, Sleep, Activity presets
+  - Set once in Settings → Global Presets, apply everywhere
+  - Slider controls with 0.1°C precision (5°C - 30°C range)
+  - Automatic debouncing (500ms) to prevent excessive saves
+
+**Per-Area Preset Customization**
+- **Toggle Control**: Choose between global defaults or custom temperatures for each preset per area
+  - Convenient toggle switches: "Use Global" ↔ "Use Custom"
+  - Visual indication of which temperature is active
+  - Changes apply immediately via WebSocket updates
+  - Settings persist across restarts
+
+**Presence Detection Improvements**
+- **Simplified Behavior**: Presence sensors now control preset mode switching only
+  - Away when nobody home → Switches to "Away" preset
+  - Home when someone arrives → Switches to "Home" preset
+  - No more manual temperature adjustments (+1°C / -1°C)
+  - Clean, predictable behavior using your configured preset temperatures
+
+**API & Backend**
+- Added `/api/smart_heating/areas` endpoint returns `use_global_*` flags
+- Added `set_area_preset_config()` endpoint for updating flags
+- Global presets stored in `AreaManager` with persistence
+- Coordinator includes effective temperature calculation
+- Area effective temperature respects global/custom preset selection
+
+**Frontend**
+- Settings page: Global Presets configuration with debounced sliders
+- Area Detail page: Preset Temperature Configuration section with toggle switches
+- Presence sensor dialog: Simplified to show preset mode control explanation
+- Real-time updates via WebSocket when toggling between global/custom
+- Material-UI Switch components for intuitive UX
+
+**Affected Files:**
+- Backend: `area_manager.py`, `api.py`, `coordinator.py`
+- Frontend: `Settings.tsx`, `AreaDetail.tsx`, `SensorConfigDialog.tsx`, `types.ts`, `api.ts`
+- Documentation: `README.md`, `CHANGELOG.md`
+
 ### Planned
 - 🤖 Enhanced AI-driven heating optimization with multi-factor analysis
 - 📊 Advanced energy analytics dashboard

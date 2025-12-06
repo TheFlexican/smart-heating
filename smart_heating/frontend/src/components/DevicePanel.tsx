@@ -38,8 +38,7 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
   const handleRefresh = async () => {
     setRefreshing(true)
     try {
-      const result = await refreshDevices()
-      console.log('Devices refreshed:', result.message)
+      await refreshDevices()
       // Wait a moment for backend to update
       setTimeout(() => {
         onUpdate()

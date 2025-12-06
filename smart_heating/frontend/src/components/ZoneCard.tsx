@@ -13,7 +13,9 @@ import {
   List,
   ListItem,
   ListItemIcon,
-  MenuItem
+  MenuItem,
+  FormControlLabel,
+  Switch
 } from '@mui/material'
 import { Droppable } from 'react-beautiful-dnd'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
@@ -28,8 +30,9 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import PersonIcon from '@mui/icons-material/Person'
+import BookmarkIcon from '@mui/icons-material/Bookmark'
 import { Zone } from '../types'
-import { setZoneTemperature, removeDeviceFromZone, hideZone, unhideZone, getEntityState } from '../api'
+import { setZoneTemperature, removeDeviceFromZone, hideZone, unhideZone, getEntityState, setManualOverride } from '../api'
 
 interface ZoneCardProps {
   area: Zone
@@ -40,36 +43,24 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   const navigate = useNavigate()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   
-  // Get displayed temperature: prefer thermostat's current target, fallback to area target
+  // Get displayed temperature: use effective temperature when in preset mode, otherwise use target
   const getDisplayTemperature = () => {
-    const thermostat = area.devices?.find(d => d.type === 'thermostat')
-    if (thermostat && thermostat.target_temperature != null) {
-      return thermostat.target_temperature
-    }
-    // If a preset is active, show the effective temperature
-    if (area.preset_mode && area.preset_mode !== 'none' && area.effective_target_temperature != null) {
+    // When using preset mode (not manual override), show effective temperature
+    if (!area.manual_override && area.preset_mode && area.preset_mode !== 'none' && area.effective_target_temperature != null) {
       return area.effective_target_temperature
     }
+    // Otherwise show the base target temperature
     return area.target_temperature
   }
   
   const [temperature, setTemperature] = useState(getDisplayTemperature())
   const [presenceState, setPresenceState] = useState<string | null>(null)
 
-  // Get thermostat target temperature for dependency tracking
-  const thermostatTargetTemp = area.devices?.find(d => d.type === 'thermostat')?.target_temperature
-  const thermostatHvacAction = area.devices?.find(d => d.type === 'thermostat')?.hvac_action
-
   // Sync local temperature state when area or devices change
   useEffect(() => {
-    const thermostat = area.devices?.find(d => d.type === 'thermostat')
-    const displayTemp = thermostat && thermostat.target_temperature != null 
-      ? thermostat.target_temperature 
-      : area.target_temperature
-    
-    console.log(`[ZoneCard ${area.name}] Temperature update: ${temperature} -> ${displayTemp} (thermostat: ${thermostat?.target_temperature}, area: ${area.target_temperature}, hvac_action: ${thermostat?.hvac_action})`)
+    const displayTemp = getDisplayTemperature()
     setTemperature(displayTemp)
-  }, [area.target_temperature, thermostatTargetTemp, thermostatHvacAction, area.name])
+  }, [area.target_temperature, area.effective_target_temperature, area.manual_override, area.preset_mode, area.name])
 
   useEffect(() => {
     const loadPresenceState = async () => {
@@ -306,7 +297,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
               { value: 30, label: '30°' }
             ]}
             valueLabelDisplay="auto"
-            disabled={!area.enabled || area.devices.length === 0 || !!(area.preset_mode && area.preset_mode !== 'none')}
+            disabled={!area.enabled || area.devices.length === 0 || !area.manual_override}
           />
           {area.devices.length === 0 && (
             <Box display="flex" alignItems="center" gap={1} mt={1} sx={{ color: 'warning.main' }}>
@@ -328,6 +319,35 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
             </Typography>
           </Box>
         )}
+
+        {/* Manual Override Toggle */}
+        <Box mb={2} onClick={(e) => e.stopPropagation()}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={!area.manual_override}
+                onChange={async (e) => {
+                  try {
+                    // Toggle: if checked (not manual), user wants to use preset mode
+                    await setManualOverride(area.id, !e.target.checked)
+                    onUpdate()
+                  } catch (error) {
+                    console.error('Failed to toggle manual override:', error)
+                  }
+                }}
+                size="small"
+              />
+            }
+            label={
+              <Box display="flex" alignItems="center" gap={1}>
+                <BookmarkIcon fontSize="small" />
+                <Typography variant="body2">
+                  {area.manual_override ? 'Use Preset Mode' : 'Using Preset Mode'}
+                </Typography>
+              </Box>
+            }
+          />
+        </Box>
 
         <Box display="flex" alignItems="center" gap={1} mb={area.devices.length > 0 ? 2 : 0}>
           <SensorsIcon fontSize="small" color="action" />

@@ -195,6 +195,7 @@ class Area:
         self.schedules: dict[str, Schedule] = {}
         self._current_temperature: float | None = None
         self.hidden: bool = False  # Whether area is hidden from main view
+        self.area_manager: "AreaManager | None" = None  # Reference to parent AreaManager
         
         # Night boost settings
         self.night_boost_enabled: bool = True
@@ -215,6 +216,14 @@ class Area:
         self.home_temp: float = DEFAULT_HOME_TEMP
         self.sleep_temp: float = DEFAULT_SLEEP_TEMP
         self.activity_temp: float = DEFAULT_ACTIVITY_TEMP
+        
+        # Preset configuration - choose between global or custom temperatures
+        self.use_global_away: bool = True
+        self.use_global_eco: bool = True
+        self.use_global_comfort: bool = True
+        self.use_global_home: bool = True
+        self.use_global_sleep: bool = True
+        self.use_global_activity: bool = True
         
         # Boost mode settings
         self.boost_mode_active: bool = False
@@ -365,19 +374,15 @@ class Area:
     def add_presence_sensor(
         self,
         entity_id: str,
-        action_when_away: str = "reduce_temperature",
-        action_when_home: str = "increase_temperature",
-        temp_drop_when_away: float | None = None,
-        temp_boost_when_home: float | None = None
     ) -> None:
         """Add a presence/motion sensor to the area.
         
+        Presence sensors control preset mode switching:
+        - When away: Switch to "away" preset
+        - When home: Switch back to previous preset (typically "home")
+        
         Args:
-            entity_id: Entity ID of the presence sensor
-            action_when_away: Action when no presence detected
-            action_when_home: Action when presence detected
-            temp_drop_when_away: Temperature drop when away
-            temp_boost_when_home: Temperature boost when home
+            entity_id: Entity ID of the presence sensor (person.* or binary_sensor.*)
         """
         # Check if sensor already exists
         existing = [s for s in self.presence_sensors if s.get("entity_id") == entity_id]
@@ -387,16 +392,10 @@ class Area:
             
         sensor_config = {
             "entity_id": entity_id,
-            "action_when_away": action_when_away,
-            "action_when_home": action_when_home,
         }
-        if action_when_away == "reduce_temperature":
-            sensor_config["temp_drop_when_away"] = temp_drop_when_away if temp_drop_when_away is not None else 3.0
-        if action_when_home == "increase_temperature":
-            sensor_config["temp_boost_when_home"] = temp_boost_when_home if temp_boost_when_home is not None else DEFAULT_PRESENCE_TEMP_BOOST
             
         self.presence_sensors.append(sensor_config)
-        _LOGGER.debug("Added presence sensor %s to area %s", entity_id, self.area_id)
+        _LOGGER.debug("Added presence sensor %s to area %s (controls preset mode)", entity_id, self.area_id)
 
     def remove_presence_sensor(self, entity_id: str) -> None:
         """Remove a presence/motion sensor from the area.
@@ -413,16 +412,42 @@ class Area:
         Returns:
             Temperature for current preset mode
         """
+        # Determine which temperature to use based on use_global_* flags
+        if self.area_manager:
+            away_temp = self.area_manager.global_away_temp if self.use_global_away else self.away_temp
+            eco_temp = self.area_manager.global_eco_temp if self.use_global_eco else self.eco_temp
+            comfort_temp = self.area_manager.global_comfort_temp if self.use_global_comfort else self.comfort_temp
+            home_temp = self.area_manager.global_home_temp if self.use_global_home else self.home_temp
+            sleep_temp = self.area_manager.global_sleep_temp if self.use_global_sleep else self.sleep_temp
+            activity_temp = self.area_manager.global_activity_temp if self.use_global_activity else self.activity_temp
+            
+            _LOGGER.debug(
+                "Area %s: preset=%s, use_global_home=%s, global_home_temp=%.1f°C, area_home_temp=%.1f°C, selected_home_temp=%.1f°C",
+                self.area_id, self.preset_mode, self.use_global_home,
+                self.area_manager.global_home_temp, self.home_temp, home_temp
+            )
+        else:
+            # Fallback to area-specific temperatures if no area_manager
+            _LOGGER.warning("Area %s: No area_manager reference! Using fallback temps", self.area_id)
+            away_temp = self.away_temp
+            eco_temp = self.eco_temp
+            comfort_temp = self.comfort_temp
+            home_temp = self.home_temp
+            sleep_temp = self.sleep_temp
+            activity_temp = self.activity_temp
+        
         preset_temps = {
-            PRESET_AWAY: self.away_temp,
-            PRESET_ECO: self.eco_temp,
-            PRESET_COMFORT: self.comfort_temp,
-            PRESET_HOME: self.home_temp,
-            PRESET_SLEEP: self.sleep_temp,
-            PRESET_ACTIVITY: self.activity_temp,
-            PRESET_BOOST: self.boost_temp,
+            PRESET_AWAY: away_temp,
+            PRESET_ECO: eco_temp,
+            PRESET_COMFORT: comfort_temp,
+            PRESET_HOME: home_temp,
+            PRESET_SLEEP: sleep_temp,
+            PRESET_ACTIVITY: activity_temp,
+            PRESET_BOOST: self.boost_temp,  # Boost is always area-specific
         }
-        return preset_temps.get(self.preset_mode, self.target_temperature)
+        result = preset_temps.get(self.preset_mode, self.target_temperature)
+        _LOGGER.debug("Area %s: get_preset_temperature() returning %.1f°C", self.area_id, result)
+        return result
 
     def set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode for the area.
@@ -600,35 +625,8 @@ class Area:
                     target - self.night_boost_offset, self.night_boost_offset, target
                 )
         
-        # Priority 7: Presence sensor actions
-        if len(self.presence_sensors) > 0:
-            for sensor in self.presence_sensors:
-                # Check if presence is detected (this will be updated by climate_controller)
-                if self.presence_detected:
-                    action = sensor.get("action_when_home", "increase_temperature")
-                    if action == "set_comfort":
-                        target = self.comfort_temp
-                    elif action == "increase_temperature":
-                        temp_boost = sensor.get("temp_boost_when_home", DEFAULT_PRESENCE_TEMP_BOOST)
-                        target += temp_boost
-                        _LOGGER.debug(
-                            "Presence detected in area %s: adding %.1f°C boost (final: %.1f°C)",
-                            self.area_id, temp_boost, target
-                        )
-                else:
-                    # No presence detected (away)
-                    action = sensor.get("action_when_away", "reduce_temperature")
-                    if action == "turn_off":
-                        return 5.0  # Turn off heating (frost protection)
-                    elif action == "set_eco":
-                        target = self.eco_temp
-                    elif action == "reduce_temperature":
-                        temp_drop = sensor.get("temp_drop_when_away", 3.0)
-                        target -= temp_drop
-                        _LOGGER.debug(
-                            "No presence in area %s: reducing %.1f°C (final: %.1f°C)",
-                            self.area_id, temp_drop, target
-                        )
+        # Note: Presence sensor actions are now handled by switching preset modes
+        # (see climate_controller.py) rather than adjusting temperature directly
         
         return target
 
@@ -712,6 +710,13 @@ class Area:
             "home_temp": self.home_temp,
             "sleep_temp": self.sleep_temp,
             "activity_temp": self.activity_temp,
+            # Global preset flags
+            "use_global_away": self.use_global_away,
+            "use_global_eco": self.use_global_eco,
+            "use_global_comfort": self.use_global_comfort,
+            "use_global_home": self.use_global_home,
+            "use_global_sleep": self.use_global_sleep,
+            "use_global_activity": self.use_global_activity,
             # Boost mode
             "boost_mode_active": self.boost_mode_active,
             "boost_duration": self.boost_duration,
@@ -763,6 +768,14 @@ class Area:
         area.home_temp = data.get("home_temp", DEFAULT_HOME_TEMP)
         area.sleep_temp = data.get("sleep_temp", DEFAULT_SLEEP_TEMP)
         area.activity_temp = data.get("activity_temp", DEFAULT_ACTIVITY_TEMP)
+        
+        # Global preset flags (default to True for backward compatibility)
+        area.use_global_away = data.get("use_global_away", True)
+        area.use_global_eco = data.get("use_global_eco", True)
+        area.use_global_comfort = data.get("use_global_comfort", True)
+        area.use_global_home = data.get("use_global_home", True)
+        area.use_global_sleep = data.get("use_global_sleep", True)
+        area.use_global_activity = data.get("use_global_activity", True)
         
         # Boost mode
         area.boost_mode_active = data.get("boost_mode_active", False)
@@ -847,6 +860,14 @@ class AreaManager:
         # Global Hysteresis
         self.hysteresis: float = 0.5
         
+        # Global Preset Temperatures
+        self.global_away_temp: float = DEFAULT_AWAY_TEMP
+        self.global_eco_temp: float = DEFAULT_ECO_TEMP
+        self.global_comfort_temp: float = DEFAULT_COMFORT_TEMP
+        self.global_home_temp: float = DEFAULT_HOME_TEMP
+        self.global_sleep_temp: float = DEFAULT_SLEEP_TEMP
+        self.global_activity_temp: float = DEFAULT_ACTIVITY_TEMP
+        
         _LOGGER.debug("AreaManager initialized")
 
     async def async_load(self) -> None:
@@ -865,10 +886,19 @@ class AreaManager:
             self.frost_protection_temp = data.get("frost_protection_temp", DEFAULT_FROST_PROTECTION_TEMP)
             self.hysteresis = data.get("hysteresis", 0.5)
             
+            # Load global preset temperatures
+            self.global_away_temp = data.get("global_away_temp", DEFAULT_AWAY_TEMP)
+            self.global_eco_temp = data.get("global_eco_temp", DEFAULT_ECO_TEMP)
+            self.global_comfort_temp = data.get("global_comfort_temp", DEFAULT_COMFORT_TEMP)
+            self.global_home_temp = data.get("global_home_temp", DEFAULT_HOME_TEMP)
+            self.global_sleep_temp = data.get("global_sleep_temp", DEFAULT_SLEEP_TEMP)
+            self.global_activity_temp = data.get("global_activity_temp", DEFAULT_ACTIVITY_TEMP)
+            
             # Load areas
             if "areas" in data:
                 for area_data in data["areas"]:
                     area = Area.from_dict(area_data)
+                    area.area_manager = self  # Store reference to area_manager
                     self.areas[area.area_id] = area
                 _LOGGER.info("Loaded %d areas from storage", len(self.areas))
         else:
@@ -886,6 +916,12 @@ class AreaManager:
             "frost_protection_enabled": self.frost_protection_enabled,
             "frost_protection_temp": self.frost_protection_temp,
             "hysteresis": self.hysteresis,
+            "global_away_temp": self.global_away_temp,
+            "global_eco_temp": self.global_eco_temp,
+            "global_comfort_temp": self.global_comfort_temp,
+            "global_home_temp": self.global_home_temp,
+            "global_sleep_temp": self.global_sleep_temp,
+            "global_activity_temp": self.global_activity_temp,
             "areas": [area.to_dict() for area in self.areas.values()]
         }
         await self._store.async_save(data)

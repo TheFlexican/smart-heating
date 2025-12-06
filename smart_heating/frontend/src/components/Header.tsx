@@ -1,13 +1,19 @@
-import { AppBar, Toolbar, Typography, Chip, Box, Tooltip } from '@mui/material'
+import { AppBar, Toolbar, Typography, Chip, Box, Tooltip, IconButton } from '@mui/material'
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import WifiIcon from '@mui/icons-material/Wifi'
 import WifiOffIcon from '@mui/icons-material/WifiOff'
+import SettingsIcon from '@mui/icons-material/Settings'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 interface HeaderProps {
   wsConnected?: boolean
 }
 
 const Header = ({ wsConnected = false }: HeaderProps) => {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const isGlobalSettings = location.pathname === '/settings/global'
+
   return (
     <AppBar 
       position="static" 
@@ -28,6 +34,16 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
           Smart Heating
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          {!isGlobalSettings && (
+            <Tooltip title="Global Preset Settings">
+              <IconButton 
+                onClick={() => navigate('/settings/global')}
+                sx={{ color: 'text.secondary' }}
+              >
+                <SettingsIcon />
+              </IconButton>
+            </Tooltip>
+          )}
           <Tooltip title={wsConnected ? 'Real-time updates active' : 'Real-time updates inactive'}>
             <Chip
               icon={wsConnected ? <WifiIcon /> : <WifiOffIcon />}

@@ -2,6 +2,25 @@
 
 End-to-end tests for the Smart Heating Home Assistant integration using Playwright.
 
+## Test Coverage
+
+### Automated Tests (Playwright)
+- ✅ **Navigation** - Menu, area navigation, tab switching
+- ✅ **Temperature Control** - Slider adjustments, input changes
+- ✅ **Boost Mode** - Activation, duration selection, cancellation
+- ✅ **Comprehensive Features** - Preset modes, manual override, WebSocket updates
+- ✅ **Sensor Management** - Window sensors, presence sensors (basic operations)
+- ✅ **Backend Logging** - API error handling
+
+### Manual Testing Required
+- ⚠️ **Global Presets** - See `GLOBAL_PRESETS_TEST_GUIDE.md`
+  - Global preset temperature configuration
+  - Per-area preset toggle (global vs custom)
+  - Manual override integration
+  - Simplified presence sensor configuration
+
+**Note:** Global presets tests (`global-presets.spec.ts`) exist but are currently non-functional due to UI selector issues. Use the manual testing guide until these are resolved.
+
 ## Prerequisites
 
 1. **Home Assistant must be running** on `http://localhost:8123`

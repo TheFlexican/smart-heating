@@ -51,47 +51,65 @@ while true; do
     case $choice in
         1)
             echo "=== Device Discovery Logs ==="
-            ssh -p $PROD_PORT $PROD_HOST "ha core logs | grep -i 'SMART HEATING.*discovery\|DISCOVERED:' | tail -50"
+            ssh -p $PROD_PORT $PROD_HOST "docker logs homeassistant 2>&1 | grep -i 'SMART HEATING.*discovery\|DISCOVERED:' | tail -50"
             echo ""
             ;;
         2)
             echo "=== Following Live Logs (Ctrl+C to stop) ==="
-            ssh -p $PROD_PORT $PROD_HOST "ha core logs --follow" | grep --line-buffered -i "smart_heating\|DISCOVERED"
+            ssh -p $PROD_PORT $PROD_HOST "docker logs -f homeassistant 2>&1" | grep --line-buffered -i "smart_heating\|DISCOVERED"
             ;;
         3)
             echo "=== Recent Smart Heating Logs ==="
-            ssh -p $PROD_PORT $PROD_HOST "ha core logs | grep -i smart_heating | tail -100"
+            ssh -p $PROD_PORT $PROD_HOST "docker logs homeassistant 2>&1 | grep -i smart_heating | tail -100"
             echo ""
             ;;
         4)
             echo "=== Temperature Changes & Preset Activity ==="
-            echo "Searching for: TARGET TEMP CHANGE, PRESET CHANGE, set_temperature, set_preset_mode"
+            echo "Fetching logs..."
             echo ""
-            ssh -p $PROD_PORT $PROD_HOST "ha core logs | grep -E 'TARGET TEMP CHANGE|PRESET CHANGE|Area.*Preset mode|set.*temperature.*area|Effective temp' | tail -50"
+            LOGS=$(ssh -p $PROD_PORT $PROD_HOST "docker logs homeassistant 2>&1 | tail -n 500 | grep -E '🌡️|🎛️|TARGET TEMP|PRESET CHANGE|Effective temp'")
+            if [ -z "$LOGS" ]; then
+                echo "No temperature or preset changes found in recent logs."
+                echo ""
+                echo "Try making a temperature change in the app, then check again."
+            else
+                echo "$LOGS" | tail -50
+            fi
             echo ""
             echo "💡 This shows:"
-            echo "  - All target temperature changes with context"
-            echo "  - Preset mode changes (none → activity, etc.)"
+            echo "  - 🌡️ API temperature changes (slider adjustments)"
+            echo "  - 🎛️ Preset mode changes (away, eco, comfort, etc.)"
             echo "  - Effective temperature calculations"
+            echo "  - Before/after temperature values"
             echo ""
             ;;
         5)
             echo "=== Manual Override Mode Activity ==="
-            echo "Searching for: manual override, MANUAL mode, thermostat changes"
+            echo "Fetching logs..."
             echo ""
-            ssh -p $PROD_PORT $PROD_HOST "ha core logs | grep -iE 'manual.?override|manual mode|Thermostat.*change.*detected|Disabling manual override' | tail -50"
+            LOGS=$(ssh -p $PROD_PORT $PROD_HOST "docker logs homeassistant 2>&1 | tail -n 500 | grep -iE '🔓|manual.?override|MANUAL mode|Thermostat.*change.*detected|Disabling manual override'")
+            if [ -z "$LOGS" ]; then
+                echo "No manual override activity found in recent logs."
+            else
+                echo "$LOGS" | tail -50
+            fi
             echo ""
             echo "💡 This shows:"
+            echo "  - 🔓 Manual override being cleared"
             echo "  - When areas enter/exit manual override mode"
             echo "  - External thermostat adjustments detected"
-            echo "  - Manual override being cleared by app"
             echo ""
             ;;
         6)
             echo "=== Boost Mode Activity ==="
-            echo "Searching for: boost mode, boost_temp, boost expir"
+            echo "Fetching logs..."
             echo ""
-            ssh -p $PROD_PORT $PROD_HOST "ha core logs | grep -iE 'boost.?mode|boost.*active|boost.*expir|boost.*cancel' | tail -50"
+            LOGS=$(ssh -p $PROD_PORT $PROD_HOST "docker logs homeassistant 2>&1 | tail -n 500 | grep -iE 'boost.?mode|boost.*active|boost.*expir|boost.*cancel'")
+            if [ -z "$LOGS" ]; then
+                echo "No boost mode activity found in recent logs."
+            else
+                echo "$LOGS" | tail -50
+            fi
             echo ""
             echo "💡 This shows:"
             echo "  - Boost mode activation/cancellation"
@@ -101,9 +119,14 @@ while true; do
             ;;
         7)
             echo "=== Switch/Pump Control Activity ==="
-            echo "Searching for: switch shutdown, pump control, shutdown_switches"
+            echo "Fetching logs..."
             echo ""
-            ssh -p $PROD_PORT $PROD_HOST "ha core logs | grep -iE 'shutdown.*switch|switch.*shutdown|pump.*control|_async_control_switches|switch.*woonkamer.*vloerverwarming' | tail -50"
+            LOGS=$(ssh -p $PROD_PORT $PROD_HOST "docker logs homeassistant 2>&1 | tail -n 500 | grep -iE 'shutdown.*switch|switch.*shutdown|pump.*control|_async_control_switches|switch.*woonkamer.*vloerverwarming'")
+            if [ -z "$LOGS" ]; then
+                echo "No switch/pump control activity found in recent logs."
+            else
+                echo "$LOGS" | tail -50
+            fi
             echo ""
             echo "💡 This shows:"
             echo "  - Switch/pump on/off decisions"
@@ -113,9 +136,14 @@ while true; do
             ;;
         8)
             echo "=== Coordinator & WebSocket Updates ==="
-            echo "Searching for: coordinator refresh, WebSocket, state change"
+            echo "Fetching logs..."
             echo ""
-            ssh -p $PROD_PORT $PROD_HOST "ha core logs | grep -iE 'coordinator.*refresh|coordinator.*update|websocket|State change.*detected|async_request_refresh' | tail -50"
+            LOGS=$(ssh -p $PROD_PORT $PROD_HOST "docker logs homeassistant 2>&1 | tail -n 500 | grep -iE 'coordinator.*refresh|coordinator.*update|websocket|State change.*detected|async_request_refresh'")
+            if [ -z "$LOGS" ]; then
+                echo "No coordinator/websocket activity found in recent logs."
+            else
+                echo "$LOGS" | tail -50
+            fi
             echo ""
             echo "💡 This shows:"
             echo "  - When coordinator updates data"
@@ -125,9 +153,14 @@ while true; do
             ;;
         9)
             echo "=== Climate Controller Heating Decisions ==="
-            echo "Searching for: climate_controller, heating decisions, hysteresis"
+            echo "Fetching logs..."
             echo ""
-            ssh -p $PROD_PORT $PROD_HOST "ha core logs | grep -E 'climate_controller|Area.*heating|should.*heat|hysteresis|Triggered immediate climate control' | tail -50"
+            LOGS=$(ssh -p $PROD_PORT $PROD_HOST "docker logs homeassistant 2>&1 | tail -n 500 | grep -E 'climate_controller|Area.*heating|should.*heat|hysteresis|Triggered immediate climate control'")
+            if [ -z "$LOGS" ]; then
+                echo "No climate controller activity found in recent logs."
+            else
+                echo "$LOGS" | tail -50
+            fi
             echo ""
             echo "💡 This shows:"
             echo "  - When areas start/stop heating"

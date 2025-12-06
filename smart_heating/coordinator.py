@@ -265,6 +265,7 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
                     "enabled": area.enabled,
                     "state": area.state,
                     "target_temperature": area.target_temperature,
+                    "effective_target_temperature": area.get_effective_target_temperature(),
                     "current_temperature": area.current_temperature,
                     "device_count": len(area.devices),
                     "devices": devices_data,
@@ -276,6 +277,13 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
                     "home_temp": area.home_temp,
                     "sleep_temp": area.sleep_temp,
                     "activity_temp": area.activity_temp,
+                    # Global preset flags
+                    "use_global_away": area.use_global_away,
+                    "use_global_eco": area.use_global_eco,
+                    "use_global_comfort": area.use_global_comfort,
+                    "use_global_home": area.use_global_home,
+                    "use_global_sleep": area.use_global_sleep,
+                    "use_global_activity": area.use_global_activity,
                     # Boost mode
                     "boost_mode_active": area.boost_mode_active,
                     "boost_temp": area.boost_temp,

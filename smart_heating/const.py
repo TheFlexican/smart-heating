@@ -33,6 +33,7 @@ SERVICE_SET_HYSTERESIS: Final = "set_hysteresis"
 SERVICE_SET_OPENTHERM_GATEWAY: Final = "set_opentherm_gateway"
 SERVICE_SET_TRV_TEMPERATURES: Final = "set_trv_temperatures"
 SERVICE_SET_PRESET_MODE: Final = "set_preset_mode"
+SERVICE_SET_GLOBAL_PRESET_TEMP: Final = "set_global_preset_temperature"
 SERVICE_SET_BOOST_MODE: Final = "set_boost_mode"
 SERVICE_CANCEL_BOOST: Final = "cancel_boost"
 SERVICE_SET_FROST_PROTECTION: Final = "set_frost_protection"
@@ -42,7 +43,6 @@ SERVICE_ADD_PRESENCE_SENSOR: Final = "add_presence_sensor"
 SERVICE_REMOVE_PRESENCE_SENSOR: Final = "remove_presence_sensor"
 SERVICE_SET_HVAC_MODE: Final = "set_hvac_mode"
 SERVICE_COPY_SCHEDULE: Final = "copy_schedule"
-SERVICE_SET_HISTORY_RETENTION: Final = "set_history_retention"
 SERVICE_SET_HISTORY_RETENTION: Final = "set_history_retention"
 
 # Sensor states
@@ -149,6 +149,14 @@ ATTR_COMFORT_TEMP: Final = "comfort_temp"
 ATTR_HOME_TEMP: Final = "home_temp"
 ATTR_SLEEP_TEMP: Final = "sleep_temp"
 ATTR_ACTIVITY_TEMP: Final = "activity_temp"
+
+# Preset configuration - per area choice between global or custom
+ATTR_USE_GLOBAL_AWAY: Final = "use_global_away"
+ATTR_USE_GLOBAL_ECO: Final = "use_global_eco"
+ATTR_USE_GLOBAL_COMFORT: Final = "use_global_comfort"
+ATTR_USE_GLOBAL_HOME: Final = "use_global_home"
+ATTR_USE_GLOBAL_SLEEP: Final = "use_global_sleep"
+ATTR_USE_GLOBAL_ACTIVITY: Final = "use_global_activity"
 
 # Boost mode attributes
 ATTR_BOOST_DURATION: Final = "boost_duration"

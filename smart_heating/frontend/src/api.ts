@@ -257,3 +257,49 @@ export const getHistory = async (
   const response = await axios.get(`${API_BASE}/areas/${areaId}/history?${params.toString()}`)
   return response.data
 }
+
+// Global preset temperature management
+export const getGlobalPresets = async (): Promise<{
+  away_temp: number
+  eco_temp: number
+  comfort_temp: number
+  home_temp: number
+  sleep_temp: number
+  activity_temp: number
+}> => {
+  const response = await axios.get(`${API_BASE}/global_presets`)
+  return response.data
+}
+
+export const setGlobalPresets = async (presets: Partial<{
+  away_temp: number
+  eco_temp: number
+  comfort_temp: number
+  home_temp: number
+  sleep_temp: number
+  activity_temp: number
+}>): Promise<void> => {
+  await axios.post(`${API_BASE}/global_presets`, presets)
+}
+
+export const setAreaPresetConfig = async (
+  areaId: string,
+  config: Partial<{
+    use_global_away: boolean
+    use_global_eco: boolean
+    use_global_comfort: boolean
+    use_global_home: boolean
+    use_global_sleep: boolean
+    use_global_activity: boolean
+  }>
+): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/preset_config`, config)
+}
+
+export const setManualOverride = async (
+  areaId: string,
+  enabled: boolean
+): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/manual_override`, { enabled })
+}
+

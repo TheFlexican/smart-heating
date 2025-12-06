@@ -40,7 +40,7 @@ import SensorOccupiedIcon from '@mui/icons-material/SensorOccupied'
 import HistoryIcon from '@mui/icons-material/History'
 import SpeedIcon from '@mui/icons-material/Speed'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
-import { Zone, WindowSensorConfig, PresenceSensorConfig, Device } from '../types'
+import { Zone, WindowSensorConfig, PresenceSensorConfig, Device, GlobalPresets } from '../types'
 import { 
   getZones, 
   setZoneTemperature, 
@@ -60,7 +60,9 @@ import {
   getDevices,
   addDeviceToZone,
   removeDeviceFromZone,
-  getEntityState
+  getEntityState,
+  getGlobalPresets,
+  setAreaPresetConfig
 } from '../api'
 import ScheduleEditor from '../components/ScheduleEditor'
 import HistoryChart from '../components/HistoryChart'
@@ -98,6 +100,7 @@ const ZoneDetail = () => {
   const [showOnlyHeating, setShowOnlyHeating] = useState(true)
   const [deviceSearch, setDeviceSearch] = useState('')
   const [entityStates, setEntityStates] = useState<Record<string, any>>({})
+  const [globalPresets, setGlobalPresets] = useState<GlobalPresets | null>(null)
   const [loading, setLoading] = useState(true)
   const [tabValue, setTabValue] = useState(0)
   const [temperature, setTemperature] = useState(21)
@@ -154,6 +157,14 @@ const ZoneDetail = () => {
         ? currentZone.effective_target_temperature
         : currentZone.target_temperature
       setTemperature(displayTemp)
+      
+      // Load global presets for preset configuration section
+      try {
+        const presets = await getGlobalPresets()
+        setGlobalPresets(presets)
+      } catch (error) {
+        console.error('Failed to load global presets:', error)
+      }
       
       // Load entity states for presence/window sensors
       await loadEntityStates(currentZone)
@@ -355,6 +366,19 @@ const ZoneDetail = () => {
   const getSettingsSections = (): SettingSection[] => {
     if (!area) return []
 
+    // Helper function to get effective preset temperature (global or custom)
+    const getPresetTemp = (presetKey: string, customTemp: number | undefined, fallback: number): string => {
+      const useGlobalKey = `use_global_${presetKey}` as keyof Zone
+      const useGlobal = (area[useGlobalKey] as boolean | undefined) ?? true
+      
+      if (useGlobal && globalPresets) {
+        const globalKey = `${presetKey}_temp` as keyof GlobalPresets
+        return `${globalPresets[globalKey]}°C (global)`
+      } else {
+        return `${customTemp ?? fallback}°C (custom)`
+      }
+    }
+
     return [
       {
         id: 'preset-modes',
@@ -380,20 +404,90 @@ const ZoneDetail = () => {
                 }}
               >
                 <MenuItem value="none">None (Manual)</MenuItem>
-                <MenuItem value="away">Away ({area.away_temp ?? 16}°C)</MenuItem>
-                <MenuItem value="eco">Eco ({area.eco_temp ?? 18}°C)</MenuItem>
-                <MenuItem value="comfort">Comfort ({area.comfort_temp ?? 22}°C)</MenuItem>
-                <MenuItem value="home">Home ({area.home_temp ?? 21}°C)</MenuItem>
-                <MenuItem value="sleep">Sleep ({area.sleep_temp ?? 19}°C)</MenuItem>
-                <MenuItem value="activity">Activity ({area.activity_temp ?? 23}°C)</MenuItem>
+                <MenuItem value="away">Away ({getPresetTemp('away', area.away_temp, 16)})</MenuItem>
+                <MenuItem value="eco">Eco ({getPresetTemp('eco', area.eco_temp, 18)})</MenuItem>
+                <MenuItem value="comfort">Comfort ({getPresetTemp('comfort', area.comfort_temp, 22)})</MenuItem>
+                <MenuItem value="home">Home ({getPresetTemp('home', area.home_temp, 21)})</MenuItem>
+                <MenuItem value="sleep">Sleep ({getPresetTemp('sleep', area.sleep_temp, 19)})</MenuItem>
+                <MenuItem value="activity">Activity ({getPresetTemp('activity', area.activity_temp, 23)})</MenuItem>
                 <MenuItem value="boost">Boost (See Boost Mode)</MenuItem>
               </Select>
             </FormControl>
 
             <Alert severity="info">
-              Preset temperatures can be configured via Home Assistant services. Current preset: <strong>{area.preset_mode || 'none'}</strong>
+              Current preset: <strong>{area.preset_mode || 'none'}</strong>
             </Alert>
           </>
+        )
+      },
+      {
+        id: 'preset-config',
+        title: 'Preset Temperature Configuration',
+        description: 'Choose between global defaults or custom temperatures per preset',
+        icon: <BookmarkIcon />,
+        defaultExpanded: false,
+        content: (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {globalPresets && [
+              { key: 'away', label: 'Away', global: globalPresets.away_temp, custom: area.away_temp },
+              { key: 'eco', label: 'Eco', global: globalPresets.eco_temp, custom: area.eco_temp },
+              { key: 'comfort', label: 'Comfort', global: globalPresets.comfort_temp, custom: area.comfort_temp },
+              { key: 'home', label: 'Home', global: globalPresets.home_temp, custom: area.home_temp },
+              { key: 'sleep', label: 'Sleep', global: globalPresets.sleep_temp, custom: area.sleep_temp },
+              { key: 'activity', label: 'Activity', global: globalPresets.activity_temp, custom: area.activity_temp },
+            ].map(preset => {
+              const useGlobalKey = `use_global_${preset.key}` as keyof Zone
+              const useGlobal = (area[useGlobalKey] as boolean | undefined) ?? true
+              const effectiveTemp = useGlobal ? preset.global : preset.custom
+              
+              return (
+                <Box key={preset.key}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={useGlobal}
+                        onChange={async (e) => {
+                          e.stopPropagation()
+                          const newValue = e.target.checked
+                          try {
+                            await setAreaPresetConfig(area.id, { [useGlobalKey]: newValue })
+                            await loadData()
+                          } catch (error) {
+                            console.error('Failed to update preset config:', error)
+                            alert(`Failed to update preset: ${error}`)
+                          }
+                        }}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body1">
+                          {preset.label}: {useGlobal ? 'Use Global' : 'Use Custom'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {useGlobal 
+                            ? `Using global setting: ${preset.global}°C`
+                            : `Using custom setting: ${preset.custom ?? 'not set'}°C`
+                          }
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                  {!useGlobal && (
+                    <Alert severity="info" sx={{ mt: 1 }}>
+                      Custom temperature can be set via Home Assistant services.
+                      Current effective temperature: <strong>{effectiveTemp}°C</strong>
+                    </Alert>
+                  )}
+                </Box>
+              )
+            })}
+            
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Toggle each preset to choose between the global default temperature or a custom temperature for this area.
+              Global presets can be configured in <strong>Settings → Global Presets</strong>.
+            </Alert>
+          </Box>
         )
       },
       {
@@ -607,45 +701,23 @@ const ZoneDetail = () => {
             {area.presence_sensors && area.presence_sensors.length > 0 ? (
               <List dense>
                 {area.presence_sensors.map((sensor) => {
-                  const sensorConfig = typeof sensor === 'string'
-                    ? { entity_id: sensor, action_when_away: 'reduce_temperature', action_when_home: 'increase_temperature', temp_drop_when_away: 3, temp_boost_when_home: 2 }
-                    : sensor
+                  const entity_id = typeof sensor === 'string' ? sensor : sensor.entity_id
                   
-                  let awayText = ''
-                  if (sensorConfig.action_when_away === 'turn_off') {
-                    awayText = 'Turn off heating'
-                  } else if (sensorConfig.action_when_away === 'reduce_temperature') {
-                    awayText = `Reduce by ${sensorConfig.temp_drop_when_away}°C`
-                  } else if (sensorConfig.action_when_away === 'set_eco') {
-                    awayText = 'Set to Eco mode'
-                  } else {
-                    awayText = 'No action'
-                  }
-                  
-                  let homeText = ''
-                  if (sensorConfig.action_when_home === 'set_comfort') {
-                    homeText = 'Set to Comfort mode'
-                  } else if (sensorConfig.action_when_home === 'increase_temperature') {
-                    homeText = `Increase by +${sensorConfig.temp_boost_when_home}°C`
-                  } else {
-                    homeText = 'No action'
-                  }
-                  
-                  const entityState = entityStates[sensorConfig.entity_id]
-                  const friendlyName = entityState?.attributes?.friendly_name || sensorConfig.entity_id
+                  const entityState = entityStates[entity_id]
+                  const friendlyName = entityState?.attributes?.friendly_name || entity_id
                   const state = entityState?.state || 'unknown'
                   const isAway = state === 'not_home' || state === 'off' || state === 'away'
                   const isActive = isAway || state === 'home' || state === 'on'
                   
                   return (
                     <ListItem
-                      key={sensorConfig.entity_id}
+                      key={entity_id}
                       secondaryAction={
                         <IconButton
                           edge="end"
                           onClick={async () => {
                             try {
-                              await removePresenceSensor(area.id, sensorConfig.entity_id)
+                              await removePresenceSensor(area.id, entity_id)
                               loadData()
                             } catch (error) {
                               console.error('Failed to remove presence sensor:', error)
@@ -671,14 +743,9 @@ const ZoneDetail = () => {
                           </Box>
                         }
                         secondary={
-                          <>
-                            <Typography component="span" variant="body2" color="text.secondary" display="block">
-                              When away: {awayText}
-                            </Typography>
-                            <Typography component="span" variant="body2" color="text.secondary" display="block">
-                              When home: {homeText}
-                            </Typography>
-                          </>
+                          <Typography component="span" variant="body2" color="text.secondary">
+                            Controls preset mode: switches to "Away" when nobody is home
+                          </Typography>
                         }
                       />
                     </ListItem>

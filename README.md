@@ -27,9 +27,16 @@ A Home Assistant custom integration for managing multi-area heating systems with
   - Uses Home Assistant Statistics API for efficient database storage
   - Tracks heating rates, cooldown rates, and outdoor temperature correlations
 - 🎯 **Preset Modes** - Quick temperature presets (AWAY, ECO, COMFORT, HOME, SLEEP, ACTIVITY, BOOST)
+  - **Global Preset Temperatures** - Configure default temperatures for all areas (v0.4.3+)
+  - **Per-Area Customization** - Choose between global defaults or custom temperatures per area
+  - Seamless switching between global and custom settings with toggle controls
 - ⚡ **Boost Mode** - Temporary high-temperature boost with configurable duration
 - 🪟 **Window Sensor Integration** - Configurable actions (turn off, reduce temp, or none) when windows/doors open with custom temperature drops
-- 👤 **Presence Detection** - Advanced presence-based heating with separate away/home actions, supports motion sensors, Person entities, and Device Trackers
+- 👤 **Presence Detection** - Automatic preset mode switching based on occupancy (v0.4.3+)
+  - Switches to "Away" preset when nobody is home
+  - Returns to "Home" preset when someone arrives
+  - Works with Person entities, Device Trackers, and motion sensors
+  - No manual temperature adjustments - uses your configured preset temperatures
 - 🔌 **Smart Switch Control** - Per-area control to turn off switches/pumps when not heating (v0.4.2+)
   - Energy efficient: Automatically shuts down circulation pumps when heating stops
   - Always-on mode: Keep pumps running continuously for systems requiring constant circulation

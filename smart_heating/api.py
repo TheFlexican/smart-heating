@@ -67,6 +67,8 @@ class SmartHeatingAPIView(HomeAssistantView):
             elif endpoint.startswith("areas/") and "/learning" in endpoint:
                 area_id = endpoint.split("/")[1]
                 return await self.get_learning_stats(request, area_id)
+            elif endpoint == "global_presets":
+                return await self.get_global_presets(request)
             elif endpoint.startswith("areas/"):
                 area_id = endpoint.split("/")[1]
                 return await self.get_area(request, area_id)
@@ -148,6 +150,14 @@ class SmartHeatingAPIView(HomeAssistantView):
                 return await self.set_frost_protection(request, data)
             elif endpoint == "history/config":
                 return await self.set_history_config(request, data)
+            elif endpoint == "global_presets":
+                return await self.set_global_presets(request, data)
+            elif endpoint.startswith("areas/") and endpoint.endswith("/preset_config"):
+                area_id = endpoint.split("/")[1]
+                return await self.set_area_preset_config(request, area_id, data)
+            elif endpoint.startswith("areas/") and endpoint.endswith("/manual_override"):
+                area_id = endpoint.split("/")[1]
+                return await self.set_manual_override(request, area_id, data)
             elif endpoint == "call_service":
                 return await self.call_service(request, data)
             else:
@@ -290,6 +300,13 @@ class SmartHeatingAPIView(HomeAssistantView):
                     "home_temp": stored_area.home_temp,
                     "sleep_temp": stored_area.sleep_temp,
                     "activity_temp": stored_area.activity_temp,
+                    # Global preset flags
+                    "use_global_away": stored_area.use_global_away,
+                    "use_global_eco": stored_area.use_global_eco,
+                    "use_global_comfort": stored_area.use_global_comfort,
+                    "use_global_home": stored_area.use_global_home,
+                    "use_global_sleep": stored_area.use_global_sleep,
+                    "use_global_activity": stored_area.use_global_activity,
                     # Boost mode
                     "boost_mode_active": stored_area.boost_mode_active,
                     "boost_temp": stored_area.boost_temp,
@@ -791,6 +808,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                 if ha_area:
                     # Create internal storage for this HA area
                     area = Area(area_id, ha_area.name)
+                    area.area_manager = self.area_manager
                     self.area_manager.areas[area_id] = area
                 else:
                     return web.json_response(
@@ -844,7 +862,6 @@ class SmartHeatingAPIView(HomeAssistantView):
         Returns:
             JSON response
         """
-        _LOGGER.debug("set_temperature called for area_id: %s", area_id)
         temperature = data.get("temperature")
         
         if temperature is None:
@@ -853,14 +870,33 @@ class SmartHeatingAPIView(HomeAssistantView):
             )
         
         try:
-            _LOGGER.debug("Setting temperature for area %s to %s", area_id, temperature)
+            area = self.area_manager.get_area(area_id)
+            if not area:
+                return web.json_response(
+                    {"error": f"Area {area_id} not found"}, status=404
+                )
+            
+            old_temp = area.target_temperature
+            old_effective = area.get_effective_target_temperature()
+            preset_context = f", preset={area.preset_mode}" if area.preset_mode != "none" else ""
+            
+            _LOGGER.warning(
+                "🌡️ API: SET TEMPERATURE for %s: %.1f°C → %.1f°C%s | Effective: %.1f°C → ?",
+                area.name, old_temp, temperature, preset_context, old_effective
+            )
+            
             self.area_manager.set_area_target_temperature(area_id, temperature)
             
             # Clear manual override mode when user controls temperature via app
-            area = self.area_manager.get_area(area_id)
             if area and hasattr(area, 'manual_override') and area.manual_override:
-                _LOGGER.info("Disabling manual override for area %s - app is now controlling temperature", area_id)
+                _LOGGER.warning("🔓 Clearing manual override for %s - app now in control", area.name)
                 area.manual_override = False
+            
+            new_effective = area.get_effective_target_temperature()
+            _LOGGER.warning(
+                "✓ Temperature set: %s now %.1f°C (effective: %.1f°C)",
+                area.name, temperature, new_effective
+            )
             
             await self.area_manager.async_save()
             
@@ -987,6 +1023,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                     target_temperature=20.0,
                     enabled=True
                 )
+                area.area_manager = self.area_manager
                 self.area_manager.areas[area_id] = area
             
             area.hidden = True
@@ -1039,6 +1076,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                     target_temperature=20.0,
                     enabled=True
                 )
+                area.area_manager = self.area_manager
                 self.area_manager.areas[area_id] = area
             
             area.hidden = False
@@ -1220,6 +1258,189 @@ class SmartHeatingAPIView(HomeAssistantView):
             "stats": stats
         })
 
+    async def get_global_presets(self, request: web.Request) -> web.Response:
+        """Get global preset temperatures.
+        
+        Args:
+            request: Request object
+            
+        Returns:
+            JSON response with global preset temperatures
+        """
+        return web.json_response({
+            "away_temp": self.area_manager.global_away_temp,
+            "eco_temp": self.area_manager.global_eco_temp,
+            "comfort_temp": self.area_manager.global_comfort_temp,
+            "home_temp": self.area_manager.global_home_temp,
+            "sleep_temp": self.area_manager.global_sleep_temp,
+            "activity_temp": self.area_manager.global_activity_temp,
+        })
+
+    async def set_global_presets(self, request: web.Request, data: dict) -> web.Response:
+        """Set global preset temperatures.
+        
+        Args:
+            request: Request object
+            data: Dictionary with preset temperatures to update
+            
+        Returns:
+            JSON response
+        """
+        # Log what's changing
+        changes = {k: v for k, v in data.items() if k.endswith("_temp")}
+        _LOGGER.warning("🌍 API: SET GLOBAL PRESETS: %s", changes)
+        
+        # Update global preset temperatures
+        if "away_temp" in data:
+            old = self.area_manager.global_away_temp
+            self.area_manager.global_away_temp = float(data["away_temp"])
+            _LOGGER.warning("  Global Away: %.1f°C → %.1f°C", old, self.area_manager.global_away_temp)
+        if "eco_temp" in data:
+            old = self.area_manager.global_eco_temp
+            self.area_manager.global_eco_temp = float(data["eco_temp"])
+            _LOGGER.warning("  Global Eco: %.1f°C → %.1f°C", old, self.area_manager.global_eco_temp)
+        if "comfort_temp" in data:
+            old = self.area_manager.global_comfort_temp
+            self.area_manager.global_comfort_temp = float(data["comfort_temp"])
+            _LOGGER.warning("  Global Comfort: %.1f°C → %.1f°C", old, self.area_manager.global_comfort_temp)
+        if "home_temp" in data:
+            old = self.area_manager.global_home_temp
+            self.area_manager.global_home_temp = float(data["home_temp"])
+            _LOGGER.warning("  Global Home: %.1f°C → %.1f°C", old, self.area_manager.global_home_temp)
+        if "sleep_temp" in data:
+            old = self.area_manager.global_sleep_temp
+            self.area_manager.global_sleep_temp = float(data["sleep_temp"])
+            _LOGGER.warning("  Global Sleep: %.1f°C → %.1f°C", old, self.area_manager.global_sleep_temp)
+        if "activity_temp" in data:
+            old = self.area_manager.global_activity_temp
+            self.area_manager.global_activity_temp = float(data["activity_temp"])
+            _LOGGER.warning("  Global Activity: %.1f°C → %.1f°C", old, self.area_manager.global_activity_temp)
+        
+        # Save to storage
+        await self.area_manager.async_save()
+        
+        _LOGGER.warning("✓ Global presets saved")
+        
+        return web.json_response({"success": True})
+
+    async def set_area_preset_config(
+        self, request: web.Request, area_id: str, data: dict
+    ) -> web.Response:
+        """Set per-area preset configuration (use global vs custom temperatures).
+        
+        Args:
+            request: Request object
+            area_id: Area identifier
+            data: Dictionary with use_global_* flags
+            
+        Returns:
+            JSON response
+        """
+        area = self.area_manager.get_area(area_id)
+        if not area:
+            return web.json_response(
+                {"error": f"Area {area_id} not found"}, status=404
+            )
+        
+        changes = {k: v for k, v in data.items() if k.startswith("use_global_")}
+        _LOGGER.warning("⚙️  API: SET PRESET CONFIG for %s: %s", area.name, changes)
+        
+        # Update use_global_* flags
+        if "use_global_away" in data:
+            area.use_global_away = bool(data["use_global_away"])
+        if "use_global_eco" in data:
+            area.use_global_eco = bool(data["use_global_eco"])
+        if "use_global_comfort" in data:
+            area.use_global_comfort = bool(data["use_global_comfort"])
+        if "use_global_home" in data:
+            area.use_global_home = bool(data["use_global_home"])
+        if "use_global_sleep" in data:
+            area.use_global_sleep = bool(data["use_global_sleep"])
+        if "use_global_activity" in data:
+            area.use_global_activity = bool(data["use_global_activity"])
+        
+        # Save to storage
+        await self.area_manager.async_save()
+        
+        _LOGGER.warning("✓ Preset config saved for %s", area.name)
+        
+        # Refresh coordinator to update frontend
+        entry_ids = [
+            key for key in self.hass.data[DOMAIN].keys()
+            if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine"]
+        ]
+        if entry_ids:
+            coordinator = self.hass.data[DOMAIN][entry_ids[0]]
+            await coordinator.async_request_refresh()
+        
+        return web.json_response({"success": True})
+
+    async def set_manual_override(
+        self, request: web.Request, area_id: str, data: dict
+    ) -> web.Response:
+        """Toggle manual override mode for an area.
+        
+        Args:
+            request: Request object
+            area_id: Area identifier
+            data: Dictionary with 'enabled' boolean
+            
+        Returns:
+            JSON response
+        """
+        area = self.area_manager.get_area(area_id)
+        if not area:
+            return web.json_response(
+                {"error": f"Area {area_id} not found"}, status=404
+            )
+        
+        enabled = data.get("enabled")
+        if enabled is None:
+            return web.json_response(
+                {"error": "enabled field is required"}, status=400
+            )
+        
+        old_state = area.manual_override
+        area.manual_override = bool(enabled)
+        
+        _LOGGER.warning(
+            "🎛️ API: MANUAL OVERRIDE for %s: %s → %s",
+            area.name,
+            "ON" if old_state else "OFF",
+            "ON" if area.manual_override else "OFF"
+        )
+        
+        # If turning off manual override and there's an active preset, update target to preset temp
+        if not area.manual_override and area.preset_mode and area.preset_mode != "none":
+            effective_temp = area.get_effective_target_temperature()
+            old_target = area.target_temperature
+            # Update the base target temperature to match the preset temperature
+            # This ensures the UI shows the correct temperature
+            area.target_temperature = effective_temp
+            _LOGGER.warning(
+                "✓ %s now using preset mode '%s': %.1f°C → %.1f°C",
+                area.name, area.preset_mode, old_target, effective_temp
+            )
+        
+        # Save to storage
+        await self.area_manager.async_save()
+        
+        # Trigger climate control to apply changes
+        climate_controller = self.hass.data.get(DOMAIN, {}).get("climate_controller")
+        if climate_controller:
+            await climate_controller.async_control_heating()
+        
+        # Refresh coordinator
+        entry_ids = [
+            key for key in self.hass.data[DOMAIN].keys()
+            if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine"]
+        ]
+        if entry_ids:
+            coordinator = self.hass.data[DOMAIN][entry_ids[0]]
+            await coordinator.async_request_refresh()
+        
+        return web.json_response({"success": True})
+
     async def add_schedule(
         self, request: web.Request, area_id: str, data: dict
     ) -> web.Response:
@@ -1252,6 +1473,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                 if ha_area:
                     # Create internal storage for this HA area
                     area = Area(area_id, ha_area.name)
+                    area.area_manager = self.area_manager
                     self.area_manager.areas[area_id] = area
                 else:
                     return web.json_response(
@@ -1348,11 +1570,16 @@ class SmartHeatingAPIView(HomeAssistantView):
             old_target = area.target_temperature
             old_effective = area.get_effective_target_temperature()
             
+            _LOGGER.warning(
+                "🎛️  API: SET PRESET MODE for %s: '%s' → '%s' | Current temp: %.1f°C, Effective: %.1f°C",
+                area.name, old_preset, preset_mode, old_target, old_effective
+            )
+            
             area.set_preset_mode(preset_mode)
             
             # Clear manual override mode when user sets preset via app
             if hasattr(area, 'manual_override') and area.manual_override:
-                _LOGGER.info("Disabling manual override for area %s - preset mode is now controlling temperature", area_id)
+                _LOGGER.warning("🔓 Clearing manual override for %s - preset mode now in control", area.name)
                 area.manual_override = False
             
             await self.area_manager.async_save()
@@ -1361,8 +1588,8 @@ class SmartHeatingAPIView(HomeAssistantView):
             new_effective = area.get_effective_target_temperature()
             
             _LOGGER.warning(
-                "PRESET CHANGE for %s: '%s' → '%s' | Base temp: %.1f°C | Effective temp: %.1f°C → %.1f°C",
-                area_id, old_preset, preset_mode, old_target, old_effective, new_effective
+                "✓ Preset applied: %s → '%s' | Effective temp: %.1f°C → %.1f°C (base: %.1f°C)",
+                area.name, preset_mode, old_effective, new_effective, old_target
             )
             
             # Trigger immediate climate control to apply new temperature
@@ -1585,10 +1812,14 @@ class SmartHeatingAPIView(HomeAssistantView):
     ) -> web.Response:
         """Add presence sensor to an area.
         
+        Presence sensors control preset mode switching:
+        - When away: Switch to "away" preset
+        - When home: Switch back to previous preset
+        
         Args:
             request: Request object
             area_id: Area identifier
-            data: Request data with configuration
+            data: Request data with entity_id
             
         Returns:
             JSON response
@@ -1604,19 +1835,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             if not area:
                 raise ValueError(f"Area {area_id} not found")
             
-            # Extract configuration parameters
-            action_when_away = data.get("action_when_away", "reduce_temperature")
-            action_when_home = data.get("action_when_home", "increase_temperature")
-            temp_drop_when_away = data.get("temp_drop_when_away")
-            temp_boost_when_home = data.get("temp_boost_when_home")
-            
-            area.add_presence_sensor(
-                entity_id, 
-                action_when_away, 
-                action_when_home,
-                temp_drop_when_away,
-                temp_boost_when_home
-            )
+            area.add_presence_sensor(entity_id)
             await self.area_manager.async_save()
             
             # Refresh coordinator

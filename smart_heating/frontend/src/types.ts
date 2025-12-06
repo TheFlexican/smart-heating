@@ -60,6 +60,14 @@ export interface Zone {
   sleep_temp?: number
   activity_temp?: number
   
+  // Global preset flags (use global vs custom temperatures)
+  use_global_away?: boolean
+  use_global_eco?: boolean
+  use_global_comfort?: boolean
+  use_global_home?: boolean
+  use_global_sleep?: boolean
+  use_global_activity?: boolean
+  
   // Boost mode settings
   boost_mode_active?: boolean
   boost_duration?: number
@@ -94,10 +102,9 @@ export interface WindowSensorConfig {
 // Presence sensor configuration
 export interface PresenceSensorConfig {
   entity_id: string
-  action_when_away: 'turn_off' | 'reduce_temperature' | 'set_eco' | 'none'
-  action_when_home: 'increase_temperature' | 'set_comfort' | 'none'
-  temp_drop_when_away?: number  // Only used when action_when_away is 'reduce_temperature'
-  temp_boost_when_home?: number  // Only used when action_when_home is 'increase_temperature'
+  // Preset mode switching is automatic:
+  // - Away when no presence → "away" preset
+  // - Home when presence detected → "home" preset
 }
 
 // Home Assistant entity for selector
@@ -113,6 +120,16 @@ export interface HassEntity {
 
 // Alias Area to Zone for compatibility
 export type Area = Zone
+
+// Global preset temperatures
+export interface GlobalPresets {
+  away_temp: number
+  eco_temp: number
+  comfort_temp: number
+  home_temp: number
+  sleep_temp: number
+  activity_temp: number
+}
 
 export interface LearningStats {
   total_events: number

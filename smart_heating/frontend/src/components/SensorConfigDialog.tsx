@@ -33,12 +33,6 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
   // Window sensor states
   const [windowAction, setWindowAction] = useState<'turn_off' | 'reduce_temperature' | 'none'>('reduce_temperature')
   const [windowTempDrop, setWindowTempDrop] = useState(5)
-  
-  // Presence sensor states
-  const [awayAction, setAwayAction] = useState<'turn_off' | 'reduce_temperature' | 'set_eco' | 'none'>('reduce_temperature')
-  const [homeAction, setHomeAction] = useState<'increase_temperature' | 'set_comfort' | 'none'>('increase_temperature')
-  const [awayTempDrop, setAwayTempDrop] = useState(3)
-  const [homeTempBoost, setHomeTempBoost] = useState(2)
 
   useEffect(() => {
     if (open) {
@@ -73,21 +67,12 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
         if (windowAction === 'reduce_temperature') {
           config.temp_drop = windowTempDrop
         }
-        console.log('Adding window sensor:', config)
         await onAdd(config)
       } else {
+        // Presence sensor - only send entity_id (preset switching is automatic)
         const config: PresenceSensorConfig = {
           entity_id: selectedEntity,
-          action_when_away: awayAction,
-          action_when_home: homeAction,
         }
-        if (awayAction === 'reduce_temperature') {
-          config.temp_drop_when_away = awayTempDrop
-        }
-        if (homeAction === 'increase_temperature') {
-          config.temp_boost_when_home = homeTempBoost
-        }
-        console.log('Adding presence sensor:', config)
         await onAdd(config)
       }
       
@@ -103,10 +88,6 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
     setSelectedEntity('')
     setWindowAction('reduce_temperature')
     setWindowTempDrop(5)
-    setAwayAction('reduce_temperature')
-    setHomeAction('increase_temperature')
-    setAwayTempDrop(3)
-    setHomeTempBoost(2)
     onClose()
   }
 
@@ -206,62 +187,18 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
               ) : (
                 // Presence Sensor Configuration
                 <>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    When Away (No Presence)
-                  </Typography>
-                  <FormControl fullWidth>
-                    <InputLabel>Action When Away</InputLabel>
-                    <Select
-                      value={awayAction}
-                      label="Action When Away"
-                      onChange={(e) => setAwayAction(e.target.value as any)}
-                    >
-                      <MenuItem value="reduce_temperature">Reduce Temperature</MenuItem>
-                      <MenuItem value="set_eco">Set to Eco Mode</MenuItem>
-                      <MenuItem value="turn_off">Turn Off Heating</MenuItem>
-                      <MenuItem value="none">No Action</MenuItem>
-                    </Select>
-                  </FormControl>
-
-                  {awayAction === 'reduce_temperature' && (
-                    <TextField
-                      label="Temperature Drop When Away (°C)"
-                      type="number"
-                      value={awayTempDrop}
-                      onChange={(e) => setAwayTempDrop(Number(e.target.value))}
-                      inputProps={{ min: 1, max: 10, step: 0.5 }}
-                      helperText="How much to reduce temperature when away"
-                      fullWidth
-                    />
-                  )}
-
-                  <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>
-                    When Home (Presence Detected)
-                  </Typography>
-                  <FormControl fullWidth>
-                    <InputLabel>Action When Home</InputLabel>
-                    <Select
-                      value={homeAction}
-                      label="Action When Home"
-                      onChange={(e) => setHomeAction(e.target.value as any)}
-                    >
-                      <MenuItem value="increase_temperature">Increase Temperature</MenuItem>
-                      <MenuItem value="set_comfort">Set to Comfort Mode</MenuItem>
-                      <MenuItem value="none">No Action</MenuItem>
-                    </Select>
-                  </FormControl>
-
-                  {homeAction === 'increase_temperature' && (
-                    <TextField
-                      label="Temperature Boost When Home (°C)"
-                      type="number"
-                      value={homeTempBoost}
-                      onChange={(e) => setHomeTempBoost(Number(e.target.value))}
-                      inputProps={{ min: 0.5, max: 5, step: 0.5 }}
-                      helperText="How much to increase temperature when home"
-                      fullWidth
-                    />
-                  )}
+                  <Alert severity="info">
+                    <Typography variant="body2">
+                      <strong>Preset Mode Control</strong>
+                    </Typography>
+                    <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                      When nobody is home, the system will automatically switch to the "Away" preset mode.
+                      When someone comes home, it will switch back to the "Home" preset mode.
+                    </Typography>
+                    <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                      Configure preset temperatures in <strong>Settings → Global Presets</strong>.
+                    </Typography>
+                  </Alert>
                 </>
               )}
             </>

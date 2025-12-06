@@ -8,6 +8,7 @@ import ZoneList from './components/ZoneList'
 import DevicePanel from './components/DevicePanel'
 import OpenThermStatus from './components/OpenThermStatus'
 import ZoneDetail from './pages/AreaDetail'
+import GlobalSettings from './pages/GlobalSettings'
 import { Zone, Device } from './types'
 import { getZones, getDevices, addDeviceToZone, getConfig } from './api'
 import { useWebSocket } from './hooks/useWebSocket'
@@ -225,6 +226,7 @@ function App() {
         <Routes>
           <Route path="/" element={<ZonesOverview />} />
           <Route path="/area/:areaId" element={<ZoneDetail />} />
+          <Route path="/settings/global" element={<GlobalSettings />} />
         </Routes>
       </Router>
       
