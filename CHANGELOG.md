@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.3] - 2025-12-06
+
+### ✨ Improved - Smart Night Boost & Schedule Integration
+
+**Smart Night Boost Enhancements**
+- **Schedule-Aware Targeting**: Smart night boost now reads morning schedules automatically
+  - Detects first morning schedule (between 00:00-12:00) as target time
+  - Falls back to configured `smart_night_boost_target_time` if no schedule exists
+  - Calculates optimal heating start time based on predicted heating duration
+  - Uses schedule's preset mode or temperature as target
+
+**Night Boost Schedule Coordination**
+- **Schedule Precedence**: Regular night boost no longer overlaps with active schedules
+  - Night boost only applies when NO schedule is active
+  - Allows schedules (e.g., "sleep" preset 22:00-06:30) to take precedence
+  - Night boost pre-heats BEFORE morning schedule starts, not during
+  - Better coordination between manual night boost and scheduled presets
+
+**Example Use Case**
+- Schedule: Saturday 22:00 - Sunday 07:00 (sleep preset)
+- Smart night boost: Detects 07:00 schedule, predicts heating time needed
+- Starts heating at optimal time (e.g., 06:30) to reach target by 07:00
+- Regular night boost: Only active when outside schedule periods
+
 ## [0.5.2] - 2025-12-06
 
 ### 🐛 Fixed

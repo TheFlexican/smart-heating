@@ -25,9 +25,15 @@ A Home Assistant custom integration for managing multi-area heating systems with
   - Toggle between temperature-based and preset-based scheduling
   - Combine with global preset temperatures for maximum flexibility
 - 🌙 **Night Boost** - Configurable temperature increase during night hours (customizable start/end times)
+  - **Schedule-Aware** - Automatically coordinates with active schedules (v0.5.3+)
+  - Only applies when NO schedule is active (schedules take precedence)
+  - Works as pre-heating mechanism before morning schedules
 - 🧠 **Adaptive Learning** - Machine learning system that learns heating patterns and weather correlation
   - Automatically predicts heating time based on outdoor temperature
-  - Smart night boost: Starts heating at optimal time to reach target by wake-up
+  - **Smart night boost** - Detects morning schedules and heats towards them (v0.5.3+)
+  - Reads first morning schedule (00:00-12:00) as target time
+  - Uses schedule's preset temperature as heating target
+  - Starts heating at optimal predicted time before schedule
   - Uses Home Assistant Statistics API for efficient database storage
   - Tracks heating rates, cooldown rates, and outdoor temperature correlations
 - 🎯 **Preset Modes** - Quick temperature presets (AWAY, ECO, COMFORT, HOME, SLEEP, ACTIVITY, BOOST)
@@ -1161,6 +1167,12 @@ Enable or disable a specific schedule.
 #### `smart_heating.set_night_boost`
 Configure night boost for an area (gradually increase temperature during configurable night hours).
 
+**Features (v0.5.3+):**
+- **Schedule-Aware**: Night boost only applies when NO schedule is active
+- **Smart Targeting**: Smart night boost automatically detects first morning schedule (00:00-12:00)
+- **Preset Integration**: Uses schedule's preset mode temperature as target
+- **Optimal Timing**: Predicts and starts heating at optimal time before schedule
+
 **Parameters:**
 - `area_id` (required): Area identifier
 - `night_boost_enabled` (optional): Enable/disable manual night boost
@@ -1168,7 +1180,7 @@ Configure night boost for an area (gradually increase temperature during configu
 - `night_boost_start_time` (optional): Start time in HH:MM format (default: 22:00)
 - `night_boost_end_time` (optional): End time in HH:MM format (default: 06:00)
 - `smart_night_boost_enabled` (optional): Enable/disable adaptive learning night boost
-- `smart_night_boost_target_time` (optional): Desired wake-up time in HH:MM format (e.g., "06:00")
+- `smart_night_boost_target_time` (optional): Fallback wake-up time (used if no morning schedule) in HH:MM format (e.g., "06:00")
 - `weather_entity_id` (optional): Outdoor temperature sensor entity for weather correlation
 
 **Example (Manual Night Boost):**
@@ -1180,16 +1192,22 @@ data:
   night_boost_offset: 0.5  # Add 0.5°C during night hours
   night_boost_start_time: "23:00"  # Start at 11 PM
   night_boost_end_time: "07:00"    # End at 7 AM
+  # Note: Only applies when NO schedule is active
 ```
 
-**Example (Smart Night Boost with Learning):**
+**Example (Smart Night Boost with Schedule Integration):**
 ```yaml
 service: smart_heating.set_night_boost
 data:
   area_id: "bedroom"
   smart_night_boost_enabled: true
-  smart_night_boost_target_time: "06:00"  # Room ready by 6 AM
-  weather_entity_id: "sensor.outdoor_temperature"  # For weather correlation
+  smart_night_boost_target_time: "06:00"  # Fallback if no morning schedule
+  weather_entity_id: "sensor.outdoor_temperature"
+  # Smart boost will:
+  # 1. Detect first morning schedule (e.g., 07:00 home preset)
+  # 2. Use schedule's preset temperature as target
+  # 3. Predict heating time needed
+  # 4. Start heating at optimal time to reach target by 07:00
 ```
 
 #### `smart_heating.set_hysteresis`

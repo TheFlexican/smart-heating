@@ -186,23 +186,56 @@ class ScheduleExecutor:
         
         Uses the learning engine to predict how long heating will take,
         then adjusts the night boost start time to ensure the room reaches
-        target temperature by the configured wake-up time.
+        target temperature by the configured wake-up time OR the first morning schedule.
         
         Args:
             area: Area instance with smart_night_boost_enabled
             now: Current datetime
         """
-        # Parse target time (e.g., "06:00" for wake-up)
-        target_hour, target_min = map(int, area.smart_night_boost_target_time.split(':'))
-        target_time = now.replace(hour=target_hour, minute=target_min, second=0, microsecond=0)
+        # Determine target time: either configured target OR first morning schedule
+        target_time = None
+        target_temp = area.target_temperature
         
-        # If target time has passed today, skip (will run tomorrow)
-        if now >= target_time:
+        # First, check if there's a morning schedule that should be our target
+        morning_schedule = self._find_first_morning_schedule(area.schedules, now)
+        
+        if morning_schedule:
+            # Use schedule's start time as target
+            target_hour, target_min = map(int, morning_schedule.start_time.split(':'))
+            target_time = now.replace(hour=target_hour, minute=target_min, second=0, microsecond=0)
+            
+            # Determine target temperature from schedule
+            if morning_schedule.preset_mode:
+                # Get temperature from preset mode
+                target_temp = self._get_preset_temperature(area, morning_schedule.preset_mode)
+            elif morning_schedule.temperature is not None:
+                target_temp = morning_schedule.temperature
+            
+            _LOGGER.debug(
+                "Smart night boost for %s: Using morning schedule at %s (target temp: %.1f°C)",
+                area.area_id,
+                morning_schedule.start_time,
+                target_temp
+            )
+        elif area.smart_night_boost_target_time:
+            # Fallback to configured target time
+            target_hour, target_min = map(int, area.smart_night_boost_target_time.split(':'))
+            target_time = now.replace(hour=target_hour, minute=target_min, second=0, microsecond=0)
+            _LOGGER.debug(
+                "Smart night boost for %s: Using configured target time %s",
+                area.area_id,
+                area.smart_night_boost_target_time
+            )
+        else:
+            # No target configured and no morning schedule
             return
         
-        # Get current and target temperatures
+        # If target time has passed today, use tomorrow's target
+        if now >= target_time:
+            target_time += timedelta(days=1)
+        
+        # Get current temperature
         current_temp = area.current_temperature
-        target_temp = area.target_temperature
         
         if current_temp is None:
             _LOGGER.warning("Cannot predict smart night boost for %s: no temperature data", area.area_id)
@@ -237,7 +270,6 @@ class ScheduleExecutor:
             return
         
         # Calculate when to start heating
-        from datetime import timedelta
         heating_duration = timedelta(minutes=predicted_minutes)
         optimal_start_time = target_time - heating_duration
         
@@ -249,11 +281,12 @@ class ScheduleExecutor:
         if now >= optimal_start_time and now < target_time:
             # Override night boost settings temporarily for this cycle
             _LOGGER.info(
-                "Smart night boost for area %s: Starting heating at %s (predicted %d min, target %s)",
+                "Smart night boost for area %s: Starting heating at %s (predicted %d min, target %s @ %.1f°C)",
                 area.area_id,
                 now.strftime("%H:%M"),
                 predicted_minutes,
-                area.smart_night_boost_target_time
+                target_time.strftime("%H:%M"),
+                target_temp
             )
             # The climate controller will handle the actual heating
             # We just log the prediction here
@@ -261,11 +294,81 @@ class ScheduleExecutor:
             time_until_start = (optimal_start_time - now).total_seconds() / 60
             if time_until_start > 0:
                 _LOGGER.debug(
-                    "Smart night boost for area %s: Will start in %.0f min (predicted %d min heating)",
+                    "Smart night boost for area %s: Will start in %.0f min (predicted %d min heating to %.1f°C)",
                     area.area_id,
                     time_until_start,
-                    predicted_minutes
+                    predicted_minutes,
+                    target_temp
                 )
+    
+    def _find_first_morning_schedule(self, schedules: dict, now: datetime) -> Optional[object]:
+        """Find the first schedule entry in the morning (after midnight, before noon).
+        
+        This is used by smart night boost to determine when to start heating.
+        
+        Args:
+            schedules: Dictionary of schedule entries
+            now: Current datetime
+            
+        Returns:
+            First morning schedule or None
+        """
+        current_day = DAYS_OF_WEEK[now.weekday()]
+        morning_schedules = []
+        
+        for schedule in schedules.values():
+            if not schedule.enabled:
+                continue
+            
+            # Check if schedule is for current day
+            if schedule.day != current_day:
+                continue
+            
+            # Parse start time
+            try:
+                start_hour, start_min = map(int, schedule.start_time.split(':'))
+                
+                # Consider "morning" as 00:00 to 12:00
+                if 0 <= start_hour < 12:
+                    morning_schedules.append((start_hour, start_min, schedule))
+            except (ValueError, AttributeError):
+                continue
+        
+        # Sort by time and return earliest
+        if morning_schedules:
+            morning_schedules.sort(key=lambda x: (x[0], x[1]))
+            return morning_schedules[0][2]  # Return schedule object
+        
+        return None
+    
+    def _get_preset_temperature(self, area, preset_mode: str) -> float:
+        """Get the effective temperature for a preset mode.
+        
+        Args:
+            area: Area instance
+            preset_mode: Preset mode name (away, eco, comfort, home, sleep, activity)
+            
+        Returns:
+            Temperature for the preset
+        """
+        preset_temps = {
+            "away": (area.away_temp, area.use_global_away),
+            "eco": (area.eco_temp, area.use_global_eco),
+            "comfort": (area.comfort_temp, area.use_global_comfort),
+            "home": (area.home_temp, area.use_global_home),
+            "sleep": (area.sleep_temp, area.use_global_sleep),
+            "activity": (area.activity_temp, area.use_global_activity),
+        }
+        
+        if preset_mode in preset_temps:
+            temp, use_global = preset_temps[preset_mode]
+            # If using global, get from area_manager's global presets
+            if use_global and hasattr(self.area_manager, f'global_{preset_mode}_temp'):
+                return getattr(self.area_manager, f'global_{preset_mode}_temp')
+            return temp
+        
+        # Default fallback
+        return area.target_temperature
 
     async def _apply_schedule(self, area, schedule) -> None:
         """Apply a schedule's temperature or preset mode to an area.

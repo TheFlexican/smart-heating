@@ -626,7 +626,12 @@ class Area:
                 # Period crosses midnight (e.g., 22:00-06:00)
                 is_active = current_minutes >= start_minutes or current_minutes < end_minutes
             
-            if is_active:
+            # Important: Only apply night boost if we're NOT in a schedule period
+            # This allows schedules (like "sleep" preset from 22:00-06:30) to take precedence
+            # Night boost is meant to pre-heat BEFORE the morning schedule starts
+            in_schedule = self.get_active_schedule_temperature(current_time) is not None
+            
+            if is_active and not in_schedule:
                 target += self.night_boost_offset
                 _LOGGER.debug(
                     "Night boost active for area %s (%s-%s): %.1f°C + %.1f°C = %.1f°C",
