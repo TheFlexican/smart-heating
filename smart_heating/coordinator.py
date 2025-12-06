@@ -41,7 +41,7 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
 
     async def async_setup(self) -> None:
         """Set up the coordinator with state change listeners."""
-        _LOGGER.warning("=== COORDINATOR ASYNC_SETUP CALLED ===")
+        _LOGGER.debug("Coordinator async_setup called")
         # Get all device entity IDs that we need to track
         tracked_entities = []
         areas = self.area_manager.get_all_areas()
@@ -63,7 +63,7 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         
         # Do initial update
         await self.async_refresh()
-        _LOGGER.warning("=== COORDINATOR ASYNC_SETUP COMPLETED ===")
+        _LOGGER.debug("Coordinator async_setup completed")
 
     @callback
     def _handle_state_change(self, event: Event) -> None:
@@ -132,9 +132,9 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
                             break
                     
                     # Force immediate coordinator refresh after debounce (not rate-limited)
-                    _LOGGER.warning("=== FORCING COORDINATOR REFRESH AFTER DEBOUNCE ===")
+                    _LOGGER.debug("Forcing coordinator refresh after debounce")
                     await self.async_refresh()
-                    _LOGGER.warning("=== COORDINATOR REFRESH COMPLETED ===")
+                    _LOGGER.debug("Coordinator refresh completed")
                     
                 except asyncio.CancelledError:
                     _LOGGER.warning("Debounce task cancelled for %s", entity_id)
@@ -172,7 +172,7 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         
         if should_update:
             # Trigger immediate coordinator update
-            _LOGGER.warning("=== TRIGGERING COORDINATOR REFRESH FOR %s ===", entity_id)
+            _LOGGER.debug("Triggering coordinator refresh for %s", entity_id)
             self.hass.async_create_task(self.async_request_refresh())
 
     async def async_shutdown(self) -> None:
@@ -195,11 +195,11 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             UpdateFailed: If update fails
         """
         try:
-            _LOGGER.warning("=== COORDINATOR UPDATE DATA CALLED ===")
+            _LOGGER.debug("Coordinator update data called")
             
             # Get all areas
             areas = self.area_manager.get_all_areas()
-            _LOGGER.warning("Processing %d areas for coordinator update", len(areas))
+            _LOGGER.debug("Processing %d areas for coordinator update", len(areas))
             
             # Build data structure
             data = {
@@ -254,7 +254,7 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
                     
                     devices_data.append(device_data)
                 
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "Building data for area %s: manual_override=%s, target_temp=%s",
                     area_id, getattr(area, 'manual_override', False), area.target_temperature
                 )
