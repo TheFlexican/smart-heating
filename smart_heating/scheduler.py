@@ -64,6 +64,19 @@ class ScheduleExecutor:
             self._unsub_interval = None
         _LOGGER.info("Schedule executor stopped")
 
+    def clear_schedule_cache(self, area_id: str) -> None:
+        """Clear the last applied schedule cache for an area.
+        
+        This should be called when a schedule is removed or modified
+        to ensure the scheduler re-evaluates and applies the current schedule.
+        
+        Args:
+            area_id: Area identifier
+        """
+        if area_id in self._last_applied_schedule:
+            del self._last_applied_schedule[area_id]
+            _LOGGER.debug("Cleared schedule cache for area %s", area_id)
+
     async def _async_check_schedules(self, now: Optional[datetime] = None) -> None:
         """Check all area schedules and apply temperatures if needed.
         
@@ -134,6 +147,7 @@ class ScheduleExecutor:
         """Find the active schedule for the given day and time.
         
         Handles schedules that cross midnight (e.g., Saturday 22:00 - Sunday 07:00).
+        Priority: midnight-crossing schedules checked first as they take precedence.
         
         Args:
             schedules: List of schedule entries
@@ -148,26 +162,7 @@ class ScheduleExecutor:
         current_day_idx = day_order.index(current_day)
         previous_day = day_order[(current_day_idx - 1) % 7]
         
-        # Check schedules for current day
-        for schedule in schedules.values():
-            if schedule.day == current_day:
-                # Parse schedule times
-                start_time = time.fromisoformat(schedule.start_time)
-                end_time = time.fromisoformat(schedule.end_time)
-                
-                # Check if current time is within schedule window
-                # Handle schedules that cross midnight
-                if start_time <= end_time:
-                    # Normal case: 08:00 - 22:00
-                    if start_time <= current_time < end_time:
-                        return schedule
-                else:
-                    # Crosses midnight: 22:00 - 06:00
-                    # Only match if we're in the late period (>= start_time)
-                    if current_time >= start_time:
-                        return schedule
-        
-        # Check if a schedule from the previous day extends into today
+        # FIRST: Check if a schedule from the previous day extends into today (higher priority)
         for schedule in schedules.values():
             if schedule.day == previous_day:
                 start_time = time.fromisoformat(schedule.start_time)
@@ -177,6 +172,41 @@ class ScheduleExecutor:
                 if start_time > end_time:
                     # Check if we're in the early period (< end_time)
                     if current_time < end_time:
+                        _LOGGER.debug(
+                            "Matched midnight-crossing schedule from %s: %s-%s",
+                            previous_day, schedule.start_time, schedule.end_time
+                        )
+                        return schedule
+        
+        # SECOND: Check midnight-crossing schedules that start today (high priority)
+        for schedule in schedules.values():
+            if schedule.day == current_day:
+                start_time = time.fromisoformat(schedule.start_time)
+                end_time = time.fromisoformat(schedule.end_time)
+                
+                # Crosses midnight: 22:00 - 06:00
+                if start_time > end_time:
+                    # Only match if we're in the late period (>= start_time)
+                    if current_time >= start_time:
+                        _LOGGER.debug(
+                            "Matched midnight-crossing schedule: %s-%s",
+                            schedule.start_time, schedule.end_time
+                        )
+                        return schedule
+        
+        # THIRD: Check normal (non-midnight-crossing) schedules for current day
+        for schedule in schedules.values():
+            if schedule.day == current_day:
+                start_time = time.fromisoformat(schedule.start_time)
+                end_time = time.fromisoformat(schedule.end_time)
+                
+                # Normal case: 08:00 - 22:00
+                if start_time <= end_time:
+                    if start_time <= current_time < end_time:
+                        _LOGGER.debug(
+                            "Matched normal schedule: %s-%s",
+                            schedule.start_time, schedule.end_time
+                        )
                         return schedule
                     
         return None
@@ -427,6 +457,15 @@ class ScheduleExecutor:
             
             # Set preset mode
             area.preset_mode = schedule.preset_mode
+            
+            # Clear manual override when schedule applies a preset
+            if hasattr(area, 'manual_override') and area.manual_override:
+                _LOGGER.info(
+                    "Clearing manual override for %s - schedule now controls preset",
+                    area.name
+                )
+                area.manual_override = False
+            
             await self.area_manager.async_save()
             
             _LOGGER.debug(
@@ -460,6 +499,15 @@ class ScheduleExecutor:
             
             # Update area target temperature
             area.target_temperature = target_temp
+            
+            # Clear manual override when schedule applies a temperature
+            if hasattr(area, 'manual_override') and area.manual_override:
+                _LOGGER.info(
+                    "Clearing manual override for %s - schedule now controls temperature",
+                    area.name
+                )
+                area.manual_override = False
+            
             await self.area_manager.async_save()
             
             # Update the climate entity if it exists

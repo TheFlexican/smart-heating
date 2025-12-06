@@ -119,11 +119,28 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
                     )
                     
                     # Update area target temperature AND set manual override flag
+                    # BUT only if this is truly a manual change (not from a schedule/preset)
                     for area in self.area_manager.get_all_areas().values():
                         if entity_id in area.devices:
+                            # Check if the temperature change matches the area's current target
+                            # If it does, this is likely from a schedule or preset, not manual
+                            expected_temp = area.get_effective_target_temperature()
+                            
+                            # Allow 0.1°C tolerance for floating point comparison
+                            if abs(new_temp - expected_temp) < 0.1:
+                                _LOGGER.info(
+                                    "Temperature change for %s matches expected %.1f°C - ignoring (not manual)",
+                                    area.name,
+                                    expected_temp
+                                )
+                                break
+                            
+                            # This is a true manual change - enter manual override mode
                             _LOGGER.warning(
-                                "Area %s entering MANUAL OVERRIDE mode - app will not control temperature until re-enabled",
-                                area.name
+                                "Area %s entering MANUAL OVERRIDE mode - thermostat changed to %.1f°C (expected %.1f°C)",
+                                area.name,
+                                new_temp,
+                                expected_temp
                             )
                             area.target_temperature = new_temp
                             area.manual_override = True  # Enter manual override mode

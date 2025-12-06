@@ -1593,6 +1593,11 @@ class SmartHeatingAPIView(HomeAssistantView):
             self.area_manager.remove_schedule_from_area(area_id, schedule_id)
             await self.area_manager.async_save()
             
+            # Clear the schedule cache so the scheduler re-evaluates immediately
+            schedule_executor = self.hass.data[DOMAIN].get("schedule_executor")
+            if schedule_executor:
+                schedule_executor.clear_schedule_cache(area_id)
+            
             return web.json_response({"success": True})
         except ValueError as err:
             return web.json_response(
@@ -2071,8 +2076,8 @@ class SmartHeatingAPIView(HomeAssistantView):
             if not area_logger:
                 return web.json_response({"logs": []})
             
-            # Get logs
-            logs = area_logger.get_logs(
+            # Get logs (async)
+            logs = await area_logger.async_get_logs(
                 area_id=area_id,
                 limit=int(limit) if limit else None,
                 event_type=event_type

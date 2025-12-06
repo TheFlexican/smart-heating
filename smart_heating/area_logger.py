@@ -141,13 +141,13 @@ class AreaLogger:
         # Run rotation in executor to avoid blocking
         await self._hass.async_add_executor_job(_rotate)
     
-    def get_logs(
+    async def async_get_logs(
         self,
         area_id: str,
         limit: int | None = None,
         event_type: str | None = None
     ) -> list[dict[str, Any]]:
-        """Get logs for a specific area.
+        """Get logs for a specific area (async).
         
         Args:
             area_id: Area identifier
@@ -163,7 +163,7 @@ class AreaLogger:
             # Read from specific event type file
             log_file = self._get_log_file_path(area_id, event_type)
             if log_file.exists():
-                logs = self._read_log_file(log_file)
+                logs = await self._async_read_log_file(log_file)
         else:
             # Read from all event type files and merge
             area_path = self._base_path / area_id
@@ -171,7 +171,8 @@ class AreaLogger:
                 for event_type_file in EVENT_TYPES:
                     log_file = area_path / f"{event_type_file}.jsonl"
                     if log_file.exists():
-                        logs.extend(self._read_log_file(log_file))
+                        file_logs = await self._async_read_log_file(log_file)
+                        logs.extend(file_logs)
         
         # Sort by timestamp (newest first)
         logs.sort(key=lambda x: x["timestamp"], reverse=True)
@@ -182,8 +183,8 @@ class AreaLogger:
         
         return logs
     
-    def _read_log_file(self, log_file: Path) -> list[dict[str, Any]]:
-        """Read all entries from a log file.
+    async def _async_read_log_file(self, log_file: Path) -> list[dict[str, Any]]:
+        """Read all entries from a log file (async).
         
         Args:
             log_file: Path to the log file
@@ -191,18 +192,21 @@ class AreaLogger:
         Returns:
             List of log entries
         """
-        logs = []
-        try:
-            with open(log_file, 'r', encoding='utf-8') as f:
-                for line in f:
-                    try:
-                        logs.append(json.loads(line.strip()))
-                    except json.JSONDecodeError:
-                        continue
-        except Exception as err:
-            _LOGGER.error("Failed to read log file %s: %s", log_file, err)
+        def _read():
+            logs = []
+            try:
+                with open(log_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        try:
+                            logs.append(json.loads(line.strip()))
+                        except json.JSONDecodeError:
+                            continue
+            except Exception as err:
+                _LOGGER.error("Failed to read log file %s: %s", log_file, err)
+            return logs
         
-        return logs
+        # Run file read in executor to avoid blocking
+        return await self._hass.async_add_executor_job(_read)
     
     def clear_logs(self, area_id: str, event_type: str | None = None) -> None:
         """Clear logs for an area.
