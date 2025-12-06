@@ -115,6 +115,17 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
           
           // Handle command phase messages
           if (message.type === 'result') {
+            // Check if this is a subscription update (has event data)
+            if (message.result?.event === 'update' && message.result?.data?.areas) {
+              console.log('Received areas update via WebSocket')
+              // Convert areas object to array (backend sends object with area_id as keys)
+              const areasData = message.result.data.areas
+              const areasArray = Object.values(areasData) as Zone[]
+              console.log('Received areas update:', areasArray)
+              options.onZonesUpdate?.(areasArray)
+              return
+            }
+            
             if (message.success) {
               console.log('Command successful:', message.id)
             } else {

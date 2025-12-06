@@ -1,14 +1,21 @@
 """DataUpdateCoordinator for the Smart Heating integration."""
+import asyncio
 import logging
 from datetime import timedelta
+from typing import Any
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, Event, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.const import ATTR_ENTITY_ID
 
 from .const import DOMAIN, STATE_INITIALIZED, UPDATE_INTERVAL
 from .area_manager import AreaManager
 
 _LOGGER = logging.getLogger(__name__)
+
+# Debounce delay for manual temperature changes (in seconds)
+MANUAL_TEMP_CHANGE_DEBOUNCE = 2.0
 
 
 class SmartHeatingCoordinator(DataUpdateCoordinator):
@@ -28,7 +35,152 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             update_interval=UPDATE_INTERVAL,
         )
         self.area_manager = area_manager
+        self._unsub_state_listener = None
+        self._debounce_tasks = {}  # Track debounce tasks per entity
         _LOGGER.debug("Smart Heating coordinator initialized")
+
+    async def async_setup(self) -> None:
+        """Set up the coordinator with state change listeners."""
+        _LOGGER.warning("=== COORDINATOR ASYNC_SETUP CALLED ===")
+        # Get all device entity IDs that we need to track
+        tracked_entities = []
+        areas = self.area_manager.get_all_areas()
+        _LOGGER.warning("Found %d areas to process", len(areas))
+        for area in areas.values():
+            for device_id in area.devices.keys():
+                tracked_entities.append(device_id)
+        
+        if tracked_entities:
+            _LOGGER.warning("Setting up state change listeners for %d devices: %s", len(tracked_entities), tracked_entities[:5])
+            self._unsub_state_listener = async_track_state_change_event(
+                self.hass,
+                tracked_entities,
+                self._handle_state_change
+            )
+            _LOGGER.warning("State change listeners successfully registered")
+        else:
+            _LOGGER.warning("No devices found to track for state changes")
+        
+        # Do initial update
+        await self.async_refresh()
+        _LOGGER.warning("=== COORDINATOR ASYNC_SETUP COMPLETED ===")
+
+    @callback
+    def _handle_state_change(self, event: Event) -> None:
+        """Handle state changes of tracked entities.
+        
+        Args:
+            event: State change event
+        """
+        entity_id = event.data.get("entity_id")
+        old_state = event.data.get("old_state")
+        new_state = event.data.get("new_state")
+        
+        if not new_state:
+            return
+        
+        # Only trigger update for relevant changes
+        should_update = False
+        
+        if old_state is None:
+            # Initial state, trigger update
+            should_update = True
+        elif old_state.state != new_state.state:
+            # State changed
+            should_update = True
+            _LOGGER.debug("State changed for %s: %s -> %s", entity_id, old_state.state, new_state.state)
+        elif old_state.attributes.get('temperature') != new_state.attributes.get('temperature'):
+            # Target temperature changed (for thermostats)
+            # Debounce this to handle rapid changes (e.g., Google Nest dial turning)
+            new_temp = new_state.attributes.get('temperature')
+            old_temp = old_state.attributes.get('temperature')
+            
+            _LOGGER.warning(
+                "Thermostat temperature change detected for %s: %s -> %s (debouncing)",
+                entity_id,
+                old_temp,
+                new_temp
+            )
+            
+            # Cancel any existing debounce task for this entity
+            if entity_id in self._debounce_tasks:
+                self._debounce_tasks[entity_id].cancel()
+            
+            # Create new debounced task
+            async def debounced_temp_update():
+                """Update area after debounce delay."""
+                try:
+                    await asyncio.sleep(MANUAL_TEMP_CHANGE_DEBOUNCE)
+                    
+                    _LOGGER.warning(
+                        "Applying debounced temperature change for %s: %s",
+                        entity_id,
+                        new_temp
+                    )
+                    
+                    # Update area target temperature AND set manual override flag
+                    for area in self.area_manager.get_all_areas().values():
+                        if entity_id in area.devices:
+                            _LOGGER.warning(
+                                "Area %s entering MANUAL OVERRIDE mode - app will not control temperature until re-enabled",
+                                area.name
+                            )
+                            area.target_temperature = new_temp
+                            area.manual_override = True  # Enter manual override mode
+                            # Save to storage so it persists across restarts
+                            await self.area_manager.async_save()
+                            break
+                    
+                    # Force immediate coordinator refresh after debounce (not rate-limited)
+                    _LOGGER.warning("=== FORCING COORDINATOR REFRESH AFTER DEBOUNCE ===")
+                    await self.async_refresh()
+                    _LOGGER.warning("=== COORDINATOR REFRESH COMPLETED ===")
+                    
+                except asyncio.CancelledError:
+                    _LOGGER.warning("Debounce task cancelled for %s", entity_id)
+                    raise
+                except Exception as err:
+                    _LOGGER.error("Error in debounced temperature update: %s", err, exc_info=True)
+                finally:
+                    # Clean up task reference
+                    if entity_id in self._debounce_tasks:
+                        del self._debounce_tasks[entity_id]
+            
+            # Store and start the debounce task
+            self._debounce_tasks[entity_id] = self.hass.async_create_task(debounced_temp_update())
+            
+            # Don't trigger immediate update - wait for debounce
+            should_update = False
+        elif old_state.attributes.get('current_temperature') != new_state.attributes.get('current_temperature'):
+            # Current temperature changed
+            should_update = True
+            _LOGGER.debug(
+                "Current temperature changed for %s: %s -> %s",
+                entity_id,
+                old_state.attributes.get('current_temperature'),
+                new_state.attributes.get('current_temperature')
+            )
+        elif old_state.attributes.get('hvac_action') != new_state.attributes.get('hvac_action'):
+            # HVAC action changed (heating/idle/off)
+            should_update = True
+            _LOGGER.info(
+                "HVAC action changed for %s: %s -> %s",
+                entity_id,
+                old_state.attributes.get('hvac_action'),
+                new_state.attributes.get('hvac_action')
+            )
+        
+        if should_update:
+            # Trigger immediate coordinator update
+            _LOGGER.warning("=== TRIGGERING COORDINATOR REFRESH FOR %s ===", entity_id)
+            self.hass.async_create_task(self.async_request_refresh())
+
+    async def async_shutdown(self) -> None:
+        """Shutdown coordinator and clean up listeners."""
+        if self._unsub_state_listener:
+            self._unsub_state_listener()
+            self._unsub_state_listener = None
+        _LOGGER.debug("Smart Heating coordinator shutdown")
 
     async def _async_update_data(self) -> dict:
         """Fetch data from the integration.
@@ -43,10 +195,11 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             UpdateFailed: If update fails
         """
         try:
-            _LOGGER.debug("Updating Smart Heating data")
+            _LOGGER.warning("=== COORDINATOR UPDATE DATA CALLED ===")
             
             # Get all areas
             areas = self.area_manager.get_all_areas()
+            _LOGGER.warning("Processing %d areas for coordinator update", len(areas))
             
             # Build data structure
             data = {
@@ -65,6 +218,7 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
                         "id": device_id,
                         "type": device_info["type"],
                         "state": state.state if state else "unavailable",
+                        "name": state.attributes.get("friendly_name", device_id) if state else device_id,
                     }
                     
                     # Add device-specific attributes
@@ -100,7 +254,13 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
                     
                     devices_data.append(device_data)
                 
+                _LOGGER.warning(
+                    "Building data for area %s: manual_override=%s, target_temp=%s",
+                    area_id, getattr(area, 'manual_override', False), area.target_temperature
+                )
+                
                 data["areas"][area_id] = {
+                    "id": area_id,  # Include area ID so frontend can identify and navigate
                     "name": area.name,
                     "enabled": area.enabled,
                     "state": area.state,
@@ -122,6 +282,10 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
                     "boost_duration": area.boost_duration,
                     # HVAC mode
                     "hvac_mode": area.hvac_mode,
+                    # Manual override
+                    "manual_override": getattr(area, 'manual_override', False),
+                    # Hidden state (frontend-only, but persisted in backend)
+                    "hidden": getattr(area, 'hidden', False),
                     # Sensors
                     "window_sensors": area.window_sensors,
                     "presence_sensors": area.presence_sensors,

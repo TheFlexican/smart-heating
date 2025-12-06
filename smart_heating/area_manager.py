@@ -232,6 +232,9 @@ class Area:
         # Presence sensor settings (new config structure)
         self.presence_sensors: list[dict[str, Any]] = []  # List of presence sensor configs
         self.presence_detected: bool = False  # Cached state
+        
+        # Manual override mode - when user manually adjusts thermostat outside the app
+        self.manual_override: bool = False  # True when thermostat was manually adjusted
 
     def add_device(self, device_id: str, device_type: str, mqtt_topic: str | None = None) -> None:
         """Add a device to the area.

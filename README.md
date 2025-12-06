@@ -13,6 +13,12 @@ A Home Assistant custom integration for managing multi-area heating systems with
   - Location-based device filtering
   - Direct device assignment from area pages
   - Real-time device status updates
+- 🔄 **Manual Override Mode** - Automatic detection of external thermostat changes (NEW in v0.4.0)
+  - System detects when thermostat adjusted outside app (e.g., Google Nest dial)
+  - Enters "MANUAL" mode - app stops controlling, preserves user's setting
+  - Real-time updates within 2-3 seconds via WebSocket
+  - Automatically clears when temperature adjusted via app
+  - Persists across restarts
 - 📅 **Smart Scheduling** - Time-based temperature profiles with day-of-week selection
 - 🌙 **Night Boost** - Configurable temperature increase during night hours (customizable start/end times)
 - 🧠 **Adaptive Learning** - Machine learning system that learns heating patterns and weather correlation
@@ -35,7 +41,7 @@ A Home Assistant custom integration for managing multi-area heating systems with
   - Automatic cleanup every hour
 - ⚙️ **Advanced Settings** - Hysteresis control, temperature limits, and fine-tuning
 - 🌐 **REST API** - Full API for programmatic control
-- 📡 **WebSocket support** - Real-time updates
+- 📡 **WebSocket support** - Real-time updates and state synchronization
 - 🎛️ **Climate entities** - Full thermostat control per area
 - 🔌 **Switch entities** - Easy area on/off control
 - 📊 **Sensor entities** - System status monitoring

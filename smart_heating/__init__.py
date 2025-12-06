@@ -133,8 +133,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create coordinator instance
     coordinator = SmartHeatingCoordinator(hass, area_manager)
     
-    # Fetch initial data
-    await coordinator.async_config_entry_first_refresh()
+    # Set up state change listeners before first refresh
+    await coordinator.async_setup()
+    
     hass.data[DOMAIN][entry.entry_id] = coordinator
     
     _LOGGER.debug("Smart Heating coordinator stored in hass.data")
@@ -910,6 +911,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     
     if unload_ok:
+        # Shutdown coordinator and remove state listeners
+        if entry.entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry.entry_id]
+            await coordinator.async_shutdown()
+            _LOGGER.debug("Coordinator state listeners removed")
+        
         # Stop climate controller
         if "climate_unsub" in hass.data[DOMAIN]:
             hass.data[DOMAIN]["climate_unsub"]()

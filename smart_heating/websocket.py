@@ -36,9 +36,24 @@ def websocket_subscribe_updates(
         connection: WebSocket connection
         msg: Message data
     """
+    _LOGGER.warning("=== WEBSOCKET SUBSCRIBE CALLED ===")
+    
     @callback
     def forward_messages():
         """Forward coordinator updates to websocket."""
+        area_count = len(coordinator.data.get("areas", {})) if coordinator.data else 0
+        _LOGGER.warning(
+            "=== WEBSOCKET: Sending update to client (areas: %d) ===",
+            area_count
+        )
+        if coordinator.data and "areas" in coordinator.data:
+            for area_id, area_data in coordinator.data["areas"].items():
+                _LOGGER.warning(
+                    "  Area %s: manual_override=%s, target_temp=%s",
+                    area_id,
+                    area_data.get("manual_override", "NOT SET"),
+                    area_data.get("target_temperature")
+                )
         connection.send_message(result_message(msg["id"], {
             "event": "update",
             "data": coordinator.data

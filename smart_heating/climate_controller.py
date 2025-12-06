@@ -270,6 +270,15 @@ class ClimateController:
                 area.state = "off"  # Update area state
                 continue
             
+            # Check for manual override mode
+            if hasattr(area, 'manual_override') and area.manual_override:
+                _LOGGER.info(
+                    "Area %s in MANUAL OVERRIDE mode - skipping climate control (thermostat is user-controlled)",
+                    area_id
+                )
+                area.state = "manual"  # Set state to manual
+                continue
+            
             # Get effective target (considering schedules and night boost)
             target_temp = area.get_effective_target_temperature(current_time)
             _LOGGER.info(

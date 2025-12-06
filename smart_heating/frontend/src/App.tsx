@@ -125,6 +125,7 @@ function App() {
     },
     onZonesUpdate: (updatedZones) => {
       console.log('Received areas update:', updatedZones)
+      // Backend now includes hidden property, no need to preserve from previous state
       setZones(updatedZones)
       // Reload devices to update available list
       getDevices().then(devicesData => {

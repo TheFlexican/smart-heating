@@ -15,6 +15,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - 📱 Mobile app notifications
 - 🏡 Multi-home support
 
+## [0.4.0] - 2025-12-06
+
+### ✨ Added - Manual Override Mode & Real-Time Updates
+
+**Manual Override Mode**
+- **Automatic Detection**: System detects when thermostat is adjusted outside the app (e.g., directly on Google Nest)
+- **State Change Listeners**: Real-time monitoring of thermostat temperature changes via Home Assistant state events
+- **Debouncing**: 2-second delay to handle rapid temperature dial adjustments (prevents flood of updates)
+- **Manual Override Flag**: Area enters "MANUAL" mode when external adjustment detected
+  - Orange "MANUAL" badge displayed on area card
+  - App stops automatic temperature control for that area
+  - Target temperature updated to match external setting
+  - Manual override persists across restarts (saved to storage)
+- **Clear Override**: Manual mode automatically cleared when user adjusts temperature via app
+- **Backend Components**:
+  - `coordinator.py`: State change listeners with debounce logic
+  - `area_manager.py`: Added `manual_override` property to Area class
+  - `climate_controller.py`: Skips areas in manual override mode
+  - `api.py`: Clears manual override on temperature API calls
+
+**Real-Time WebSocket Updates**
+- **Frontend Updates**: Area cards update within 2-3 seconds of external thermostat changes
+- **WebSocket Message Format**: Fixed to properly handle `result` type messages with area data
+- **Object-to-Array Conversion**: Backend sends areas as object (dict), frontend converts to array
+- **State Preservation**: Hidden area state preserved during WebSocket updates
+- **Forced Coordinator Refresh**: Immediate data update after debounce completes (not rate-limited)
+
+**Data Completeness Fixes**
+- **Area ID**: Added `id` property to coordinator area data (fixes navigation after WebSocket updates)
+- **Device Names**: Added `name` property with `friendly_name` from Home Assistant (fixes device display)
+- **Hidden Property**: Backend now includes `hidden` flag in coordinator data (persistent across updates)
+
+### 🔧 Fixed
+- Area cards not clickable after WebSocket updates (missing `id` property)
+- Device names showing entity IDs instead of friendly names after updates
+- Hidden areas becoming visible after WebSocket updates
+- Frontend not detecting WebSocket area updates (message type mismatch)
+- Temperature display not updating when thermostat changed externally
+- Coordinator data missing key properties (`id`, `name`, `hidden`)
+
+### 🧪 Testing
+- Created `manual-override.spec.ts` with 5 E2E tests for manual override functionality
+- Tests verify: manual mode detection, clearing, persistence, WebSocket updates
+- All existing tests still pass (86/90 tests passing)
+
+### 📚 Documentation
+- Updated ARCHITECTURE.md with manual override system flow
+- Updated DEVELOPER.md with state listener implementation details
+- Added debounce configuration constants to documentation
+
 ## [0.3.16] - 2025-12-06
 
 ### ✨ Added - Devices Tab in Area Detail

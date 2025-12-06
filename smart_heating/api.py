@@ -292,6 +292,8 @@ class SmartHeatingAPIView(HomeAssistantView):
                     "boost_duration": stored_area.boost_duration,
                     # HVAC mode
                     "hvac_mode": stored_area.hvac_mode,
+                    # Manual override
+                    "manual_override": getattr(stored_area, 'manual_override', False),
                     # Sensors
                     "window_sensors": stored_area.window_sensors,
                     "presence_sensors": stored_area.presence_sensors,
@@ -308,6 +310,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                     "current_temperature": None,
                     "devices": [],
                     "schedules": [],
+                    "manual_override": False,
                 })
         
         return web.json_response({"areas": areas_data})
@@ -374,6 +377,8 @@ class SmartHeatingAPIView(HomeAssistantView):
             "boost_duration": area.boost_duration,
             # HVAC mode
             "hvac_mode": area.hvac_mode,
+            # Manual override
+            "manual_override": getattr(area, 'manual_override', False),
             # Sensors
             "window_sensors": area.window_sensors,
             "presence_sensors": area.presence_sensors,
@@ -845,6 +850,13 @@ class SmartHeatingAPIView(HomeAssistantView):
         try:
             _LOGGER.debug("Setting temperature for area %s to %s", area_id, temperature)
             self.area_manager.set_area_target_temperature(area_id, temperature)
+            
+            # Clear manual override mode when user controls temperature via app
+            area = self.area_manager.get_area(area_id)
+            if area and hasattr(area, 'manual_override') and area.manual_override:
+                _LOGGER.info("Disabling manual override for area %s - app is now controlling temperature", area_id)
+                area.manual_override = False
+            
             await self.area_manager.async_save()
             
             # Trigger immediate climate control to update devices

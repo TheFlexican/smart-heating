@@ -68,6 +68,9 @@ export interface Zone {
   // HVAC mode
   hvac_mode?: string
   
+  // Manual override mode
+  manual_override?: boolean
+  
   // Window sensor settings
   window_sensors?: WindowSensorConfig[]
   window_is_open?: boolean

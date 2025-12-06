@@ -39,13 +39,33 @@ interface ZoneCardProps {
 const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   const navigate = useNavigate()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
-  const [temperature, setTemperature] = useState(area.target_temperature)
+  
+  // Get displayed temperature: prefer thermostat's current target, fallback to area target
+  const getDisplayTemperature = () => {
+    const thermostat = area.devices?.find(d => d.type === 'thermostat')
+    if (thermostat && thermostat.target_temperature != null) {
+      return thermostat.target_temperature
+    }
+    return area.target_temperature
+  }
+  
+  const [temperature, setTemperature] = useState(getDisplayTemperature())
   const [presenceState, setPresenceState] = useState<string | null>(null)
 
-  // Sync local temperature state with area prop when it changes externally
+  // Get thermostat target temperature for dependency tracking
+  const thermostatTargetTemp = area.devices?.find(d => d.type === 'thermostat')?.target_temperature
+  const thermostatHvacAction = area.devices?.find(d => d.type === 'thermostat')?.hvac_action
+
+  // Sync local temperature state when area or devices change
   useEffect(() => {
-    setTemperature(area.target_temperature)
-  }, [area.target_temperature])
+    const thermostat = area.devices?.find(d => d.type === 'thermostat')
+    const displayTemp = thermostat && thermostat.target_temperature != null 
+      ? thermostat.target_temperature 
+      : area.target_temperature
+    
+    console.log(`[ZoneCard ${area.name}] Temperature update: ${temperature} -> ${displayTemp} (thermostat: ${thermostat?.target_temperature}, area: ${area.target_temperature}, hvac_action: ${thermostat?.hvac_action})`)
+    setTemperature(displayTemp)
+  }, [area.target_temperature, thermostatTargetTemp, thermostatHvacAction, area.name])
 
   useEffect(() => {
     const loadPresenceState = async () => {
@@ -120,6 +140,9 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   }
 
   const getStateColor = () => {
+    if (area.manual_override) {
+      return 'warning'
+    }
     switch (area.state) {
       case 'heating':
         return 'error'
@@ -133,6 +156,9 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   }
 
   const getStateIcon = () => {
+    if (area.manual_override) {
+      return <TuneIcon />
+    }
     switch (area.state) {
       case 'heating':
         return <LocalFireDepartmentIcon />
@@ -226,7 +252,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
             <Box display="flex" gap={1} flexWrap="wrap">
               <Chip
                 icon={getStateIcon()}
-                label={area.state.toUpperCase()}
+                label={area.manual_override ? 'MANUAL' : area.state.toUpperCase()}
                 color={getStateColor()}
                 size="small"
               />

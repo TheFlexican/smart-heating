@@ -18,12 +18,6 @@ echo -e "${BLUE}  Smart Heating - Sync Script${NC}"
 echo -e "${BLUE}════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Check if container is running
-if ! docker ps | grep -q "$HA_CONTAINER"; then
-    echo -e "${RED}✗${NC} Container '$HA_CONTAINER' is not running"
-    echo "  Run './setup.sh' first to start the container"
-    exit 1
-fi
 
 echo -e "${YELLOW}[1/3]${NC} Building frontend..."
 if [ -d "$FRONTEND_DIR" ]; then
@@ -68,54 +62,19 @@ tar czf /tmp/smart_heating_sync.tar.gz \
 
 cd - > /dev/null
 
-# Ensure directory exists in container
-docker exec "$HA_CONTAINER" mkdir -p /config/custom_components/smart_heating > /dev/null 2>&1 || true
+# Extract in production container
+tar xzf /tmp/smart_heating_sync.tar.gz -C /Volumes/config/custom_components/smart_heating
 
-# Copy tarball to container
-docker cp /tmp/smart_heating_sync.tar.gz "$HA_CONTAINER:/tmp/" > /dev/null
-
-# Extract in container
-docker exec "$HA_CONTAINER" tar xzf /tmp/smart_heating_sync.tar.gz -C /config/custom_components/smart_heating/
+# Need to restart Home Assistant for changes to take effect
+ssh root@192.168.2.2 -p 22222 "ha core restart"
 
 # Clean up
-docker exec "$HA_CONTAINER" rm /tmp/smart_heating_sync.tar.gz
 rm /tmp/smart_heating_sync.tar.gz
 
-# Count files synced
-file_count=$(docker exec "$HA_CONTAINER" find /config/custom_components/smart_heating -type f | wc -l | tr -d ' ')
-echo -e "  → Synced $file_count files"
-echo -e "${GREEN}✓${NC} Integration synced"
-echo ""
-
-echo -e "${YELLOW}[3/3]${NC} Restarting Home Assistant..."
-docker restart "$HA_CONTAINER" > /dev/null
-
-echo "  Waiting for restart (5 seconds)..."
-sleep 5
-
-# Check if container is running
-if docker ps | grep -q "$HA_CONTAINER"; then
-    echo -e "${GREEN}✓${NC} Home Assistant restarted successfully"
-else
-    echo -e "${RED}✗${NC} Home Assistant failed to restart"
-    echo "  Check logs: docker logs -f $HA_CONTAINER"
-    exit 1
-fi
-echo ""
-
+echo "  Waiting for restart (10 seconds)..."
+sleep 10
 
 
 echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
 echo -e "${GREEN}  Sync Complete!${NC}"
 echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
-echo ""
-echo -e "${BLUE}Changes synced:${NC}"
-echo "  ✓ Backend Python files (.py)"
-echo "  ✓ Configuration files (.yaml, .json)"
-echo "  ✓ Frontend build (dist/)"
-echo ""
-echo -e "${BLUE}Next steps:${NC}"
-echo "  • Open http://localhost:8123"
-echo "  • Clear browser cache (Cmd+Shift+R / Ctrl+Shift+R)"
-echo "  • Check logs: docker logs -f $HA_CONTAINER"
-echo ""
