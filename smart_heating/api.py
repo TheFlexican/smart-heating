@@ -392,20 +392,19 @@ class SmartHeatingAPIView(HomeAssistantView):
         """
         devices = []
         
-        # Get all MQTT entities from Home Assistant
+        # Get all entities from Home Assistant
         entity_registry = er.async_get(self.hass)
         device_registry = dr.async_get(self.hass)
         area_registry = ar.async_get(self.hass)
         
-        # Find entities that are from MQTT/Zigbee2MQTT and could be heating-related
+        # Find all heating-related entities (climate, sensors, switches)
         heating_platforms = ["climate", "sensor", "number", "switch"]
         
         _LOGGER.warning("=== SMART HEATING: Starting device discovery ===")
         
         for entity in entity_registry.entities.values():
-            # Check if entity is from MQTT or Zigbee2MQTT integration
-            # Note: Zigbee2MQTT creates entities with platform "mqtt"
-            if entity.platform == "mqtt":
+            # Check if entity is from a heating-related domain
+            if entity.domain in heating_platforms:
                 # Get entity state for additional info
                 state = self.hass.states.get(entity.entity_id)
                 if not state:

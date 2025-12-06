@@ -30,6 +30,7 @@ import SensorsIcon from '@mui/icons-material/Sensors'
 import WaterIcon from '@mui/icons-material/Water'
 import RouterIcon from '@mui/icons-material/Router'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import AcUnitIcon from '@mui/icons-material/AcUnit'
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew'
@@ -42,6 +43,7 @@ import {
   enableZone, 
   disableZone, 
   removeDeviceFromZone,
+  addDeviceToZone,
   setPresetMode,
   setBoostMode,
   cancelBoost,
@@ -85,6 +87,7 @@ const ZoneDetail = () => {
   const [loading, setLoading] = useState(true)
   const [tabValue, setTabValue] = useState(0)
   const [temperature, setTemperature] = useState(21)
+  const [locationFilter, setLocationFilter] = useState<string>('all')
 
   // WebSocket for real-time updates
   useWebSocket({
@@ -182,6 +185,21 @@ const ZoneDetail = () => {
       await loadData()
     } catch (error) {
       console.error('Failed to remove device:', error)
+    }
+  }
+
+  const handleAddDevice = async (device: Device) => {
+    if (!area) return
+    
+    try {
+      await addDeviceToZone(area.id, {
+        device_id: device.id,
+        device_type: device.type,
+        mqtt_topic: null
+      })
+      await loadData()
+    } catch (error) {
+      console.error('Failed to add device:', error)
     }
   }
 
@@ -504,7 +522,7 @@ const ZoneDetail = () => {
 
               {area.devices.length === 0 ? (
                 <Alert severity="info">
-                  No devices assigned to this area. Go back to the main view to drag and drop devices.
+                  No devices assigned to this area. Add devices from the available list below.
                 </Alert>
               ) : (
                 <List>
@@ -539,34 +557,82 @@ const ZoneDetail = () => {
             {availableDevices.length > 0 && (
               <Paper sx={{ p: 3 }}>
                 <Typography variant="h6" color="text.primary" gutterBottom>
-                  Available Devices ({availableDevices.length})
+                  Add Devices
                 </Typography>
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  To add devices, use the drag and drop feature on the main areas page.
-                </Alert>
+                
+                {/* Location Filter */}
+                <FormControl fullWidth sx={{ mb: 3 }}>
+                  <InputLabel>Filter by Location</InputLabel>
+                  <Select
+                    value={locationFilter}
+                    label="Filter by Location"
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                  >
+                    <MenuItem value="all">All Locations ({availableDevices.length})</MenuItem>
+                    <MenuItem value="none">No Location Assigned ({availableDevices.filter(d => !d.ha_area_name).length})</MenuItem>
+                    {Array.from(new Set(availableDevices.map(d => d.ha_area_name).filter(Boolean))).sort().map(location => (
+                      <MenuItem key={location} value={location}>
+                        {location} ({availableDevices.filter(d => d.ha_area_name === location).length})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                {/* Filtered Device List */}
                 <List>
-                  {availableDevices.slice(0, 5).map((device) => (
-                    <ListItem key={device.id}>
-                      <ListItemIcon sx={{ color: 'text.secondary' }}>
-                        {getDeviceIcon(device.type)}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={device.name || device.id}
-                        primaryTypographyProps={{ color: 'text.primary' }}
-                        secondary={device.type.replace(/_/g, ' ')}
-                        secondaryTypographyProps={{ color: 'text.secondary' }}
-                      />
-                    </ListItem>
-                  ))}
-                  {availableDevices.length > 5 && (
-                    <ListItem>
-                      <ListItemText
-                        secondary={`+ ${availableDevices.length - 5} more available`}
-                        secondaryTypographyProps={{ color: 'text.secondary' }}
-                      />
-                    </ListItem>
-                  )}
+                  {availableDevices
+                    .filter(device => {
+                      if (locationFilter === 'all') return true
+                      if (locationFilter === 'none') return !device.ha_area_name
+                      return device.ha_area_name === locationFilter
+                    })
+                    .map((device) => (
+                      <ListItem
+                        key={device.id}
+                        secondaryAction={
+                          <IconButton
+                            edge="end"
+                            onClick={() => handleAddDevice(device)}
+                            color="primary"
+                          >
+                            <AddCircleOutlineIcon />
+                          </IconButton>
+                        }
+                      >
+                        <ListItemIcon sx={{ color: 'text.secondary' }}>
+                          {getDeviceIcon(device.type)}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={device.name || device.id}
+                          primaryTypographyProps={{ color: 'text.primary' }}
+                          secondary={
+                            <Box>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                {device.type.replace(/_/g, ' ')}
+                              </Typography>
+                              {device.ha_area_name && (
+                                <Chip 
+                                  label={device.ha_area_name} 
+                                  size="small" 
+                                  sx={{ height: 18, fontSize: '0.7rem', mt: 0.5 }}
+                                />
+                              )}
+                            </Box>
+                          }
+                        />
+                      </ListItem>
+                    ))}
                 </List>
+                
+                {availableDevices.filter(device => {
+                  if (locationFilter === 'all') return true
+                  if (locationFilter === 'none') return !device.ha_area_name
+                  return device.ha_area_name === locationFilter
+                }).length === 0 && (
+                  <Alert severity="info">
+                    No devices found for this location filter.
+                  </Alert>
+                )}
               </Paper>
             )}
           </Box>

@@ -10,11 +10,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Planned
 - 🤖 Enhanced AI-driven heating optimization with multi-factor analysis
 - 📊 Advanced energy analytics dashboard
-- 🔗 MQTT auto-discovery for Zigbee2MQTT devices
 - 🌡️ Extended weather integration (forecasts, humidity)
 - 🔥 PID control for OpenTherm gateways
 - 📱 Mobile app notifications
 - 🏡 Multi-home support
+
+## [0.3.15] - 2025-12-06
+
+### ✨ Added - Universal Device Discovery & Enhanced Device Management
+
+**Universal Device Discovery**
+- **ALL Home Assistant climate entities** now discovered (not just MQTT)
+- Support for Google Nest, Ecobee, generic_thermostat, and ANY climate integration
+- Discover climate, sensor, switch, and number entities from ALL platforms
+- Platform-agnostic device detection with smart filtering
+- Expanded device type detection:
+  - Thermostats from ANY integration
+  - Temperature sensors with flexible matching (device_class, unit_of_measurement, entity naming)
+  - Heating-related switches (pumps, relays, floor heating)
+  - Valve/TRV position controls
+
+**Enhanced Area Device Management**
+- **Location-based filtering** via dropdown in Devices tab
+- Filter devices by:
+  - All Locations (show all available devices)
+  - No Location Assigned (unassigned devices)
+  - Specific HA areas (Badkamer, Woonkamer, Slaapkamer, etc.)
+- **Direct device assignment** from Area Detail page
+- Add devices with single click (+ icon button)
+- Remove devices with single click (- icon button)
+- Real-time device count per location filter
+- Visual location chips showing HA area assignment
+- Improved UX: No need to return to main page for device management
+
+**Backend Improvements**
+- `api.py`: Removed MQTT-only filter (`platform == "mqtt"`)
+- Device discovery now queries all entity domains: `["climate", "sensor", "number", "switch"]`
+- Enhanced temperature sensor detection with multiple fallback methods
+- Smart switch filtering for heating-related devices
+- Maintained hidden area filtering (3-method approach)
+
+**Frontend Enhancements**
+- `AreaDetail.tsx`: New location filter dropdown with Material-UI Select
+- `AddCircleOutlineIcon` for adding devices (primary color)
+- `RemoveCircleOutlineIcon` for removing devices (error color)
+- Device list shows HA area as Chip component
+- Empty state messages for filtered device lists
+- Improved device counter in filter options
+
+### 🐛 Fixed
+- Google Nest and other non-MQTT thermostats now properly discovered
+- Device discovery no longer limited to single integration platform
+- Temperature sensor detection more reliable across different manufacturers
+
+### 📝 Changed
+- Device discovery significantly expanded (from ~19 to potentially 100+ devices)
+- Simplified device assignment workflow (direct from area page)
+- Better device organization with location-based filtering
+
+### 🔧 Technical Details
+- Discovery method now platform-agnostic
+- Backward compatible with existing MQTT device assignments
+- No breaking changes to existing configurations
+- Filtering logic preserved for hidden areas
 
 ## [0.3.4] - 2025-12-05
 

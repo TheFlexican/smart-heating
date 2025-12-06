@@ -212,8 +212,8 @@ These are intentionally skipped and documented - not broken tests.
 
 ## Version Management
 
-**Current Version:** v0.3.4
-**Next Version:** v0.3.5 (future development)
+**Current Version:** v0.3.15
+**Previous Version:** v0.3.14
 
 ### Version Update Checklist
 When bumping version:
@@ -231,15 +231,31 @@ REST endpoints at `/api/smart_heating/*`:
 - `/areas` - GET all areas
 - `/areas/{area_id}/enable` - POST enable area
 - `/areas/{area_id}/disable` - POST disable area
+- `/areas/{area_id}/hide` - POST hide area from main view
+- `/areas/{area_id}/unhide` - POST unhide area
 - `/areas/{area_id}/temperature` - POST set target temperature
 - `/areas/{area_id}/preset_mode` - POST set preset mode
 - `/areas/{area_id}/boost` - POST/DELETE boost mode
 - `/areas/{area_id}/hvac_mode` - POST set HVAC mode
 - `/areas/{area_id}/window_sensors` - POST/DELETE manage sensors
 - `/areas/{area_id}/presence_sensors` - POST/DELETE manage sensors
+- `/devices` - GET all available devices (ALL platforms)
+- `/devices/refresh` - GET refresh device discovery
 - `/schedule/*` - Schedule management
 - `/learning/*` - Learning engine endpoints
 - `/frost_protection` - POST global frost protection
+
+**Device Discovery (GET /devices):**
+- Discovers ALL Home Assistant entities (not just MQTT)
+- Platform-agnostic: Works with ANY integration (Nest, Ecobee, MQTT, Z-Wave, etc.)
+- Domains: climate, sensor, switch, number
+- Smart filtering:
+  - Climate: ALL climate entities
+  - Sensors: device_class==temperature OR unit contains °C/°F OR entity name contains "temp"
+  - Switches: Only heating-related (pumps, relays, floor, radiator)
+  - Numbers: Valve position controls
+- Returns: entity_id, name, type, HA area assignment
+- Filters devices from hidden areas (3 methods)
 
 **Critical:** When modifying coordinator data:
 - Always exclude `"learning_engine"` from coordinator dict before returning
@@ -350,18 +366,38 @@ git tag v0.X.X
 git push origin main --tags
 ```
 
-## Feature Overview (v0.3.0+)
+## Feature Overview (v0.3.15)
 
 ### Backend Features (Complete)
+✅ Universal Device Discovery (ALL HA integrations, not just MQTT)
+✅ Hide/Show Areas (filter from main view)
+✅ Device Refresh (manual rediscovery trigger)
 ✅ Preset Modes (away, eco, comfort, home, sleep, activity, boost, none)
 ✅ Boost Mode with duration and temperature override
 ✅ HVAC Mode selection (heat, cool, auto, off)
-✅ Window Sensor integration with temperature drop
-✅ Presence Sensor detection with temperature boost
+✅ Window Sensor integration with configurable actions
+✅ Presence Sensor detection with separate away/home actions
 ✅ Frost Protection (global setting)
 ✅ Learning Engine for pattern recognition
 ✅ Advanced Scheduling with day/time slots
+✅ Temperature History with configurable retention
 ✅ Real-time WebSocket updates
+
+### Frontend Features (Complete)
+✅ Area overview with enable/disable toggle and hide/show
+✅ Device status with real-time heating indicators
+✅ Location-based device filtering (dropdown in Devices tab)
+✅ Direct device assignment from area detail page (+ / - buttons)
+✅ Schedule management UI
+✅ History charts with custom time ranges
+✅ Settings tab with all v0.3.0+ features:
+   - Preset Modes dropdown
+   - Boost Mode controls
+   - HVAC Mode selector
+   - Window Sensors management
+   - Presence Sensors management
+   - Night Boost settings
+   - Smart Night Boost (ML-based)
 
 ### Frontend Features (v0.3.2 - In Progress)
 ✅ Area overview with enable/disable toggle
@@ -435,6 +471,6 @@ Keep changelog in reverse chronological order (newest first).
 
 ---
 
-**Last Updated:** December 5, 2025
-**Current Version:** v0.3.4
-**Next Version:** v0.3.5 (future development)
+**Last Updated:** December 6, 2025
+**Current Version:** v0.3.15
+**Previous Version:** v0.3.14

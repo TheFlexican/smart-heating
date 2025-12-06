@@ -102,11 +102,18 @@ Device:
 ```
 
 **Supported Device Types:**
-- **thermostat** - Climate entities for direct heating control
+- **thermostat** - Climate entities from ANY Home Assistant integration
+  - Google Nest, Ecobee, generic_thermostat, MQTT/Zigbee2MQTT, Z-Wave, etc.
+  - Platform-agnostic: Works with climate entities from any source
+  - No integration-specific code required
 - **temperature_sensor** - External sensors for area monitoring
-- **switch** - Per-area circulation pumps/relays (NEW)
-- **valve** - TRVs with position or temperature control (NEW)
-- **opentherm_gateway** - Global boiler control (shared across areas) (NEW)
+  - Flexible detection: device_class, unit_of_measurement, or entity naming
+  - Works with sensor entities from ANY platform
+- **switch** - Per-area circulation pumps/relays
+  - Smart filtering for heating-related switches
+- **valve** - TRVs with position or temperature control
+  - Dynamic capability detection at runtime
+- **opentherm_gateway** - Global boiler control (shared across areas)
 
 **Key Methods:**
 - `get_effective_target_temperature()` - Calculates target with schedules + night boost
@@ -299,9 +306,21 @@ HTTP API using `HomeAssistantView` for frontend communication.
 | POST | `/api/smart_heating/areas/{id}/enable` | Enable area |
 | POST | `/api/smart_heating/areas/{id}/disable` | Disable area |
 | GET | `/api/smart_heating/areas/{id}/history?hours=24` | Get temperature history |
-| GET | `/api/smart_heating/devices` | Get available devices |
+| GET | `/api/smart_heating/devices` | Get available devices (ALL platforms) |
+| GET | `/api/smart_heating/devices/refresh` | Refresh device discovery |
 | GET | `/api/smart_heating/status` | Get system status |
 | POST | `/api/smart_heating/call_service` | Call HA service (proxy) |
+
+**Device Discovery** (`GET /devices`):
+- Discovers ALL Home Assistant climate, sensor, switch, and number entities
+- Platform-agnostic: Works with ANY integration (Nest, Ecobee, MQTT, Z-Wave, etc.)
+- Smart filtering:
+  - Climate entities: All climate domains
+  - Temperature sensors: device_class, unit_of_measurement, or entity naming
+  - Switches: Heating-related only (pumps, relays, floor heating)
+  - Numbers: Valve/TRV position controls
+- Returns device metadata: entity_id, name, type, HA area assignment
+- Filters out devices from hidden areas (3-method filtering)
 
 ### 8. WebSocket API (`websocket.py`)
 
@@ -386,11 +405,27 @@ src/
 - Click to navigate to detail page
 
 **AreaDetail Page (5 Tabs):**
-1. **Overview** - Temperature control, current state, device management
-2. **Devices** - Detailed device list and assignment
+1. **Overview** - Temperature control, current state, device status with real-time heating indicators
+2. **Devices** - Enhanced device management with:
+   - Assigned devices list with remove buttons
+   - Location-based filtering dropdown
+   - Available devices with add buttons (+/- icons)
+   - HA area assignment displayed as chips
+   - Real-time device counts per location
 3. **Schedule** - Time-based schedule editor
 4. **History** - Interactive temperature charts (6h-7d ranges)
 5. **Settings** - Night boost, hysteresis, advanced configuration
+
+**Device Management Features:**
+- **Location Filter Dropdown** - Filter devices by HA area
+  - "All Locations" - Show all available devices
+  - "No Location Assigned" - Unassigned devices only
+  - Specific areas (Badkamer, Woonkamer, etc.) with device counts
+- **Direct Device Assignment** - Add/remove devices from area detail page
+- **Add Button** (AddCircleOutlineIcon) - Single click to assign device
+- **Remove Button** (RemoveCircleOutlineIcon) - Single click to unassign device
+- **Location Chips** - Visual indicators showing device's HA area
+- **Real-time Updates** - Device list refreshes after add/remove operations
 
 **ScheduleEditor Component:**
 - Time picker for schedule start
@@ -410,16 +445,16 @@ src/
 - Responsive design
 
 **DevicePanel Component:**
-- List of available Zigbee2MQTT devices
-- Draggable device cards
-- Filter by device type
+- **Universal Device Discovery** - Shows ALL Home Assistant devices
+  - Climate entities from ANY integration (Nest, Ecobee, MQTT, Z-Wave, etc.)
+  - Temperature sensors from ANY platform
+  - Heating-related switches (pumps, relays, floor heating)
+  - Valve/TRV position controls
+- Platform-agnostic device detection
 - Real-time availability updates
-
-**DevicePanel Component:**
-- Lists available Zigbee2MQTT devices
-- Filters out devices already in areas
-- Drag source for device assignment (planned)
-- Device type icons
+- Device refresh button for manual discovery
+- Filter by device type icons
+- Shows HA area assignment for each device
 
 **CreateZoneDialog Component:**
 - Area name input

@@ -5,8 +5,14 @@ A Home Assistant custom integration for managing multi-area heating systems with
 ## ✨ Features
 
 - 🏠 **Multi-area heating control** - Create and manage multiple heating areas
-- 🌡️ **Zigbee2MQTT integration** - Support for thermostats, temperature sensors and OpenTherm gateways
-- 🎛️ **Web-based GUI** - Modern React interface with drag-and-drop device management
+- 🌡️ **Universal Device Support** - Works with ALL Home Assistant climate integrations
+  - Google Nest, Ecobee, generic_thermostat, MQTT/Zigbee2MQTT, and ANY climate entity
+  - Platform-agnostic device discovery
+  - No integration-specific code required
+- 🎛️ **Web-based GUI** - Modern React interface with intelligent device management
+  - Location-based device filtering
+  - Direct device assignment from area pages
+  - Real-time device status updates
 - 📅 **Smart Scheduling** - Time-based temperature profiles with day-of-week selection
 - 🌙 **Night Boost** - Configurable temperature increase during night hours (customizable start/end times)
 - 🧠 **Adaptive Learning** - Machine learning system that learns heating patterns and weather correlation
@@ -42,7 +48,18 @@ A Home Assistant custom integration for managing multi-area heating systems with
 
 ### Per-Area Devices
 - **Thermostat** - Room thermostats for direct temperature control
+  - **ALL Home Assistant climate integrations supported**:
+    - Google Nest (`nest` integration)
+    - Ecobee (`ecobee` integration)
+    - Generic Thermostat (`generic_thermostat` integration)
+    - MQTT/Zigbee2MQTT (`mqtt` platform)
+    - Z-Wave thermostats (`zwave_js` integration)
+    - And ANY other climate entity from ANY integration
+  - Platform-agnostic: Works with climate entities from any source
+  - No device-specific code required
 - **Temperature Sensor** - External temperature measurement for area monitoring
+  - Flexible detection: device_class, unit_of_measurement, or entity naming
+  - Works with sensor entities from ANY platform (MQTT, Z-Wave, Zigbee, etc.)
 - **Window/Door Sensor** - Binary sensors for automatic heating adjustment when open
 - **Presence/Motion Sensor** - Binary sensors for occupancy-based temperature boosting
 - **Valve/TRV** - Smart radiator valves with **dynamic capability detection**
@@ -59,6 +76,7 @@ A Home Assistant custom integration for managing multi-area heating systems with
 - **Switch** - Circulation pumps, relays, or zone valves (any brand)
   - Automatically turns ON when area needs heating
   - Automatically turns OFF when area is idle
+  - Smart filtering: Only heating-related switches detected (pumps, relays, floor heating)
 
 ### Global Devices
 - **OpenTherm Gateway** - Single gateway for boiler control (shared across all areas)
