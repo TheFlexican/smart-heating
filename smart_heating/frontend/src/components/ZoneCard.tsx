@@ -42,6 +42,11 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   const [temperature, setTemperature] = useState(area.target_temperature)
   const [presenceState, setPresenceState] = useState<string | null>(null)
 
+  // Sync local temperature state with area prop when it changes externally
+  useEffect(() => {
+    setTemperature(area.target_temperature)
+  }, [area.target_temperature])
+
   useEffect(() => {
     const loadPresenceState = async () => {
       if (area.presence_sensors && area.presence_sensors.length > 0) {

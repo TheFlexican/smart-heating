@@ -1183,6 +1183,20 @@ Current version: **0.3.3**
 
 ### Changelog
 
+#### v0.3.19 (2025-12-06)
+**Fixed External Temperature Changes Sync**
+
+- 🔄 **Real-time Temperature Sync**
+  - Fixed: Area cards now update immediately when thermostat temperature is changed externally
+  - Added useEffect hook to sync local temperature state with WebSocket updates
+  - Temperature changes made on the device itself now reflect instantly in the UI
+  - Works for both main overview zone cards and area detail pages
+
+- ✅ **Testing**
+  - Added E2E test: "should sync temperature when changed externally via WebSocket"
+  - Verifies temperature display updates correctly after external changes
+  - All 86 temperature control tests passing
+
 #### v0.3.18 (2025-12-06)
 **Enhanced Presence Sensor Display**
 
