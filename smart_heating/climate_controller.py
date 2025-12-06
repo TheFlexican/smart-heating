@@ -43,6 +43,7 @@ class ClimateController:
         self._record_counter = 0  # Counter for history recording
         self._device_capabilities = {}  # Cache for device capabilities
         self._area_heating_events = {}  # Track active heating events per area
+        self._last_set_temperatures = {}  # Cache last set temperature per thermostat to avoid unnecessary API calls
 
     def _get_valve_capability(self, entity_id: str) -> dict[str, Any]:
         """Get valve control capabilities from HA entity.
@@ -311,8 +312,7 @@ class ClimateController:
                 )
             
             if not area.enabled:
-                # Area disabled - turn off heating
-                await self._async_set_area_heating(area, False)
+                # Area disabled - don't control any devices, just skip
                 area.state = "off"  # Update area state
                 
                 # Log disabled state but still track temperature
@@ -320,12 +320,13 @@ class ClimateController:
                     self.area_logger.log_event(
                         area_id,
                         "mode",
-                        "Area disabled - temperature tracking continues",
+                        "Area disabled - no device control, temperature tracking continues",
                         {
                             "mode": "disabled",
                             "current_temperature": area.current_temperature
                         }
                     )
+                # Skip to next area - don't touch any devices
                 continue
             
             # Check for manual override mode
@@ -513,42 +514,86 @@ class ClimateController:
         for thermostat_id in thermostats:
             try:
                 if heating and target_temp is not None:
-                    # Turn on and set temperature
-                    await self.hass.services.async_call(
-                        CLIMATE_DOMAIN,
-                        SERVICE_SET_TEMPERATURE,
-                        {
-                            "entity_id": thermostat_id,
-                            ATTR_TEMPERATURE: target_temp,
-                        },
-                        blocking=False,
-                    )
-                    _LOGGER.debug(
-                        "Set thermostat %s to %.1f°C", thermostat_id, target_temp
-                    )
+                    # Only set temperature if it has changed (to avoid API rate limiting)
+                    last_temp = self._last_set_temperatures.get(thermostat_id)
+                    if last_temp is None or abs(last_temp - target_temp) >= 0.1:
+                        # Turn on and set temperature
+                        await self.hass.services.async_call(
+                            CLIMATE_DOMAIN,
+                            SERVICE_SET_TEMPERATURE,
+                            {
+                                "entity_id": thermostat_id,
+                                ATTR_TEMPERATURE: target_temp,
+                            },
+                            blocking=False,
+                        )
+                        self._last_set_temperatures[thermostat_id] = target_temp
+                        _LOGGER.debug(
+                            "Set thermostat %s to %.1f°C", thermostat_id, target_temp
+                        )
+                    else:
+                        _LOGGER.debug(
+                            "Skipping thermostat %s update - already at %.1f°C (avoiding API rate limit)",
+                            thermostat_id, target_temp
+                        )
                 elif target_temp is not None:
-                    # Update target temperature even when not heating (for schedules)
-                    await self.hass.services.async_call(
-                        CLIMATE_DOMAIN,
-                        SERVICE_SET_TEMPERATURE,
-                        {
-                            "entity_id": thermostat_id,
-                            ATTR_TEMPERATURE: target_temp,
-                        },
-                        blocking=False,
-                    )
-                    _LOGGER.debug(
-                        "Updated thermostat %s target to %.1f°C (idle)", thermostat_id, target_temp
-                    )
+                    # Only update target temperature if it has changed (to avoid API rate limiting)
+                    last_temp = self._last_set_temperatures.get(thermostat_id)
+                    if last_temp is None or abs(last_temp - target_temp) >= 0.1:
+                        # Update target temperature even when not heating (for schedules)
+                        await self.hass.services.async_call(
+                            CLIMATE_DOMAIN,
+                            SERVICE_SET_TEMPERATURE,
+                            {
+                                "entity_id": thermostat_id,
+                                ATTR_TEMPERATURE: target_temp,
+                            },
+                            blocking=False,
+                        )
+                        self._last_set_temperatures[thermostat_id] = target_temp
+                        _LOGGER.debug(
+                            "Updated thermostat %s target to %.1f°C (idle)", thermostat_id, target_temp
+                        )
+                    else:
+                        _LOGGER.debug(
+                            "Skipping thermostat %s update - already at %.1f°C (avoiding API rate limit)",
+                            thermostat_id, target_temp
+                        )
                 else:
                     # Turn off heating completely (no target specified)
-                    await self.hass.services.async_call(
-                        CLIMATE_DOMAIN,
-                        SERVICE_TURN_OFF,
-                        {"entity_id": thermostat_id},
-                        blocking=False,
-                    )
-                    _LOGGER.debug("Turned off thermostat %s", thermostat_id)
+                    # Some devices (MQTT climate) don't support turn_off, so set to minimum temp instead
+                    # Clear cached temperature when turning off
+                    if thermostat_id in self._last_set_temperatures:
+                        del self._last_set_temperatures[thermostat_id]
+                    
+                    # Try to turn off, but fall back to setting low temperature if not supported
+                    try:
+                        await self.hass.services.async_call(
+                            CLIMATE_DOMAIN,
+                            SERVICE_TURN_OFF,
+                            {"entity_id": thermostat_id},
+                            blocking=False,
+                        )
+                        _LOGGER.debug("Turned off thermostat %s", thermostat_id)
+                    except Exception as turn_off_err:
+                        # If turn_off not supported, set to frost protection or minimum temperature
+                        min_temp = 5.0  # Frost protection minimum
+                        if self.area_manager.frost_protection_enabled:
+                            min_temp = self.area_manager.frost_protection_temp
+                        
+                        await self.hass.services.async_call(
+                            CLIMATE_DOMAIN,
+                            SERVICE_SET_TEMPERATURE,
+                            {
+                                "entity_id": thermostat_id,
+                                ATTR_TEMPERATURE: min_temp,
+                            },
+                            blocking=False,
+                        )
+                        _LOGGER.debug(
+                            "Thermostat %s doesn't support turn_off, set to %.1f°C instead",
+                            thermostat_id, min_temp
+                        )
             except Exception as err:
                 _LOGGER.error(
                     "Failed to control thermostat %s: %s", 

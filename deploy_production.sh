@@ -71,8 +71,6 @@ ssh root@192.168.2.2 -p 22222 "ha core restart"
 # Clean up
 rm /tmp/smart_heating_sync.tar.gz
 
-echo "  Waiting for restart (10 seconds)..."
-sleep 10
 
 
 echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"

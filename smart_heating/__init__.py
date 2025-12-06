@@ -129,7 +129,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create area logger for development logging
     # Store logs in .storage/smart_heating/logs/{area_id}/{event_type}.jsonl
     storage_path = hass.config.path(".storage", DOMAIN)
-    area_logger = AreaLogger(storage_path)
+    area_logger = AreaLogger(storage_path, hass)
     hass.data[DOMAIN]["area_logger"] = area_logger
     _LOGGER.info("Area logger initialized at %s", storage_path)
     

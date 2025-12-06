@@ -4,6 +4,10 @@ import json
 from datetime import datetime
 from typing import Any
 from pathlib import Path
+import asyncio
+from functools import partial
+
+from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,14 +25,16 @@ class AreaLogger:
     .storage/smart_heating/logs/{area_id}/{event_type}.jsonl
     """
     
-    def __init__(self, storage_path: str) -> None:
+    def __init__(self, storage_path: str, hass: HomeAssistant) -> None:
         """Initialize the area logger.
         
         Args:
             storage_path: Base path to store logs (e.g., .storage/smart_heating)
+            hass: Home Assistant instance for async operations
         """
         self._base_path = Path(storage_path) / "logs"
         self._base_path.mkdir(parents=True, exist_ok=True)
+        self._hass = hass
         _LOGGER.info("Area logger initialized at %s", self._base_path)
     
     def _get_log_file_path(self, area_id: str, event_type: str) -> Path:
@@ -52,7 +58,7 @@ class AreaLogger:
         message: str,
         details: dict[str, Any] | None = None
     ) -> None:
-        """Log an event for a specific area.
+        """Log an event for a specific area (schedules async file write).
         
         Args:
             area_id: Area identifier
@@ -71,17 +77,8 @@ class AreaLogger:
             "details": details or {}
         }
         
-        # Append to the appropriate log file
-        log_file = self._get_log_file_path(area_id, event_type)
-        try:
-            with open(log_file, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(entry) + '\n')
-            
-            # Check file size and rotate if needed
-            self._rotate_if_needed(log_file)
-            
-        except Exception as err:
-            _LOGGER.error("Failed to write log for area %s: %s", area_id, err)
+        # Schedule async write (non-blocking)
+        self._hass.async_create_task(self._async_write_log(area_id, event_type, entry))
         
         # Also log to standard logger for debugging
         _LOGGER.debug(
@@ -92,30 +89,57 @@ class AreaLogger:
             f"({details})" if details else ""
         )
     
-    def _rotate_if_needed(self, log_file: Path) -> None:
+    async def _async_write_log(self, area_id: str, event_type: str, entry: dict) -> None:
+        """Asynchronously write log entry to file.
+        
+        Args:
+            area_id: Area identifier
+            event_type: Event type
+            entry: Log entry to write
+        """
+        log_file = self._get_log_file_path(area_id, event_type)
+        
+        def _write():
+            try:
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps(entry) + '\n')
+            except Exception as err:
+                _LOGGER.error("Failed to write log for area %s: %s", area_id, err)
+        
+        # Run file I/O in executor to avoid blocking
+        await self._hass.async_add_executor_job(_write)
+        
+        # Check if rotation needed (also async)
+        await self._async_rotate_if_needed(log_file)
+    
+    async def _async_rotate_if_needed(self, log_file: Path) -> None:
         """Rotate log file if it exceeds the maximum entries.
         
         Args:
             log_file: Path to the log file
         """
-        try:
-            # Count lines in file
-            with open(log_file, 'r', encoding='utf-8') as f:
-                line_count = sum(1 for _ in f)
-            
-            if line_count > MAX_LOG_ENTRIES_PER_FILE:
-                # Keep only the last MAX_LOG_ENTRIES_PER_FILE entries
+        def _rotate():
+            try:
+                # Count lines in file
                 with open(log_file, 'r', encoding='utf-8') as f:
-                    lines = f.readlines()
+                    line_count = sum(1 for _ in f)
                 
-                # Write back only the newest entries
-                with open(log_file, 'w', encoding='utf-8') as f:
-                    f.writelines(lines[-MAX_LOG_ENTRIES_PER_FILE:])
-                
-                _LOGGER.debug("Rotated log file %s", log_file)
-                
-        except Exception as err:
-            _LOGGER.error("Failed to rotate log file %s: %s", log_file, err)
+                if line_count > MAX_LOG_ENTRIES_PER_FILE:
+                    # Keep only the last MAX_LOG_ENTRIES_PER_FILE entries
+                    with open(log_file, 'r', encoding='utf-8') as f:
+                        lines = f.readlines()
+                    
+                    # Write back only the newest entries
+                    with open(log_file, 'w', encoding='utf-8') as f:
+                        f.writelines(lines[-MAX_LOG_ENTRIES_PER_FILE:])
+                    
+                    _LOGGER.debug("Rotated log file %s", log_file)
+                    
+            except Exception as err:
+                _LOGGER.error("Failed to rotate log file %s: %s", log_file, err)
+        
+        # Run rotation in executor to avoid blocking
+        await self._hass.async_add_executor_job(_rotate)
     
     def get_logs(
         self,

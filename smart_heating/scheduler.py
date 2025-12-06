@@ -268,9 +268,8 @@ class ScheduleExecutor:
         # Predict heating time using learning engine
         predicted_minutes = await self.learning_engine.async_predict_heating_time(
             area_id=area.area_id,
-            start_temp=current_temp,
-            target_temp=target_temp,
-            outdoor_temp=outdoor_temp
+            current_temp=current_temp,
+            target_temp=target_temp
         )
         
         if predicted_minutes is None:
@@ -430,28 +429,11 @@ class ScheduleExecutor:
             area.preset_mode = schedule.preset_mode
             await self.area_manager.async_save()
             
-            # Call the climate service to set preset
-            try:
-                await self.hass.services.async_call(
-                    "climate",
-                    "set_preset_mode",
-                    {
-                        "entity_id": climate_entity_id,
-                        "preset_mode": schedule.preset_mode,
-                    },
-                    blocking=True,
-                )
-                _LOGGER.debug(
-                    "Set preset mode for %s to %s via climate service",
-                    climate_entity_id,
-                    schedule.preset_mode,
-                )
-            except Exception as err:
-                _LOGGER.warning(
-                    "Failed to set preset mode via climate service for %s: %s",
-                    climate_entity_id,
-                    err,
-                )
+            _LOGGER.debug(
+                "Set preset mode for area %s to %s",
+                area.area_id,
+                schedule.preset_mode,
+            )
         else:
             # Apply temperature directly
             target_temp = schedule.temperature
