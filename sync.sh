@@ -90,8 +90,8 @@ echo ""
 echo -e "${YELLOW}[3/3]${NC} Restarting Home Assistant..."
 docker restart "$HA_CONTAINER" > /dev/null
 
-echo "  Waiting for restart (20 seconds)..."
-sleep 20
+echo "  Waiting for restart (5 seconds)..."
+sleep 5
 
 # Check if container is running
 if docker ps | grep -q "$HA_CONTAINER"; then

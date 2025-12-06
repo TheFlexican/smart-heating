@@ -10,7 +10,18 @@ Smart Heating is a custom Home Assistant integration for intelligent zone-based 
 - Development: Docker container (homeassistant-test) for testing
 - Testing: Playwright E2E tests (comprehensive feature coverage)
 
-**CRITICAL DEVELOPMENT RULE:**
+## Critical Development Rules
+
+**CRITICAL RULE #1: Never Remove Features Without Permission**
+⚠️ **NEVER remove or simplify existing functionality without explicit user request.**
+- Do NOT remove drag & drop, buttons, filters, or any UI elements unless explicitly asked
+- Do NOT change UX patterns (e.g., drag & drop → buttons) without permission
+- Do NOT make assumptions about "better" or "simpler" implementations
+- Do NOT remove libraries or dependencies without asking
+- ALWAYS ask before removing functionality: "Should I remove/change feature X?"
+- When in doubt, KEEP the existing feature and ADD the new one
+
+**CRITICAL RULE #2: E2E Testing Required**
 ⚠️ **ALL code changes (frontend or backend) MUST pass E2E tests before deployment.**
 - Run `cd tests/e2e && npm test` after every feature addition or bug fix
 - All tests must pass (100% success rate) before committing
@@ -212,8 +223,8 @@ These are intentionally skipped and documented - not broken tests.
 
 ## Version Management
 
-**Current Version:** v0.3.15
-**Previous Version:** v0.3.14
+**Current Version:** v0.3.16
+**Previous Version:** v0.3.15
 
 ### Version Update Checklist
 When bumping version:
@@ -386,8 +397,12 @@ git push origin main --tags
 ### Frontend Features (Complete)
 ✅ Area overview with enable/disable toggle and hide/show
 ✅ Device status with real-time heating indicators
-✅ Location-based device filtering (dropdown in Devices tab)
-✅ Direct device assignment from area detail page (+ / - buttons)
+✅ Location-based device filtering (dropdown in Devices tab sidebar)
+✅ **Devices Tab in Area Detail:**
+   - Assigned Devices section with remove buttons
+   - Available Devices section with add buttons
+   - Smart filtering: HA area match OR name-based matching (for MQTT devices)
+   - No drag & drop needed in tab (preserved on main page)
 ✅ Schedule management UI
 ✅ History charts with custom time ranges
 ✅ Settings tab with all v0.3.0+ features:
@@ -472,5 +487,5 @@ Keep changelog in reverse chronological order (newest first).
 ---
 
 **Last Updated:** December 6, 2025
-**Current Version:** v0.3.15
-**Previous Version:** v0.3.14
+**Current Version:** v0.3.16
+**Previous Version:** v0.3.15

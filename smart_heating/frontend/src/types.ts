@@ -1,11 +1,14 @@
 export interface Device {
   id: string
-  type: 'thermostat' | 'temperature_sensor' | 'opentherm_gateway' | 'valve'
+  entity_id?: string  // Universal device ID (HA entity_id)
+  type: 'thermostat' | 'temperature_sensor' | 'opentherm_gateway' | 'valve' | 'switch'
   mqtt_topic?: string
   name?: string
   state?: string
   ha_area_id?: string
+  area_id?: string  // Alias for ha_area_id for consistency
   ha_area_name?: string
+  domain?: string  // HA domain (climate, sensor, switch, number)
   // Thermostat specific
   hvac_action?: string
   current_temperature?: number

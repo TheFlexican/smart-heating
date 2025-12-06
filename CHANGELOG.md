@@ -15,6 +15,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - 📱 Mobile app notifications
 - 🏡 Multi-home support
 
+## [0.3.16] - 2025-12-06
+
+### ✨ Added - Devices Tab in Area Detail
+
+**Devices Tab Interface**
+- **Assigned Devices Section**: Shows all devices currently linked to the area
+  - Remove button (🗑️) for each device
+  - Real-time device status (temperature, heating state, device type)
+  - Device count in section header
+- **Available Devices Section**: Shows unassigned devices from the same HA area
+  - Add button for each available device
+  - Smart filtering by HA area ID OR device name matching
+  - Supports both devices with HA area assignment and MQTT devices without area
+  - Device count in section header
+- **Smart Filtering Logic**:
+  - Method 1: Direct HA `area_id` match (for devices assigned to HA areas)
+  - Method 2: Name-based matching (e.g., "Kitchen Thermostat" for "Kitchen" area)
+  - Excludes devices already assigned to the area
+- **Tab Navigation**: Devices tab is 2nd tab (index 1) in area detail page
+- **Backward Compatible**: Works with existing MQTT device system
+
+**E2E Test Coverage**
+- Created `device-management.spec.ts` with 15 comprehensive tests (all passing ✅)
+- Tests cover:
+  - Devices tab navigation and visibility
+  - Assigned devices section display and remove functionality
+  - Available devices section display and add functionality
+  - Smart filtering (HA area + name matching)
+  - Add/Remove operations and state updates
+  - Drag & drop preservation on main page
+
+### 🔧 Changed
+- Extended Device interface with `entity_id`, `area_id`, and `domain` properties
+- Updated tab indices: Devices (1), Schedule (2), History (3), Settings (4), Learning (5)
+- Devices tab is now primary device management method (drag & drop still available)
+
+### 📚 Documentation
+- Updated `.github/copilot-instructions.md` with Devices tab feature description
+- Updated E2E test documentation with device management test suite details
+
 ## [0.3.15] - 2025-12-06
 
 ### ✨ Added - Universal Device Discovery & Enhanced Device Management

@@ -403,6 +403,10 @@ class SmartHeatingAPIView(HomeAssistantView):
         _LOGGER.warning("=== SMART HEATING: Starting device discovery ===")
         
         for entity in entity_registry.entities.values():
+            # Skip Smart Heating's own climate entities (zone thermostats)
+            if entity.entity_id.startswith("climate.zone_"):
+                continue
+            
             # Check if entity is from a heating-related domain
             if entity.domain in heating_platforms:
                 # Get entity state for additional info

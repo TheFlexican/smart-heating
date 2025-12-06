@@ -39,7 +39,7 @@ import SensorOccupiedIcon from '@mui/icons-material/SensorOccupied'
 import HistoryIcon from '@mui/icons-material/History'
 import SpeedIcon from '@mui/icons-material/Speed'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
-import { Zone, WindowSensorConfig, PresenceSensorConfig } from '../types'
+import { Zone, WindowSensorConfig, PresenceSensorConfig, Device } from '../types'
 import { 
   getZones, 
   setZoneTemperature, 
@@ -54,7 +54,10 @@ import {
   addPresenceSensor,
   removePresenceSensor,
   getHistoryConfig,
-  setHistoryRetention
+  setHistoryRetention,
+  getDevices,
+  addDeviceToZone,
+  removeDeviceFromZone
 } from '../api'
 import ScheduleEditor from '../components/ScheduleEditor'
 import HistoryChart from '../components/HistoryChart'
@@ -88,6 +91,7 @@ const ZoneDetail = () => {
   const { areaId } = useParams<{ areaId: string }>()
   const navigate = useNavigate()
   const [area, setZone] = useState<Zone | null>(null)
+  const [availableDevices, setAvailableDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
   const [tabValue, setTabValue] = useState(0)
   const [temperature, setTemperature] = useState(21)
@@ -134,10 +138,49 @@ const ZoneDetail = () => {
       
       setZone(currentZone)
       setTemperature(currentZone.target_temperature)
+      
+      // Load available devices
+      await loadAvailableDevices(currentZone)
     } catch (error) {
       console.error('Failed to load area:', error)
     } finally {
       setLoading(false)
+    }
+  }
+  
+  const loadAvailableDevices = async (currentZone: Zone) => {
+    try {
+      const allDevices = await getDevices()
+      
+      // Filter devices:
+      // 1. Must be assigned to the same HA area as this zone (by area_id OR name matching)
+      // 2. Must NOT already be assigned to this zone
+      const available = allDevices.filter(device => {
+        // Check if already assigned
+        const alreadyAssigned = currentZone.devices.some(d => 
+          (d.entity_id || d.id) === (device.entity_id || device.id)
+        )
+        if (alreadyAssigned) return false
+        
+        // Method 1: Direct HA area match
+        if (device.ha_area_id === currentZone.id) {
+          return true
+        }
+        
+        // Method 2: Name-based matching (for MQTT devices without HA area assignment)
+        // Check if device name contains the zone name
+        const zoneName = currentZone.name.toLowerCase()
+        const deviceName = (device.name || device.entity_id || device.id || '').toLowerCase()
+        if (deviceName.includes(zoneName)) {
+          return true
+        }
+        
+        return false
+      })
+      
+      setAvailableDevices(available)
+    } catch (error) {
+      console.error('Failed to load available devices:', error)
     }
   }
   
@@ -1016,6 +1059,7 @@ const ZoneDetail = () => {
       >
         <Tabs value={tabValue} onChange={handleTabChange}>
           <Tab label="Overview" />
+          <Tab label="Devices" />
           <Tab label="Schedule" />
           <Tab label="History" />
           <Tab label="Settings" />
@@ -1160,15 +1204,166 @@ const ZoneDetail = () => {
           </Box>
         </TabPanel>
 
-        {/* Schedule Tab */}
+        {/* Devices Tab */}
         <TabPanel value={tabValue} index={1}>
+          <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+            {/* Assigned Devices */}
+            <Paper sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h6" gutterBottom color="text.primary">
+                Assigned Devices ({area.devices.length})
+              </Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                Devices currently assigned to this area in Smart Heating
+              </Typography>
+
+              {area.devices.length === 0 ? (
+                <Alert severity="info">
+                  No devices assigned yet. See available devices below or use drag & drop on the main page.
+                </Alert>
+              ) : (
+                <List>
+                  {area.devices.map((device) => (
+                    <ListItem
+                      key={device.id}
+                      sx={{
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        mb: 1,
+                      }}
+                      secondaryAction={
+                        <IconButton 
+                          edge="end" 
+                          aria-label="remove"
+                          onClick={async () => {
+                            try {
+                              await removeDeviceFromZone(area.id, device.entity_id || device.id)
+                              await loadData()
+                            } catch (error) {
+                              console.error('Failed to remove device:', error)
+                            }
+                          }}
+                        >
+                          <RemoveCircleOutlineIcon />
+                        </IconButton>
+                      }
+                    >
+                      <ListItemIcon>
+                        {getDeviceStatusIcon(device)}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Typography variant="body1" color="text.primary">
+                              {device.name || device.id}
+                            </Typography>
+                            {device.type === 'thermostat' && area && 
+                             area.target_temperature !== undefined && 
+                             device.current_temperature !== undefined && 
+                             area.target_temperature > device.current_temperature && (
+                              <Chip 
+                                label="heating" 
+                                size="small" 
+                                color="error"
+                                sx={{ height: 20, fontSize: '0.7rem' }}
+                              />
+                            )}
+                          </Box>
+                        }
+                        secondary={
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {device.type.replace(/_/g, ' ')}
+                            </Typography>
+                            <Typography variant="body2" color="text.primary" sx={{ mt: 0.5 }}>
+                              {getDeviceStatus(device)}
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </Paper>
+
+            {/* Available Devices */}
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom color="text.primary">
+                Available Devices ({availableDevices.length})
+              </Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                Devices assigned to "{area.name}" in Home Assistant but not yet added to Smart Heating
+              </Typography>
+
+              {availableDevices.length === 0 ? (
+                <Alert severity="info">
+                  No additional devices available. All devices from this area are already assigned.
+                </Alert>
+              ) : (
+                <List>
+                  {availableDevices.map((device) => (
+                    <ListItem
+                      key={device.entity_id || device.id}
+                      sx={{
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        mb: 1,
+                      }}
+                      secondaryAction={
+                        <Button 
+                          variant="contained" 
+                          size="small"
+                          onClick={async () => {
+                            try {
+                              await addDeviceToZone(area.id, {
+                                device_id: device.entity_id || device.id,
+                                device_type: device.type,
+                                mqtt_topic: device.mqtt_topic
+                              })
+                              await loadData()
+                            } catch (error) {
+                              console.error('Failed to add device:', error)
+                            }
+                          }}
+                        >
+                          Add
+                        </Button>
+                      }
+                    >
+                      <ListItemIcon>
+                        <ThermostatIcon color="action" />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          <Typography variant="body1" color="text.primary">
+                            {device.name || device.entity_id || device.id}
+                          </Typography>
+                        }
+                        secondary={
+                          <Typography variant="caption" color="text.secondary">
+                            {device.type.replace(/_/g, ' ')} • {device.entity_id || device.id}
+                          </Typography>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </Paper>
+          </Box>
+        </TabPanel>
+
+        {/* Schedule Tab */}
+        <TabPanel value={tabValue} index={2}>
           <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
             <ScheduleEditor area={area} onUpdate={loadData} />
           </Box>
         </TabPanel>
 
         {/* History Tab */}
-        <TabPanel value={tabValue} index={2}>
+        <TabPanel value={tabValue} index={3}>
           <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom color="text.primary">
@@ -1186,7 +1381,7 @@ const ZoneDetail = () => {
         </TabPanel>
 
         {/* Settings Tab */}
-        <TabPanel value={tabValue} index={3}>
+        <TabPanel value={tabValue} index={4}>
           <Box sx={{ maxWidth: 1600, mx: 'auto', px: 2 }}>
             <DraggableSettings 
               key={`settings-${area.id}-${area.presence_sensors?.length || 0}-${area.window_sensors?.length || 0}`}

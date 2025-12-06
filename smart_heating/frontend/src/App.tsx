@@ -164,23 +164,12 @@ function App() {
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination } = result
 
-    // Dropped outside a valid droppable
-    if (!destination) {
-      return
-    }
+    if (!destination) return
+    if (source.droppableId === destination.droppableId) return
 
-    // Dropped back in the same place
-    if (source.droppableId === destination.droppableId) {
-      return
-    }
-
-    // Extract area ID from droppable ID (format: "area-{id}")
     const areaId = destination.droppableId.replace('area-', '')
-    
-    // Extract device ID from draggable ID (format: "device-{id}")
     const deviceId = result.draggableId.replace('device-', '')
     
-    // Find the device to get its type
     const device = availableDevices.find(d => d.id === deviceId)
     if (!device) return
     
@@ -190,7 +179,7 @@ function App() {
         device_type: device.type,
         mqtt_topic: device.mqtt_topic
       })
-      await loadData() // Refresh the data
+      await loadData()
     } catch (error) {
       console.error('Failed to add device to area:', error)
     }
