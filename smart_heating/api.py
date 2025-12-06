@@ -505,9 +505,10 @@ class SmartHeatingAPIView(HomeAssistantView):
                     _LOGGER.debug("Skipping device %s - assigned to hidden area", entity.entity_id)
                     continue
                 
-                _LOGGER.debug(
-                    "Discovered device: %s (type: %s, domain: %s, HA area: %s)",
-                    entity.entity_id, device_type, entity.domain, ha_area_name or "none"
+                _LOGGER.info(
+                    "Discovered device: %s (%s) - type: %s, HA area: %s",
+                    state.attributes.get("friendly_name", entity.entity_id),
+                    entity.entity_id, device_type, ha_area_name or "none"
                 )
                 
                 devices.append({
