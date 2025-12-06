@@ -177,6 +177,16 @@ export const setHvacMode = async (
   })
 }
 
+// Switch/Pump Shutdown Control
+export const setSwitchShutdown = async (
+  areaId: string,
+  shutdown: boolean
+): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/switch_shutdown`, {
+    shutdown
+  })
+}
+
 // Schedule Copying
 export const copySchedule = async (
   sourceAreaId: string,

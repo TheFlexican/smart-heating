@@ -462,14 +462,17 @@ class ClimateController:
                     )
                     _LOGGER.debug("Turned on switch %s", switch_id)
                 else:
-                    # Turn off switch
-                    await self.hass.services.async_call(
-                        "switch",
-                        SERVICE_TURN_OFF,
-                        {"entity_id": switch_id},
-                        blocking=False,
-                    )
-                    _LOGGER.debug("Turned off switch %s", switch_id)
+                    # Turn off switch only if area setting allows it
+                    if area.shutdown_switches_when_idle:
+                        await self.hass.services.async_call(
+                            "switch",
+                            SERVICE_TURN_OFF,
+                            {"entity_id": switch_id},
+                            blocking=False,
+                        )
+                        _LOGGER.debug("Turned off switch %s (shutdown_switches_when_idle=True)", switch_id)
+                    else:
+                        _LOGGER.debug("Keeping switch %s on (shutdown_switches_when_idle=False)", switch_id)
             except Exception as err:
                 _LOGGER.error(
                     "Failed to control switch %s: %s",

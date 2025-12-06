@@ -141,6 +141,9 @@ class SmartHeatingAPIView(HomeAssistantView):
             elif endpoint.startswith("areas/") and endpoint.endswith("/hvac_mode"):
                 area_id = endpoint.split("/")[1]
                 return await self.set_hvac_mode(request, area_id, data)
+            elif endpoint.startswith("areas/") and endpoint.endswith("/switch_shutdown"):
+                area_id = endpoint.split("/")[1]
+                return await self.set_switch_shutdown(request, area_id, data)
             elif endpoint == "frost_protection":
                 return await self.set_frost_protection(request, data)
             elif endpoint == "history/config":
@@ -1050,6 +1053,49 @@ class SmartHeatingAPIView(HomeAssistantView):
             
             return web.json_response({"success": True})
         except Exception as err:
+            return web.json_response(
+                {"error": str(err)}, status=500
+            )
+    
+    async def set_switch_shutdown(self, request: web.Request, area_id: str, data: dict) -> web.Response:
+        """Set whether switches/pumps should shutdown when area is not heating.
+        
+        Args:
+            request: Request object
+            area_id: Area identifier
+            data: {"shutdown": true/false}
+            
+        Returns:
+            JSON response
+        """
+        try:
+            area = self.area_manager.get_area(area_id)
+            if not area:
+                return web.json_response(
+                    {"error": f"Area {area_id} not found"}, status=404
+                )
+            
+            shutdown = data.get("shutdown", True)
+            area.shutdown_switches_when_idle = shutdown
+            await self.area_manager.async_save()
+            
+            _LOGGER.info(
+                "Area %s: shutdown_switches_when_idle set to %s",
+                area_id, shutdown
+            )
+            
+            # Refresh coordinator
+            entry_ids = [
+                key for key in self.hass.data[DOMAIN].keys()
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine"]
+            ]
+            if entry_ids:
+                coordinator = self.hass.data[DOMAIN][entry_ids[0]]
+                await coordinator.async_request_refresh()
+            
+            return web.json_response({"success": True})
+        except Exception as err:
+            _LOGGER.error("Error setting switch shutdown for area %s: %s", area_id, err)
             return web.json_response(
                 {"error": str(err)}, status=500
             )

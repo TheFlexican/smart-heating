@@ -235,6 +235,9 @@ class Area:
         
         # Manual override mode - when user manually adjusts thermostat outside the app
         self.manual_override: bool = False  # True when thermostat was manually adjusted
+        
+        # Switch/pump control setting
+        self.shutdown_switches_when_idle: bool = True  # Turn off switches/pumps when area not heating
 
     def add_device(self, device_id: str, device_type: str, mqtt_topic: str | None = None) -> None:
         """Add a device to the area.
@@ -685,6 +688,7 @@ class Area:
             ATTR_ENABLED: self.enabled,
             "hidden": self.hidden,
             "manual_override": self.manual_override,
+            "shutdown_switches_when_idle": self.shutdown_switches_when_idle,
             ATTR_DEVICES: self.devices,
             "schedules": [s.to_dict() for s in self.schedules.values()],
             "night_boost_enabled": self.night_boost_enabled,
@@ -734,6 +738,7 @@ class Area:
         area.devices = data.get(ATTR_DEVICES, {})
         area.hidden = data.get("hidden", False)
         area.manual_override = data.get("manual_override", False)
+        area.shutdown_switches_when_idle = data.get("shutdown_switches_when_idle", True)
         
         # Night boost settings
         area.night_boost_enabled = data.get("night_boost_enabled", True)

@@ -15,6 +15,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - 📱 Mobile app notifications
 - 🏡 Multi-home support
 
+## [0.4.2] - 2025-01-06
+
+### ✨ Added - Per-Area Switch/Pump Control
+
+**Smart Switch Control Setting**
+- **New Area Setting**: `shutdown_switches_when_idle` - Control whether switches/pumps turn off when area not heating
+- **Default Behavior**: Enabled (true) - switches automatically turn off when heating stops
+- **Optional Always-On Mode**: Disable setting to keep pumps running continuously regardless of heating demand
+- **Use Cases**: 
+  - Enable for energy efficiency (pumps off when not needed)
+  - Disable for systems requiring continuous circulation
+  - Perfect for zone valves that need constant pump pressure
+
+**Implementation:**
+- Added `shutdown_switches_when_idle` property to Area class
+- Persistence: Saved/loaded from storage like other area settings
+- Climate controller checks setting before turning off switches
+- Frontend UI: Toggle switch in Area Settings → Switch/Pump Control section
+- API endpoint: `POST /api/smart_heating/areas/{id}/switch_shutdown`
+- Detailed logging when switches kept on vs turned off
+
+**Frontend UI:**
+- New "Switch/Pump Control" section in area detail settings
+- Toggle: "Shutdown switches/pumps when not heating"
+- Badge shows current state: "Auto Off" or "Always On"
+- Helpful description explaining behavior
+
+**Affected Files:**
+- `smart_heating/area_manager.py`: Added property and persistence
+- `smart_heating/climate_controller.py`: Conditional switch control logic
+- `smart_heating/api.py`: New endpoint for updating setting
+- `smart_heating/frontend/src/types.ts`: TypeScript interface update
+- `smart_heating/frontend/src/api.ts`: API function
+- `smart_heating/frontend/src/pages/AreaDetail.tsx`: UI controls
+
 ## [0.4.1] - 2025-01-06
 
 ### 🐛 Fixed - Manual Override Persistence

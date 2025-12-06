@@ -71,6 +71,9 @@ export interface Zone {
   // Manual override mode
   manual_override?: boolean
   
+  // Switch/pump control setting
+  shutdown_switches_when_idle?: boolean
+  
   // Window sensor settings
   window_sensors?: WindowSensorConfig[]
   window_is_open?: boolean

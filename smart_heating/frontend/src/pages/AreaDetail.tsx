@@ -50,6 +50,7 @@ import {
   setBoostMode,
   cancelBoost,
   setHvacMode,
+  setSwitchShutdown,
   addWindowSensor,
   removeWindowSensor,
   addPresenceSensor,
@@ -479,6 +480,38 @@ const ZoneDetail = () => {
               <MenuItem value="off">Off</MenuItem>
             </Select>
           </FormControl>
+        )
+      },
+      {
+        id: 'switch-control',
+        title: 'Switch/Pump Control',
+        description: 'Control how switches and pumps behave when area is not heating',
+        icon: <PowerSettingsNewIcon />,
+        badge: area.shutdown_switches_when_idle ? 'Auto Off' : 'Always On',
+        defaultExpanded: false,
+        content: (
+          <Box>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={area.shutdown_switches_when_idle ?? true}
+                  onChange={async (e) => {
+                    try {
+                      await setSwitchShutdown(area.id, e.target.checked)
+                      loadData()
+                    } catch (error) {
+                      console.error('Failed to update switch shutdown setting:', error)
+                    }
+                  }}
+                />
+              }
+              label="Shutdown switches/pumps when not heating"
+            />
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1, ml: 4 }}>
+              When enabled, switches and pumps assigned to this area will automatically turn off when the area doesn't need heating. 
+              Disable this if you want pumps to run continuously regardless of heating demand.
+            </Typography>
+          </Box>
         )
       },
       {
