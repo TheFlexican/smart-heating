@@ -1449,7 +1449,7 @@ class SmartHeatingAPIView(HomeAssistantView):
         Args:
             request: Request object
             area_id: Area identifier
-            data: Schedule data (day, start_time, end_time, temperature)
+            data: Schedule data (day, start_time, end_time, temperature or preset_mode)
             
         Returns:
             JSON response
@@ -1458,10 +1458,12 @@ class SmartHeatingAPIView(HomeAssistantView):
         
         schedule_id = data.get("id") or str(uuid.uuid4())
         temperature = data.get("temperature")
+        preset_mode = data.get("preset_mode")
         
-        if temperature is None:
+        # Require either temperature or preset_mode
+        if temperature is None and preset_mode is None:
             return web.json_response(
-                {"error": "temperature is required"}, status=400
+                {"error": "Either temperature or preset_mode is required"}, status=400
             )
         
         try:
@@ -1483,11 +1485,11 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Create schedule from frontend data
             from .area_manager import Schedule
             
-            # Validate required fields
-            time_str = data.get("time")
+            # Validate required fields - accept either 'time' (legacy) or 'start_time' (new)
+            time_str = data.get("time") or data.get("start_time")
             if not time_str:
                 return web.json_response(
-                    {"error": "Missing required field: time"}, status=400
+                    {"error": "Missing required field: time or start_time"}, status=400
                 )
             
             schedule = Schedule(
@@ -1499,6 +1501,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                 day=data.get("day"),
                 start_time=data.get("start_time"),
                 end_time=data.get("end_time"),
+                preset_mode=data.get("preset_mode"),
             )
             
             area = self.area_manager.get_area(area_id)

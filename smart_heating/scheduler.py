@@ -133,6 +133,8 @@ class ScheduleExecutor:
     ) -> Optional[dict]:
         """Find the active schedule for the given day and time.
         
+        Handles schedules that cross midnight (e.g., Saturday 22:00 - Sunday 07:00).
+        
         Args:
             schedules: List of schedule entries
             current_day: Current day name (e.g., "Monday")
@@ -141,24 +143,41 @@ class ScheduleExecutor:
         Returns:
             Active schedule entry or None
         """
+        # Get previous day name for cross-midnight check
+        day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        current_day_idx = day_order.index(current_day)
+        previous_day = day_order[(current_day_idx - 1) % 7]
+        
+        # Check schedules for current day
         for schedule in schedules.values():
-            if schedule.day != current_day:
-                continue
+            if schedule.day == current_day:
+                # Parse schedule times
+                start_time = time.fromisoformat(schedule.start_time)
+                end_time = time.fromisoformat(schedule.end_time)
                 
-            # Parse schedule times
-            start_time = time.fromisoformat(schedule.start_time)
-            end_time = time.fromisoformat(schedule.end_time)
-            
-            # Check if current time is within schedule window
-            # Handle schedules that cross midnight
-            if start_time <= end_time:
-                # Normal case: 08:00 - 22:00
-                if start_time <= current_time < end_time:
-                    return schedule
-            else:
-                # Crosses midnight: 22:00 - 06:00
-                if current_time >= start_time or current_time < end_time:
-                    return schedule
+                # Check if current time is within schedule window
+                # Handle schedules that cross midnight
+                if start_time <= end_time:
+                    # Normal case: 08:00 - 22:00
+                    if start_time <= current_time < end_time:
+                        return schedule
+                else:
+                    # Crosses midnight: 22:00 - 06:00
+                    # Only match if we're in the late period (>= start_time)
+                    if current_time >= start_time:
+                        return schedule
+        
+        # Check if a schedule from the previous day extends into today
+        for schedule in schedules.values():
+            if schedule.day == previous_day:
+                start_time = time.fromisoformat(schedule.start_time)
+                end_time = time.fromisoformat(schedule.end_time)
+                
+                # Only check if schedule crosses midnight
+                if start_time > end_time:
+                    # Check if we're in the early period (< end_time)
+                    if current_time < end_time:
+                        return schedule
                     
         return None
 
@@ -249,48 +268,87 @@ class ScheduleExecutor:
                 )
 
     async def _apply_schedule(self, area, schedule) -> None:
-        """Apply a schedule's temperature to a area.
+        """Apply a schedule's temperature or preset mode to an area.
         
         Args:
             area: Zone object
             schedule: Schedule object
         """
-        target_temp = schedule.temperature
-        
-        _LOGGER.info(
-            "Applying schedule to area %s: %s-%s @ %s°C",
-            area.name,
-            schedule.start_time,
-            schedule.end_time,
-            target_temp,
-        )
-        
-        # Update area target temperature
-        area.target_temperature = target_temp
-        await self.area_manager.async_save()
-        
-        # Update the climate entity if it exists
         climate_entity_id = f"climate.smart_heating_{area.area_id}"
         
-        # Call the climate service to set temperature
-        try:
-            await self.hass.services.async_call(
-                "climate",
-                "set_temperature",
-                {
-                    "entity_id": climate_entity_id,
-                    "temperature": target_temp,
-                },
-                blocking=True,
+        # Apply preset mode if specified
+        if schedule.preset_mode:
+            _LOGGER.info(
+                "Applying schedule to area %s: %s-%s @ preset '%s'",
+                area.name,
+                schedule.start_time,
+                schedule.end_time,
+                schedule.preset_mode,
             )
-            _LOGGER.debug(
-                "Set temperature for %s to %s°C via climate service",
-                climate_entity_id,
+            
+            # Set preset mode
+            area.preset_mode = schedule.preset_mode
+            await self.area_manager.async_save()
+            
+            # Call the climate service to set preset
+            try:
+                await self.hass.services.async_call(
+                    "climate",
+                    "set_preset_mode",
+                    {
+                        "entity_id": climate_entity_id,
+                        "preset_mode": schedule.preset_mode,
+                    },
+                    blocking=True,
+                )
+                _LOGGER.debug(
+                    "Set preset mode for %s to %s via climate service",
+                    climate_entity_id,
+                    schedule.preset_mode,
+                )
+            except Exception as err:
+                _LOGGER.warning(
+                    "Failed to set preset mode via climate service for %s: %s",
+                    climate_entity_id,
+                    err,
+                )
+        else:
+            # Apply temperature directly
+            target_temp = schedule.temperature
+            
+            _LOGGER.info(
+                "Applying schedule to area %s: %s-%s @ %s°C",
+                area.name,
+                schedule.start_time,
+                schedule.end_time,
                 target_temp,
             )
-        except Exception as err:
-            _LOGGER.warning(
-                "Failed to set temperature via climate service for %s: %s",
-                climate_entity_id,
-                err,
-            )
+            
+            # Update area target temperature
+            area.target_temperature = target_temp
+            await self.area_manager.async_save()
+            
+            # Update the climate entity if it exists
+            # Call the climate service to set temperature
+            try:
+                await self.hass.services.async_call(
+                    "climate",
+                    "set_temperature",
+                    {
+                        "entity_id": climate_entity_id,
+                        "temperature": target_temp,
+                    },
+                    blocking=True,
+                )
+                _LOGGER.debug(
+                    "Set temperature for %s to %s°C via climate service",
+                    climate_entity_id,
+                    target_temp,
+                )
+            except Exception as err:
+                _LOGGER.warning(
+                    "Failed to set temperature via climate service for %s: %s",
+                    climate_entity_id,
+                    err,
+                )
+

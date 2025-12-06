@@ -72,24 +72,26 @@ class Schedule:
         self,
         schedule_id: str,
         time: str,
-        temperature: float,
+        temperature: float = None,
         days: list[str] | None = None,
         enabled: bool = True,
         day: str | None = None,
         start_time: str | None = None,
         end_time: str | None = None,
+        preset_mode: str | None = None,
     ) -> None:
         """Initialize a schedule.
         
         Args:
             schedule_id: Unique identifier
             time: Time in HH:MM format (legacy)
-            temperature: Target temperature
+            temperature: Target temperature (optional if preset_mode is used)
             days: Days of week (mon, tue, etc.) or None for all days (legacy)
             enabled: Whether schedule is active
             day: Day name (Monday, Tuesday, etc.) - new format
             start_time: Start time in HH:MM format - new format
             end_time: End time in HH:MM format - new format
+            preset_mode: Preset mode name (away, eco, comfort, home, sleep, activity)
         """
         self.schedule_id = schedule_id
         # Support both old and new formats
@@ -97,6 +99,7 @@ class Schedule:
         self.start_time = start_time or time
         self.end_time = end_time or "23:59"  # Default end time
         self.temperature = temperature
+        self.preset_mode = preset_mode
         
         # Convert between day formats
         day_map = {
@@ -145,14 +148,18 @@ class Schedule:
     
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
-        return {
+        result = {
             "id": self.schedule_id,
             "day": self.day,
             "start_time": self.start_time,
             "end_time": self.end_time,
-            "temperature": self.temperature,
             "enabled": self.enabled,
         }
+        if self.temperature is not None:
+            result["temperature"] = self.temperature
+        if self.preset_mode is not None:
+            result["preset_mode"] = self.preset_mode
+        return result
     
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Schedule":
@@ -160,12 +167,13 @@ class Schedule:
         return cls(
             schedule_id=data["id"],
             time=data.get("time"),
-            temperature=data["temperature"],
+            temperature=data.get("temperature"),
             days=data.get("days"),
             enabled=data.get("enabled", True),
             day=data.get("day"),
             start_time=data.get("start_time"),
             end_time=data.get("end_time"),
+            preset_mode=data.get("preset_mode"),
         )
 
 

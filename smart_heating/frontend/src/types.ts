@@ -25,7 +25,8 @@ export interface ScheduleEntry {
   day: string
   start_time: string
   end_time: string
-  temperature: number
+  temperature?: number
+  preset_mode?: string  // Optional: 'away', 'eco', 'comfort', 'home', 'sleep', 'activity'
 }
 
 export interface Zone {

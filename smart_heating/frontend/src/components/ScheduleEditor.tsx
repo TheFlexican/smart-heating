@@ -40,11 +40,13 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
   const [schedules, setSchedules] = useState<ScheduleEntry[]>(area.schedules || [])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingEntry, setEditingEntry] = useState<ScheduleEntry | null>(null)
+  const [usePreset, setUsePreset] = useState(false)
   const [formData, setFormData] = useState({
     day: 'Monday',
     start_time: '06:00',
     end_time: '22:00',
     temperature: 20,
+    preset_mode: 'none',
   })
 
   useEffect(() => {
@@ -53,22 +55,26 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
 
   const handleAddNew = () => {
     setEditingEntry(null)
+    setUsePreset(false)
     setFormData({
       day: 'Monday',
       start_time: '06:00',
       end_time: '22:00',
       temperature: 20,
+      preset_mode: 'none',
     })
     setDialogOpen(true)
   }
 
   const handleEdit = (entry: ScheduleEntry) => {
     setEditingEntry(entry)
+    setUsePreset(!!entry.preset_mode)
     setFormData({
       day: entry.day,
       start_time: entry.start_time,
       end_time: entry.end_time,
-      temperature: entry.temperature,
+      temperature: entry.temperature || 20,
+      preset_mode: entry.preset_mode || 'none',
     })
     setDialogOpen(true)
   }
@@ -91,7 +97,16 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
       
       const newEntry: ScheduleEntry = {
         id: editingEntry?.id || Date.now().toString(),
-        ...formData,
+        day: formData.day,
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+      }
+      
+      // Add either temperature or preset_mode
+      if (usePreset && formData.preset_mode !== 'none') {
+        newEntry.preset_mode = formData.preset_mode
+      } else {
+        newEntry.temperature = formData.temperature
       }
       
       await addScheduleToZone(area.id, newEntry)
@@ -179,18 +194,24 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
             
             {daySchedules.length > 0 && (
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {daySchedules.map(schedule => (
-                  <Chip
-                    key={schedule.id}
-                    label={`${schedule.start_time} - ${schedule.end_time}: ${schedule.temperature}°C`}
-                    onDelete={() => handleDelete(schedule.id)}
-                    onClick={() => handleEdit(schedule)}
-                    color="primary"
-                    variant="outlined"
-                    deleteIcon={<DeleteIcon />}
-                    icon={<EditIcon />}
-                  />
-                ))}
+                {daySchedules.map(schedule => {
+                  const label = schedule.preset_mode
+                    ? `${schedule.start_time} - ${schedule.end_time}: ${schedule.preset_mode}`
+                    : `${schedule.start_time} - ${schedule.end_time}: ${schedule.temperature}°C`
+                  
+                  return (
+                    <Chip
+                      key={schedule.id}
+                      label={label}
+                      onDelete={() => handleDelete(schedule.id)}
+                      onClick={() => handleEdit(schedule)}
+                      color="primary"
+                      variant="outlined"
+                      deleteIcon={<DeleteIcon />}
+                      icon={<EditIcon />}
+                    />
+                  )
+                })}
               </Box>
             )}
           </Paper>
@@ -224,6 +245,7 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
               onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
               InputLabelProps={{ shrink: true }}
               fullWidth
+              helperText="Schedule can span across days (e.g., Saturday 22:00 to Sunday 07:00)"
             />
 
             <TextField
@@ -235,15 +257,46 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
               fullWidth
             />
 
-            <TextField
-              label="Temperature (°C)"
-              type="number"
-              value={formData.temperature}
-              onChange={(e) => setFormData({ ...formData, temperature: parseFloat(e.target.value) })}
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ min: 5, max: 30, step: 0.5 }}
-              fullWidth
-            />
+            <FormControl fullWidth>
+              <InputLabel>Mode</InputLabel>
+              <Select
+                value={usePreset ? 'preset' : 'temperature'}
+                label="Mode"
+                onChange={(e) => setUsePreset(e.target.value === 'preset')}
+              >
+                <MenuItem value="temperature">Fixed Temperature</MenuItem>
+                <MenuItem value="preset">Preset Mode</MenuItem>
+              </Select>
+            </FormControl>
+
+            {usePreset ? (
+              <FormControl fullWidth>
+                <InputLabel>Preset</InputLabel>
+                <Select
+                  value={formData.preset_mode}
+                  label="Preset"
+                  onChange={(e) => setFormData({ ...formData, preset_mode: e.target.value })}
+                >
+                  <MenuItem value="none">None</MenuItem>
+                  <MenuItem value="eco">Eco</MenuItem>
+                  <MenuItem value="away">Away</MenuItem>
+                  <MenuItem value="comfort">Comfort</MenuItem>
+                  <MenuItem value="home">Home</MenuItem>
+                  <MenuItem value="sleep">Sleep</MenuItem>
+                  <MenuItem value="activity">Activity</MenuItem>
+                </Select>
+              </FormControl>
+            ) : (
+              <TextField
+                label="Temperature (°C)"
+                type="number"
+                value={formData.temperature}
+                onChange={(e) => setFormData({ ...formData, temperature: parseFloat(e.target.value) })}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: 5, max: 30, step: 0.5 }}
+                fullWidth
+              />
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
