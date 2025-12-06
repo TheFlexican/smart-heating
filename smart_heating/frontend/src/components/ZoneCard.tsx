@@ -46,6 +46,10 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
     if (thermostat && thermostat.target_temperature != null) {
       return thermostat.target_temperature
     }
+    // If a preset is active, show the effective temperature
+    if (area.preset_mode && area.preset_mode !== 'none' && area.effective_target_temperature != null) {
+      return area.effective_target_temperature
+    }
     return area.target_temperature
   }
   
@@ -277,6 +281,14 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
             <Typography variant="body2" color="text.secondary">
               Target Temperature
+              {area.preset_mode && area.preset_mode !== 'none' && (
+                <Chip 
+                  label={area.preset_mode.toUpperCase()} 
+                  size="small" 
+                  color="secondary"
+                  sx={{ ml: 1, fontSize: '0.7rem', height: '20px' }}
+                />
+              )}
             </Typography>
             <Typography variant="h5" color="primary">
               {temperature}°C
@@ -294,7 +306,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
               { value: 30, label: '30°' }
             ]}
             valueLabelDisplay="auto"
-            disabled={!area.enabled || area.devices.length === 0}
+            disabled={!area.enabled || area.devices.length === 0 || !!(area.preset_mode && area.preset_mode !== 'none')}
           />
           {area.devices.length === 0 && (
             <Box display="flex" alignItems="center" gap={1} mt={1} sx={{ color: 'warning.main' }}>

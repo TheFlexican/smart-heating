@@ -35,6 +35,7 @@ export interface Zone {
   hidden?: boolean
   state: 'heating' | 'idle' | 'off'
   target_temperature: number
+  effective_target_temperature?: number  // Actual temperature considering presets, schedules, etc.
   current_temperature?: number
   devices: Device[]
   schedules?: ScheduleEntry[]

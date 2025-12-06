@@ -269,6 +269,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                     "hidden": stored_area.hidden,
                     "state": stored_area.state,
                     "target_temperature": stored_area.target_temperature,
+                    "effective_target_temperature": stored_area.get_effective_target_temperature(),
                     "current_temperature": stored_area.current_temperature,
                     "devices": devices_list,
                     "schedules": [s.to_dict() for s in stored_area.schedules.values()],
@@ -354,6 +355,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             "enabled": area.enabled,
             "state": area.state,
             "target_temperature": area.target_temperature,
+            "effective_target_temperature": area.get_effective_target_temperature(),
             "current_temperature": area.current_temperature,
             "devices": devices_list,
             "schedules": [s.to_dict() for s in area.schedules.values()],
@@ -1342,6 +1344,10 @@ class SmartHeatingAPIView(HomeAssistantView):
             if not area:
                 raise ValueError(f"Area {area_id} not found")
             
+            old_preset = area.preset_mode
+            old_target = area.target_temperature
+            old_effective = area.get_effective_target_temperature()
+            
             area.set_preset_mode(preset_mode)
             
             # Clear manual override mode when user sets preset via app
@@ -1350,6 +1356,20 @@ class SmartHeatingAPIView(HomeAssistantView):
                 area.manual_override = False
             
             await self.area_manager.async_save()
+            
+            # Get new effective temperature
+            new_effective = area.get_effective_target_temperature()
+            
+            _LOGGER.warning(
+                "PRESET CHANGE for %s: '%s' → '%s' | Base temp: %.1f°C | Effective temp: %.1f°C → %.1f°C",
+                area_id, old_preset, preset_mode, old_target, old_effective, new_effective
+            )
+            
+            # Trigger immediate climate control to apply new temperature
+            climate_controller = self.hass.data.get(DOMAIN, {}).get("climate_controller")
+            if climate_controller:
+                await climate_controller.async_control_heating()
+                _LOGGER.info("Triggered immediate climate control after preset change")
             
             # Refresh coordinator
             entry_ids = [

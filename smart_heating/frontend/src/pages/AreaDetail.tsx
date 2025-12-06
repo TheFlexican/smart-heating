@@ -112,14 +112,20 @@ const ZoneDetail = () => {
     onZoneUpdate: (updatedZone) => {
       if (updatedZone.id === areaId) {
         setZone(updatedZone)
-        setTemperature(updatedZone.target_temperature)
+        const displayTemp = (updatedZone.preset_mode && updatedZone.preset_mode !== 'none' && updatedZone.effective_target_temperature != null)
+          ? updatedZone.effective_target_temperature
+          : updatedZone.target_temperature
+        setTemperature(displayTemp)
       }
     },
     onZonesUpdate: (areas) => {
       const currentZone = areas.find(z => z.id === areaId)
       if (currentZone) {
         setZone(currentZone)
-        setTemperature(currentZone.target_temperature)
+        const displayTemp = (currentZone.preset_mode && currentZone.preset_mode !== 'none' && currentZone.effective_target_temperature != null)
+          ? currentZone.effective_target_temperature
+          : currentZone.target_temperature
+        setTemperature(displayTemp)
       }
     },
   })
@@ -143,7 +149,11 @@ const ZoneDetail = () => {
       }
       
       setZone(currentZone)
-      setTemperature(currentZone.target_temperature)
+      // If preset is active, show effective temperature, otherwise base target
+      const displayTemp = (currentZone.preset_mode && currentZone.preset_mode !== 'none' && currentZone.effective_target_temperature != null)
+        ? currentZone.effective_target_temperature
+        : currentZone.target_temperature
+      setTemperature(displayTemp)
       
       // Load entity states for presence/window sensors
       await loadEntityStates(currentZone)
@@ -1194,8 +1204,16 @@ const ZoneDetail = () => {
                   { value: 30, label: '30°' }
                 ]}
                 valueLabelDisplay="auto"
-                disabled={!area.enabled}
+                disabled={!area.enabled || !!(area.preset_mode && area.preset_mode !== 'none')}
               />
+              {area.preset_mode && area.preset_mode !== 'none' && (
+                <Box mt={1} display="flex" alignItems="center" gap={1}>
+                  <BookmarkIcon fontSize="small" color="secondary" />
+                  <Typography variant="caption" color="text.secondary">
+                    Preset mode <strong>{area.preset_mode.toUpperCase()}</strong> is active. Change preset to adjust temperature.
+                  </Typography>
+                </Box>
+              )}
 
               {area.current_temperature !== undefined && (
                 <>

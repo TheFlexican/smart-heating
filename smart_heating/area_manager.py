@@ -431,8 +431,14 @@ class Area:
             preset_mode: Preset mode (away, eco, comfort, etc.)
         """
         old_mode = self.preset_mode
+        old_effective = self.get_effective_target_temperature()
         self.preset_mode = preset_mode
-        _LOGGER.debug("Set preset mode for area %s from %s to %s", self.area_id, old_mode, preset_mode)
+        new_effective = self.get_effective_target_temperature()
+        
+        _LOGGER.warning(
+            "Area %s: Preset mode %s → %s | Effective temp: %.1f°C → %.1f°C (base: %.1f°C)",
+            self.area_id, old_mode, preset_mode, old_effective, new_effective, self.target_temperature
+        )
 
     def set_boost_mode(self, duration: int, temp: float | None = None) -> None:
         """Activate boost mode for a specified duration.
@@ -975,8 +981,12 @@ class AreaManager:
         if area is None:
             raise ValueError(f"Area {area_id} does not exist")
         
+        old_temp = area.target_temperature
         area.target_temperature = temperature
-        _LOGGER.info("Set area %s target temperature to %.1f°C", area_id, temperature)
+        _LOGGER.warning(
+            "TARGET TEMP CHANGE for %s: %.1f°C → %.1f°C (preset: %s)",
+            area_id, old_temp, temperature, area.preset_mode
+        )
 
     def enable_area(self, area_id: str) -> None:
         """Enable a area.
