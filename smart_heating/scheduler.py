@@ -5,6 +5,7 @@ from typing import Optional
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.util import dt as dt_util
 from datetime import timedelta
 
 from .area_manager import AreaManager
@@ -86,7 +87,7 @@ class ScheduleExecutor:
             now: Current datetime (for testing, otherwise uses current time)
         """
         if now is None:
-            now = datetime.now()
+            now = dt_util.now()  # Use Home Assistant's timezone-aware now()
             
         current_time = now.time()
         current_day = DAYS_OF_WEEK[now.weekday()]
@@ -103,6 +104,14 @@ class ScheduleExecutor:
             if not area.enabled:
                 _LOGGER.debug("Area %s is disabled, skipping schedule check", area.name)
                 continue
+            
+            _LOGGER.warning(
+                "🔍 SCHEDULE CHECK: %s - %s at %s has %d schedules",
+                area.name,
+                current_day,
+                current_time.strftime("%H:%M"),
+                len(area.schedules)
+            )
             
             # Handle smart night boost prediction
             if area.smart_night_boost_enabled and self.learning_engine:
