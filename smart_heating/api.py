@@ -1343,6 +1343,12 @@ class SmartHeatingAPIView(HomeAssistantView):
                 raise ValueError(f"Area {area_id} not found")
             
             area.set_preset_mode(preset_mode)
+            
+            # Clear manual override mode when user sets preset via app
+            if hasattr(area, 'manual_override') and area.manual_override:
+                _LOGGER.info("Disabling manual override for area %s - preset mode is now controlling temperature", area_id)
+                area.manual_override = False
+            
             await self.area_manager.async_save()
             
             # Refresh coordinator

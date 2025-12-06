@@ -288,7 +288,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
             onChangeCommitted={handleTemperatureCommit}
             min={5}
             max={30}
-            step={0.5}
+            step={0.1}
             marks={[
               { value: 5, label: '5°' },
               { value: 30, label: '30°' }
