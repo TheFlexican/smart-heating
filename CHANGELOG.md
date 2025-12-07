@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### ✨ Added
+
+**Automatic Preset Mode Switching (v0.4.2)**
+- **Auto Preset Mode**: Automatically switch between preset modes based on presence detection
+  - Enable/disable per area in Settings tab
+  - Configure which preset to use when home (Home/Comfort/Activity)
+  - Configure which preset to use when away (Away/Eco)
+  - Works with both area-specific and global presence sensors
+- **Smart Home Automation**: System responds to your presence
+  - Automatically lowers temperature to away preset when you leave
+  - Automatically restores home preset when you return
+  - Integrates seamlessly with existing preset mode system
+- **Full Logging**: All automatic preset changes logged in area logs
+  - Track when and why preset mode changed
+  - Includes presence state in log entries
+  - Helps troubleshoot automation behavior
+
 ### 🔧 Code Quality
 
 **SonarQube Analysis & Code Cleanup (v0.4.1)**

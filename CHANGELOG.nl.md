@@ -7,6 +7,23 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 
 ## [Niet Uitgebracht]
 
+### ✨ Toegevoegd
+
+**Automatische Preset Modus Wisseling (v0.4.2)**
+- **Auto Preset Modus**: Automatisch wisselen tussen preset modi op basis van aanwezigheidsdetectie
+  - In-/uitschakelen per zone in Instellingen tab
+  - Configureer welke preset te gebruiken bij thuis (Thuis/Comfort/Activiteit)
+  - Configureer welke preset te gebruiken bij weg (Weg/Eco)
+  - Werkt met zowel zone-specifieke als globale aanwezigheidssensoren
+- **Slimme Woning Automatisering**: Systeem reageert op uw aanwezigheid
+  - Verlaagt automatisch temperatuur naar weg preset wanneer u vertrekt
+  - Herstelt automatisch thuis preset wanneer u terugkeert
+  - Integreert naadloos met bestaand preset modus systeem
+- **Volledige Logging**: Alle automatische preset wijzigingen gelogd in zone logs
+  - Volg wanneer en waarom preset modus veranderde
+  - Inclusief aanwezigheidsstatus in log entries
+  - Helpt bij troubleshooting van automatiseringsgedrag
+
 ### 🔧 Codekwaliteit
 
 **SonarQube Analyse & Code Opschoning (v0.4.1)**
