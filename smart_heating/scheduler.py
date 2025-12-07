@@ -466,15 +466,44 @@ class ScheduleExecutor:
             # Set preset mode
             area.preset_mode = schedule.preset_mode
             
+            # Also update the base target temperature to match the preset
+            # This ensures the area's target_temperature reflects the current preset
+            area.target_temperature = preset_temp
+            
             # Clear manual override when schedule applies a preset
+            manual_override_cleared = False
             if hasattr(area, 'manual_override') and area.manual_override:
                 _LOGGER.info(
                     "Clearing manual override for %s - schedule now controls preset",
                     area.name
                 )
                 area.manual_override = False
+                manual_override_cleared = True
             
             await self.area_manager.async_save()
+            
+            # If we cleared manual override, immediately update thermostat with preset temperature
+            if manual_override_cleared and preset_temp is not None:
+                climate_entity_id = f"climate.{area.area_id}"
+                try:
+                    await self.hass.services.async_call(
+                        "climate",
+                        "set_temperature",
+                        {
+                            "entity_id": climate_entity_id,
+                            "temperature": preset_temp,
+                        },
+                        blocking=False,
+                    )
+                    _LOGGER.info(
+                        "Updated thermostat %s to preset temperature %.1f°C after clearing manual override",
+                        climate_entity_id, preset_temp
+                    )
+                except Exception as err:
+                    _LOGGER.debug(
+                        "Climate entity %s not found or error updating: %s (will be handled by climate controller)",
+                        climate_entity_id, err
+                    )
             
             _LOGGER.debug(
                 "Set preset mode for area %s to %s",
