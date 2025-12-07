@@ -105,29 +105,43 @@
     "none": "Geen"
   },
   "globalSettings": {
-    "title": "Globale Voorinstellingstemperaturen",
-    "presetTemperatures": "Voorinstellingstemperaturen",
-    "presetDescription": "Dit zijn de standaardtemperaturen voor elke voorinstelling. Zones kunnen ervoor kiezen deze globale instellingen te gebruiken of hun eigen aangepaste temperaturen te definiëren.",
-    "globalPresence": "Globale Aanwezigheidssensoren",
-    "globalPresenceDescription": "Configureer aanwezigheidssensoren die in alle zones kunnen worden gebruikt. Zones kunnen ervoor kiezen deze globale sensoren te gebruiken of hun eigen sensoren te configureren.",
-    "noSensors": "Geen globale aanwezigheidssensoren geconfigureerd. Voeg sensoren toe die beschikbaar zijn voor alle zones.",
-    "addSensor": "Aanwezigheidssensor Toevoegen",
-    "tipCustomize": "💡 Tip: Om temperaturen voor een specifieke zone aan te passen, ga naar de instellingen van die zone en schakel \"Gebruik globale voorinstelling\" uit voor individuele voorinstellingen.",
-    "tipGlobalPresence": "💡 Tip: Zones kunnen \"Gebruik globale aanwezigheid\" inschakelen in hun instellingen om deze sensoren te gebruiken in plaats van hun eigen te configureren.",
-    "saveSuccess": "Voorinstelling succesvol opgeslagen",
-    "hysteresisTitle": "Temperatuurhysterese",
-    "hysteresisDescription": "Regelt de temperatuurbuffer om snel aan/uit schakelen van uw verwarmingssysteem te voorkomen.",
-    "hysteresisWhat": "Wat is hysterese?",
-    "hysteresisExplanation": "Hysterese voorkomt dat uw verwarmingssysteem constant aan en uit gaat (kortcyclus), wat apparatuur zoals ketels, relais en kleppen kan beschadigen.",
-    "hysteresisHow": "Hoe het werkt:",
-    "hysteresisHowText": "Als uw doel 19,2°C is en de hysterese 0,5°C, start de verwarming bij 18,7°C en stopt bij 19,2°C.",
-    "hysteresisRecommendations": "Aanbevelingen:",
-    "hysteresisMinimal": "0,1°C - Minimale vertraging, vaker schakelen (alleen gebruiken indien nodig)",
-    "hysteresisBalanced": "0,5°C - Gebalanceerd (standaard, aanbevolen voor de meeste systemen)",
-    "hysteresisEfficient": "1,0°C - Energie-efficiënt, minder slijtage van apparatuur",
-    "hysteresisTipBoost": "💡 Tip: Gebruik de Boostmodus voor onmiddellijke verwarming in plaats van het verlagen van de hysterese.",
-    "hysteresisCurrent": "Huidig: {{value}}°C",
-    "hysteresisStarts": "Verwarming start wanneer de temperatuur {{value}}°C onder het doel daalt"
+    "title": "Globale Instellingen",
+    "tabs": {
+      "temperature": "Temperatuur",
+      "sensors": "Sensoren",
+      "vacation": "Vakantie",
+      "advanced": "Geavanceerd"
+    },
+    "saveSuccess": "Instellingen succesvol opgeslagen",
+    "presets": {
+      "title": "Voorinstellingstemperaturen",
+      "description": "Dit zijn de standaardtemperaturen voor elke voorinstelling. Zones kunnen ervoor kiezen deze globale instellingen te gebruiken of hun eigen aangepaste temperaturen te definiëren.",
+      "tip": "Tip: Om temperaturen voor een specifieke zone aan te passen, ga naar de instellingen van die zone en schakel \"Gebruik globale voorinstelling\" uit voor individuele voorinstellingen."
+    },
+    "sensors": {
+      "title": "Globale Aanwezigheidssensoren",
+      "description": "Configureer aanwezigheidssensoren die in alle zones kunnen worden gebruikt. Zones kunnen ervoor kiezen deze globale sensoren te gebruiken of hun eigen sensoren te configureren.",
+      "noSensors": "Geen globale aanwezigheidssensoren geconfigureerd. Voeg sensoren toe die beschikbaar zijn voor alle zones.",
+      "addButton": "Aanwezigheidssensor Toevoegen",
+      "switchText": "Schakelt verwarming naar 'afwezig' wanneer niemand thuis is",
+      "tip": "Tip: Zones kunnen \"Gebruik globale aanwezigheid\" inschakelen in hun instellingen om deze sensoren te gebruiken in plaats van hun eigen te configureren."
+    },
+    "hysteresis": {
+      "title": "Temperatuurhysterese",
+      "description": "Regelt de temperatuurbuffer om snel aan/uit schakelen van uw verwarmingssysteem te voorkomen.",
+      "what": "Wat is hysterese?",
+      "explanation": "Hysterese voorkomt dat uw verwarmingssysteem constant aan en uit gaat (kortcyclus), wat apparatuur zoals ketels, relais en kleppen kan beschadigen.",
+      "howItWorks": "Hoe het werkt:",
+      "example": "Als uw doel 19,2°C is en de hysterese 0,5°C, start de verwarming bij 18,7°C en stopt bij 19,2°C.",
+      "recommendations": "Aanbevelingen:",
+      "rec1": "0,1°C - Minimale vertraging, vaker schakelen (alleen gebruiken indien nodig)",
+      "rec2": "0,5°C - Gebalanceerd (standaard, aanbevolen voor de meeste systemen)",
+      "rec3": "1,0°C - Energie-efficiënt, minder slijtage van apparatuur",
+      "tip": "Tip: Gebruik de Boostmodus voor onmiddellijke verwarming in plaats van het verlagen van de hysterese.",
+      "current": "Huidig",
+      "heatingStarts": "Verwarming start wanneer de temperatuur",
+      "belowTarget": "onder het doel daalt"
+    }
   },
   "presetDescriptions": {
     "away": "Gebruikt wanneer niemand thuis is",

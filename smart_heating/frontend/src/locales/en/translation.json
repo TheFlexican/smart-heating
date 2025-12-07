@@ -105,29 +105,43 @@
     "none": "None"
   },
   "globalSettings": {
-    "title": "Global Preset Temperatures",
-    "presetTemperatures": "Preset Temperatures",
-    "presetDescription": "These are the default temperatures for each preset mode. Areas can choose to use these global settings or define their own custom temperatures.",
-    "globalPresence": "Global Presence Sensors",
-    "globalPresenceDescription": "Configure presence sensors that can be used across all areas. Areas can choose to use these global sensors or configure their own.",
-    "noSensors": "No global presence sensors configured. Add sensors that will be available to all areas.",
-    "addSensor": "Add Presence Sensor",
-    "tipCustomize": "💡 Tip: To customize temperatures for a specific area, go to that area's settings and toggle off \"Use global preset\" for individual preset modes.",
-    "tipGlobalPresence": "💡 Tip: Areas can enable \"Use global presence\" in their settings to use these sensors instead of configuring their own.",
-    "saveSuccess": "Preset saved successfully",
-    "hysteresisTitle": "Temperature Hysteresis",
-    "hysteresisDescription": "Controls the temperature buffer to prevent rapid on/off cycling of your heating system.",
-    "hysteresisWhat": "What is hysteresis?",
-    "hysteresisExplanation": "Hysteresis prevents your heating system from constantly turning on and off (short cycling), which can damage equipment like boilers, relays, and valves.",
-    "hysteresisHow": "How it works:",
-    "hysteresisHowText": "If your target is 19.2°C and hysteresis is 0.5°C, heating starts at 18.7°C and stops at 19.2°C.",
-    "hysteresisRecommendations": "Recommendations:",
-    "hysteresisMinimal": "0.1°C - Minimal delay, more frequent cycling (use only if needed)",
-    "hysteresisBalanced": "0.5°C - Balanced (default, recommended for most systems)",
-    "hysteresisEfficient": "1.0°C - Energy efficient, less wear on equipment",
-    "hysteresisTipBoost": "💡 Tip: For immediate heating, use Boost Mode instead of reducing hysteresis.",
-    "hysteresisCurrent": "Current: {{value}}°C",
-    "hysteresisStarts": "Heating starts when temperature drops {{value}}°C below target"
+    "title": "Global Settings",
+    "tabs": {
+      "temperature": "Temperature",
+      "sensors": "Sensors",
+      "vacation": "Vacation",
+      "advanced": "Advanced"
+    },
+    "saveSuccess": "Settings saved successfully",
+    "presets": {
+      "title": "Preset Temperatures",
+      "description": "These are the default temperatures for each preset mode. Areas can choose to use these global settings or define their own custom temperatures.",
+      "tip": "Tip: To customize temperatures for a specific area, go to that area's settings and toggle off \"Use global preset\" for individual preset modes."
+    },
+    "sensors": {
+      "title": "Global Presence Sensors",
+      "description": "Configure presence sensors that can be used across all areas. Areas can choose to use these global sensors or configure their own.",
+      "noSensors": "No global presence sensors configured. Add sensors that will be available to all areas.",
+      "addButton": "Add Presence Sensor",
+      "switchText": "Switches heating to 'away' when nobody is home",
+      "tip": "Tip: Areas can enable \"Use global presence\" in their settings to use these sensors instead of configuring their own."
+    },
+    "hysteresis": {
+      "title": "Temperature Hysteresis",
+      "description": "Controls the temperature buffer to prevent rapid on/off cycling of your heating system.",
+      "what": "What is hysteresis?",
+      "explanation": "Hysteresis prevents your heating system from constantly turning on and off (short cycling), which can damage equipment like boilers, relays, and valves.",
+      "howItWorks": "How it works:",
+      "example": "If your target is 19.2°C and hysteresis is 0.5°C, heating starts at 18.7°C and stops at 19.2°C.",
+      "recommendations": "Recommendations:",
+      "rec1": "0.1°C - Minimal delay, more frequent cycling (use only if needed)",
+      "rec2": "0.5°C - Balanced (default, recommended for most systems)",
+      "rec3": "1.0°C - Energy efficient, less wear on equipment",
+      "tip": "Tip: For immediate heating, use Boost Mode instead of reducing hysteresis.",
+      "current": "Current",
+      "heatingStarts": "Heating starts when temperature drops",
+      "belowTarget": "below target"
+    }
   },
   "presetDescriptions": {
     "away": "Used when nobody is home",
