@@ -22,16 +22,17 @@ Home Assistant integration for zone-based heating control with learning capabili
 - After implementing features: Deploy → Let user test → Wait for approval → THEN commit/tag/push
 - Workflow: Code → Deploy → Test → Approve → Git operations
 
-**RULE #4: Update Documentation Before Releases**
-- **ALWAYS** update documentation in BOTH languages (EN + NL) BEFORE creating releases
+**RULE #4: Update Documentation & Translations**
+- **ALWAYS** update documentation in BOTH languages (EN + NL) when making changes
+- **ALWAYS** update translations when adding/modifying UI text
 - Required updates:
   - `CHANGELOG.md` + `CHANGELOG.nl.md` - Version history
   - `README.md` + `README.nl.md` - User documentation
   - `docs/en/ARCHITECTURE.md` + `docs/nl/ARCHITECTURE.md` - Architecture changes
   - `docs/en/DEVELOPER.md` + `docs/nl/DEVELOPER.md` - Developer workflow changes
-  - Frontend translations if UI text changed: `locales/en/translation.json` + `locales/nl/translation.json`
-- Root `ARCHITECTURE.md` and `DEVELOPER.md` should match `docs/en/` versions
-- Workflow: Code → Test → Update All Docs (EN+NL) → Commit → Tag Release
+  - Frontend translations: `locales/en/translation.json` + `locales/nl/translation.json`
+- Root `ARCHITECTURE.md` should match `docs/en/ARCHITECTURE.md`
+- Workflow: Code → Test → Update All Docs & Translations (EN+NL) → E2E Tests → Commit
 
 ## Key Directories
 ```

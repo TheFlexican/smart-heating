@@ -19,7 +19,11 @@ A Home Assistant custom integration for managing multi-area heating systems with
   - Real-time updates within 2-3 seconds via WebSocket
   - Automatically clears when temperature adjusted via app
   - Persists across restarts
-- 📅 **Smart Scheduling** - Time-based temperature profiles with day-of-week selection
+- 📅 **Smart Scheduling** - Modern time-based temperature profiles with enhanced UI
+  - **Date Pickers** - Calendar-based date/time selection like vacation mode (NEW in v0.4.0)
+  - **Multi-Day Selection** - Create schedules for multiple days at once (Weekdays, Weekend, All Days)
+  - **Date-Specific Schedules** - One-time schedules for specific dates (holidays, events) (NEW in v0.4.0)
+  - **Card-Based Layout** - Modern, collapsible schedule organization for better overview
   - **Preset Mode Schedules** - Set preset modes (Away, Eco, Comfort, etc.) instead of fixed temperatures (v0.5.0+)
   - **Cross-Day Support** - Schedules can span midnight (e.g., Saturday 22:00 - Sunday 07:00) (v0.5.0+)
   - Toggle between temperature-based and preset-based scheduling

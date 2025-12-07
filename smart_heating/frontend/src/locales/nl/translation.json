@@ -365,6 +365,7 @@
     "copyMondayToWeekdays": "Kopieer Maandag naar Werkdagen",
     "addScheduleButton": "Schema Toevoegen",
     "noSchedulesSet": "Geen schema's ingesteld",
+    "noSchedulesConfigured": "Nog geen schema's geconfigureerd. Klik op 'Schema Toevoegen' om je eerste schema aan te maken.",
     "noMondaySchedules": "Geen maandagschema's om te kopiëren"
   },
   "scheduleDialog": {
@@ -385,7 +386,23 @@
     "presetComfort": "Comfort",
     "presetHome": "Thuis",
     "presetSleep": "Slapen",
-    "presetActivity": "Activiteit"
+    "presetActivity": "Activiteit",
+    "scheduleType": "Schematype",
+    "weeklyRecurring": "Wekelijks Terugkerend",
+    "specificDate": "Specifieke Datum",
+    "selectDays": "Selecteer Dagen",
+    "selectDate": "Selecteer Datum",
+    "date": "Datum",
+    "dateHelperText": "Maak een eenmalig schema voor een specifieke datum",
+    "weekdays": "Weekdagen",
+    "weekend": "Weekend",
+    "allDays": "Alle Dagen",
+    "clearSelection": "Wissen",
+    "selectedDaysCount": "{{count}} dag(en) geselecteerd",
+    "dateSpecificSchedules": "Datumspecifieke Schema's",
+    "oneTimeSchedule": "Eenmalig",
+    "weeklySchedules": "Wekelijks Terugkerende Schema's",
+    "noSchedulesConfigured": "Nog geen schema's geconfigureerd. Klik op 'Schema Toevoegen' om je eerste schema aan te maken."
   },
   "settingsCards": {
     "presetModesTitle": "Voorinstelmodi",

@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### ✨ Added
 
+**Enhanced Schedule UI with Date Pickers & Multi-Day Selection (v0.4.0)**
+- **Modern Date/Time Selectors**: Replaced error-prone time inputs with Material-UI DatePicker
+  - Calendar-based date selection like vacation mode
+  - Visual date selection for date-specific schedules
+  - Improved user experience with validated time inputs
+- **Multi-Day Selection**: Create schedules for multiple days at once
+  - Quick selection buttons: Weekdays, Weekend, All Days
+  - Checkbox interface for individual day selection
+  - Preview of selected days before saving
+  - Reduces repetitive schedule creation
+- **Card-Based Layout**: Modern, collapsible schedule organization
+  - Weekly recurring schedules grouped by day
+  - Date-specific schedules in separate section
+  - Expandable/collapsible cards for better overview
+  - Visual distinction between recurring and one-time schedules
+- **Date-Specific Schedules**: One-time schedules for specific dates
+  - Perfect for holidays, special events, or temporary changes
+  - Separate section with calendar icon
+  - Formatted dates for easy readability
+  - No impact on recurring weekly schedules
+- **Backend Enhancements**: Full support for new schedule types
+  - `days[]` array for multi-day recurring schedules
+  - `date` field (YYYY-MM-DD) for date-specific schedules
+  - Backward compatible with existing single-day schedules
+  - Smart day format conversion (Monday/mon)
+- **Translation Support**: Full English and Dutch translations
+  - All new UI elements translated
+  - Schedule type selection labels
+  - Multi-day selection buttons
+  - Date-specific schedule section headers
+
 **Safety Sensor (Smoke/CO Detector) - Emergency Shutdown (v0.3.19)**
 - **Safety Monitoring**: Automatic emergency heating shutdown on smoke/CO detection
   - Configure any Home Assistant binary sensor (smoke, carbon_monoxide, gas)

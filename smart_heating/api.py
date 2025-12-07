@@ -1894,6 +1894,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                 start_time=data.get("start_time"),
                 end_time=data.get("end_time"),
                 preset_mode=data.get("preset_mode"),
+                date=data.get("date"),
             )
             
             area = self.area_manager.get_area(area_id)

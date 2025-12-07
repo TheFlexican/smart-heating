@@ -9,6 +9,37 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 
 ### ✨ Toegevoegd
 
+**Verbeterde Schema UI met Datumkiezers & Meerdaagse Selectie (v0.4.0)**
+- **Moderne Datum/Tijd Kiezers**: Foutgevoelige tijdinvoer vervangen door Material-UI DatePicker
+  - Kalender-gebaseerde datumselectie zoals vakantiemodus
+  - Visuele datumselectie voor datumspecifieke schema's
+  - Verbeterde gebruikerservaring met gevalideerde tijdinvoer
+- **Meerdaagse Selectie**: Maak schema's voor meerdere dagen tegelijk
+  - Snelkeuze knoppen: Weekdagen, Weekend, Alle Dagen
+  - Checkbox interface voor individuele dagselectie
+  - Preview van geselecteerde dagen voor opslaan
+  - Vermindert repetitief schema aanmaken
+- **Kaart-Gebaseerde Lay-out**: Moderne, inklapbare schema organisatie
+  - Wekelijks terugkerende schema's gegroepeerd per dag
+  - Datumspecifieke schema's in aparte sectie
+  - Uitklapbare/inklapbare kaarten voor beter overzicht
+  - Visueel onderscheid tussen terugkerende en eenmalige schema's
+- **Datumspecifieke Schema's**: Eenmalige schema's voor specifieke datums
+  - Perfect voor feestdagen, speciale evenementen of tijdelijke wijzigingen
+  - Aparte sectie met kalender icoon
+  - Geformatteerde datums voor gemakkelijke leesbaarheid
+  - Geen impact op terugkerende wekelijkse schema's
+- **Backend Verbeteringen**: Volledige ondersteuning voor nieuwe schematypen
+  - `days[]` array voor meerdaagse terugkerende schema's
+  - `date` veld (JJJJ-MM-DD) voor datumspecifieke schema's
+  - Achterwaarts compatibel met bestaande enkel-dag schema's
+  - Slimme dag formaat conversie (Maandag/mon)
+- **Vertaling Ondersteuning**: Volledige Engelse en Nederlandse vertalingen
+  - Alle nieuwe UI elementen vertaald
+  - Schematype selectie labels
+  - Meerdaagse selectie knoppen
+  - Datumspecifieke schema sectie headers
+
 **Veiligheidssensor (Rook/CO Detector) - Nooduitschakeling (v0.3.19)**
 - **Veiligheidsmonitoring**: Automatische nood verwarmingsuitschakeling bij rook/CO detectie
   - Configureer elke Home Assistant binary sensor (rook, koolmonoxide, gas)

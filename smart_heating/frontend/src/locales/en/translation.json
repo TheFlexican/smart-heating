@@ -365,6 +365,7 @@
     "copyMondayToWeekdays": "Copy Monday to Weekdays",
     "addScheduleButton": "Add Schedule",
     "noSchedulesSet": "No schedules set",
+    "noSchedulesConfigured": "No schedules configured yet. Click 'Add Schedule' to create your first schedule.",
     "noMondaySchedules": "No Monday schedules to copy"
   },
   "scheduleDialog": {
@@ -385,7 +386,23 @@
     "presetComfort": "Comfort",
     "presetHome": "Home",
     "presetSleep": "Sleep",
-    "presetActivity": "Activity"
+    "presetActivity": "Activity",
+    "scheduleType": "Schedule Type",
+    "weeklyRecurring": "Weekly Recurring",
+    "specificDate": "Specific Date",
+    "selectDays": "Select Days",
+    "selectDate": "Select Date",
+    "date": "Date",
+    "dateHelperText": "Create a one-time schedule for a specific date",
+    "weekdays": "Weekdays",
+    "weekend": "Weekend",
+    "allDays": "All Days",
+    "clearSelection": "Clear",
+    "selectedDaysCount": "{{count}} day(s) selected",
+    "dateSpecificSchedules": "Date-Specific Schedules",
+    "oneTimeSchedule": "One-time",
+    "weeklySchedules": "Weekly Recurring Schedules",
+    "noSchedulesConfigured": "No schedules configured yet. Click 'Add Schedule' to create your first schedule."
   },
   "settingsCards": {
     "presetModesTitle": "Preset Modes",

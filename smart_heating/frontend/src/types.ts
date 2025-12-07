@@ -22,7 +22,9 @@ export interface Device {
 
 export interface ScheduleEntry {
   id: string
-  day: string
+  day?: string  // For weekly recurring schedules (legacy single day)
+  days?: string[]  // For multi-day weekly recurring schedules
+  date?: string  // For date-specific schedules (YYYY-MM-DD format)
   start_time: string
   end_time: string
   temperature?: number

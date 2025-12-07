@@ -2,25 +2,27 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Box,
-  Paper,
   Typography,
   Button,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Card,
+  CardContent,
   Chip,
+  IconButton,
+  Collapse,
+  Stack,
+  Alert,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import EventIcon from '@mui/icons-material/Event'
+import RepeatIcon from '@mui/icons-material/Repeat'
 import { Zone, ScheduleEntry } from '../types'
 import { addScheduleToZone, removeScheduleFromZone } from '../api'
+import ScheduleEntryDialog from './ScheduleEntryDialog'
+import { format, parse } from 'date-fns'
 
 interface ScheduleEditorProps {
   area: Zone
@@ -42,14 +44,8 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
   const [schedules, setSchedules] = useState<ScheduleEntry[]>(area.schedules || [])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingEntry, setEditingEntry] = useState<ScheduleEntry | null>(null)
-  const [usePreset, setUsePreset] = useState(false)
-  const [formData, setFormData] = useState({
-    day: 'Monday',
-    start_time: '06:00',
-    end_time: '22:00',
-    temperature: 20,
-    preset_mode: 'none',
-  })
+  const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({})
+  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     setSchedules(area.schedules || [])
@@ -57,27 +53,11 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
 
   const handleAddNew = () => {
     setEditingEntry(null)
-    setUsePreset(false)
-    setFormData({
-      day: 'Monday',
-      start_time: '06:00',
-      end_time: '22:00',
-      temperature: 20,
-      preset_mode: 'none',
-    })
     setDialogOpen(true)
   }
 
   const handleEdit = (entry: ScheduleEntry) => {
     setEditingEntry(entry)
-    setUsePreset(!!entry.preset_mode)
-    setFormData({
-      day: entry.day,
-      start_time: entry.start_time,
-      end_time: entry.end_time,
-      temperature: entry.temperature || 20,
-      preset_mode: entry.preset_mode || 'none',
-    })
     setDialogOpen(true)
   }
 
@@ -90,28 +70,14 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
     }
   }
 
-  const handleSave = async () => {
+  const handleSave = async (entry: ScheduleEntry) => {
     try {
       if (editingEntry) {
-        // For updates, we remove old and add new
+        // For updates, remove old and add new
         await removeScheduleFromZone(area.id, editingEntry.id)
       }
       
-      const newEntry: ScheduleEntry = {
-        id: editingEntry?.id || Date.now().toString(),
-        day: formData.day,
-        start_time: formData.start_time,
-        end_time: formData.end_time,
-      }
-      
-      // Add either temperature or preset_mode
-      if (usePreset && formData.preset_mode !== 'none') {
-        newEntry.preset_mode = formData.preset_mode
-      } else {
-        newEntry.temperature = formData.temperature
-      }
-      
-      await addScheduleToZone(area.id, newEntry)
+      await addScheduleToZone(area.id, entry)
       onUpdate()
       setDialogOpen(false)
     } catch (error) {
@@ -119,39 +85,57 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
     }
   }
 
-  const handleCopyToWeekdays = async () => {
-    const mondaySchedules = schedules.filter(s => s.day === 'Monday')
-    
-    if (mondaySchedules.length === 0) {
-      alert(t('areaDetail.noMondaySchedules'))
-      return
-    }
-
-    try {
-      const weekdays: string[] = ['Tuesday', 'Wednesday', 'Thursday', 'Friday']
-      
-      // Add new weekday schedules
-      for (const day of weekdays) {
-        for (const schedule of mondaySchedules) {
-          const newEntry: ScheduleEntry = {
-            ...schedule,
-            id: `${day}_${schedule.id}_${Date.now()}`,
-            day,
-          }
-          await addScheduleToZone(area.id, newEntry)
-        }
-      }
-      
-      onUpdate()
-    } catch (error) {
-      console.error('Failed to copy schedules:', error)
-    }
+  const toggleDay = (day: string) => {
+    setExpandedDays(prev => ({ ...prev, [day]: !prev[day] }))
   }
 
+  const toggleDate = (date: string) => {
+    setExpandedDates(prev => ({ ...prev, [date]: !prev[date] }))
+  }
+
+  // Group schedules by type
+  const weeklySchedules = schedules.filter(s => !s.date)
+  const dateSpecificSchedules = schedules.filter(s => s.date)
+
+  // Group weekly schedules by day
   const getSchedulesForDay = (day: string) => {
-    return schedules
-      .filter(s => s.day === day)
+    return weeklySchedules
+      .filter(s => {
+        if (s.days && s.days.length > 0) {
+          return s.days.includes(day)
+        }
+        return s.day === day
+      })
       .sort((a, b) => a.start_time.localeCompare(b.start_time))
+  }
+
+  // Group date-specific schedules
+  const getSchedulesForDate = (date: string) => {
+    return dateSpecificSchedules
+      .filter(s => s.date === date)
+      .sort((a, b) => a.start_time.localeCompare(b.start_time))
+  }
+
+  // Get unique dates
+  const uniqueDates = [...new Set(dateSpecificSchedules.map(s => s.date!))]
+    .sort()
+    .reverse() // Most recent first
+
+  const formatScheduleLabel = (schedule: ScheduleEntry) => {
+    const timeRange = `${schedule.start_time} - ${schedule.end_time}`
+    const value = schedule.preset_mode
+      ? t(`presets.${schedule.preset_mode}`, schedule.preset_mode)
+      : `${schedule.temperature}°C`
+    return `${timeRange}: ${value}`
+  }
+
+  const formatDateLabel = (dateStr: string) => {
+    try {
+      const date = parse(dateStr, 'yyyy-MM-dd', new Date())
+      return format(date, 'PPP') // e.g., "Apr 29, 2024"
+    } catch {
+      return dateStr
+    }
   }
 
   return (
@@ -160,155 +144,151 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
         <Typography variant="h6" color="text.primary">
           {t('areaDetail.weeklySchedule', { area: area.name })}
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={handleCopyToWeekdays}
-          >
-            {t('areaDetail.copyToWeekdays')}
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAddNew}
-          >
-            {t('areaDetail.addSchedule')}
-          </Button>
-        </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleAddNew}
+        >
+          {t('areaDetail.addSchedule')}
+        </Button>
       </Box>
 
-      {DAYS_OF_WEEK.map(day => {
-        const daySchedules = getSchedulesForDay(day)
-        const dayKey = day.toLowerCase() as 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
-        
-        return (
-          <Paper key={day} sx={{ mb: 2, p: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: daySchedules.length > 0 ? 2 : 0 }}>
-              <Typography variant="subtitle1" fontWeight="bold" color="text.primary">
-                {t(`areaDetail.${dayKey}`)}
-              </Typography>
-              {daySchedules.length === 0 && (
-                <Typography variant="body2" color="text.secondary">
-                  {t('areaDetail.noSchedulesSet')}
-                </Typography>
-              )}
-            </Box>
-            
-            {daySchedules.length > 0 && (
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {daySchedules.map(schedule => {
-                  const label = schedule.preset_mode
-                    ? `${schedule.start_time} - ${schedule.end_time}: ${schedule.preset_mode}`
-                    : `${schedule.start_time} - ${schedule.end_time}: ${schedule.temperature}°C`
-                  
-                  return (
-                    <Chip
-                      key={schedule.id}
-                      label={label}
-                      onDelete={() => handleDelete(schedule.id)}
-                      onClick={() => handleEdit(schedule)}
-                      color="primary"
-                      variant="outlined"
-                      deleteIcon={<DeleteIcon />}
-                      icon={<EditIcon />}
-                    />
-                  )
-                })}
-              </Box>
-            )}
-          </Paper>
-        )
-      })}
-
-      {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingEntry ? t('scheduleDialog.editTitle') : t('scheduleDialog.addTitle')}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel>{t('scheduleDialog.dayOfWeek')}</InputLabel>
-              <Select
-                value={formData.day}
-                label={t('scheduleDialog.dayOfWeek')}
-                onChange={(e) => setFormData({ ...formData, day: e.target.value })}
-              >
-                {DAYS_OF_WEEK.map(day => (
-                  <MenuItem key={day} value={day}>{day}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <TextField
-              label={t('scheduleDialog.startTime')}
-              type="time"
-              value={formData.start_time}
-              onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-              helperText={t('scheduleDialog.spanHelperText')}
-            />
-
-            <TextField
-              label={t('scheduleDialog.endTime')}
-              type="time"
-              value={formData.end_time}
-              onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-            />
-
-            <FormControl fullWidth>
-              <InputLabel>{t('scheduleDialog.mode')}</InputLabel>
-              <Select
-                value={usePreset ? 'preset' : 'temperature'}
-                label={t('scheduleDialog.mode')}
-                onChange={(e) => setUsePreset(e.target.value === 'preset')}
-              >
-                <MenuItem value="temperature">{t('scheduleDialog.fixedTemperature')}</MenuItem>
-                <MenuItem value="preset">{t('scheduleDialog.presetMode')}</MenuItem>
-              </Select>
-            </FormControl>
-
-            {usePreset ? (
-              <FormControl fullWidth>
-                <InputLabel>{t('scheduleDialog.preset')}</InputLabel>
-                <Select
-                  value={formData.preset_mode}
-                  label={t('scheduleDialog.preset')}
-                  onChange={(e) => setFormData({ ...formData, preset_mode: e.target.value })}
-                >
-                  <MenuItem value="none">{t('scheduleDialog.presetNone')}</MenuItem>
-                  <MenuItem value="eco">{t('scheduleDialog.presetEco')}</MenuItem>
-                  <MenuItem value="away">{t('scheduleDialog.presetAway')}</MenuItem>
-                  <MenuItem value="comfort">{t('scheduleDialog.presetComfort')}</MenuItem>
-                  <MenuItem value="home">{t('scheduleDialog.presetHome')}</MenuItem>
-                  <MenuItem value="sleep">{t('scheduleDialog.presetSleep')}</MenuItem>
-                  <MenuItem value="activity">{t('scheduleDialog.presetActivity')}</MenuItem>
-                </Select>
-              </FormControl>
-            ) : (
-              <TextField
-                label={t('scheduleDialog.temperature')}
-                type="number"
-                value={formData.temperature}
-                onChange={(e) => setFormData({ ...formData, temperature: parseFloat(e.target.value) })}
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ min: 5, max: 30, step: 0.5 }}
-                fullWidth
-              />
-            )}
+      {/* Date-Specific Schedules Section */}
+      {dateSpecificSchedules.length > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <EventIcon color="primary" />
+            <Typography variant="h6" color="text.primary">
+              {t('scheduleDialog.dateSpecificSchedules')}
+            </Typography>
           </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>{t('common.cancel')}</Button>
-          <Button onClick={handleSave} variant="contained">
-            {t('common.save')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          
+          <Stack spacing={2}>
+            {uniqueDates.map(date => {
+              const dateSchedules = getSchedulesForDate(date)
+              const isExpanded = expandedDates[date] ?? true
+
+              return (
+                <Card key={date} variant="outlined">
+                  <CardContent sx={{ pb: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="subtitle1" fontWeight="bold" color="text.primary">
+                          {formatDateLabel(date)}
+                        </Typography>
+                        <Chip
+                          label={t('scheduleDialog.oneTimeSchedule')}
+                          size="small"
+                          color="secondary"
+                          variant="outlined"
+                        />
+                      </Box>
+                      <IconButton size="small" onClick={() => toggleDate(date)}>
+                        {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      </IconButton>
+                    </Box>
+
+                    <Collapse in={isExpanded}>
+                      <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        {dateSchedules.map(schedule => (
+                          <Chip
+                            key={schedule.id}
+                            label={formatScheduleLabel(schedule)}
+                            onDelete={() => handleDelete(schedule.id)}
+                            onClick={() => handleEdit(schedule)}
+                            color="primary"
+                            variant="outlined"
+                            deleteIcon={<DeleteIcon />}
+                            icon={<EditIcon />}
+                          />
+                        ))}
+                      </Box>
+                    </Collapse>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </Stack>
+        </Box>
+      )}
+
+      {/* Weekly Recurring Schedules Section */}
+      <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <RepeatIcon color="primary" />
+          <Typography variant="h6" color="text.primary">
+            {t('scheduleDialog.weeklySchedules')}
+          </Typography>
+        </Box>
+
+        {weeklySchedules.length === 0 && dateSpecificSchedules.length === 0 && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            {t('areaDetail.noSchedulesConfigured')}
+          </Alert>
+        )}
+
+        <Stack spacing={2}>
+          {DAYS_OF_WEEK.map(day => {
+            const daySchedules = getSchedulesForDay(day)
+            const dayKey = day.toLowerCase() as 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+            const isExpanded = expandedDays[day] ?? true
+
+            return (
+              <Card key={day} variant="outlined">
+                <CardContent sx={{ pb: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="subtitle1" fontWeight="bold" color="text.primary">
+                      {t(`areaDetail.${dayKey}`)}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {daySchedules.length === 0 && (
+                        <Typography variant="body2" color="text.secondary">
+                          {t('areaDetail.noSchedulesSet')}
+                        </Typography>
+                      )}
+                      {daySchedules.length > 0 && (
+                        <>
+                          <Chip label={`${daySchedules.length}`} size="small" color="primary" />
+                          <IconButton size="small" onClick={() => toggleDay(day)}>
+                            {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                          </IconButton>
+                        </>
+                      )}
+                    </Box>
+                  </Box>
+
+                  {daySchedules.length > 0 && (
+                    <Collapse in={isExpanded}>
+                      <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        {daySchedules.map(schedule => (
+                          <Chip
+                            key={schedule.id}
+                            label={formatScheduleLabel(schedule)}
+                            onDelete={() => handleDelete(schedule.id)}
+                            onClick={() => handleEdit(schedule)}
+                            color="primary"
+                            variant="outlined"
+                            deleteIcon={<DeleteIcon />}
+                            icon={<EditIcon />}
+                          />
+                        ))}
+                      </Box>
+                    </Collapse>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
+        </Stack>
+      </Box>
+
+      {/* Schedule Entry Dialog */}
+      <ScheduleEntryDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSave={handleSave}
+        editingEntry={editingEntry}
+      />
     </Box>
   )
 }

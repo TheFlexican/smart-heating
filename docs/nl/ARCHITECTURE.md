@@ -88,12 +88,19 @@ Area:
 Schedule:
   - schedule_id: str
   - time: str (HH:MM) [legacy]
-  - day: str (Monday, Tuesday, etc.) [nieuw formaat]
-  - start_time: str (HH:MM) [nieuw formaat]
-  - end_time: str (HH:MM) [nieuw formaat]
+  - day: str (Monday, Tuesday, etc.) [legacy - enkele dag]
+  - days: List[str] (Monday, Tuesday, etc.) [v0.4.0+ - meerdaagse selectie]
+  - date: str (JJJJ-MM-DD) [v0.4.0+ - datumspecifieke schema's]
+  - start_time: str (HH:MM)
+  - end_time: str (HH:MM)
   - temperature: float
-  - days: List[str] (mon, tue, etc.) [legacy]
+  - preset_mode: str (optioneel - away, eco, comfort, home, sleep, activity)
   - enabled: bool
+
+Schema Types (v0.4.0+):
+  - Wekelijks Terugkerend: Gebruikt 'days' array voor meerdaagse schema's
+  - Datumspecifiek: Gebruikt 'date' veld voor eenmalige schema's (feestdagen, evenementen)
+  - Legacy: Enkel 'day' veld (achterwaarts compatibel)
 
 Device:
   - id: str
@@ -490,7 +497,12 @@ src/
    - Beschikbare apparaten met toevoeg knoppen (+/- iconen)
    - HA zone toewijzing weergegeven als chips
    - Real-time apparaat aantallen per locatie
-3. **Schema** - Tijd-gebaseerde schema editor
+3. **Schema** - Tijd-gebaseerde schema editor met verbeterde UI (v0.4.0):
+   - Material-UI DatePicker voor kalender-gebaseerde datumselectie
+   - Meerdaagse selectie met checkbox interface en snelkeuze knoppen
+   - Datumspecifieke schema's voor feestdagen en speciale evenementen
+   - Kaart-gebaseerde lay-out met inklapbare secties
+   - Visuele schema chips met tijdsbereik en temperatuur/preset weergave
 4. **Geschiedenis** - Interactieve temperatuur grafieken (6u-7d bereiken)
 5. **Instellingen** - Nacht boost, hysterese, geavanceerde configuratie
 

@@ -88,12 +88,19 @@ Area:
 Schedule:
   - schedule_id: str
   - time: str (HH:MM) [legacy]
-  - day: str (Monday, Tuesday, etc.) [new format]
-  - start_time: str (HH:MM) [new format]
-  - end_time: str (HH:MM) [new format]
+  - day: str (Monday, Tuesday, etc.) [legacy - single day]
+  - days: List[str] (Monday, Tuesday, etc.) [v0.4.0+ - multi-day selection]
+  - date: str (YYYY-MM-DD) [v0.4.0+ - date-specific schedules]
+  - start_time: str (HH:MM)
+  - end_time: str (HH:MM)
   - temperature: float
-  - days: List[str] (mon, tue, etc.) [legacy]
+  - preset_mode: str (optional - away, eco, comfort, home, sleep, activity)
   - enabled: bool
+
+Schedule Types (v0.4.0+):
+  - Weekly Recurring: Uses 'days' array for multi-day schedules
+  - Date-Specific: Uses 'date' field for one-time schedules (holidays, events)
+  - Legacy: Single 'day' field (backward compatible)
 
 Device:
   - id: str
@@ -635,13 +642,30 @@ src/
 - **Location Chips** - Visual indicators showing device's HA area
 - **Real-time Updates** - Device list refreshes after add/remove operations
 
-**ScheduleEditor Component:**
-- Time picker for schedule start
-- Temperature input
-- Day-of-week multi-select
-- Add/remove schedules
+**ScheduleEditor Component (v0.4.0 - Enhanced UI):**
+- **Modern Date/Time Selection:**
+  - Material-UI DatePicker for date selection (calendar view)
+  - Time inputs for start/end times
+  - Toggle between "Weekly Recurring" and "Specific Date" schedules
+- **Multi-Day Selection:**
+  - Checkbox interface for selecting multiple days
+  - Quick selection buttons: Weekdays, Weekend, All Days, Clear
+  - Visual preview of selected days with chips
+  - Count indicator showing number of selected days
+- **Card-Based Layout:**
+  - Separate sections for Weekly and Date-Specific schedules
+  - Collapsible cards for each day (expand/collapse for cleaner view)
+  - Visual icons (🔁 Repeat for weekly, 📅 Event for date-specific)
+  - Schedule count badges per day
+  - Formatted dates for date-specific schedules (e.g., "Apr 29, 2024")
+- **Schedule Types:**
+  - Weekly Recurring: Create schedules for multiple days at once
+  - Date-Specific: One-time schedules for holidays, events, temporary changes
+  - Temperature or Preset Mode: Toggle between fixed temperature and preset modes
+- Add/remove schedules with single click
+- Edit schedules by clicking on chips
 - Enable/disable individual schedules
-- Visual schedule list with current status
+- Visual schedule chips showing time range and temperature/preset
 
 **HistoryChart Component:**
 - Recharts line chart

@@ -88,12 +88,19 @@ Area:
 Schedule:
   - schedule_id: str
   - time: str (HH:MM) [legacy]
-  - day: str (Monday, Tuesday, etc.) [new format]
-  - start_time: str (HH:MM) [new format]
-  - end_time: str (HH:MM) [new format]
+  - day: str (Monday, Tuesday, etc.) [legacy - single day]
+  - days: List[str] (Monday, Tuesday, etc.) [v0.4.0+ - multi-day selection]
+  - date: str (YYYY-MM-DD) [v0.4.0+ - date-specific schedules]
+  - start_time: str (HH:MM)
+  - end_time: str (HH:MM)
   - temperature: float
-  - days: List[str] (mon, tue, etc.) [legacy]
+  - preset_mode: str (optional - away, eco, comfort, home, sleep, activity)
   - enabled: bool
+
+Schedule Types (v0.4.0+):
+  - Weekly Recurring: Uses 'days' array for multi-day schedules
+  - Date-Specific: Uses 'date' field for one-time schedules (holidays, events)
+  - Legacy: Single 'day' field (backward compatible)
 
 Device:
   - id: str
@@ -317,7 +324,118 @@ Temperature logging and retention.
 }
 ```
 
-### 6. Platforms
+### 6. Safety Monitor (`safety_monitor.py`)
+
+Emergency heating shutdown on safety sensor alerts.
+
+**Responsibilities:**
+- Monitors configured safety sensors (smoke, CO detectors)
+- Triggers emergency shutdown when alert detected
+- Disables all heating areas immediately
+- Fires `smart_heating_safety_alert` event
+- Persists disabled state (survives restarts)
+
+**Performance:**
+- **Event-driven architecture** - Zero polling overhead
+- Uses `async_track_state_change_event()` for Home Assistant event bus subscription
+- Callback triggered only on actual sensor state changes
+- CPU usage: 0% idle, ~1-5ms per state change event
+- Memory: Negligible (single event listener registration)
+
+**Configuration:**
+- Global setting configured via Area Manager
+- Sensor ID: Entity to monitor (e.g., `binary_sensor.smoke_detector`)
+- Attribute: Specific attribute to check (e.g., `state`)
+- Alert value: Value indicating danger (e.g., `on`)
+- Enabled: Default true, can be disabled for testing
+
+**Control Flow:**
+```
+1. SafetyMonitor setup with configured sensor
+2. async_track_state_change_event registers listener (event-driven, no polling)
+3. On sensor state change (instant notification from HA event bus):
+   - Check if alert value matches configured value
+   - If match: trigger _emergency_shutdown()
+     - Disable all areas via Area Manager
+     - Fire event: smart_heating_safety_alert
+     - Request coordinator refresh for UI update
+     - Log error with sensor details
+4. User must manually re-enable areas after resolving danger
+   - Re-enabling any area clears the alert state
+```
+
+**Storage (via Area Manager):**
+```json
+{
+  "safety_sensor_id": "binary_sensor.smoke_detector",
+  "safety_sensor_attribute": "state",
+  "safety_sensor_alert_value": "on",
+  "safety_sensor_enabled": true
+}
+```
+
+**Integration:**
+- Configured via Global Settings → Safety tab in frontend
+- Services: `set_safety_sensor`, `remove_safety_sensor`
+- API endpoints: GET/POST/DELETE `/api/smart_heating/safety_sensor`
+- WebSocket events: Real-time alert updates via coordinator refresh
+
+### 7. Vacation Manager (`vacation_manager.py`)
+
+Automated away-from-home heating control.
+
+**Responsibilities:**
+- Manages vacation mode schedules with start/end dates
+- Automatically enables/disables vacation mode at scheduled times
+- Stores all areas' enabled states before vacation starts
+- Disables all areas during vacation (energy saving)
+- Restores original area states when vacation ends
+- Handles Home Assistant restarts during vacation periods
+
+**Vacation Mode States:**
+- **Inactive**: No vacation scheduled or vacation ended
+- **Active**: Currently in vacation period (all areas disabled)
+- **Scheduled**: Vacation configured for future date
+
+**Control Flow:**
+```
+1. User sets vacation dates via Global Settings → Vacation tab
+2. Vacation Manager checks every hour (async_track_time_interval)
+3. When start time reached:
+   - Save current enabled state of all areas
+   - Disable all areas
+   - Set vacation_mode_active = true
+   - Fire event: smart_heating_vacation_started
+4. When end time reached:
+   - Restore all areas to original states
+   - Set vacation_mode_active = false
+   - Fire event: smart_heating_vacation_ended
+5. On HA restart during vacation:
+   - Detects active vacation period
+   - Areas remain disabled (state persisted)
+```
+
+**Storage (via Area Manager):**
+```json
+{
+  "vacation_mode_start": "2024-12-20T15:00:00",
+  "vacation_mode_end": "2024-12-27T18:00:00",
+  "vacation_mode_active": true,
+  "vacation_original_states": {
+    "living_room": true,
+    "bedroom": true,
+    "bathroom": false
+  }
+}
+```
+
+**Integration:**
+- Configured via Global Settings → Vacation tab in frontend
+- Services: `set_vacation_mode`, `cancel_vacation_mode`
+- API endpoints: GET/POST/DELETE `/api/smart_heating/vacation`
+- WebSocket events: `vacation_changed`, `smart_heating_vacation_started`, `smart_heating_vacation_ended`
+
+### 8. Platforms
 
 #### Climate Platform (`climate.py`)
 Creates one `climate.area_<name>` entity per area.
@@ -343,7 +461,7 @@ Creates `sensor.smart_heating_status` entity.
 - Area count
 - Active areas count
 
-### 7. REST API (`api.py`)
+### 9. REST API (`api.py`)
 
 HTTP API using `HomeAssistantView` for frontend communication.
 
@@ -367,6 +485,12 @@ HTTP API using `HomeAssistantView` for frontend communication.
 | GET | `/api/smart_heating/devices/refresh` | Refresh device discovery |
 | GET | `/api/smart_heating/status` | Get system status |
 | POST | `/api/smart_heating/call_service` | Call HA service (proxy) |
+| GET | `/api/smart_heating/vacation` | Get vacation mode configuration |
+| POST | `/api/smart_heating/vacation` | Set vacation mode dates |
+| DELETE | `/api/smart_heating/vacation` | Cancel vacation mode |
+| GET | `/api/smart_heating/safety_sensor` | Get safety sensor configuration |
+| POST | `/api/smart_heating/safety_sensor` | Set safety sensor configuration |
+| DELETE | `/api/smart_heating/safety_sensor` | Remove safety sensor |
 
 **Device Discovery** (`GET /devices`):
 - Discovers ALL Home Assistant climate, sensor, switch, and number entities
@@ -379,7 +503,7 @@ HTTP API using `HomeAssistantView` for frontend communication.
 - Returns device metadata: entity_id, name, type, HA area assignment
 - Filters out devices from hidden areas (3-method filtering)
 
-### 8. WebSocket API (`websocket.py`)
+### 10. WebSocket API (`websocket.py`)
 
 Real-time communication using HA WebSocket API.
 
@@ -387,7 +511,7 @@ Real-time communication using HA WebSocket API.
 - `smart_heating/subscribe_updates` - Subscribe to area updates
 - `smart_heating/get_areas` - Get areas via WebSocket
 
-### 9. Service Calls
+### 11. Service Calls
 
 Comprehensive service API for automation/script integration:
 
@@ -408,12 +532,20 @@ Comprehensive service API for automation/script integration:
 
 **Advanced Settings:**
 10. `smart_heating.set_night_boost` - Configure night boost
-11. `smart_heating.set_opentherm_gateway` - Configure global OpenTherm gateway (NEW)
-12. `smart_heating.set_trv_temperatures` - Set TRV heating/idle temperatures (NEW)
+11. `smart_heating.set_opentherm_gateway` - Configure global OpenTherm gateway
+12. `smart_heating.set_trv_temperatures` - Set TRV heating/idle temperatures
 13. `smart_heating.set_hysteresis` - Set global hysteresis
 
+**Vacation Mode:**
+14. `smart_heating.set_vacation_mode` - Configure vacation dates
+15. `smart_heating.cancel_vacation_mode` - Cancel vacation
+
+**Safety:**
+16. `smart_heating.set_safety_sensor` - Configure safety sensor
+17. `smart_heating.remove_safety_sensor` - Remove safety sensor
+
 **System:**
-14. `smart_heating.refresh` - Manual refresh
+18. `smart_heating.refresh` - Manual refresh
 
 ## Frontend Components
 
@@ -446,7 +578,8 @@ src/
 │   ├── ScheduleEditor.tsx      # Schedule management UI
 │   └── HistoryChart.tsx        # Temperature history visualization
 ├── pages/
-│   └── AreaDetail.tsx          # Detailed area page (5 tabs)
+│   ├── AreaDetail.tsx          # Detailed area page (5 tabs)
+│   └── GlobalSettings.tsx      # Global settings page (5 tabs)
 └── hooks/
     └── useWebSocket.ts         # WebSocket connection hook
 ```
@@ -473,6 +606,31 @@ src/
 4. **History** - Interactive temperature charts (6h-7d ranges)
 5. **Settings** - Night boost, hysteresis, advanced configuration
 
+**GlobalSettings Page (5 Tabs):**
+1. **Temperature** - Global temperature settings:
+   - Default target temperature
+   - Minimum and maximum temperature limits
+   - Temperature step size (0.5°C default)
+2. **Sensors** - Global sensor configuration:
+   - Default sensor entity for new areas
+   - Sensor filtering and discovery settings
+3. **Vacation** - Vacation mode management:
+   - Start and end date/time pickers
+   - Current vacation status display
+   - Cancel vacation button
+   - Original area states shown during vacation
+4. **Safety** - Safety sensor configuration:
+   - Sensor selection dropdown (smoke/CO detectors)
+   - Attribute selection (e.g., smoke, gas, co)
+   - Alert value configuration (e.g., true, on)
+   - Enable/disable safety monitoring
+   - Current configuration display
+5. **Advanced** - Advanced system settings:
+   - Hysteresis configuration (±0.5°C default)
+   - TRV heating/idle temperatures
+   - OpenTherm gateway configuration
+   - Logging and debug settings
+
 **Device Management Features:**
 - **Location Filter Dropdown** - Filter devices by HA area
   - "All Locations" - Show all available devices
@@ -484,13 +642,30 @@ src/
 - **Location Chips** - Visual indicators showing device's HA area
 - **Real-time Updates** - Device list refreshes after add/remove operations
 
-**ScheduleEditor Component:**
-- Time picker for schedule start
-- Temperature input
-- Day-of-week multi-select
-- Add/remove schedules
+**ScheduleEditor Component (v0.4.0 - Enhanced UI):**
+- **Modern Date/Time Selection:**
+  - Material-UI DatePicker for date selection (calendar view)
+  - Time inputs for start/end times
+  - Toggle between "Weekly Recurring" and "Specific Date" schedules
+- **Multi-Day Selection:**
+  - Checkbox interface for selecting multiple days
+  - Quick selection buttons: Weekdays, Weekend, All Days, Clear
+  - Visual preview of selected days with chips
+  - Count indicator showing number of selected days
+- **Card-Based Layout:**
+  - Separate sections for Weekly and Date-Specific schedules
+  - Collapsible cards for each day (expand/collapse for cleaner view)
+  - Visual icons (🔁 Repeat for weekly, 📅 Event for date-specific)
+  - Schedule count badges per day
+  - Formatted dates for date-specific schedules (e.g., "Apr 29, 2024")
+- **Schedule Types:**
+  - Weekly Recurring: Create schedules for multiple days at once
+  - Date-Specific: One-time schedules for holidays, events, temporary changes
+  - Temperature or Preset Mode: Toggle between fixed temperature and preset modes
+- Add/remove schedules with single click
+- Edit schedules by clicking on chips
 - Enable/disable individual schedules
-- Visual schedule list with current status
+- Visual schedule chips showing time range and temperature/preset
 
 **HistoryChart Component:**
 - Recharts line chart

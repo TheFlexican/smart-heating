@@ -19,7 +19,11 @@ Een Home Assistant custom integratie voor het beheren van verwarmingssystemen me
   - Real-time updates binnen 2-3 seconden via WebSocket
   - Wordt automatisch gewist wanneer temperatuur via app aangepast wordt
   - Blijft behouden na herstarts
-- 📅 **Slim Plannen** - Tijdgebaseerde temperatuur profielen met dag-van-de-week selectie
+- 📅 **Slim Plannen** - Moderne tijdgebaseerde temperatuur profielen met verbeterde UI
+  - **Datumkiezers** - Kalender-gebaseerde datum/tijd selectie zoals vakantiemodus (NIEUW in v0.4.0)
+  - **Meerdaagse Selectie** - Maak schema's voor meerdere dagen tegelijk (Weekdagen, Weekend, Alle Dagen)
+  - **Datumspecifieke Schema's** - Eenmalige schema's voor specifieke datums (feestdagen, evenementen) (NIEUW in v0.4.0)
+  - **Kaart-Gebaseerde Lay-out** - Moderne, inklapbare schema organisatie voor beter overzicht
   - **Preset Modus Schema's** - Stel preset modi in (Weg, Eco, Comfort, etc.) in plaats van vaste temperaturen (v0.5.0+)
   - **Dag-overschrijdende Ondersteuning** - Schema's kunnen middernacht overschrijden (bijv. Zaterdag 22:00 - Zondag 07:00) (v0.5.0+)
   - Schakel tussen temperatuur-gebaseerd en preset-gebaseerd plannen
