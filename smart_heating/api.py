@@ -247,6 +247,8 @@ class SmartHeatingAPIView(HomeAssistantView):
         Returns:
             JSON response with HA areas
         """
+        from .utils import build_area_response, build_device_info, get_coordinator_devices
+        
         # Get Home Assistant's area registry
         area_registry = ar.async_get(self.hass)
         
@@ -259,96 +261,20 @@ class SmartHeatingAPIView(HomeAssistantView):
             stored_area = self.area_manager.get_area(area_id)
             
             if stored_area:
-                # Use stored data
+                # Build devices list with coordinator data
                 devices_list = []
-                
-                # Get coordinator data for device states
-                # The coordinator is stored under the entry_id, find it
-                coordinator = None
-                for key, value in self.hass.data[DOMAIN].items():
-                    if hasattr(value, 'data') and hasattr(value, 'async_request_refresh'):
-                        coordinator = value
-                        break
-                
-                coordinator_devices = {}
-                if coordinator and coordinator.data and "areas" in coordinator.data:
-                    area_data = coordinator.data["areas"].get(area_id, {})
-                    for device in area_data.get("devices", []):
-                        coordinator_devices[device["id"]] = device
+                coordinator_devices = get_coordinator_devices(self.hass, area_id)
                 
                 for dev_id, dev_data in stored_area.devices.items():
-                    device_info = {
-                        "id": dev_id,
-                        "type": dev_data["type"],
-                        "mqtt_topic": dev_data.get("mqtt_topic"),
-                    }
-                    # Get friendly name from entity state
                     state = self.hass.states.get(dev_id)
-                    if state:
-                        device_info["name"] = state.attributes.get("friendly_name", dev_id)
-                    
-                    # Add coordinator data if available
-                    if dev_id in coordinator_devices:
-                        coord_device = coordinator_devices[dev_id]
-                        device_info["state"] = coord_device.get("state")
-                        device_info["current_temperature"] = coord_device.get("current_temperature")
-                        device_info["target_temperature"] = coord_device.get("target_temperature")
-                        device_info["hvac_action"] = coord_device.get("hvac_action")
-                        device_info["temperature"] = coord_device.get("temperature")
-                        device_info["position"] = coord_device.get("position")
-                    
-                    devices_list.append(device_info)
+                    coord_device = coordinator_devices.get(dev_id)
+                    devices_list.append(build_device_info(dev_id, dev_data, state, coord_device))
                 
-                areas_data.append({
-                    "id": area_id,
-                    "name": area_name,
-                    "enabled": stored_area.enabled,
-                    "hidden": stored_area.hidden,
-                    "state": stored_area.state,
-                    "target_temperature": stored_area.target_temperature,
-                    "effective_target_temperature": stored_area.get_effective_target_temperature(),
-                    "current_temperature": stored_area.current_temperature,
-                    "devices": devices_list,
-                    "schedules": [s.to_dict() for s in stored_area.schedules.values()],
-                    # Night boost
-                    "night_boost_enabled": stored_area.night_boost_enabled,
-                    "night_boost_offset": stored_area.night_boost_offset,
-                    "night_boost_start_time": stored_area.night_boost_start_time,
-                    "night_boost_end_time": stored_area.night_boost_end_time,
-                    # Smart night boost
-                    "smart_night_boost_enabled": stored_area.smart_night_boost_enabled,
-                    "smart_night_boost_target_time": stored_area.smart_night_boost_target_time,
-                    "weather_entity_id": stored_area.weather_entity_id,
-                    # Preset modes
-                    "preset_mode": stored_area.preset_mode,
-                    "away_temp": stored_area.away_temp,
-                    "eco_temp": stored_area.eco_temp,
-                    "comfort_temp": stored_area.comfort_temp,
-                    "home_temp": stored_area.home_temp,
-                    "sleep_temp": stored_area.sleep_temp,
-                    "activity_temp": stored_area.activity_temp,
-                    # Global preset flags
-                    "use_global_away": stored_area.use_global_away,
-                    "use_global_eco": stored_area.use_global_eco,
-                    "use_global_comfort": stored_area.use_global_comfort,
-                    "use_global_home": stored_area.use_global_home,
-                    "use_global_sleep": stored_area.use_global_sleep,
-                    "use_global_activity": stored_area.use_global_activity,
-                    # Boost mode
-                    "boost_mode_active": stored_area.boost_mode_active,
-                    "boost_temp": stored_area.boost_temp,
-                    "boost_duration": stored_area.boost_duration,
-                    # HVAC mode
-                    "hvac_mode": stored_area.hvac_mode,
-                    # Hysteresis override
-                    "hysteresis_override": stored_area.hysteresis_override,
-                    # Manual override
-                    "manual_override": getattr(stored_area, 'manual_override', False),
-                    # Sensors
-                    "window_sensors": stored_area.window_sensors,
-                    "presence_sensors": stored_area.presence_sensors,
-                    "use_global_presence": stored_area.use_global_presence,
-                })
+                # Build area response using utility
+                area_response = build_area_response(stored_area, devices_list)
+                # Override name with HA area name
+                area_response["name"] = area_name
+                areas_data.append(area_response)
             else:
                 # Default data for HA area without stored settings
                 areas_data.append({
@@ -376,6 +302,8 @@ class SmartHeatingAPIView(HomeAssistantView):
         Returns:
             JSON response with area data
         """
+        from .utils import build_area_response, build_device_info
+        
         area = self.area_manager.get_area(area_id)
         
         if area is None:
@@ -383,66 +311,14 @@ class SmartHeatingAPIView(HomeAssistantView):
                 {"error": f"Zone {area_id} not found"}, status=404
             )
         
+        # Build devices list
         devices_list = []
         for dev_id, dev_data in area.devices.items():
-            device_info = {
-                "id": dev_id,
-                "type": dev_data["type"],
-                "mqtt_topic": dev_data.get("mqtt_topic"),
-            }
-            # Get friendly name from entity state
             state = self.hass.states.get(dev_id)
-            if state:
-                device_info["name"] = state.attributes.get("friendly_name", dev_id)
-            devices_list.append(device_info)
+            devices_list.append(build_device_info(dev_id, dev_data, state))
         
-        area_data = {
-            "id": area.area_id,
-            "name": area.name,
-            "enabled": area.enabled,
-            "state": area.state,
-            "target_temperature": area.target_temperature,
-            "effective_target_temperature": area.get_effective_target_temperature(),
-            "current_temperature": area.current_temperature,
-            "devices": devices_list,
-            "schedules": [s.to_dict() for s in area.schedules.values()],
-            # Night boost
-            "night_boost_enabled": area.night_boost_enabled,
-            "night_boost_offset": area.night_boost_offset,
-            "night_boost_start_time": area.night_boost_start_time,
-            "night_boost_end_time": area.night_boost_end_time,
-            # Smart night boost
-            "smart_night_boost_enabled": area.smart_night_boost_enabled,
-            "smart_night_boost_target_time": area.smart_night_boost_target_time,
-            "weather_entity_id": area.weather_entity_id,
-            # Preset modes
-            "preset_mode": area.preset_mode,
-            "away_temp": area.away_temp,
-            "eco_temp": area.eco_temp,
-            "comfort_temp": area.comfort_temp,
-            "home_temp": area.home_temp,
-            "sleep_temp": area.sleep_temp,
-            "activity_temp": area.activity_temp,
-            # Global preset flags
-            "use_global_away": area.use_global_away,
-            "use_global_eco": area.use_global_eco,
-            "use_global_comfort": area.use_global_comfort,
-            "use_global_home": area.use_global_home,
-            "use_global_sleep": area.use_global_sleep,
-            "use_global_activity": area.use_global_activity,
-            # Boost mode
-            "boost_mode_active": area.boost_mode_active,
-            "boost_temp": area.boost_temp,
-            "boost_duration": area.boost_duration,
-            # HVAC mode
-            "hvac_mode": area.hvac_mode,
-            # Manual override
-            "manual_override": getattr(area, 'manual_override', False),
-            # Sensors
-            "window_sensors": area.window_sensors,
-            "presence_sensors": area.presence_sensors,
-            "use_global_presence": area.use_global_presence,
-        }
+        # Build area response using utility
+        area_data = build_area_response(area, devices_list)
         
         return web.json_response(area_data)
 
@@ -455,14 +331,20 @@ class SmartHeatingAPIView(HomeAssistantView):
         Returns:
             JSON response with available devices
         """
-        devices = []
+        from .utils import DeviceRegistry, build_device_dict
         
-        # Get all entities from Home Assistant
+        devices = []
+        device_reg = DeviceRegistry(self.hass)
         entity_registry = er.async_get(self.hass)
-        device_registry = dr.async_get(self.hass)
-        area_registry = ar.async_get(self.hass)
         
         _LOGGER.warning("=== SMART HEATING: Starting device discovery ===")
+        
+        # Build list of hidden areas for filtering
+        hidden_areas = [
+            {"id": area_id, "name": area.name}
+            for area_id, area in self.area_manager.get_all_areas().items()
+            if area.hidden
+        ]
         
         for entity in entity_registry.entities.values():
             # Skip Smart Heating's own climate entities (zone thermostats)
@@ -474,111 +356,39 @@ class SmartHeatingAPIView(HomeAssistantView):
             if not state:
                 continue
             
-            # Map domain to device type - simple, universal mapping
-            # Subtype based on HA device_class or domain only (no keyword filtering)
-            device_type = None
-            subtype = None
-            device_class = state.attributes.get("device_class")
-            
-            if entity.domain == "climate":
-                device_type = "thermostat"
-                subtype = "climate"
-            elif entity.domain == "switch":
-                device_type = "switch"
-                subtype = "switch"  # Just use domain as subtype
-            elif entity.domain == "number":
-                device_type = "number"
-                subtype = "number"  # Just use domain as subtype
-            elif entity.domain == "sensor":
-                # Only include temperature sensors
-                unit = state.attributes.get("unit_of_measurement", "")
-                if device_class == "temperature" or unit in ["°C", "°F"]:
-                    device_type = "sensor"
-                    subtype = "temperature"
-                else:
-                    continue  # Skip non-temperature sensors
-            
-            # Skip if no device type
-            if not device_type:
+            # Get device type using helper
+            device_info = device_reg.get_device_type(entity, state)
+            if not device_info:
                 continue
             
-            # Check if device is already assigned to a area
+            device_type, subtype = device_info
+            
+            # Check if device is already assigned to areas
             assigned_areas = []
-            assigned_to_hidden_area = False
             for area_id, area in self.area_manager.get_all_areas().items():
                 if entity.entity_id in area.devices:
                     assigned_areas.append(area_id)
-                    # Check if any assigned area is hidden
+                    # If assigned to hidden area, skip it
                     if area.hidden:
-                        assigned_to_hidden_area = True
+                        _LOGGER.debug("Skipping device %s - assigned to hidden area %s", entity.entity_id, area.name)
+                        break
+            else:
+                # Not assigned to hidden area via assignment, check other criteria
+                ha_area = device_reg.get_ha_area(entity)
+                ha_area_name = ha_area[1] if ha_area else None
+                friendly_name = state.attributes.get("friendly_name", "")
                 
-                # Also check if device name/entity_id contains a hidden area name
-                if area.hidden and not assigned_to_hidden_area:
-                    area_name_lower = area.name.lower()
-                    entity_id_lower = entity.entity_id.lower()
-                    friendly_name_lower = state.attributes.get("friendly_name", "").lower()
-                    
-                    if area_name_lower in entity_id_lower or area_name_lower in friendly_name_lower:
-                        _LOGGER.debug(
-                            "Filtering device %s - contains hidden area name '%s'",
-                            entity.entity_id, area.name
-                        )
-                        assigned_to_hidden_area = True
-            
-            # Skip devices assigned to hidden areas
-            if assigned_to_hidden_area:
-                continue
-            
-            # Get Home Assistant area for this entity
-            ha_area_id = None
-            ha_area_name = None
-            if entity.device_id:
-                device_entry = device_registry.async_get(entity.device_id)
-                if device_entry and device_entry.area_id:
-                    area_entry = area_registry.async_get_area(device_entry.area_id)
-                    if area_entry:
-                        ha_area_id = area_entry.id
-                        ha_area_name = area_entry.name
-                        
-                        # Also skip if HA area matches a hidden Smart Heating area
-                        if not assigned_to_hidden_area:
-                            for area_id, area in self.area_manager.get_all_areas().items():
-                                if area.hidden and area.name.lower() == ha_area_name.lower():
-                                    _LOGGER.debug(
-                                        "Filtering device %s - HA area %s matches hidden Smart Heating area",
-                                        entity.entity_id, ha_area_name
-                                    )
-                                    assigned_to_hidden_area = True
-                                    break
-            
-            # Skip devices assigned to hidden areas (any method)
-            if assigned_to_hidden_area:
-                _LOGGER.debug("Skipping device %s - assigned to hidden area", entity.entity_id)
-                continue
-            
-            _LOGGER.warning(
-                "DISCOVERED: %s (%s) - type: %s, HA area: %s",
-                state.attributes.get("friendly_name", entity.entity_id),
-                entity.entity_id, device_type, ha_area_name or "none"
-            )
-            
-            devices.append({
-                "id": entity.entity_id,
-                "name": state.attributes.get("friendly_name", entity.entity_id),
-                "type": device_type,
-                "subtype": subtype,
-                "entity_id": entity.entity_id,
-                "domain": entity.domain,
-                "assigned_areas": assigned_areas,
-                "ha_area_id": ha_area_id,
-                "ha_area_name": ha_area_name,
-                "state": state.state,
-                "attributes": {
-                    "temperature": state.attributes.get("temperature"),
-                    "current_temperature": state.attributes.get("current_temperature"),
-                    "unit_of_measurement": state.attributes.get("unit_of_measurement"),
-                }
-            })
+                # Check if should filter based on hidden area names
+                if device_reg.should_filter_device(entity.entity_id, friendly_name, ha_area_name, hidden_areas):
+                    continue
+                
+                # Device passed all filters, add it
+                _LOGGER.warning(
+                    "DISCOVERED: %s (%s) - type: %s, HA area: %s",
+                    friendly_name, entity.entity_id, device_type, ha_area_name or "none"
+                )
+                
+                devices.append(build_device_dict(entity, state, device_type, subtype, ha_area, assigned_areas))
         
         _LOGGER.warning("=== SMART HEATING: Discovery complete - found %d devices ===", len(devices))
         return web.json_response({"devices": devices})
