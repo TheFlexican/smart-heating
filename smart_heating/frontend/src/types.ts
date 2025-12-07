@@ -95,6 +95,11 @@ export interface Zone {
   presence_detected?: boolean
   use_global_presence?: boolean  // Use global presence sensors instead of area-specific
   
+  // Auto preset mode based on presence
+  auto_preset_enabled?: boolean
+  auto_preset_home?: string  // Preset when presence detected (default: 'home')
+  auto_preset_away?: string  // Preset when no presence (default: 'away')
+  
   // Hysteresis override (null = use global setting)
   hysteresis_override?: number | null
 }

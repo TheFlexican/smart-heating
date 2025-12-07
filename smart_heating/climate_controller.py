@@ -271,6 +271,33 @@ class ClimateController:
                                 "No presence detected - boost removed",
                                 {"sensor_type": "presence", "state": "not_detected"}
                             )
+                    
+                    # Auto preset mode switching based on presence
+                    if area.auto_preset_enabled:
+                        new_preset = area.auto_preset_home if any_presence_detected else area.auto_preset_away
+                        if area.preset_mode != new_preset:
+                            old_preset = area.preset_mode
+                            area.preset_mode = new_preset
+                            await self.area_manager.async_save()
+                            _LOGGER.info(
+                                "Auto preset: %s → %s (presence %s in area %s)",
+                                old_preset,
+                                new_preset,
+                                "detected" if any_presence_detected else "not detected",
+                                area_id
+                            )
+                            if hasattr(self, 'area_logger') and self.area_logger:
+                                self.area_logger.log_event(
+                                    area_id,
+                                    "preset",
+                                    f"Auto preset changed: {old_preset} → {new_preset}",
+                                    {
+                                        "old_preset": old_preset,
+                                        "new_preset": new_preset,
+                                        "presence_detected": any_presence_detected,
+                                        "trigger": "auto_presence"
+                                    }
+                                )
 
 
     async def async_control_heating(self) -> None:

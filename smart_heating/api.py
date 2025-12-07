@@ -164,6 +164,9 @@ class SmartHeatingAPIView(HomeAssistantView):
             elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and endpoint.endswith("/hysteresis"):
                 area_id = endpoint.split("/")[1]
                 return await self.set_area_hysteresis(request, area_id, data)
+            elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and endpoint.endswith("/auto_preset"):
+                area_id = endpoint.split("/")[1]
+                return await self.set_auto_preset(request, area_id, data)
             elif endpoint == "frost_protection":
                 return await self.set_frost_protection(request, data)
             elif endpoint == "history/config":
@@ -1087,6 +1090,76 @@ class SmartHeatingAPIView(HomeAssistantView):
             return web.json_response({"success": True})
         except Exception as err:
             _LOGGER.error("Error setting hysteresis for area %s: %s", area_id, err)
+            return web.json_response(
+                {"error": str(err)}, status=500
+            )
+    
+    async def set_auto_preset(self, request: web.Request, area_id: str, data: dict) -> web.Response:
+        """Configure automatic preset mode switching based on presence.
+        
+        When enabled, preset mode automatically switches between home/away
+        based on presence sensor state.
+        
+        Args:
+            request: Request object
+            area_id: Area identifier
+            data: {
+                "enabled": bool,
+                "home_preset": str (optional, default: "home"),
+                "away_preset": str (optional, default: "away")
+            }
+            
+        Returns:
+            JSON response
+        """
+        try:
+            area = self.area_manager.get_area(area_id)
+            if not area:
+                return web.json_response(
+                    {"error": f"Area {area_id} not found"}, status=404
+                )
+            
+            enabled = data.get("enabled")
+            if enabled is None:
+                return web.json_response(
+                    {"error": "enabled field required"}, status=400
+                )
+            
+            area.auto_preset_enabled = bool(enabled)
+            
+            # Optional: configure which presets to use
+            if "home_preset" in data:
+                area.auto_preset_home = data["home_preset"]
+            if "away_preset" in data:
+                area.auto_preset_away = data["away_preset"]
+            
+            await self.area_manager.async_save()
+            
+            _LOGGER.info(
+                "Area %s: Auto preset %s (home=%s, away=%s)",
+                area_id,
+                "enabled" if enabled else "disabled",
+                area.auto_preset_home,
+                area.auto_preset_away
+            )
+            
+            # Refresh coordinator
+            entry_ids = [
+                key for key in self.hass.data[DOMAIN].keys()
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+            ]
+            if entry_ids:
+                coordinator = self.hass.data[DOMAIN][entry_ids[0]]
+                await coordinator.async_request_refresh()
+            
+            return web.json_response({
+                "success": True,
+                "auto_preset_enabled": area.auto_preset_enabled,
+                "auto_preset_home": area.auto_preset_home,
+                "auto_preset_away": area.auto_preset_away
+            })
+        except Exception as err:
+            _LOGGER.error("Error setting auto preset for area %s: %s", area_id, err)
             return web.json_response(
                 {"error": str(err)}, status=500
             )

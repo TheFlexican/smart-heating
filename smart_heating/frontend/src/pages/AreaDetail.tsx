@@ -37,6 +37,7 @@ import NightsStayIcon from '@mui/icons-material/NightsStay'
 import PsychologyIcon from '@mui/icons-material/Psychology'
 import WindowIcon from '@mui/icons-material/Window'
 import SensorOccupiedIcon from '@mui/icons-material/SensorOccupied'
+import PersonIcon from '@mui/icons-material/Person'
 import HistoryIcon from '@mui/icons-material/History'
 import SpeedIcon from '@mui/icons-material/Speed'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
@@ -847,6 +848,120 @@ const ZoneDetail = () => {
             >
               {t('settingsCards.addPresenceSensor')}
             </Button>
+          </>
+        )
+      },
+      {
+        id: 'auto-preset',
+        title: t('settingsCards.autoPresetTitle'),
+        description: t('settingsCards.autoPresetDescription'),
+        icon: <PersonIcon />,
+        badge: area.auto_preset_enabled ? 'AUTO' : 'OFF',
+        defaultExpanded: false,
+        content: (
+          <>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Box>
+                <Typography variant="body1" color="text.primary">
+                  {t('settingsCards.enableAutoPreset')}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {t('settingsCards.enableAutoPresetDescription')}
+                </Typography>
+              </Box>
+              <Switch
+                checked={area.auto_preset_enabled ?? false}
+                onChange={async (e) => {
+                  try {
+                    await fetch(`/api/smart_heating/areas/${area.id}/auto_preset`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        enabled: e.target.checked
+                      })
+                    })
+                    loadData()
+                  } catch (error) {
+                    console.error('Failed to update auto preset:', error)
+                  }
+                }}
+              />
+            </Box>
+
+            {area.auto_preset_enabled && (
+              <>
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  {t('settingsCards.autoPresetExplanation')}
+                </Alert>
+                
+                <Box sx={{ mb: 3 }}>
+                  <FormControl fullWidth sx={{ mb: 2 }}>
+                    <InputLabel>{t('settingsCards.presetWhenHome')}</InputLabel>
+                    <Select
+                      value={area.auto_preset_home || 'home'}
+                      label={t('settingsCards.presetWhenHome')}
+                      onChange={async (e) => {
+                        try {
+                          await fetch(`/api/smart_heating/areas/${area.id}/auto_preset`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              enabled: true,
+                              home_preset: e.target.value
+                            })
+                          })
+                          loadData()
+                        } catch (error) {
+                          console.error('Failed to update home preset:', error)
+                        }
+                      }}
+                    >
+                      <MenuItem value="home">{t('settingsCards.presetHome')}</MenuItem>
+                      <MenuItem value="comfort">{t('settingsCards.presetComfort')}</MenuItem>
+                      <MenuItem value="activity">{t('settingsCards.presetActivity')}</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  <FormControl fullWidth>
+                    <InputLabel>{t('settingsCards.presetWhenAway')}</InputLabel>
+                    <Select
+                      value={area.auto_preset_away || 'away'}
+                      label={t('settingsCards.presetWhenAway')}
+                      onChange={async (e) => {
+                        try {
+                          await fetch(`/api/smart_heating/areas/${area.id}/auto_preset`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              enabled: true,
+                              away_preset: e.target.value
+                            })
+                          })
+                          loadData()
+                        } catch (error) {
+                          console.error('Failed to update away preset:', error)
+                        }
+                      }}
+                    >
+                      <MenuItem value="away">{t('settingsCards.presetAway')}</MenuItem>
+                      <MenuItem value="eco">{t('settingsCards.presetEco')}</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+              </>
+            )}
+
+            {!area.auto_preset_enabled && (
+              <Alert severity="warning">
+                {t('settingsCards.autoPresetDisabled')}
+              </Alert>
+            )}
+
+            {(!area.presence_sensors || area.presence_sensors.length === 0) && !area.use_global_presence && (
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                {t('settingsCards.autoPresetNeedsSensors')}
+              </Alert>
+            )}
           </>
         )
       },

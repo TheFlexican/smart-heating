@@ -120,6 +120,11 @@ class Area:
         self.presence_detected: bool = False  # Cached state
         self.use_global_presence: bool = False  # Use global presence sensors instead of area-specific
         
+        # Auto preset mode based on presence
+        self.auto_preset_enabled: bool = False  # Automatically switch preset based on presence
+        self.auto_preset_home: str = PRESET_HOME  # Preset when presence detected
+        self.auto_preset_away: str = PRESET_AWAY  # Preset when no presence
+        
         # Manual override mode - when user manually adjusts thermostat outside the app
         self.manual_override: bool = False  # True when thermostat was manually adjusted
         
@@ -650,6 +655,10 @@ class Area:
             # Presence sensors (new structure)
             "presence_sensors": self.presence_sensors,
             "use_global_presence": self.use_global_presence,
+            # Auto preset mode
+            "auto_preset_enabled": self.auto_preset_enabled,
+            "auto_preset_home": self.auto_preset_home,
+            "auto_preset_away": self.auto_preset_away,
             # Hysteresis override
             "hysteresis_override": self.hysteresis_override,
         }
@@ -752,6 +761,11 @@ class Area:
         
         # Global presence flag (default to False for backward compatibility)
         area.use_global_presence = data.get("use_global_presence", False)
+        
+        # Auto preset mode (default to False for backward compatibility)
+        area.auto_preset_enabled = data.get("auto_preset_enabled", False)
+        area.auto_preset_home = data.get("auto_preset_home", PRESET_HOME)
+        area.auto_preset_away = data.get("auto_preset_away", PRESET_AWAY)
         
         # Load schedules
         for schedule_data in data.get("schedules", []):

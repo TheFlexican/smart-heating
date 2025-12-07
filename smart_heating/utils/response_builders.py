@@ -101,6 +101,10 @@ def build_area_response(area: Area, devices_list: Optional[List[Dict[str, Any]]]
         "window_sensors": area.window_sensors,
         "presence_sensors": area.presence_sensors,
         "use_global_presence": area.use_global_presence,
+        # Auto preset mode
+        "auto_preset_enabled": getattr(area, 'auto_preset_enabled', False),
+        "auto_preset_home": getattr(area, 'auto_preset_home', 'home'),
+        "auto_preset_away": getattr(area, 'auto_preset_away', 'away'),
         # Switch shutdown
         "switch_shutdown_enabled": getattr(area, 'switch_shutdown_enabled', False),
         "switch_shutdown_entities": getattr(area, 'switch_shutdown_entities', []),
