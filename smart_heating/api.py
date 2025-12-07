@@ -732,10 +732,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             "trv_heating_temp": self.area_manager.trv_heating_temp,
             "trv_idle_temp": self.area_manager.trv_idle_temp,
             "trv_temp_offset": self.area_manager.trv_temp_offset,
-            "safety_sensor_id": self.area_manager.safety_sensor_id,
-            "safety_sensor_attribute": self.area_manager.safety_sensor_attribute,
-            "safety_sensor_alert_value": self.area_manager.safety_sensor_alert_value,
-            "safety_sensor_enabled": self.area_manager.safety_sensor_enabled,
+            "safety_sensors": self.area_manager.get_safety_sensors(),
             "safety_alert_active": self.area_manager.is_safety_alert_active(),
         }
         
@@ -1615,28 +1612,25 @@ class SmartHeatingAPIView(HomeAssistantView):
         return web.json_response(result)
 
     async def get_safety_sensor(self, request: web.Request) -> web.Response:
-        """Get safety sensor configuration.
+        """Get all safety sensor configurations.
         
         Args:
             request: Request object
             
         Returns:
-            JSON response with safety sensor configuration
+            JSON response with list of safety sensors
         """
-        config = {
-            "sensor_id": self.area_manager.safety_sensor_id,
-            "attribute": self.area_manager.safety_sensor_attribute,
-            "alert_value": self.area_manager.safety_sensor_alert_value,
-            "enabled": self.area_manager.safety_sensor_enabled,
-            "alert_active": self.area_manager.is_safety_alert_active(),
-        }
+        sensors = self.area_manager.get_safety_sensors()
         
-        return web.json_response(config)
+        return web.json_response({
+            "sensors": sensors,
+            "alert_active": self.area_manager.is_safety_alert_active(),
+        })
 
     async def set_safety_sensor(
         self, request: web.Request, data: dict
     ) -> web.Response:
-        """Configure safety sensor.
+        """Add or update a safety sensor.
         
         Args:
             request: Request object
@@ -1655,8 +1649,8 @@ class SmartHeatingAPIView(HomeAssistantView):
                 {"error": "sensor_id is required"}, status=400
             )
         
-        # Configure safety sensor
-        self.area_manager.set_safety_sensor(sensor_id, attribute, alert_value, enabled)
+        # Add or update safety sensor
+        self.area_manager.add_safety_sensor(sensor_id, attribute, alert_value, enabled)
         await self.area_manager.async_save()
         
         # Reconfigure safety monitor
@@ -1688,15 +1682,29 @@ class SmartHeatingAPIView(HomeAssistantView):
         })
 
     async def remove_safety_sensor(self, request: web.Request) -> web.Response:
-        """Remove safety sensor configuration.
+        """Remove a safety sensor configuration.
         
         Args:
-            request: Request object
+            request: Request object (sensor_id in query params or body)
             
         Returns:
             JSON response
         """
-        self.area_manager.remove_safety_sensor()
+        # Get sensor_id from query params or body
+        sensor_id = request.query.get("sensor_id")
+        if not sensor_id:
+            try:
+                data = await request.json()
+                sensor_id = data.get("sensor_id")
+            except:
+                pass
+        
+        if not sensor_id:
+            return web.json_response(
+                {"error": "sensor_id is required"}, status=400
+            )
+        
+        self.area_manager.remove_safety_sensor(sensor_id)
         await self.area_manager.async_save()
         
         # Reconfigure safety monitor

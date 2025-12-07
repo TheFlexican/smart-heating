@@ -246,9 +246,9 @@ export default function GlobalSettings() {
     }
   }
 
-  const handleRemoveSafetySensor = async () => {
+  const handleRemoveSafetySensor = async (sensorId: string) => {
     try {
-      await removeSafetySensor()
+      await removeSafetySensor(sensorId)
       await loadSafetySensor()
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
@@ -457,10 +457,10 @@ export default function GlobalSettings() {
         <TabPanel value={activeTab} index={3}>
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="h6" sx={{ mb: 1 }}>
-              {t('globalSettings.safety.title', '🚨 Safety Sensor (Smoke/CO Detector)')}
+              {t('globalSettings.safety.title', '🚨 Safety Sensors (Smoke/CO Detectors)')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {t('globalSettings.safety.description', 'Configure a smoke or carbon monoxide detector that will automatically shut down all heating when danger is detected. All areas will be disabled immediately to prevent heating during a safety emergency.')}
+              {t('globalSettings.safety.description', 'Configure smoke or carbon monoxide detectors that will automatically shut down all heating when danger is detected. All areas will be disabled immediately to prevent heating during a safety emergency.')}
             </Typography>
 
             {safetySensor?.alert_active && (
@@ -469,41 +469,68 @@ export default function GlobalSettings() {
               </Alert>
             )}
 
-            {safetySensor?.sensor_id ? (
+            {safetySensor?.sensors && safetySensor.sensors.length > 0 ? (
               <>
                 <Alert severity="success" sx={{ mb: 2 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {t('globalSettings.safety.configured', 'Safety Sensor Configured')}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 0.5 }}>
-                    <strong>{t('globalSettings.safety.sensor', 'Sensor')}:</strong> {safetySensor.sensor_id}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 0.5 }}>
-                    <strong>{t('globalSettings.safety.attribute', 'Monitored Attribute')}:</strong> {safetySensor.attribute}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>{t('globalSettings.safety.status', 'Status')}:</strong> {
-                      safetySensor.enabled
-                        ? t('globalSettings.safety.enabled', '✓ Enabled and monitoring')
-                        : t('globalSettings.safety.disabled', '✗ Disabled')
-                    }
+                    {t('globalSettings.safety.configured', 'Safety Sensors Configured')} ({safetySensor.sensors.length})
                   </Typography>
                 </Alert>
 
+                <List sx={{ mb: 2 }}>
+                  {safetySensor.sensors.map((sensor) => (
+                    <ListItem
+                      key={sensor.sensor_id}
+                      sx={{
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        mb: 1,
+                      }}
+                      secondaryAction={
+                        <IconButton
+                          edge="end"
+                          aria-label="delete"
+                          onClick={() => handleRemoveSafetySensor(sensor.sensor_id)}
+                          color="error"
+                        >
+                          <RemoveCircleOutlineIcon />
+                        </IconButton>
+                      }
+                    >
+                      <ListItemText
+                        primary={sensor.sensor_id}
+                        secondary={
+                          <>
+                            <Typography component="span" variant="body2">
+                              {t('globalSettings.safety.attribute', 'Attribute')}: {sensor.attribute} | {' '}
+                              {t('globalSettings.safety.status', 'Status')}: {
+                                sensor.enabled
+                                  ? t('globalSettings.safety.enabled', '✓ Enabled')
+                                  : t('globalSettings.safety.disabled', '✗ Disabled')
+                              }
+                            </Typography>
+                          </>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+
                 <Button
                   variant="outlined"
-                  color="error"
                   fullWidth
-                  onClick={handleRemoveSafetySensor}
-                  startIcon={<RemoveCircleOutlineIcon />}
+                  onClick={() => setSafetySensorDialogOpen(true)}
+                  startIcon={<SecurityIcon />}
+                  sx={{ mb: 2 }}
                 >
-                  {t('globalSettings.safety.removeButton', 'Remove Safety Sensor')}
+                  {t('globalSettings.safety.addAnotherButton', 'Add Another Safety Sensor')}
                 </Button>
               </>
             ) : (
               <>
                 <Alert severity="warning" sx={{ mb: 2 }}>
-                  {t('globalSettings.safety.notConfigured', 'No safety sensor configured. It is highly recommended to configure a smoke or CO detector for emergency heating shutdown.')}
+                  {t('globalSettings.safety.notConfigured', 'No safety sensors configured. It is highly recommended to configure smoke or CO detectors for emergency heating shutdown.')}
                 </Alert>
 
                 <Button
@@ -518,7 +545,7 @@ export default function GlobalSettings() {
             )}
 
             <Typography variant="body2" color="text.secondary" sx={{ mt: 3, fontStyle: 'italic' }}>
-              💡 {t('globalSettings.safety.tip', 'When the safety sensor detects smoke or carbon monoxide, all heating will be immediately stopped and all areas disabled. Areas must be manually re-enabled after the safety issue is resolved.')}
+              💡 {t('globalSettings.safety.tip', 'When any safety sensor detects smoke or carbon monoxide, all heating will be immediately stopped and all areas disabled. Areas must be manually re-enabled after the safety issue is resolved.')}
             </Typography>
           </Paper>
         </TabPanel>
@@ -610,6 +637,7 @@ export default function GlobalSettings() {
         open={safetySensorDialogOpen}
         onClose={() => setSafetySensorDialogOpen(false)}
         onAdd={handleAddSafetySensor}
+        configuredSensors={safetySensor?.sensors?.map(s => s.sensor_id) || []}
       />
 
       {/* Hysteresis Help Modal */}

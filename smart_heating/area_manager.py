@@ -1019,10 +1019,21 @@ class AreaManager:
             self.global_presence_sensors = data.get("global_presence_sensors", [])
             
             # Load safety sensor configuration
-            self.safety_sensor_id = data.get("safety_sensor_id")
-            self.safety_sensor_attribute = data.get("safety_sensor_attribute", "smoke")
-            self.safety_sensor_alert_value = data.get("safety_sensor_alert_value", True)
-            self.safety_sensor_enabled = data.get("safety_sensor_enabled", True)
+            # Support both old single sensor format (backward compatibility) and new multi-sensor format
+            if "safety_sensors" in data:
+                self.safety_sensors = data.get("safety_sensors", [])
+            elif data.get("safety_sensor_id"):
+                # Migrate old single sensor format to new list format
+                _LOGGER.info("Migrating old safety sensor format to new multi-sensor format")
+                self.safety_sensors = [{
+                    "sensor_id": data.get("safety_sensor_id"),
+                    "attribute": data.get("safety_sensor_attribute", "smoke"),
+                    "alert_value": data.get("safety_sensor_alert_value", True),
+                    "enabled": data.get("safety_sensor_enabled", True),
+                }]
+            else:
+                self.safety_sensors = []
+            self._safety_alert_active = data.get("safety_alert_active", False)
             
             # Load areas
             if "areas" in data:
@@ -1053,10 +1064,8 @@ class AreaManager:
             "global_sleep_temp": self.global_sleep_temp,
             "global_activity_temp": self.global_activity_temp,
             "global_presence_sensors": self.global_presence_sensors,
-            "safety_sensor_id": self.safety_sensor_id,
-            "safety_sensor_attribute": self.safety_sensor_attribute,
-            "safety_sensor_alert_value": self.safety_sensor_alert_value,
-            "safety_sensor_enabled": self.safety_sensor_enabled,
+            "safety_sensors": self.safety_sensors,
+            "safety_alert_active": self._safety_alert_active,
             "areas": [area.to_dict() for area in self.areas.values()]
         }
         await self._store.async_save(data)
@@ -1251,80 +1260,110 @@ class AreaManager:
         self.opentherm_enabled = enabled and gateway_id is not None
         _LOGGER.info("OpenTherm gateway set to %s (enabled: %s)", gateway_id, self.opentherm_enabled)
 
-    def set_safety_sensor(
+    def add_safety_sensor(
         self,
-        sensor_id: str | None,
+        sensor_id: str,
         attribute: str = "smoke",
         alert_value: str | bool = True,
         enabled: bool = True,
     ) -> None:
-        """Configure the global safety sensor (smoke/CO detector).
+        """Add a safety sensor (smoke/CO detector).
         
         Args:
-            sensor_id: Entity ID of the safety sensor (or None to disable)
-            attribute: Attribute to monitor (e.g., "smoke", "carbon_monoxide", "gas")
-            alert_value: Value that indicates danger (True, "alarm", etc.)
-            enabled: Whether safety monitoring is enabled
+            sensor_id: Entity ID of the safety sensor
+            attribute: Attribute to monitor (e.g., "smoke", "carbon_monoxide", "gas", "state")
+            alert_value: Value that indicates danger (True, "on", "alarm", etc.)
+            enabled: Whether safety monitoring is enabled for this sensor
         """
-        self.safety_sensor_id = sensor_id
-        self.safety_sensor_attribute = attribute
-        self.safety_sensor_alert_value = alert_value
-        self.safety_sensor_enabled = enabled and sensor_id is not None
+        # Check if sensor already exists
+        for sensor in self.safety_sensors:
+            if sensor["sensor_id"] == sensor_id:
+                # Update existing sensor
+                sensor["attribute"] = attribute
+                sensor["alert_value"] = alert_value
+                sensor["enabled"] = enabled
+                _LOGGER.info(
+                    "Safety sensor updated: %s (attribute: %s, alert_value: %s, enabled: %s)",
+                    sensor_id, attribute, alert_value, enabled
+                )
+                return
+        
+        # Add new sensor
+        self.safety_sensors.append({
+            "sensor_id": sensor_id,
+            "attribute": attribute,
+            "alert_value": alert_value,
+            "enabled": enabled,
+        })
         _LOGGER.info(
-            "Safety sensor configured: %s (attribute: %s, alert_value: %s, enabled: %s)",
-            sensor_id, attribute, alert_value, self.safety_sensor_enabled
+            "Safety sensor added: %s (attribute: %s, alert_value: %s, enabled: %s)",
+            sensor_id, attribute, alert_value, enabled
         )
     
-    def remove_safety_sensor(self) -> None:
-        """Remove the safety sensor configuration."""
-        self.safety_sensor_id = None
-        self.safety_sensor_enabled = False
-        self._safety_alert_active = False
-        _LOGGER.info("Safety sensor removed")
+    def remove_safety_sensor(self, sensor_id: str) -> None:
+        """Remove a safety sensor by ID.
+        
+        Args:
+            sensor_id: Entity ID of the safety sensor to remove
+        """
+        self.safety_sensors = [
+            s for s in self.safety_sensors if s["sensor_id"] != sensor_id
+        ]
+        # Clear alert if no sensors remain
+        if not self.safety_sensors:
+            self._safety_alert_active = False
+        _LOGGER.info("Safety sensor removed: %s", sensor_id)
     
-    def check_safety_sensor_status(self) -> bool:
-        """Check if safety sensor is in alert state.
+    def get_safety_sensors(self) -> list[dict[str, Any]]:
+        """Get all configured safety sensors.
         
         Returns:
-            True if safety alert is active (danger detected), False otherwise
+            List of safety sensor configurations
         """
-        if not self.safety_sensor_enabled or not self.safety_sensor_id:
-            return False
+        return self.safety_sensors.copy()
+    
+    def check_safety_sensor_status(self) -> tuple[bool, str | None]:
+        """Check if any safety sensor is in alert state.
         
-        state = self.hass.states.get(self.safety_sensor_id)
-        if not state:
-            _LOGGER.warning("Safety sensor %s not found", self.safety_sensor_id)
-            return False
+        Returns:
+            Tuple of (is_alert, sensor_id) - True if any sensor is alerting, with the sensor ID
+        """
+        if not self.safety_sensors:
+            return False, None
         
-        # Check the specified attribute or state
-        if self.safety_sensor_attribute == "state":
-            current_value = state.state
-        else:
-            current_value = state.attributes.get(self.safety_sensor_attribute)
-        
-        _LOGGER.debug(
-            "Safety sensor check - Entity: %s, Attribute: %s, Current value: %s (type: %s), Alert value: %s (type: %s)",
-            self.safety_sensor_id,
-            self.safety_sensor_attribute,
-            current_value,
-            type(current_value).__name__,
-            self.safety_sensor_alert_value,
-            type(self.safety_sensor_alert_value).__name__
-        )
-        
-        # Compare with alert value
-        if current_value == self.safety_sensor_alert_value:
-            _LOGGER.warning("SAFETY ALERT: Exact match - %s == %s", current_value, self.safety_sensor_alert_value)
-            return True
-        
-        # Also check for common alert values
-        if isinstance(current_value, str) and current_value.lower() in ("alarm", "alert", "detected", "on", "true"):
-            _LOGGER.warning("SAFETY ALERT: String match - %s in common alert values", current_value)
-            return True
-        if isinstance(current_value, bool) and current_value:
-            _LOGGER.warning("SAFETY ALERT: Boolean true - %s", current_value)
-            return True
+        for sensor in self.safety_sensors:
+            if not sensor.get("enabled", True):
+                continue
             
+            sensor_id = sensor["sensor_id"]
+            attribute = sensor.get("attribute", "smoke")
+            alert_value = sensor.get("alert_value", True)
+            
+            state = self.hass.states.get(sensor_id)
+            if not state:
+                _LOGGER.warning("Safety sensor %s not found", sensor_id)
+                continue
+            
+            # Check the specified attribute or state
+            if attribute == "state":
+                # Check state directly
+                current_value = state.state
+            else:
+                # Check attribute
+                current_value = state.attributes.get(attribute)
+            
+            # Compare with alert value
+            is_alert = current_value == alert_value
+            
+            if is_alert:
+                _LOGGER.warning(
+                    "\ud83d\udea8 Safety sensor %s is in alert state! %s = %s",
+                    sensor_id, attribute, current_value
+                )
+                return True, sensor_id
+        
+        # No sensors in alert state
+        return False, None
         return False
     
     def is_safety_alert_active(self) -> bool:

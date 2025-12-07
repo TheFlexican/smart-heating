@@ -51,20 +51,14 @@ htmlcov/
 dmypy.json
 
 # Frontend
-custom_components/area_heater_manager/frontend/node_modules/
-custom_components/area_heater_manager/frontend/dist/
-custom_components/area_heater_manager/frontend/.vite/
-custom_components/area_heater_manager/frontend/*.local
+node_modules/
+dist/
+.vite/
+*.local
 
-# DevContainer
-.devcontainer/.storage/
-.devcontainer/home-assistant_v2.db*
-.devcontainer/.cloud/
-.devcontainer/.google.token
-.devcontainer/deps/
-.devcontainer
 
-ha-config/**/*
+# Mosquitto
+ha-config/
 mosquitto-data/
 mosquitto-log/
 mosquitto-config/

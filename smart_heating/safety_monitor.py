@@ -36,39 +36,46 @@ class SafetyMonitor:
         await self._setup_state_listener()
 
     async def _setup_state_listener(self) -> None:
-        """Set up state change listener for safety sensor."""
+        """Set up state change listeners for all safety sensors."""
         # Remove existing listener if any
         if self._state_unsub:
             self._state_unsub()
             self._state_unsub = None
         
-        # Set up new listener if sensor is configured
-        _LOGGER.warning("Setting up listener - enabled: %s, sensor_id: %s", 
-                       self.area_manager.safety_sensor_enabled, 
-                       self.area_manager.safety_sensor_id)
+        # Get all configured safety sensors
+        safety_sensors = self.area_manager.get_safety_sensors()
         
-        if self.area_manager.safety_sensor_enabled and self.area_manager.safety_sensor_id:
-            sensor_id = self.area_manager.safety_sensor_id
-            _LOGGER.warning("Setting up safety sensor state listener for %s", sensor_id)
+        # Filter for enabled sensors
+        enabled_sensors = [s for s in safety_sensors if s.get("enabled", True)]
+        
+        _LOGGER.warning("Setting up listeners for %d enabled safety sensors", len(enabled_sensors))
+        
+        if enabled_sensors:
+            # Collect all sensor IDs
+            sensor_ids = [s["sensor_id"] for s in enabled_sensors]
             
-            # Check if sensor exists
-            sensor_state = self.hass.states.get(sensor_id)
-            if sensor_state:
-                _LOGGER.warning("Sensor exists! Current state: %s", sensor_state.state)
-            else:
-                _LOGGER.warning("WARNING: Sensor %s does not exist yet!", sensor_id)
+            _LOGGER.warning("Monitoring safety sensors: %s", sensor_ids)
             
+            # Check if sensors exist
+            for sensor_id in sensor_ids:
+                sensor_state = self.hass.states.get(sensor_id)
+                if sensor_state:
+                    _LOGGER.warning("Sensor %s exists! Current state: %s", sensor_id, sensor_state.state)
+                else:
+                    _LOGGER.warning("WARNING: Sensor %s does not exist yet!", sensor_id)
+            
+            # Set up listener for all sensors
             self._state_unsub = async_track_state_change_event(
                 self.hass,
-                [sensor_id],
+                sensor_ids,
                 self._handle_safety_sensor_state_change
             )
-            _LOGGER.warning("Safety sensor listener registered successfully")
+            _LOGGER.warning("Safety sensor listeners registered successfully for %d sensors", len(sensor_ids))
             
             # Check initial state
             await self._check_safety_status()
         else:
-            _LOGGER.warning("No safety sensor configured, skipping listener setup")
+            _LOGGER.warning("No enabled safety sensors configured, skipping listener setup")
 
     @callback
     def _handle_safety_sensor_state_change(self, event: Event) -> None:
@@ -94,32 +101,35 @@ class SafetyMonitor:
 
     async def _check_safety_status(self) -> None:
         """Check safety sensor status and trigger shutdown if needed."""
-        is_alert = self.area_manager.check_safety_sensor_status()
+        is_alert, alerting_sensor_id = self.area_manager.check_safety_sensor_status()
         
         if is_alert and not self._emergency_shutdown_active:
             # Safety alert detected - trigger emergency shutdown
             _LOGGER.error(
-                "🚨 SAFETY ALERT DETECTED on %s! Triggering emergency heating shutdown!",
-                self.area_manager.safety_sensor_id
+                "\ud83d\udea8 SAFETY ALERT DETECTED on %s! Triggering emergency heating shutdown!",
+                alerting_sensor_id
             )
-            await self._trigger_emergency_shutdown()
+            await self._trigger_emergency_shutdown(alerting_sensor_id)
             
         elif not is_alert and self._emergency_shutdown_active:
             # Alert cleared - log but keep shutdown active (manual intervention required)
             _LOGGER.warning(
-                "Safety alert cleared on %s. Emergency shutdown remains active - manual intervention required.",
-                self.area_manager.safety_sensor_id
+                "All safety alerts cleared. Emergency shutdown remains active - manual intervention required."
             )
 
-    async def _trigger_emergency_shutdown(self) -> None:
-        """Trigger emergency shutdown of all heating."""
+    async def _trigger_emergency_shutdown(self, alerting_sensor_id: str) -> None:
+        """Trigger emergency shutdown of all heating.
+        
+        Args:
+            alerting_sensor_id: The sensor ID that triggered the alert
+        """
         self._emergency_shutdown_active = True
         self.area_manager.set_safety_alert_active(True)
         
         _LOGGER.error("=" * 80)
         _LOGGER.error("EMERGENCY HEATING SHUTDOWN INITIATED")
         _LOGGER.error("Reason: Safety sensor alert detected")
-        _LOGGER.error("Sensor: %s", self.area_manager.safety_sensor_id)
+        _LOGGER.error("Sensor: %s", alerting_sensor_id)
         _LOGGER.error("=" * 80)
         
         # Disable all areas
@@ -143,7 +153,7 @@ class SafetyMonitor:
         self.hass.bus.async_fire(
             "smart_heating_safety_alert",
             {
-                "sensor_id": self.area_manager.safety_sensor_id,
+                "sensor_id": alerting_sensor_id,
                 "areas_disabled": disabled_count,
                 "message": "Emergency heating shutdown due to safety sensor alert"
             }

@@ -387,11 +387,15 @@ export const setHysteresis = async (hysteresis: number): Promise<void> => {
 }
 
 // Safety sensor settings
-export interface SafetySensorResponse {
-  sensor_id: string | null
+export interface SafetySensor {
+  sensor_id: string
   attribute: string
   alert_value: string | boolean
   enabled: boolean
+}
+
+export interface SafetySensorResponse {
+  sensors: SafetySensor[]
   alert_active?: boolean
 }
 
@@ -409,6 +413,6 @@ export const setSafetySensor = async (config: {
   await axios.post(`${API_BASE}/safety_sensor`, config)
 }
 
-export const removeSafetySensor = async (): Promise<void> => {
-  await axios.delete(`${API_BASE}/safety_sensor`)
+export const removeSafetySensor = async (sensorId: string): Promise<void> => {
+  await axios.delete(`${API_BASE}/safety_sensor?sensor_id=${encodeURIComponent(sensorId)}`)
 }

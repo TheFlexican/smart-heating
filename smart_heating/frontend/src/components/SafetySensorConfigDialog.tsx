@@ -23,9 +23,10 @@ interface SafetySensorConfigDialogProps {
   open: boolean
   onClose: () => void
   onAdd: (config: SafetySensorConfig) => Promise<void>
+  configuredSensors?: string[] // List of already-configured sensor IDs to exclude
 }
 
-const SafetySensorConfigDialog = ({ open, onClose, onAdd }: SafetySensorConfigDialogProps) => {
+const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = [] }: SafetySensorConfigDialogProps) => {
   const { t } = useTranslation()
   const [entities, setEntities] = useState<HassEntity[]>([])
   const [loading, setLoading] = useState(false)
@@ -79,8 +80,13 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd }: SafetySensorConfigDi
     onClose()
   }
 
-  // Filter to show only safety-related binary sensors
+  // Filter to show only safety-related binary sensors that aren't already configured
   const filteredEntities = entities.filter(e => {
+    // Exclude already-configured sensors
+    if (configuredSensors.includes(e.entity_id)) {
+      return false
+    }
+    
     const deviceClass = e.attributes.device_class
     return deviceClass === 'smoke' || 
            deviceClass === 'gas' || 
