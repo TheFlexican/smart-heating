@@ -79,11 +79,20 @@ Een Home Assistant custom integratie voor het beheren van verwarmingssystemen me
     - Nuttig voor vloerverwarmingssystemen (kan 0.1-0.3°C gebruiken)
     - Help modal legt hysterese uit en geeft systeem-specifieke aanbevelingen
     - Schakel tussen globale instelling of aangepaste waarde
-  - **Tabblad Globale Instellingen** - Georganiseerde interface met 4 categorieën (NIEUW in v0.3.18)
+  - **Tabblad Globale Instellingen** - Georganiseerde interface met 5 categorieën (BIJGEWERKT in v0.3.19)
     - 🌡️ Temperatuur: Globale voorinstellingstemperaturen
     - 👥 Sensoren: Globale aanwezigheidssensor configuratie
     - 🏖️ Vakantie: Vakantiemodus instellingen
+    - 🔒 Veiligheid: Nooduitschakeling rook/CO detector
     - ⚙️ Geavanceerd: Hysterese en toekomstige geavanceerde functies
+- 🔒 **Veiligheidssensor (Rook/CO Detector)** - Nood verwarmingsuitschakeling (NIEUW in v0.3.19)
+  - Configureer rook- of koolmonoxidedetector voor automatische veiligheidsuitschakeling
+  - Schakelt ALLE verwarmingszones onmiddellijk uit wanneer gevaar gedetecteerd wordt
+  - Voorkomt verwarming tijdens brand of CO noodsituaties
+  - Werkt met elke Home Assistant binary sensor (rook, CO, gas)
+  - Handmatig herstel vereist - zones blijven uitgeschakeld tot handmatig weer ingeschakeld
+  - Real-time monitoring met visuele waarschuwingen in UI
+  - Standaard ingeschakeld wanneer sensor geconfigureerd is
 - 🌐 **REST API** - Volledige API voor programmatische controle
 - 📡 **WebSocket ondersteuning** - Real-time updates en status synchronisatie
 - 🎛️ **Climate entiteiten** - Volledige thermostaat controle per zone

@@ -317,6 +317,109 @@ Temperatuur logging en retentie.
 }
 ```
 
+### 6. Safety Monitor (`safety_monitor.py`)
+
+Nooduitschakeling van verwarming bij veiligheidsalarm.
+
+**Verantwoordelijkheden:**
+- Monitort geconfigureerde veiligheidssensoren (rook, CO detectors)
+- Triggert nooduitschakeling bij gedetecteerd alarm
+- Schakelt alle verwarmingszones onmiddellijk uit
+- Vuurt `smart_heating_safety_alert` event af
+- Behoudt uitgeschakelde status (overleeft herstarts)
+
+**Configuratie:**
+- Globale instelling geconfigureerd via Area Manager
+- Sensor ID: Te monitoren entiteit (bijv. `binary_sensor.smoke_detector`)
+- Attribuut: Specifiek attribuut om te controleren (bijv. `smoke`)
+- Alarm waarde: Waarde die gevaar aangeeft (bijv. `true`)
+- Ingeschakeld: Standaard true, kan uitgeschakeld worden voor testen
+
+**Controle Flow:**
+```
+1. SafetyMonitor setup met geconfigureerde sensor
+2. async_track_state_change_event registreert listener
+3. Bij sensor status wijziging:
+   - Controleer of alarm waarde overeenkomt met geconfigureerde waarde
+   - Bij match: trigger _emergency_shutdown()
+     - Schakel alle zones uit via Area Manager
+     - Vuur event af: smart_heating_safety_alert
+     - Stuur persistente notificatie naar HA
+     - Log waarschuwing met sensor details
+4. Gebruiker moet zones handmatig herinschakelen na oplossen gevaar
+```
+
+**Opslag (via Area Manager):**
+```json
+{
+  "safety_sensor_id": "binary_sensor.smoke_detector",
+  "safety_sensor_attribute": "smoke",
+  "safety_sensor_alert_value": "true",
+  "safety_sensor_enabled": true
+}
+```
+
+**Integratie:**
+- Geconfigureerd via Globale Instellingen → Veiligheid tab in frontend
+- Services: `set_safety_sensor`, `remove_safety_sensor`
+- API endpoints: GET/POST/DELETE `/api/smart_heating/safety_sensor`
+- WebSocket events: `safety_sensor_changed`
+
+### 7. Vacation Manager (`vacation_manager.py`)
+
+Geautomatiseerde verwarmingscontrole tijdens afwezigheid.
+
+**Verantwoordelijkheden:**
+- Beheert vakantie modus schema's met start/eind datums
+- Schakelt vakantie modus automatisch in/uit op geplande tijden
+- Slaat enabled status van alle zones op voordat vakantie start
+- Schakelt alle zones uit tijdens vakantie (energie besparing)
+- Herstelt originele zone status wanneer vakantie eindigt
+- Behandelt Home Assistant herstarts tijdens vakantie periodes
+
+**Vakantie Modus Statussen:**
+- **Inactief**: Geen vakantie gepland of vakantie beëindigd
+- **Actief**: Momenteel in vakantie periode (alle zones uitgeschakeld)
+- **Gepland**: Vakantie geconfigureerd voor toekomstige datum
+
+**Controle Flow:**
+```
+1. Gebruiker stelt vakantie datums in via Globale Instellingen → Vakantie tab
+2. Vacation Manager controleert elk uur (async_track_time_interval)
+3. Wanneer start tijd bereikt wordt:
+   - Bewaar huidige enabled status van alle zones
+   - Schakel alle zones uit
+   - Stel vacation_mode_active = true in
+   - Vuur event af: smart_heating_vacation_started
+4. Wanneer eind tijd bereikt wordt:
+   - Herstel alle zones naar originele status
+   - Stel vacation_mode_active = false in
+   - Vuur event af: smart_heating_vacation_ended
+5. Bij HA herstart tijdens vakantie:
+   - Detecteert actieve vakantie periode
+   - Zones blijven uitgeschakeld (status persistent)
+```
+
+**Opslag (via Area Manager):**
+```json
+{
+  "vacation_mode_start": "2024-12-20T15:00:00",
+  "vacation_mode_end": "2024-12-27T18:00:00",
+  "vacation_mode_active": true,
+  "vacation_original_states": {
+    "living_room": true,
+    "bedroom": true,
+    "bathroom": false
+  }
+}
+```
+
+**Integratie:**
+- Geconfigureerd via Globale Instellingen → Vakantie tab in frontend
+- Services: `set_vacation_mode`, `cancel_vacation_mode`
+- API endpoints: GET/POST/DELETE `/api/smart_heating/vacation`
+- WebSocket events: `vacation_changed`, `smart_heating_vacation_started`, `smart_heating_vacation_ended`
+
 ## Frontend Componenten
 
 ### Technology Stack
@@ -355,10 +458,58 @@ src/
 │   ├── VacationModeBanner.tsx  # Vakantiemodus banner
 │   └── VacationModeSettings.tsx # Vakantiemodus instellingen
 ├── pages/
-│   └── AreaDetail.tsx          # Gedetailleerde zone pagina (7 tabs)
+│   ├── AreaDetail.tsx          # Gedetailleerde zone pagina (5 tabs)
+│   └── GlobalSettings.tsx      # Globale instellingen pagina (5 tabs)
 └── hooks/
     └── useWebSocket.ts         # WebSocket verbindings hook
 ```
+
+### Belangrijkste Kenmerken
+
+**ZoneCard Component:**
+- Temperatuur slider (5-30°C, 0.5° stappen)
+- In/uitschakel toggle
+- Status indicator met kleurcodering (verwarmen/inactief/uit)
+- Apparaten lijst met verwijder knoppen
+- Drag-drop target voor apparaat toewijzing
+- Klik om te navigeren naar detail pagina
+
+**AreaDetail Pagina (5 Tabs):**
+1. **Overzicht** - Temperatuur controle, huidige status, apparaat status met real-time verwarmings indicatoren
+2. **Apparaten** - Verbeterd apparaat beheer met:
+   - Toegewezen apparaten lijst met verwijder knoppen
+   - Locatie-gebaseerde filter dropdown
+   - Beschikbare apparaten met toevoeg knoppen (+/- iconen)
+   - HA zone toewijzing weergegeven als chips
+   - Real-time apparaat aantallen per locatie
+3. **Schema** - Tijd-gebaseerde schema editor
+4. **Geschiedenis** - Interactieve temperatuur grafieken (6u-7d bereiken)
+5. **Instellingen** - Nacht boost, hysterese, geavanceerde configuratie
+
+**GlobalSettings Pagina (5 Tabs):**
+1. **Temperatuur** - Globale temperatuur instellingen:
+   - Standaard doel temperatuur
+   - Minimum en maximum temperatuur limieten
+   - Temperatuur stap grootte (0.5°C standaard)
+2. **Sensoren** - Globale sensor configuratie:
+   - Standaard sensor entiteit voor nieuwe zones
+   - Sensor filtering en discovery instellingen
+3. **Vakantie** - Vakantie modus beheer:
+   - Start en eind datum/tijd kiezers
+   - Huidige vakantie status weergave
+   - Annuleer vakantie knop
+   - Originele zone statussen getoond tijdens vakantie
+4. **Veiligheid** - Veiligheids sensor configuratie:
+   - Sensor selectie dropdown (rook/CO detectors)
+   - Attribuut selectie (bijv. smoke, gas, co)
+   - Alarm waarde configuratie (bijv. true, on)
+   - In/uitschakelen veiligheids monitoring
+   - Huidige configuratie weergave
+5. **Geavanceerd** - Geavanceerde systeem instellingen:
+   - Hysterese configuratie (±0.5°C standaard)
+   - TRV verwarmings/inactieve temperaturen
+   - OpenTherm gateway configuratie
+   - Logging en debug instellingen
 
 *Voor volledige component details en data flows, zie de Engelse versie van dit document in `docs/en/ARCHITECTURE.md`*
 

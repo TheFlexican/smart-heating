@@ -79,11 +79,20 @@ A Home Assistant custom integration for managing multi-area heating systems with
     - Useful for floor heating systems (can use 0.1-0.3°C)
     - Help modal explains hysteresis and system-specific recommendations
     - Toggle between global setting or custom value
-  - **Tabbed Global Settings** - Organized interface with 4 categories (NEW in v0.3.18)
+  - **Tabbed Global Settings** - Organized interface with 5 categories (UPDATED in v0.3.19)
     - 🌡️ Temperature: Global preset temperatures
     - 👥 Sensors: Global presence sensor configuration
     - 🏖️ Vacation: Vacation mode settings
+    - 🔒 Safety: Emergency smoke/CO detector shutdown
     - ⚙️ Advanced: Hysteresis and future advanced features
+- 🔒 **Safety Sensor (Smoke/CO Detector)** - Emergency heating shutdown (NEW in v0.3.19)
+  - Configure smoke or carbon monoxide detector for automatic safety shutdown
+  - Immediately disables ALL heating areas when danger detected
+  - Prevents heating during fire or CO emergencies
+  - Works with any Home Assistant binary sensor (smoke, CO, gas)
+  - Manual recovery required - areas stay disabled until manually re-enabled
+  - Real-time monitoring with visual alerts in UI
+  - Enabled by default when sensor configured
 - 🌐 **REST API** - Full API for programmatic control
 - 📡 **WebSocket support** - Real-time updates and state synchronization
 - 🎛️ **Climate entities** - Full thermostat control per area
@@ -102,7 +111,7 @@ A Home Assistant custom integration for managing multi-area heating systems with
   - Automatic language detection from Home Assistant settings
   - Supported languages: English (🇬🇧) and Dutch (🇳🇱)
   - Manual language switching via interface
-  - Full UI translation including all features
+  - Full UI translation including all features (safety, vacation, presets, etc.)
 
 ## 🚀 Coming in v0.6.0+
 

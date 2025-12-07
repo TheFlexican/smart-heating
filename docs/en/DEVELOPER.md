@@ -919,6 +919,63 @@ cd tests/e2e
 npm test -- vacation-mode.spec.ts
 ```
 
+### Testing Safety Sensor Feature
+
+The test environment (setup.sh) includes two safety sensors for testing:
+
+**Test Sensors:**
+- `binary_sensor.smoke_detector` - MOES TS0205 smoke detector
+- `binary_sensor.co_detector` - TuYa TS0222 CO detector
+
+**Testing Emergency Shutdown:**
+
+1. **Configure Safety Sensor:**
+   - Navigate to Global Settings → Safety tab
+   - Select sensor: `binary_sensor.smoke_detector`
+   - Set attribute: `smoke`
+   - Set alert value: `true`
+   - Enable monitoring
+
+2. **Trigger Emergency Shutdown:**
+   ```bash
+   # Simulate smoke alarm via MQTT
+   mosquitto_pub -h localhost -p 1883 \
+     -t zigbee2mqtt/smoke_detector \
+     -m '{"smoke": true, "battery": 100, "linkquality": 120}'
+   ```
+
+3. **Verify Behavior:**
+   - All areas should be disabled immediately
+   - Persistent notification should appear in Home Assistant
+   - Check logs: `docker logs -f homeassistant-test | grep "SAFETY ALERT"`
+   - Verify event fired: `smart_heating_safety_alert`
+
+4. **Clear Alert and Re-enable:**
+   ```bash
+   # Clear smoke alarm
+   mosquitto_pub -h localhost -p 1883 \
+     -t zigbee2mqtt/smoke_detector \
+     -m '{"smoke": false, "battery": 100, "linkquality": 120}'
+   
+   # Manually re-enable areas via UI or API
+   curl -X POST \
+     -H "Authorization: Bearer YOUR_TOKEN" \
+     http://localhost:8123/api/smart_heating/areas/AREA_ID/enable
+   ```
+
+5. **Test Persistence:**
+   - Trigger emergency shutdown
+   - Restart Home Assistant: `docker restart homeassistant-test`
+   - Verify areas remain disabled after restart
+
+**Testing CO Detector:**
+```bash
+# Trigger CO alarm
+mosquitto_pub -h localhost -p 1883 \
+  -t zigbee2mqtt/co_detector \
+  -m '{"carbon_monoxide": true, "battery": 95, "linkquality": 115}'
+```
+
 ### v0.6.0 Development Checklist
 
 For each new feature:

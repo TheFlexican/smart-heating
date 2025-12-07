@@ -46,6 +46,8 @@ SERVICE_COPY_SCHEDULE: Final = "copy_schedule"
 SERVICE_SET_HISTORY_RETENTION: Final = "set_history_retention"
 SERVICE_ENABLE_VACATION_MODE: Final = "enable_vacation_mode"
 SERVICE_DISABLE_VACATION_MODE: Final = "disable_vacation_mode"
+SERVICE_SET_SAFETY_SENSOR: Final = "set_safety_sensor"
+SERVICE_REMOVE_SAFETY_SENSOR: Final = "remove_safety_sensor"
 
 # Sensor states
 STATE_INITIALIZED: Final = "initialized"
@@ -216,3 +218,12 @@ DEFAULT_COMFORT_TEMP: Final = 22.0
 DEFAULT_HOME_TEMP: Final = 20.0
 DEFAULT_SLEEP_TEMP: Final = 18.5
 DEFAULT_ACTIVITY_TEMP: Final = 21.0
+
+# Safety sensor (smoke/CO) settings
+ATTR_SAFETY_SENSOR_ID: Final = "safety_sensor_id"
+ATTR_SAFETY_SENSOR_ATTRIBUTE: Final = "safety_sensor_attribute"
+ATTR_SAFETY_SENSOR_ALERT_VALUE: Final = "safety_sensor_alert_value"
+ATTR_SAFETY_SENSOR_ENABLED: Final = "safety_sensor_enabled"
+SAFETY_SENSOR_TYPE_SMOKE: Final = "smoke"
+SAFETY_SENSOR_TYPE_CO: Final = "carbon_monoxide"
+SAFETY_SENSOR_TYPE_GAS: Final = "gas"

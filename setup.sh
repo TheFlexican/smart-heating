@@ -385,6 +385,52 @@ mqtt_pub "homeassistant/binary_sensor/bedroom_window/config" '{
 }'
 mqtt_pub "zigbee2mqtt/bedroom_window/contact" "true"
 
+# Safety Sensors (Smoke/CO Detectors)
+echo "  → Safety Sensors (Smoke/CO)..."
+mqtt_pub "homeassistant/binary_sensor/smoke_detector/config" '{
+  "name": "Smoke Detector",
+  "unique_id": "smoke_detector_main",
+  "state_topic": "zigbee2mqtt/smoke_detector",
+  "value_template": "{{ value_json.smoke }}",
+  "device_class": "smoke",
+  "payload_on": "true",
+  "payload_off": "false",
+  "json_attributes_topic": "zigbee2mqtt/smoke_detector",
+  "device": {
+    "identifiers": ["moes_smoke_001"],
+    "name": "MOES Smoke Detector",
+    "model": "TS0205 (_TZ3210_up3pngle)",
+    "manufacturer": "MOES"
+  }
+}'
+mqtt_pub "zigbee2mqtt/smoke_detector" '{
+  "smoke": "false",
+  "battery": 100,
+  "linkquality": 120
+}'
+
+mqtt_pub "homeassistant/binary_sensor/tuya_co_detector_carbon_monoxide_detector/config" '{
+  "name": "Tuya CO Detector Carbon Monoxide Detector",
+  "unique_id": "tuya_co_detector_carbon_monoxide_detector",
+  "state_topic": "zigbee2mqtt/tuya_co_detector",
+  "value_template": "{{ value_json.carbon_monoxide }}",
+  "device_class": "carbon_monoxide",
+  "payload_on": "true",
+  "payload_off": "false",
+  "json_attributes_topic": "zigbee2mqtt/tuya_co_detector",
+  "device": {
+    "identifiers": ["tuya_co_001"],
+    "name": "TuYa CO Detector",
+    "model": "TS0222 (_TZ3210_ncw88jfq)",
+    "manufacturer": "TuYa"
+  }
+}'
+mqtt_pub "zigbee2mqtt/tuya_co_detector" '{
+  "carbon_monoxide": "false",
+  "battery": 95,
+  "linkquality": 115
+}'
+
 # Motion/Presence Sensors
 echo "  → Motion/Presence Sensors..."
 mqtt_pub "homeassistant/binary_sensor/living_room_motion/config" '{

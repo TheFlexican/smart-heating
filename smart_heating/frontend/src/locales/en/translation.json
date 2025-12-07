@@ -110,6 +110,7 @@
       "temperature": "Temperature",
       "sensors": "Sensors",
       "vacation": "Vacation",
+      "safety": "Safety",
       "advanced": "Advanced"
     },
     "saveSuccess": "Settings saved successfully",
@@ -125,6 +126,30 @@
       "addButton": "Add Presence Sensor",
       "switchText": "Switches heating to 'away' when nobody is home",
       "tip": "Tip: Areas can enable \"Use global presence\" in their settings to use these sensors instead of configuring their own."
+    },
+    "safety": {
+      "title": "🚨 Safety Sensor (Smoke/CO Detector)",
+      "description": "Configure a smoke or carbon monoxide detector that will automatically shut down all heating when danger is detected. All areas will be disabled immediately to prevent heating during a safety emergency.",
+      "configured": "Safety Sensor Configured",
+      "notConfigured": "No safety sensor configured. It is highly recommended to configure a smoke or CO detector for emergency heating shutdown.",
+      "sensor": "Sensor",
+      "attribute": "Monitored Attribute",
+      "status": "Status",
+      "enabled": "✓ Enabled and monitoring",
+      "disabled": "✗ Disabled",
+      "alertActive": "⚠️ SAFETY ALERT ACTIVE! All heating has been shut down. Please resolve the safety issue and manually re-enable areas.",
+      "addButton": "Add Safety Sensor",
+      "removeButton": "Remove Safety Sensor",
+      "tip": "When the safety sensor detects smoke or carbon monoxide, all heating will be immediately stopped and all areas disabled. Areas must be manually re-enabled after the safety issue is resolved.",
+      "addSensorTitle": "Configure Safety Sensor",
+      "sensorDescription": "Configure a smoke or carbon monoxide detector that will automatically shut down all heating when danger is detected.",
+      "sensorLabel": "Safety Sensor",
+      "noSensors": "No safety sensors found",
+      "attributeLabel": "Attribute to Monitor",
+      "attributeHelp": "The sensor attribute to monitor (e.g., \"state\", \"smoke\", \"carbon_monoxide\")",
+      "alertValueLabel": "Alert Value",
+      "alertValueHelp": "The value that indicates danger (e.g., \"true\", \"on\", \"detected\")",
+      "enabledLabel": "Enable Monitoring"
     },
     "hysteresis": {
       "title": "Temperature Hysteresis",

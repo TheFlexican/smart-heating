@@ -734,3 +734,44 @@ disable_vacation_mode:
   name: Disable Vacation Mode
   description: Disable vacation mode and return to normal heating schedules
   fields: {}
+
+set_safety_sensor:
+  name: Set Safety Sensor
+  description: Configure a smoke/CO detector to trigger emergency heating shutdown
+  fields:
+    sensor_id:
+      name: Sensor Entity ID
+      description: Entity ID of the smoke or carbon monoxide sensor
+      required: true
+      example: "binary_sensor.smoke_detector"
+      selector:
+        entity:
+          domain: binary_sensor
+    attribute:
+      name: Attribute
+      description: Attribute to monitor (e.g., "smoke", "carbon_monoxide", "gas", or "state")
+      required: false
+      default: "smoke"
+      example: "smoke"
+      selector:
+        text:
+    alert_value:
+      name: Alert Value
+      description: Value that indicates danger (e.g., true, "on", "alarm", "detected")
+      required: false
+      default: true
+      example: true
+      selector:
+        text:
+    enabled:
+      name: Enabled
+      description: Enable safety monitoring
+      required: false
+      default: true
+      selector:
+        boolean:
+
+remove_safety_sensor:
+  name: Remove Safety Sensor
+  description: Remove safety sensor configuration and disable safety monitoring
+  fields: {}

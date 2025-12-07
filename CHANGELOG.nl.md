@@ -9,6 +9,47 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 
 ### ✨ Toegevoegd
 
+**Veiligheidssensor (Rook/CO Detector) - Nooduitschakeling (v0.3.19)**
+- **Veiligheidsmonitoring**: Automatische nood verwarmingsuitschakeling bij rook/CO detectie
+  - Configureer elke Home Assistant binary sensor (rook, koolmonoxide, gas)
+  - Real-time monitoring van sensor status wijzigingen
+  - Onmiddellijke uitschakeling van ALLE verwarmingszones wanneer gevaar gedetecteerd wordt
+  - Voorkomt verwarming tijdens brand of koolmonoxide noodsituaties
+  - Standaard ingeschakeld wanneer sensor geconfigureerd is
+  - Visuele waarschuwingen in UI wanneer veiligheidswaarschuwing actief is
+
+**Backend Implementatie**
+- Nieuwe `SafetyMonitor` module voor real-time sensor monitoring
+- Area manager slaat veiligheidssensor configuratie en waarschuwingsstatus op
+- Nooduitschakeling schakelt alle zones onmiddellijk uit
+- Configuratie blijft behouden - zones blijven uitgeschakeld na HA herstarts
+- Services: `set_safety_sensor`, `remove_safety_sensor`
+- API endpoints: GET/POST/DELETE `/api/smart_heating/safety_sensor`
+- WebSocket events voor veiligheidswaarschuwing notificaties
+- Uitgebreide logging van veiligheidsgebeurtenissen
+
+**Frontend Implementatie**
+- Nieuwe **Veiligheid Tab** in Globale Instellingen met Beveiligings icoon (🔒)
+- Configureer rook/CO detector met eenvoudige sensor picker
+- Visuele status weergave:
+  - Groene succes waarschuwing wanneer sensor geconfigureerd is en monitort
+  - Rode fout banner wanneer veiligheidswaarschuwing actief is
+  - Waarschuwing wanneer geen sensor geconfigureerd is
+- Toont huidige sensor details (entiteit ID, attribuut, status)
+- Eén-klik toevoegen/verwijderen veiligheidssensor
+- Real-time updates wanneer sensor status wijzigt
+
+**Test Omgeving**
+- MOES rookmelder toegevoegd (`binary_sensor.smoke_detector`)
+- TuYa CO detector toegevoegd (`binary_sensor.co_detector`)
+- Test sensoren opgenomen in `setup.sh` voor ontwikkeling
+
+**Vertaling Ondersteuning**
+- Volledige Engelse en Nederlandse vertalingen voor veiligheidsfunctie
+- UI tekst: `globalSettings.safety.*` vertaalsleutels
+- Help tekst die nooduitschakeling gedrag uitlegt
+- Waarschuwingsberichten voor actieve veiligheidswaarschuwingen
+
 **Gebied-Specifieke Hysterese Override (v0.3.18)**
 - **Hysterese Aanpassing**: Gebieden kunnen nu de globale hysterese instelling overschrijven
   - Schakel tussen globale hysterese (standaard 0.5°C) of gebied-specifieke waarde

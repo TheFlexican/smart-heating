@@ -932,6 +932,14 @@ class AreaManager:
         # Global Presence Sensors
         self.global_presence_sensors: list[dict] = []
         
+        # Safety Sensors (smoke/CO detectors)
+        self.safety_sensor_id: str | None = None
+        self.safety_sensor_attribute: str = "smoke"  # or "carbon_monoxide", "gas"
+        self.safety_sensor_alert_value: str | bool = True  # Value that indicates danger
+        self.safety_sensor_enabled: bool = True  # Enabled by default
+        self._safety_alert_active: bool = False  # Current alert state
+        self._safety_state_unsub = None  # State listener unsubscribe callback
+        
         _LOGGER.debug("AreaManager initialized")
 
     async def async_load(self) -> None:
@@ -960,6 +968,12 @@ class AreaManager:
             
             # Load global presence sensors
             self.global_presence_sensors = data.get("global_presence_sensors", [])
+            
+            # Load safety sensor configuration
+            self.safety_sensor_id = data.get("safety_sensor_id")
+            self.safety_sensor_attribute = data.get("safety_sensor_attribute", "smoke")
+            self.safety_sensor_alert_value = data.get("safety_sensor_alert_value", True)
+            self.safety_sensor_enabled = data.get("safety_sensor_enabled", True)
             
             # Load areas
             if "areas" in data:
@@ -990,6 +1004,10 @@ class AreaManager:
             "global_sleep_temp": self.global_sleep_temp,
             "global_activity_temp": self.global_activity_temp,
             "global_presence_sensors": self.global_presence_sensors,
+            "safety_sensor_id": self.safety_sensor_id,
+            "safety_sensor_attribute": self.safety_sensor_attribute,
+            "safety_sensor_alert_value": self.safety_sensor_alert_value,
+            "safety_sensor_enabled": self.safety_sensor_enabled,
             "areas": [area.to_dict() for area in self.areas.values()]
         }
         await self._store.async_save(data)
@@ -1183,6 +1201,100 @@ class AreaManager:
         self.opentherm_gateway_id = gateway_id
         self.opentherm_enabled = enabled and gateway_id is not None
         _LOGGER.info("OpenTherm gateway set to %s (enabled: %s)", gateway_id, self.opentherm_enabled)
+
+    def set_safety_sensor(
+        self,
+        sensor_id: str | None,
+        attribute: str = "smoke",
+        alert_value: str | bool = True,
+        enabled: bool = True,
+    ) -> None:
+        """Configure the global safety sensor (smoke/CO detector).
+        
+        Args:
+            sensor_id: Entity ID of the safety sensor (or None to disable)
+            attribute: Attribute to monitor (e.g., "smoke", "carbon_monoxide", "gas")
+            alert_value: Value that indicates danger (True, "alarm", etc.)
+            enabled: Whether safety monitoring is enabled
+        """
+        self.safety_sensor_id = sensor_id
+        self.safety_sensor_attribute = attribute
+        self.safety_sensor_alert_value = alert_value
+        self.safety_sensor_enabled = enabled and sensor_id is not None
+        _LOGGER.info(
+            "Safety sensor configured: %s (attribute: %s, alert_value: %s, enabled: %s)",
+            sensor_id, attribute, alert_value, self.safety_sensor_enabled
+        )
+    
+    def remove_safety_sensor(self) -> None:
+        """Remove the safety sensor configuration."""
+        self.safety_sensor_id = None
+        self.safety_sensor_enabled = False
+        self._safety_alert_active = False
+        _LOGGER.info("Safety sensor removed")
+    
+    def check_safety_sensor_status(self) -> bool:
+        """Check if safety sensor is in alert state.
+        
+        Returns:
+            True if safety alert is active (danger detected), False otherwise
+        """
+        if not self.safety_sensor_enabled or not self.safety_sensor_id:
+            return False
+        
+        state = self.hass.states.get(self.safety_sensor_id)
+        if not state:
+            _LOGGER.warning("Safety sensor %s not found", self.safety_sensor_id)
+            return False
+        
+        # Check the specified attribute or state
+        if self.safety_sensor_attribute == "state":
+            current_value = state.state
+        else:
+            current_value = state.attributes.get(self.safety_sensor_attribute)
+        
+        _LOGGER.debug(
+            "Safety sensor check - Entity: %s, Attribute: %s, Current value: %s (type: %s), Alert value: %s (type: %s)",
+            self.safety_sensor_id,
+            self.safety_sensor_attribute,
+            current_value,
+            type(current_value).__name__,
+            self.safety_sensor_alert_value,
+            type(self.safety_sensor_alert_value).__name__
+        )
+        
+        # Compare with alert value
+        if current_value == self.safety_sensor_alert_value:
+            _LOGGER.warning("SAFETY ALERT: Exact match - %s == %s", current_value, self.safety_sensor_alert_value)
+            return True
+        
+        # Also check for common alert values
+        if isinstance(current_value, str) and current_value.lower() in ("alarm", "alert", "detected", "on", "true"):
+            _LOGGER.warning("SAFETY ALERT: String match - %s in common alert values", current_value)
+            return True
+        if isinstance(current_value, bool) and current_value:
+            _LOGGER.warning("SAFETY ALERT: Boolean true - %s", current_value)
+            return True
+            
+        return False
+    
+    def is_safety_alert_active(self) -> bool:
+        """Check if safety alert is currently active.
+        
+        Returns:
+            True if in emergency shutdown mode due to safety alert
+        """
+        return self._safety_alert_active
+    
+    def set_safety_alert_active(self, active: bool) -> None:
+        """Set the safety alert state.
+        
+        Args:
+            active: Whether safety alert is active
+        """
+        if self._safety_alert_active != active:
+            self._safety_alert_active = active
+            _LOGGER.warning("Safety alert state changed to: %s", active)
 
     def set_trv_temperatures(self, heating_temp: float, idle_temp: float, temp_offset: float | None = None) -> None:
         """Set global TRV temperature limits for areas without position control.

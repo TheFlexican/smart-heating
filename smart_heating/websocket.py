@@ -59,17 +59,28 @@ def websocket_subscribe_updates(
             "data": coordinator.data
         }))
 
-    # Get the coordinator - filter out non-entry keys
+    # Get the coordinator - filter out non-entry keys and also filter "climate_unsub"
+    exclude_keys = {
+        "history", "climate_controller", "schedule_executor", "learning_engine", 
+        "area_logger", "vacation_manager", "safety_monitor", "climate_unsub"
+    }
+    
     entry_ids = [
         key for key in hass.data[DOMAIN].keys()
-        if key not in ["history", "climate_controller", "schedule_executor", "learning_engine", "area_logger", "vacation_manager"]
+        if key not in exclude_keys
     ]
+    
+    _LOGGER.warning(f"WebSocket: Available keys in hass.data[DOMAIN]: {list(hass.data[DOMAIN].keys())}")
+    _LOGGER.warning(f"WebSocket: Filtered entry_ids: {entry_ids}")
+    
     if not entry_ids:
         connection.send_error(msg["id"], "not_loaded", "Smart Heating not loaded")
         return
     
     entry_id = entry_ids[0]
-    coordinator: SmartHeatingCoordinator = hass.data[DOMAIN][entry_id]
+    coordinator = hass.data[DOMAIN][entry_id]
+    
+    _LOGGER.warning(f"WebSocket: Selected entry_id '{entry_id}', type: {type(coordinator).__name__}")
     
     # Subscribe to coordinator updates
     unsub = coordinator.async_add_listener(forward_messages)
@@ -102,7 +113,7 @@ def websocket_get_areas(
     # Get the coordinator - filter out non-entry keys
     entry_ids = [
         key for key in hass.data[DOMAIN].keys()
-        if key not in ["history", "climate_controller", "schedule_executor", "learning_engine", "area_logger", "vacation_manager"]
+        if key not in ["history", "climate_controller", "schedule_executor", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
     ]
     if not entry_ids:
         connection.send_error(msg["id"], "not_loaded", "Smart Heating not loaded")

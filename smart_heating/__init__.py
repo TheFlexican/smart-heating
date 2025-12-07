@@ -73,6 +73,8 @@ from .const import (
     SERVICE_SET_HISTORY_RETENTION,
     SERVICE_ENABLE_VACATION_MODE,
     SERVICE_DISABLE_VACATION_MODE,
+    SERVICE_SET_SAFETY_SENSOR,
+    SERVICE_REMOVE_SAFETY_SENSOR,
 )
 from .coordinator import SmartHeatingCoordinator
 from .area_manager import AreaManager
@@ -84,6 +86,7 @@ from .history import HistoryTracker
 from .learning_engine import LearningEngine
 from .area_logger import AreaLogger
 from .vacation_manager import VacationManager
+from .safety_monitor import SafetyMonitor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -141,6 +144,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await vacation_manager.async_load()
     hass.data[DOMAIN]["vacation_manager"] = vacation_manager
     _LOGGER.info("Vacation manager initialized")
+    
+    # Create safety monitor
+    safety_monitor = SafetyMonitor(hass, area_manager)
+    await safety_monitor.async_setup()
+    hass.data[DOMAIN]["safety_monitor"] = safety_monitor
+    _LOGGER.info("Safety monitor initialized")
     
     # Create learning engine
     learning_engine = LearningEngine(hass)
@@ -813,6 +822,48 @@ async def async_setup_services(hass: HomeAssistant, coordinator: SmartHeatingCoo
         except Exception as err:
             _LOGGER.error("Failed to disable vacation mode: %s", err)
     
+    async def async_handle_set_safety_sensor(call: ServiceCall) -> None:
+        """Handle set_safety_sensor service."""
+        try:
+            area_manager = coordinator.area_manager
+            safety_monitor = hass.data.get(DOMAIN, {}).get("safety_monitor")
+            
+            sensor_id = call.data.get("sensor_id")
+            attribute = call.data.get("attribute", "smoke")
+            alert_value = call.data.get("alert_value", True)
+            enabled = call.data.get("enabled", True)
+            
+            area_manager.set_safety_sensor(sensor_id, attribute, alert_value, enabled)
+            await area_manager.async_save()
+            
+            # Reconfigure safety monitor to use new sensor
+            if safety_monitor:
+                await safety_monitor.async_reconfigure()
+            
+            _LOGGER.info(
+                "Safety sensor configured: %s (attribute: %s, enabled: %s)",
+                sensor_id, attribute, enabled
+            )
+        except Exception as err:
+            _LOGGER.error("Failed to set safety sensor: %s", err)
+    
+    async def async_handle_remove_safety_sensor(call: ServiceCall) -> None:
+        """Handle remove_safety_sensor service."""
+        try:
+            area_manager = coordinator.area_manager
+            safety_monitor = hass.data.get(DOMAIN, {}).get("safety_monitor")
+            
+            area_manager.remove_safety_sensor()
+            await area_manager.async_save()
+            
+            # Reconfigure safety monitor
+            if safety_monitor:
+                await safety_monitor.async_reconfigure()
+            
+            _LOGGER.info("Safety sensor removed")
+        except Exception as err:
+            _LOGGER.error("Failed to remove safety sensor: %s", err)
+    
     # Service schemas
     ADD_DEVICE_SCHEMA = vol.Schema({
         vol.Required(ATTR_AREA_ID): cv.string,
@@ -939,6 +990,13 @@ async def async_setup_services(hass: HomeAssistant, coordinator: SmartHeatingCoo
         vol.Optional("auto_disable", default=True): cv.boolean,
     })
     
+    SAFETY_SENSOR_SCHEMA = vol.Schema({
+        vol.Required("sensor_id"): cv.string,
+        vol.Optional("attribute", default="smoke"): cv.string,
+        vol.Optional("alert_value", default=True): vol.Any(cv.boolean, cv.string),
+        vol.Optional("enabled", default=True): cv.boolean,
+    })
+    
     # Register all services
     hass.services.async_register(DOMAIN, SERVICE_REFRESH, async_handle_refresh)
     hass.services.async_register(DOMAIN, SERVICE_ADD_DEVICE_TO_AREA, async_handle_add_device, schema=ADD_DEVICE_SCHEMA)
@@ -968,6 +1026,8 @@ async def async_setup_services(hass: HomeAssistant, coordinator: SmartHeatingCoo
     hass.services.async_register(DOMAIN, SERVICE_SET_HISTORY_RETENTION, async_handle_set_history_retention, schema=HISTORY_RETENTION_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_ENABLE_VACATION_MODE, async_handle_enable_vacation_mode, schema=VACATION_MODE_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_DISABLE_VACATION_MODE, async_handle_disable_vacation_mode)
+    hass.services.async_register(DOMAIN, SERVICE_SET_SAFETY_SENSOR, async_handle_set_safety_sensor, schema=SAFETY_SENSOR_SCHEMA)
+    hass.services.async_register(DOMAIN, SERVICE_REMOVE_SAFETY_SENSOR, async_handle_remove_safety_sensor)
     
     _LOGGER.debug("All services registered")
 
@@ -988,6 +1048,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     
     if unload_ok:
+        # Shutdown safety monitor
+        if "safety_monitor" in hass.data[DOMAIN]:
+            await hass.data[DOMAIN]["safety_monitor"].async_shutdown()
+            _LOGGER.debug("Safety monitor stopped")
+        
         # Shutdown coordinator and remove state listeners
         if entry.entry_id in hass.data[DOMAIN]:
             coordinator = hass.data[DOMAIN][entry.entry_id]
@@ -1051,6 +1116,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, SERVICE_SET_HISTORY_RETENTION)
             hass.services.async_remove(DOMAIN, SERVICE_ENABLE_VACATION_MODE)
             hass.services.async_remove(DOMAIN, SERVICE_DISABLE_VACATION_MODE)
+            hass.services.async_remove(DOMAIN, SERVICE_SET_SAFETY_SENSOR)
+            hass.services.async_remove(DOMAIN, SERVICE_REMOVE_SAFETY_SENSOR)
             _LOGGER.debug("Smart Heating services removed")
     
     _LOGGER.info("Smart Heating integration unloaded")

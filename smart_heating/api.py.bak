@@ -951,7 +951,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator to notify websocket listeners
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -979,11 +979,6 @@ class SmartHeatingAPIView(HomeAssistantView):
             self.area_manager.enable_area(area_id)
             await self.area_manager.async_save()
             
-            # Clear safety alert when manually re-enabling areas
-            if self.area_manager.is_safety_alert_active():
-                self.area_manager.set_safety_alert_active(False)
-                _LOGGER.info("Safety alert cleared - area '%s' manually re-enabled", area_id)
-            
             # Trigger immediate climate control
             climate_controller = self.hass.data.get(DOMAIN, {}).get("climate_controller")
             if climate_controller:
@@ -992,7 +987,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -1026,7 +1021,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -1079,7 +1074,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -1132,7 +1127,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -1174,7 +1169,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -1245,7 +1240,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -1759,7 +1754,7 @@ class SmartHeatingAPIView(HomeAssistantView):
         # Refresh coordinator to update frontend
         entry_ids = [
             key for key in self.hass.data[DOMAIN].keys()
-            if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+            if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
         ]
         if entry_ids:
             coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -1825,7 +1820,7 @@ class SmartHeatingAPIView(HomeAssistantView):
         # Refresh coordinator
         entry_ids = [
             key for key in self.hass.data[DOMAIN].keys()
-            if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+            if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
         ]
         if entry_ids:
             coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -2001,7 +1996,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -2040,7 +2035,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -2080,7 +2075,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -2159,7 +2154,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -2195,7 +2190,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -2241,7 +2236,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -2277,7 +2272,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]
@@ -2382,7 +2377,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             # Refresh coordinator
             entry_ids = [
                 key for key in self.hass.data[DOMAIN].keys()
-                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger", "vacation_manager", "safety_monitor"]
+                if key not in ["history", "climate_controller", "schedule_executor", "climate_unsub", "learning_engine", "area_logger"]
             ]
             if entry_ids:
                 coordinator = self.hass.data[DOMAIN][entry_ids[0]]

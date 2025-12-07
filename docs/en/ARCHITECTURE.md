@@ -317,7 +317,110 @@ Temperature logging and retention.
 }
 ```
 
-### 6. Platforms
+### 6. Safety Monitor (`safety_monitor.py`)
+
+Emergency heating shutdown on safety sensor alerts.
+
+**Responsibilities:**
+- Monitors configured safety sensors (smoke, CO detectors)
+- Triggers emergency shutdown when alert detected
+- Disables all heating areas immediately
+- Fires `smart_heating_safety_alert` event
+- Persists disabled state (survives restarts)
+
+**Configuration:**
+- Global setting configured via Area Manager
+- Sensor ID: Entity to monitor (e.g., `binary_sensor.smoke_detector`)
+- Attribute: Specific attribute to check (e.g., `smoke`)
+- Alert value: Value indicating danger (e.g., `true`)
+- Enabled: Default true, can be disabled for testing
+
+**Control Flow:**
+```
+1. SafetyMonitor setup with configured sensor
+2. async_track_state_change_event registers listener
+3. On sensor state change:
+   - Check if alert value matches configured value
+   - If match: trigger _emergency_shutdown()
+     - Disable all areas via Area Manager
+     - Fire event: smart_heating_safety_alert
+     - Send persistent notification to HA
+     - Log warning with sensor details
+4. User must manually re-enable areas after resolving danger
+```
+
+**Storage (via Area Manager):**
+```json
+{
+  "safety_sensor_id": "binary_sensor.smoke_detector",
+  "safety_sensor_attribute": "smoke",
+  "safety_sensor_alert_value": "true",
+  "safety_sensor_enabled": true
+}
+```
+
+**Integration:**
+- Configured via Global Settings → Safety tab in frontend
+- Services: `set_safety_sensor`, `remove_safety_sensor`
+- API endpoints: GET/POST/DELETE `/api/smart_heating/safety_sensor`
+- WebSocket events: `safety_sensor_changed`
+
+### 7. Vacation Manager (`vacation_manager.py`)
+
+Automated away-from-home heating control.
+
+**Responsibilities:**
+- Manages vacation mode schedules with start/end dates
+- Automatically enables/disables vacation mode at scheduled times
+- Stores all areas' enabled states before vacation starts
+- Disables all areas during vacation (energy saving)
+- Restores original area states when vacation ends
+- Handles Home Assistant restarts during vacation periods
+
+**Vacation Mode States:**
+- **Inactive**: No vacation scheduled or vacation ended
+- **Active**: Currently in vacation period (all areas disabled)
+- **Scheduled**: Vacation configured for future date
+
+**Control Flow:**
+```
+1. User sets vacation dates via Global Settings → Vacation tab
+2. Vacation Manager checks every hour (async_track_time_interval)
+3. When start time reached:
+   - Save current enabled state of all areas
+   - Disable all areas
+   - Set vacation_mode_active = true
+   - Fire event: smart_heating_vacation_started
+4. When end time reached:
+   - Restore all areas to original states
+   - Set vacation_mode_active = false
+   - Fire event: smart_heating_vacation_ended
+5. On HA restart during vacation:
+   - Detects active vacation period
+   - Areas remain disabled (state persisted)
+```
+
+**Storage (via Area Manager):**
+```json
+{
+  "vacation_mode_start": "2024-12-20T15:00:00",
+  "vacation_mode_end": "2024-12-27T18:00:00",
+  "vacation_mode_active": true,
+  "vacation_original_states": {
+    "living_room": true,
+    "bedroom": true,
+    "bathroom": false
+  }
+}
+```
+
+**Integration:**
+- Configured via Global Settings → Vacation tab in frontend
+- Services: `set_vacation_mode`, `cancel_vacation_mode`
+- API endpoints: GET/POST/DELETE `/api/smart_heating/vacation`
+- WebSocket events: `vacation_changed`, `smart_heating_vacation_started`, `smart_heating_vacation_ended`
+
+### 8. Platforms
 
 #### Climate Platform (`climate.py`)
 Creates one `climate.area_<name>` entity per area.
@@ -343,7 +446,7 @@ Creates `sensor.smart_heating_status` entity.
 - Area count
 - Active areas count
 
-### 7. REST API (`api.py`)
+### 9. REST API (`api.py`)
 
 HTTP API using `HomeAssistantView` for frontend communication.
 
@@ -367,6 +470,12 @@ HTTP API using `HomeAssistantView` for frontend communication.
 | GET | `/api/smart_heating/devices/refresh` | Refresh device discovery |
 | GET | `/api/smart_heating/status` | Get system status |
 | POST | `/api/smart_heating/call_service` | Call HA service (proxy) |
+| GET | `/api/smart_heating/vacation` | Get vacation mode configuration |
+| POST | `/api/smart_heating/vacation` | Set vacation mode dates |
+| DELETE | `/api/smart_heating/vacation` | Cancel vacation mode |
+| GET | `/api/smart_heating/safety_sensor` | Get safety sensor configuration |
+| POST | `/api/smart_heating/safety_sensor` | Set safety sensor configuration |
+| DELETE | `/api/smart_heating/safety_sensor` | Remove safety sensor |
 
 **Device Discovery** (`GET /devices`):
 - Discovers ALL Home Assistant climate, sensor, switch, and number entities
@@ -379,7 +488,7 @@ HTTP API using `HomeAssistantView` for frontend communication.
 - Returns device metadata: entity_id, name, type, HA area assignment
 - Filters out devices from hidden areas (3-method filtering)
 
-### 8. WebSocket API (`websocket.py`)
+### 10. WebSocket API (`websocket.py`)
 
 Real-time communication using HA WebSocket API.
 
@@ -387,7 +496,7 @@ Real-time communication using HA WebSocket API.
 - `smart_heating/subscribe_updates` - Subscribe to area updates
 - `smart_heating/get_areas` - Get areas via WebSocket
 
-### 9. Service Calls
+### 11. Service Calls
 
 Comprehensive service API for automation/script integration:
 
@@ -408,12 +517,20 @@ Comprehensive service API for automation/script integration:
 
 **Advanced Settings:**
 10. `smart_heating.set_night_boost` - Configure night boost
-11. `smart_heating.set_opentherm_gateway` - Configure global OpenTherm gateway (NEW)
-12. `smart_heating.set_trv_temperatures` - Set TRV heating/idle temperatures (NEW)
+11. `smart_heating.set_opentherm_gateway` - Configure global OpenTherm gateway
+12. `smart_heating.set_trv_temperatures` - Set TRV heating/idle temperatures
 13. `smart_heating.set_hysteresis` - Set global hysteresis
 
+**Vacation Mode:**
+14. `smart_heating.set_vacation_mode` - Configure vacation dates
+15. `smart_heating.cancel_vacation_mode` - Cancel vacation
+
+**Safety:**
+16. `smart_heating.set_safety_sensor` - Configure safety sensor
+17. `smart_heating.remove_safety_sensor` - Remove safety sensor
+
 **System:**
-14. `smart_heating.refresh` - Manual refresh
+18. `smart_heating.refresh` - Manual refresh
 
 ## Frontend Components
 
@@ -446,7 +563,8 @@ src/
 │   ├── ScheduleEditor.tsx      # Schedule management UI
 │   └── HistoryChart.tsx        # Temperature history visualization
 ├── pages/
-│   └── AreaDetail.tsx          # Detailed area page (5 tabs)
+│   ├── AreaDetail.tsx          # Detailed area page (5 tabs)
+│   └── GlobalSettings.tsx      # Global settings page (5 tabs)
 └── hooks/
     └── useWebSocket.ts         # WebSocket connection hook
 ```
@@ -472,6 +590,31 @@ src/
 3. **Schedule** - Time-based schedule editor
 4. **History** - Interactive temperature charts (6h-7d ranges)
 5. **Settings** - Night boost, hysteresis, advanced configuration
+
+**GlobalSettings Page (5 Tabs):**
+1. **Temperature** - Global temperature settings:
+   - Default target temperature
+   - Minimum and maximum temperature limits
+   - Temperature step size (0.5°C default)
+2. **Sensors** - Global sensor configuration:
+   - Default sensor entity for new areas
+   - Sensor filtering and discovery settings
+3. **Vacation** - Vacation mode management:
+   - Start and end date/time pickers
+   - Current vacation status display
+   - Cancel vacation button
+   - Original area states shown during vacation
+4. **Safety** - Safety sensor configuration:
+   - Sensor selection dropdown (smoke/CO detectors)
+   - Attribute selection (e.g., smoke, gas, co)
+   - Alert value configuration (e.g., true, on)
+   - Enable/disable safety monitoring
+   - Current configuration display
+5. **Advanced** - Advanced system settings:
+   - Hysteresis configuration (±0.5°C default)
+   - TRV heating/idle temperatures
+   - OpenTherm gateway configuration
+   - Logging and debug settings
 
 **Device Management Features:**
 - **Location Filter Dropdown** - Filter devices by HA area

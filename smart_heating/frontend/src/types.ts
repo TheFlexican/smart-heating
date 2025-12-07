@@ -112,9 +112,18 @@ export interface PresenceSensorConfig {
   // - Home when presence detected → "home" preset
 }
 
+// Safety sensor configuration
+export interface SafetySensorConfig {
+  sensor_id: string
+  attribute: string
+  alert_value: string | boolean
+  enabled: boolean
+}
+
 // Home Assistant entity for selector
 export interface HassEntity {
   entity_id: string
+  name: string
   state: string
   attributes: {
     friendly_name?: string

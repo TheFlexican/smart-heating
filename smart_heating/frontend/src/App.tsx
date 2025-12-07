@@ -11,7 +11,7 @@ import { VacationModeBanner } from './components/VacationModeBanner'
 import ZoneDetail from './pages/AreaDetail'
 import GlobalSettings from './pages/GlobalSettings'
 import { Zone, Device } from './types'
-import { getZones, getDevices, addDeviceToZone, getConfig } from './api'
+import { getZones, getDevices, addDeviceToZone, getConfig, getSafetySensor } from './api'
 import { useWebSocket } from './hooks/useWebSocket'
 
 // Home Assistant color scheme - matches HA's native dark theme
@@ -82,16 +82,25 @@ function App() {
     gateway_id?: string
     enabled?: boolean
   }>({})
+  const [safetyAlertActive, setSafetyAlertActive] = useState(false)
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true)
-      const [areasData, devicesData, configData] = await Promise.all([
+      const [areasData, devicesData, configData, safetySensorData] = await Promise.all([
         getZones(),
         getDevices(),
-        getConfig()
+        getConfig(),
+        getSafetySensor().catch(() => null)
       ])
       setZones(areasData)
+      
+      // Check if safety alert is active
+      if (safetySensorData?.alert_active) {
+        setSafetyAlertActive(true)
+      } else {
+        setSafetyAlertActive(false)
+      }
       
       // Store OpenTherm config
       setOpenthermConfig({
@@ -118,6 +127,10 @@ function App() {
     onConnect: () => {
       setWsConnected(true)
       setShowConnectionAlert(false)
+      // Reload safety sensor status when reconnecting
+      getSafetySensor()
+        .then(data => setSafetyAlertActive(data?.alert_active || false))
+        .catch(() => setSafetyAlertActive(false))
     },
     onDisconnect: () => {
       setWsConnected(false)
@@ -135,6 +148,10 @@ function App() {
           devicesData.filter(device => !assignedDeviceIds.has(device.id))
         )
       })
+      // Also refresh safety sensor status
+      getSafetySensor()
+        .then(data => setSafetyAlertActive(data?.alert_active || false))
+        .catch(() => setSafetyAlertActive(false))
     },
     onZoneUpdate: (updatedZone) => {
       setZones(prevZones => 
@@ -194,6 +211,16 @@ function App() {
         <Header wsConnected={wsConnected} />
         <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           <Box sx={{ flex: 1, overflow: 'auto', p: 3, bgcolor: 'background.default' }}>
+            {safetyAlertActive && (
+              <Alert 
+                severity="error" 
+                sx={{ mb: 2 }}
+                icon={<span style={{ fontSize: '24px' }}>🚨</span>}
+              >
+                <strong>SAFETY ALERT ACTIVE!</strong> All heating has been shut down due to a safety sensor alert. 
+                Please resolve the safety issue and manually re-enable areas in Settings.
+              </Alert>
+            )}
             <VacationModeBanner />
             <OpenThermStatus 
               openthermGatewayId={openthermConfig.gateway_id}

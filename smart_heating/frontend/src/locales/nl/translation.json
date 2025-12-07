@@ -110,6 +110,7 @@
       "temperature": "Temperatuur",
       "sensors": "Sensoren",
       "vacation": "Vakantie",
+      "safety": "Veiligheid",
       "advanced": "Geavanceerd"
     },
     "saveSuccess": "Instellingen succesvol opgeslagen",
@@ -125,6 +126,30 @@
       "addButton": "Aanwezigheidssensor Toevoegen",
       "switchText": "Schakelt verwarming naar 'afwezig' wanneer niemand thuis is",
       "tip": "Tip: Zones kunnen \"Gebruik globale aanwezigheid\" inschakelen in hun instellingen om deze sensoren te gebruiken in plaats van hun eigen te configureren."
+    },
+    "safety": {
+      "title": "🚨 Veiligheidssensor (Rook/CO Detector)",
+      "description": "Configureer een rook- of koolmonoxidedetector die automatisch alle verwarming uitschakelt wanneer gevaar wordt gedetecteerd. Alle zones worden onmiddellijk uitgeschakeld om verwarming tijdens een veiligheidsnoodsituatie te voorkomen.",
+      "configured": "Veiligheidssensor Geconfigureerd",
+      "notConfigured": "Geen veiligheidssensor geconfigureerd. Het wordt sterk aanbevolen om een rook- of CO-detector te configureren voor nooduitschakeling van de verwarming.",
+      "sensor": "Sensor",
+      "attribute": "Gemonitord Attribuut",
+      "status": "Status",
+      "enabled": "✓ Ingeschakeld en monitort",
+      "disabled": "✗ Uitgeschakeld",
+      "alertActive": "⚠️ VEILIGHEIDSWAARSCHUWING ACTIEF! Alle verwarming is uitgeschakeld. Los het veiligheidsprobleem op en schakel zones handmatig opnieuw in.",
+      "addButton": "Veiligheidssensor Toevoegen",
+      "removeButton": "Veiligheidssensor Verwijderen",
+      "tip": "Wanneer de veiligheidssensor rook of koolmonoxide detecteert, wordt alle verwarming onmiddellijk gestopt en worden alle zones uitgeschakeld. Zones moeten handmatig opnieuw worden ingeschakeld nadat het veiligheidsprobleem is opgelost.",
+      "addSensorTitle": "Veiligheidssensor Configureren",
+      "sensorDescription": "Configureer een rook- of koolmonoxidedetector die automatisch alle verwarming uitschakelt wanneer gevaar wordt gedetecteerd.",
+      "sensorLabel": "Veiligheidssensor",
+      "noSensors": "Geen veiligheidssensoren gevonden",
+      "attributeLabel": "Te Monitoren Attribuut",
+      "attributeHelp": "Het sensor attribuut om te monitoren (bijv. \"state\", \"smoke\", \"carbon_monoxide\")",
+      "alertValueLabel": "Alarmwaarde",
+      "alertValueHelp": "De waarde die gevaar aangeeft (bijv. \"true\", \"on\", \"detected\")",
+      "enabledLabel": "Monitoring Inschakelen"
     },
     "hysteresis": {
       "title": "Temperatuurhysterese",

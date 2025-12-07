@@ -9,6 +9,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### ✨ Added
 
+**Safety Sensor (Smoke/CO Detector) - Emergency Shutdown (v0.3.19)**
+- **Safety Monitoring**: Automatic emergency heating shutdown on smoke/CO detection
+  - Configure any Home Assistant binary sensor (smoke, carbon_monoxide, gas)
+  - Real-time monitoring of sensor state changes
+  - Immediate shutdown of ALL heating areas when danger detected
+  - Prevents heating during fire or carbon monoxide emergencies
+  - Enabled by default when sensor configured
+  - Visual alerts in UI when safety alert is active
+
+**Backend Implementation**
+- New `SafetyMonitor` module for real-time sensor monitoring
+- Area manager stores safety sensor configuration and alert state
+- Emergency shutdown disables all areas immediately
+- Configuration persists - areas stay disabled across HA restarts
+- Services: `set_safety_sensor`, `remove_safety_sensor`
+- API endpoints: GET/POST/DELETE `/api/smart_heating/safety_sensor`
+- WebSocket events for safety alert notifications
+- Comprehensive logging of safety events
+
+**Frontend Implementation**
+- New **Safety Tab** in Global Settings with Security icon (🔒)
+- Configure smoke/CO detector with simple sensor picker
+- Visual status display:
+  - Green success alert when sensor configured and monitoring
+  - Red error banner when safety alert is active
+  - Warning alert when no sensor configured
+- Shows current sensor details (entity ID, attribute, status)
+- One-click add/remove safety sensor
+- Real-time updates when sensor state changes
+
+**Test Environment**
+- Added MOES smoke detector (`binary_sensor.smoke_detector`)
+- Added TuYa CO detector (`binary_sensor.co_detector`) 
+- Test sensors included in `setup.sh` for development
+
+**Translation Support**
+- Full English and Dutch translations for safety feature
+- UI text: `globalSettings.safety.*` translation keys
+- Help text explaining emergency shutdown behavior
+- Alert messages for active safety alerts
+
 **Area-Specific Hysteresis Override (v0.3.18)**
 - **Hysteresis Customization**: Areas can now override the global hysteresis setting
   - Toggle between global hysteresis (0.5°C default) or area-specific value

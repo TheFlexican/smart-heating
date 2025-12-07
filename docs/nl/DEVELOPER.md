@@ -409,6 +409,63 @@ Optioneel: Update ook root `ARCHITECTURE.md` (Engels) voor snelle toegang.
 - Test beide talen (EN/NL)
 - Test op verschillende schermformaten
 
+### Testen Veiligheids Sensor Functie
+
+De test omgeving (setup.sh) bevat twee veiligheids sensoren voor testen:
+
+**Test Sensoren:**
+- `binary_sensor.smoke_detector` - MOES TS0205 rookmelder
+- `binary_sensor.co_detector` - TuYa TS0222 CO detector
+
+**Testen Nooduitschakeling:**
+
+1. **Configureer Veiligheids Sensor:**
+   - Navigeer naar Globale Instellingen → Veiligheid tab
+   - Selecteer sensor: `binary_sensor.smoke_detector`
+   - Stel attribuut in: `smoke`
+   - Stel alarm waarde in: `true`
+   - Schakel monitoring in
+
+2. **Trigger Nooduitschakeling:**
+   ```bash
+   # Simuleer rookalarm via MQTT
+   mosquitto_pub -h localhost -p 1883 \
+     -t zigbee2mqtt/smoke_detector \
+     -m '{"smoke": true, "battery": 100, "linkquality": 120}'
+   ```
+
+3. **Verifieer Gedrag:**
+   - Alle zones moeten onmiddellijk uitgeschakeld worden
+   - Persistente notificatie moet verschijnen in Home Assistant
+   - Check logs: `docker logs -f homeassistant-test | grep "SAFETY ALERT"`
+   - Verifieer event afgevuurd: `smart_heating_safety_alert`
+
+4. **Wis Alarm en Herinschakelen:**
+   ```bash
+   # Wis rookalarm
+   mosquitto_pub -h localhost -p 1883 \
+     -t zigbee2mqtt/smoke_detector \
+     -m '{"smoke": false, "battery": 100, "linkquality": 120}'
+   
+   # Schakel zones handmatig weer in via UI of API
+   curl -X POST \
+     -H "Authorization: Bearer YOUR_TOKEN" \
+     http://localhost:8123/api/smart_heating/areas/AREA_ID/enable
+   ```
+
+5. **Test Persistentie:**
+   - Trigger nooduitschakeling
+   - Herstart Home Assistant: `docker restart homeassistant-test`
+   - Verifieer zones blijven uitgeschakeld na herstart
+
+**Testen CO Detector:**
+```bash
+# Trigger CO alarm
+mosquitto_pub -h localhost -p 1883 \
+  -t zigbee2mqtt/co_detector \
+  -m '{"carbon_monoxide": true, "battery": 95, "linkquality": 115}'
+```
+
 ### Documentatie
 
 **ALTIJD bijwerken bij wijzigingen:**

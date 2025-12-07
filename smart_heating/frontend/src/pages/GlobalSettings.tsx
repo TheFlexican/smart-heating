@@ -22,11 +22,13 @@ import ThermostatIcon from '@mui/icons-material/Thermostat'
 import PeopleIcon from '@mui/icons-material/People'
 import BeachAccessIcon from '@mui/icons-material/BeachAccess'
 import TuneIcon from '@mui/icons-material/Tune'
+import SecurityIcon from '@mui/icons-material/Security'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis } from '../api'
-import { PresenceSensorConfig, WindowSensorConfig } from '../types'
+import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis, getSafetySensor, setSafetySensor, removeSafetySensor, type SafetySensorResponse } from '../api'
+import { PresenceSensorConfig, WindowSensorConfig, SafetySensorConfig } from '../types'
 import SensorConfigDialog from '../components/SensorConfigDialog'
+import SafetySensorConfigDialog from '../components/SafetySensorConfigDialog'
 import { VacationModeSettings } from '../components/VacationModeSettings'
 import HysteresisHelpModal from '../components/HysteresisHelpModal'
 
@@ -93,11 +95,14 @@ export default function GlobalSettings() {
   const [presenceSensors, setPresenceSensors] = useState<PresenceSensorConfig[]>([])
   const [sensorDialogOpen, setSensorDialogOpen] = useState(false)
   const [hysteresisHelpOpen, setHysteresisHelpOpen] = useState(false)
+  const [safetySensor, setSafetySensorState] = useState<SafetySensorResponse | null>(null)
+  const [safetySensorDialogOpen, setSafetySensorDialogOpen] = useState(false)
 
   useEffect(() => {
     loadPresets()
     loadHysteresis()
     loadPresenceSensors()
+    loadSafetySensor()
   }, [])
 
   const loadPresets = async () => {
@@ -129,6 +134,17 @@ export default function GlobalSettings() {
       setHysteresisValue(value)
     } catch (err) {
       console.error('Error loading hysteresis:', err)
+    }
+  }
+
+  const loadSafetySensor = async () => {
+    try {
+      const data = await getSafetySensor()
+      setSafetySensorState(data)
+    } catch (err) {
+      console.error('Error loading safety sensor:', err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -217,6 +233,31 @@ export default function GlobalSettings() {
     }
   }
 
+  const handleAddSafetySensor = async (config: SafetySensorConfig) => {
+    try {
+      await setSafetySensor(config)
+      await loadSafetySensor()
+      setSafetySensorDialogOpen(false)
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 2000)
+    } catch (err) {
+      console.error('Error adding safety sensor:', err)
+      setError('Failed to add safety sensor')
+    }
+  }
+
+  const handleRemoveSafetySensor = async () => {
+    try {
+      await removeSafetySensor()
+      await loadSafetySensor()
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 2000)
+    } catch (err) {
+      console.error('Error removing safety sensor:', err)
+      setError('Failed to remove safety sensor')
+    }
+  }
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -273,6 +314,11 @@ export default function GlobalSettings() {
             icon={<BeachAccessIcon />} 
             iconPosition="start" 
             label={t('globalSettings.tabs.vacation', 'Vacation')} 
+          />
+          <Tab 
+            icon={<SecurityIcon />} 
+            iconPosition="start" 
+            label={t('globalSettings.tabs.safety', 'Safety')} 
           />
           <Tab 
             icon={<TuneIcon />} 
@@ -407,8 +453,78 @@ export default function GlobalSettings() {
           <VacationModeSettings />
         </TabPanel>
 
-        {/* Advanced Tab */}
+        {/* Safety Tab */}
         <TabPanel value={activeTab} index={3}>
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              {t('globalSettings.safety.title', '🚨 Safety Sensor (Smoke/CO Detector)')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              {t('globalSettings.safety.description', 'Configure a smoke or carbon monoxide detector that will automatically shut down all heating when danger is detected. All areas will be disabled immediately to prevent heating during a safety emergency.')}
+            </Typography>
+
+            {safetySensor?.alert_active && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                {t('globalSettings.safety.alertActive', '⚠️ SAFETY ALERT ACTIVE! All heating has been shut down. Please resolve the safety issue and manually re-enable areas.')}
+              </Alert>
+            )}
+
+            {safetySensor?.sensor_id ? (
+              <>
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    {t('globalSettings.safety.configured', 'Safety Sensor Configured')}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <strong>{t('globalSettings.safety.sensor', 'Sensor')}:</strong> {safetySensor.sensor_id}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <strong>{t('globalSettings.safety.attribute', 'Monitored Attribute')}:</strong> {safetySensor.attribute}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>{t('globalSettings.safety.status', 'Status')}:</strong> {
+                      safetySensor.enabled
+                        ? t('globalSettings.safety.enabled', '✓ Enabled and monitoring')
+                        : t('globalSettings.safety.disabled', '✗ Disabled')
+                    }
+                  </Typography>
+                </Alert>
+
+                <Button
+                  variant="outlined"
+                  color="error"
+                  fullWidth
+                  onClick={handleRemoveSafetySensor}
+                  startIcon={<RemoveCircleOutlineIcon />}
+                >
+                  {t('globalSettings.safety.removeButton', 'Remove Safety Sensor')}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  {t('globalSettings.safety.notConfigured', 'No safety sensor configured. It is highly recommended to configure a smoke or CO detector for emergency heating shutdown.')}
+                </Alert>
+
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  onClick={() => setSafetySensorDialogOpen(true)}
+                  startIcon={<SecurityIcon />}
+                >
+                  {t('globalSettings.safety.addButton', 'Add Safety Sensor')}
+                </Button>
+              </>
+            )}
+
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 3, fontStyle: 'italic' }}>
+              💡 {t('globalSettings.safety.tip', 'When the safety sensor detects smoke or carbon monoxide, all heating will be immediately stopped and all areas disabled. Areas must be manually re-enabled after the safety issue is resolved.')}
+            </Typography>
+          </Paper>
+        </TabPanel>
+
+        {/* Advanced Tab */}
+        <TabPanel value={activeTab} index={4}>
           <Paper sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="h6">
@@ -487,6 +603,13 @@ export default function GlobalSettings() {
         onClose={() => setSensorDialogOpen(false)}
         onAdd={handleAddPresenceSensor}
         sensorType="presence"
+      />
+
+      {/* Safety Sensor Dialog */}
+      <SafetySensorConfigDialog
+        open={safetySensorDialogOpen}
+        onClose={() => setSafetySensorDialogOpen(false)}
+        onAdd={handleAddSafetySensor}
       />
 
       {/* Hysteresis Help Modal */}
