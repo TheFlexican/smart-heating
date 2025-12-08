@@ -33,10 +33,10 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
   }
 
   return (
-    <AppBar 
-      position="static" 
+    <AppBar
+      position="static"
       elevation={0}
-      sx={{ 
+      sx={{
         bgcolor: 'background.paper',
         borderBottom: 1,
         borderColor: 'divider'
@@ -44,11 +44,11 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
     >
       <Toolbar sx={{ minHeight: { xs: 56, sm: 64 } }}>
         <ThermostatIcon sx={{ mr: { xs: 1, sm: 2 }, color: 'text.secondary' }} />
-        <Typography 
-          variant="h6" 
-          component="div" 
-          sx={{ 
-            flexGrow: 1, 
+        <Typography
+          variant="h6"
+          component="div"
+          sx={{
+            flexGrow: 1,
             color: 'text.primary',
             fontSize: { xs: '1rem', sm: '1.25rem' }
           }}
@@ -58,9 +58,9 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
         <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, alignItems: 'center' }}>
           {!isGlobalSettings && (
             <Tooltip title={t('header.globalSettings')}>
-              <IconButton 
+              <IconButton
                 onClick={() => navigate('/settings/global')}
-                sx={{ 
+                sx={{
                   color: 'text.secondary',
                   p: { xs: 0.5, sm: 1 }
                 }}
@@ -70,9 +70,9 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
             </Tooltip>
           )}
           <Tooltip title={t('header.changeLanguage')}>
-            <IconButton 
+            <IconButton
               onClick={handleLanguageMenuOpen}
-              sx={{ 
+              sx={{
                 color: 'text.secondary',
                 p: { xs: 0.5, sm: 1 }
               }}
@@ -111,11 +111,11 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
               </Box>
             </Box>
           </Tooltip>
-          <Chip 
-            label="v0.5.10" 
-            size="small" 
+          <Chip
+            label="v0.5.11"
+            size="small"
             variant="outlined"
-            sx={{ 
+            sx={{
               borderColor: 'divider',
               color: 'text.secondary',
               display: { xs: 'none', sm: 'flex' }
