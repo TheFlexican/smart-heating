@@ -248,7 +248,9 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             # Trigger immediate coordinator update
             _LOGGER.debug("Triggering coordinator refresh for %s", entity_id)
             import asyncio
-            asyncio.create_task(self.async_request_refresh())
+            task = asyncio.create_task(self.async_request_refresh())
+            # Store task reference to prevent GC and avoid warning
+            self._refresh_task = task
 
     async def async_shutdown(self) -> None:
         """Shutdown coordinator and clean up listeners."""

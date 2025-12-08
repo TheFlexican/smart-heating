@@ -9,12 +9,14 @@ from ..const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# Error message constants
+VACATION_MANAGER_ERROR = "Vacation manager not initialized"
 
-async def handle_get_config(hass: HomeAssistant, area_manager: AreaManager) -> web.Response:
+
+def handle_get_config(area_manager: AreaManager) -> web.Response:
     """Get system configuration.
     
     Args:
-        hass: Home Assistant instance
         area_manager: Area manager instance
         
     Returns:
@@ -33,7 +35,7 @@ async def handle_get_config(hass: HomeAssistant, area_manager: AreaManager) -> w
     return web.json_response(config)
 
 
-async def handle_get_global_presets(area_manager: AreaManager) -> web.Response:
+def handle_get_global_presets(area_manager: AreaManager) -> web.Response:
     """Get global preset temperatures.
     
     Args:
@@ -100,7 +102,7 @@ async def handle_set_global_presets(area_manager: AreaManager, data: dict) -> we
     return web.json_response({"success": True})
 
 
-async def handle_get_hysteresis(area_manager: AreaManager) -> web.Response:
+def handle_get_hysteresis(area_manager: AreaManager) -> web.Response:
     """Get global hysteresis value.
     
     Args:
@@ -115,7 +117,6 @@ async def handle_get_hysteresis(area_manager: AreaManager) -> web.Response:
 
 
 async def handle_set_hysteresis_value(
-    hass: HomeAssistant, 
     area_manager: AreaManager, 
     coordinator,
     data: dict
@@ -123,7 +124,6 @@ async def handle_set_hysteresis_value(
     """Set global hysteresis value.
     
     Args:
-        hass: Home Assistant instance
         area_manager: Area manager instance
         coordinator: Coordinator instance
         data: Dictionary with hysteresis value
@@ -164,7 +164,7 @@ async def handle_set_hysteresis_value(
     )
 
 
-async def handle_get_global_presence(area_manager: AreaManager) -> web.Response:
+def handle_get_global_presence(area_manager: AreaManager) -> web.Response:
     """Get global presence sensors.
     
     Args:
@@ -234,7 +234,7 @@ async def handle_set_frost_protection(area_manager: AreaManager, data: dict) -> 
         )
 
 
-async def handle_get_vacation_mode(hass: HomeAssistant) -> web.Response:
+def handle_get_vacation_mode(hass: HomeAssistant) -> web.Response:
     """Get vacation mode status and configuration.
     
     Args:
@@ -265,7 +265,7 @@ async def handle_enable_vacation_mode(hass: HomeAssistant, data: dict) -> web.Re
     vacation_manager = hass.data[DOMAIN].get("vacation_manager")
     if not vacation_manager:
         return web.json_response(
-            {"error": "Vacation manager not initialized"}, status=500
+            {"error": VACATION_MANAGER_ERROR}, status=500
         )
     
     start_date = data.get("start_date")
@@ -303,7 +303,7 @@ async def handle_disable_vacation_mode(hass: HomeAssistant) -> web.Response:
     vacation_manager = hass.data[DOMAIN].get("vacation_manager")
     if not vacation_manager:
         return web.json_response(
-            {"error": "Vacation manager not initialized"}, status=500
+            {"error": VACATION_MANAGER_ERROR}, status=500
         )
     
     await vacation_manager.async_disable()
@@ -311,7 +311,7 @@ async def handle_disable_vacation_mode(hass: HomeAssistant) -> web.Response:
     return web.json_response({"success": True})
 
 
-async def handle_get_safety_sensor(area_manager: AreaManager) -> web.Response:
+def handle_get_safety_sensor(area_manager: AreaManager) -> web.Response:
     """Get safety sensor configuration.
     
     Args:
