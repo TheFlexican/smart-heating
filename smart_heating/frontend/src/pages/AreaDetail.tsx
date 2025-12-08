@@ -1652,10 +1652,13 @@ const ZoneDetail = () => {
                   onChange={async (e) => {
                     try {
                       const value = e.target.value === 'auto' ? null : e.target.value
+                      console.log('Setting primary temperature sensor:', value)
                       await setPrimaryTemperatureSensor(area.id, value)
+                      console.log('Primary temperature sensor set successfully')
                       await loadData()
                     } catch (error) {
                       console.error('Failed to set primary temperature sensor:', error)
+                      alert('Failed to set primary temperature sensor. Check console for details.')
                     }
                   }}
                 >
@@ -1664,11 +1667,14 @@ const ZoneDetail = () => {
                   </MenuItem>
                   {area.devices
                     .filter(d => d.type === 'temperature_sensor' || d.type === 'thermostat')
-                    .map(device => (
-                      <MenuItem key={device.id} value={device.id}>
-                        {device.name || device.id} ({device.type === 'thermostat' ? t('areaDetail.thermostat') : t('areaDetail.tempSensor')})
-                      </MenuItem>
-                    ))}
+                    .map(device => {
+                      const deviceId = device.entity_id || device.id
+                      return (
+                        <MenuItem key={deviceId} value={deviceId}>
+                          {device.name || deviceId} ({device.type === 'thermostat' ? t('areaDetail.thermostat') : t('areaDetail.tempSensor')})
+                        </MenuItem>
+                      )
+                    })}
                 </Select>
               </FormControl>
             </Paper>

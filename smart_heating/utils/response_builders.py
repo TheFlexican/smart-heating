@@ -108,4 +108,6 @@ def build_area_response(area: Area, devices_list: Optional[List[Dict[str, Any]]]
         # Switch shutdown
         "switch_shutdown_enabled": getattr(area, 'switch_shutdown_enabled', False),
         "switch_shutdown_entities": getattr(area, 'switch_shutdown_entities', []),
+        # Primary temperature sensor
+        "primary_temperature_sensor": getattr(area, 'primary_temperature_sensor', None),
     }

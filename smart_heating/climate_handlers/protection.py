@@ -102,9 +102,9 @@ class ProtectionHandler:
         await device_control_handler.async_control_switches(area, is_heating)
 
     async def async_handle_disabled_area(
-        self, area_id: str, area: Area, history_tracker, should_record_history: bool
+        self, area_id: str, area: Area, device_handler, history_tracker, should_record_history: bool
     ) -> None:
-        """Handle a disabled area - record history but skip control."""
+        """Handle a disabled area - turn off devices and record history."""
         # Record history for disabled areas too
         if should_record_history and history_tracker and area.current_temperature is not None:
             await history_tracker.async_record_temperature(
@@ -114,15 +114,25 @@ class ProtectionHandler:
                 area.state
             )
         
+        # Turn off all heating/cooling devices
+        if device_handler:
+            # Turn off thermostats/AC units
+            await device_handler.async_control_thermostats(area, False, None)
+            # Turn off switches
+            await device_handler.async_control_switches(area, False)
+            # Turn off valves
+            await device_handler.async_control_valves(area, False, None)
+        
         area.state = "off"
         
         if self.area_logger:
             self.area_logger.log_event(
                 area_id,
                 "mode",
-                "Area disabled - no device control, temperature tracking continues",
+                "Area disabled - all devices turned off, temperature tracking continues",
                 {
                     "mode": "disabled",
                     "current_temperature": area.current_temperature
                 }
             )
+

@@ -52,6 +52,24 @@ class DeviceControlHandler:
                 return True
         return False
 
+    def is_any_thermostat_actively_cooling(self, area: Area) -> bool:
+        """Check if any thermostat in the area is actively cooling.
+        
+        This checks the hvac_action attribute to determine actual cooling state.
+        
+        Args:
+            area: Area instance
+            
+        Returns:
+            True if any thermostat reports hvac_action == "cooling"
+        """
+        thermostats = area.get_thermostats()
+        for thermostat_id in thermostats:
+            state = self.hass.states.get(thermostat_id)
+            if state and state.attributes.get("hvac_action") == "cooling":
+                return True
+        return False
+
     def get_valve_capability(self, entity_id: str) -> dict[str, Any]:
         """Get valve control capabilities from HA entity.
         
@@ -112,15 +130,127 @@ class DeviceControlHandler:
         self._device_capabilities[entity_id] = capabilities
         return capabilities
 
+    async def _async_ensure_climate_power_on(self, climate_entity_id: str) -> None:
+        """Ensure climate device power switch is on if it exists.
+        
+        Some AC units have separate power switches (e.g., switch.xxx_power).
+        This method checks for common patterns and turns on the switch if found.
+        
+        Args:
+            climate_entity_id: Climate entity ID (e.g., climate.air_conditioning_air_care)
+        """
+        # Extract base name from climate entity
+        # climate.air_conditioning_air_care -> air_conditioning_air_care
+        if '.' not in climate_entity_id:
+            return
+        
+        base_name = climate_entity_id.split('.', 1)[1]
+        
+        # Check for common power switch patterns
+        power_switch_patterns = [
+            f"switch.{base_name}_power",  # switch.air_conditioning_air_care_power
+            f"switch.{base_name}_switch",
+            f"switch.{base_name}",
+        ]
+        
+        for switch_id in power_switch_patterns:
+            state = self.hass.states.get(switch_id)
+            if state:
+                # Found a power switch, ensure it's on
+                if state.state != "on":
+                    _LOGGER.info(
+                        "Turning on power switch %s for climate entity %s",
+                        switch_id, climate_entity_id
+                    )
+                    await self.hass.services.async_call(
+                        "switch",
+                        "turn_on",
+                        {"entity_id": switch_id},
+                        blocking=False,
+                    )
+                else:
+                    _LOGGER.debug(
+                        "Power switch %s already on for %s",
+                        switch_id, climate_entity_id
+                    )
+                return  # Found and handled the switch
+        
+        # No power switch found, which is normal for most thermostats
+        _LOGGER.debug("No power switch found for %s", climate_entity_id)
+
+    async def _async_turn_off_climate_power(self, climate_entity_id: str) -> None:
+        """Turn off climate device power switch if it exists.
+        
+        Args:
+            climate_entity_id: Climate entity ID
+        """
+        # Extract base name from climate entity
+        if '.' not in climate_entity_id:
+            return
+        
+        base_name = climate_entity_id.split('.', 1)[1]
+        
+        # Check for common power switch patterns
+        power_switch_patterns = [
+            f"switch.{base_name}_power",
+            f"switch.{base_name}_switch",
+            f"switch.{base_name}",
+        ]
+        
+        for switch_id in power_switch_patterns:
+            state = self.hass.states.get(switch_id)
+            if state:
+                # Found a power switch, turn it off
+                if state.state == "on":
+                    _LOGGER.info(
+                        "Turning off power switch %s for climate entity %s",
+                        switch_id, climate_entity_id
+                    )
+                    await self.hass.services.async_call(
+                        "switch",
+                        "turn_off",
+                        {"entity_id": switch_id},
+                        blocking=False,
+                    )
+                return  # Found and handled the switch
+
     async def async_control_thermostats(
-        self, area: Area, heating: bool, target_temp: Optional[float]
+        self, area: Area, heating: bool, target_temp: Optional[float], hvac_mode: str = "heat"
     ) -> None:
-        """Control thermostats in an area."""
+        """Control thermostats in an area.
+        
+        Args:
+            area: Area to control
+            heating: Whether heating/cooling should be active
+            target_temp: Target temperature
+            hvac_mode: HVAC mode ("heat" or "cool")
+        """
+        from ..const import HVAC_MODE_HEAT, HVAC_MODE_COOL
+        
         thermostats = area.get_thermostats()
         
         for thermostat_id in thermostats:
             try:
                 if heating and target_temp is not None:
+                    # First, check for and turn on associated power switch
+                    # Some AC units have a separate power switch (e.g., switch.xxx_power)
+                    await self._async_ensure_climate_power_on(thermostat_id)
+                    
+                    # Set HVAC mode first
+                    ha_hvac_mode = HVAC_MODE_HEAT if hvac_mode == "heat" else HVAC_MODE_COOL
+                    await self.hass.services.async_call(
+                        CLIMATE_DOMAIN,
+                        "set_hvac_mode",
+                        {
+                            "entity_id": thermostat_id,
+                            "hvac_mode": ha_hvac_mode,
+                        },
+                        blocking=False,
+                    )
+                    _LOGGER.debug(
+                        "Set thermostat %s to %s mode", thermostat_id, hvac_mode
+                    )
+                    
                     # Only set temperature if it has changed (avoid API rate limiting)
                     last_temp = self._last_set_temperatures.get(thermostat_id)
                     if last_temp is None or abs(last_temp - target_temp) >= 0.1:
@@ -135,7 +265,7 @@ class DeviceControlHandler:
                         )
                         self._last_set_temperatures[thermostat_id] = target_temp
                         _LOGGER.debug(
-                            "Set thermostat %s to %.1f°C", thermostat_id, target_temp
+                            "Set thermostat %s to %.1f°C (%s mode)", thermostat_id, target_temp, hvac_mode
                         )
                     else:
                         _LOGGER.debug(
@@ -143,7 +273,7 @@ class DeviceControlHandler:
                             thermostat_id, target_temp
                         )
                 elif target_temp is not None:
-                    # Update target temperature even when not heating
+                    # Update target temperature even when not heating/cooling
                     last_temp = self._last_set_temperatures.get(thermostat_id)
                     if last_temp is None or abs(last_temp - target_temp) >= 0.1:
                         await self.hass.services.async_call(
@@ -160,7 +290,7 @@ class DeviceControlHandler:
                             "Updated thermostat %s target to %.1f°C (idle)", thermostat_id, target_temp
                         )
                 else:
-                    # Turn off heating completely
+                    # Turn off heating/cooling completely
                     if thermostat_id in self._last_set_temperatures:
                         del self._last_set_temperatures[thermostat_id]
                     
@@ -172,6 +302,10 @@ class DeviceControlHandler:
                             blocking=False,
                         )
                         _LOGGER.debug("Turned off thermostat %s", thermostat_id)
+                        
+                        # Also turn off associated power switch if it exists
+                        await self._async_turn_off_climate_power(thermostat_id)
+                        
                     except Exception:
                         # Fall back to minimum temperature if turn_off not supported
                         min_temp = 5.0

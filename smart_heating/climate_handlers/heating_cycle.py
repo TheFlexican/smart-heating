@@ -195,3 +195,110 @@ class HeatingCycleHandler:
                     "state": "idle"
                 }
             )
+
+    async def async_handle_cooling_required(
+        self, area_id: str, area: Area, current_temp: float, target_temp: float,
+        device_handler, temp_handler
+    ) -> tuple[list, float]:
+        """Handle when cooling is required for an area.
+        
+        Returns:
+            Tuple of (cooling_areas list, min_target_temp)
+        """
+        cooling_areas = [area]
+        min_target_temp = target_temp
+        
+        # Start cooling event if not already active
+        if self.learning_engine and area_id not in self._area_heating_events:
+            outdoor_temp = await temp_handler.async_get_outdoor_temperature(area)
+            # Reuse heating event tracker for cooling events
+            # TODO: Consider separate cooling event tracking in learning engine
+            self._area_heating_events[area_id] = True  # Track active cooling event
+            _LOGGER.debug(
+                "Started cooling event for area %s (outdoor: %s°C)",
+                area_id, outdoor_temp if outdoor_temp else "N/A"
+            )
+        
+        # Control all devices in cooling mode
+        await device_handler.async_control_thermostats(area, True, target_temp, hvac_mode="cool")
+        await device_handler.async_control_switches(area, True)
+        await device_handler.async_control_valves(area, True, target_temp)
+        
+        area.state = "cooling"
+        _LOGGER.info(
+            "Area %s: Cooling ON (current: %.1f°C, target: %.1f°C)",
+            area_id, current_temp, target_temp
+        )
+        
+        if self.area_logger:
+            self.area_logger.log_event(
+                area_id,
+                "cooling",
+                f"Cooling started - reaching {target_temp:.1f}°C",
+                {
+                    "current_temp": current_temp,
+                    "target_temp": target_temp,
+                    "state": "cooling"
+                }
+            )
+        
+        return cooling_areas, min_target_temp
+
+    async def async_handle_cooling_stop(
+        self, area_id: str, area: Area, current_temp: float, target_temp: float,
+        device_handler
+    ) -> None:
+        """Handle when cooling should stop for an area."""
+        # Check if thermostats are still actively cooling
+        thermostats_still_cooling = device_handler.is_any_thermostat_actively_cooling(area)
+        
+        if thermostats_still_cooling:
+            _LOGGER.info(
+                "Area %s: Target reached (%.1f°C/%.1f°C) but thermostat still cooling - waiting for idle",
+                area_id, current_temp, target_temp
+            )
+            if self.area_logger:
+                self.area_logger.log_event(
+                    area_id,
+                    "cooling",
+                    "Target reached but thermostat still cooling - waiting for idle",
+                    {
+                        "current_temp": current_temp,
+                        "target_temp": target_temp,
+                        "state": "idle_pending",
+                        "reason": "Thermostat hvac_action still reports cooling"
+                    }
+                )
+        
+        # End cooling event if active
+        if self.learning_engine and area_id in self._area_heating_events:
+            del self._area_heating_events[area_id]
+            # TODO: Add async_end_cooling_event to learning engine
+            _LOGGER.debug(
+                "Completed cooling event for area %s (reached %.1f°C)",
+                area_id, current_temp
+            )
+        
+        # Turn off cooling
+        await device_handler.async_control_thermostats(area, False, target_temp, hvac_mode="cool")
+        await device_handler.async_control_switches(area, False)
+        await device_handler.async_control_valves(area, False, target_temp)
+        
+        area.state = "idle"
+        _LOGGER.debug(
+            "Area %s: Cooling OFF (current: %.1f°C, target: %.1f°C)",
+            area_id, current_temp, target_temp
+        )
+        
+        if self.area_logger and not thermostats_still_cooling:
+            self.area_logger.log_event(
+                area_id,
+                "cooling",
+                f"Cooling stopped - target {target_temp:.1f}°C reached",
+                {
+                    "current_temp": current_temp,
+                    "target_temp": target_temp,
+                    "state": "idle"
+                }
+            )
+

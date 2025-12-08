@@ -226,7 +226,7 @@ class ClimateController:
             
             if not area.enabled:
                 await self.protection_handler.async_handle_disabled_area(
-                    area_id, area, history_tracker, should_record_history
+                    area_id, area, self.device_handler, history_tracker, should_record_history
                 )
                 continue
             
@@ -280,35 +280,65 @@ class ClimateController:
             # Get hysteresis
             hysteresis = area.hysteresis_override if area.hysteresis_override is not None else self._hysteresis
             
-            # Determine if heating is needed
+            # Determine heating or cooling need based on HVAC mode
+            hvac_mode = area.hvac_mode if hasattr(area, 'hvac_mode') else "heat"
+            
+            # Calculate heating/cooling thresholds
             should_heat = current_temp < (target_temp - hysteresis)
-            should_stop = current_temp >= target_temp
+            should_cool = current_temp > (target_temp + hysteresis)
+            should_stop_heat = current_temp >= target_temp
+            should_stop_cool = current_temp <= target_temp
+            
+            # Determine action based on HVAC mode
+            heating = False
+            cooling = False
+            
+            if hvac_mode in ["heat", "heat_cool", "auto"]:
+                heating = should_heat
+            if hvac_mode in ["cool", "heat_cool", "auto"]:
+                cooling = should_cool
             
             # Log hysteresis decision
             if hasattr(self, 'area_logger') and self.area_logger:
-                if not should_heat and current_temp < target_temp:
-                    self.area_logger.log_event(
-                        area_id,
-                        "climate_control",
-                        f"Waiting for hysteresis ({hysteresis:.1f}°C) - not heating yet",
-                        {
-                            "current_temp": current_temp,
-                            "target_temp": target_temp,
-                            "hysteresis": hysteresis,
-                            "threshold": target_temp - hysteresis,
-                            "reason": "Within hysteresis band - prevents short cycling"
-                        }
-                    )
+                if not heating and not cooling and current_temp != target_temp:
+                    reason = "Within hysteresis band - prevents short cycling"
+                    if abs(current_temp - target_temp) <= hysteresis:
+                        self.area_logger.log_event(
+                            area_id,
+                            "climate_control",
+                            f"Waiting for hysteresis ({hysteresis:.1f}°C) - no action",
+                            {
+                                "current_temp": current_temp,
+                                "target_temp": target_temp,
+                                "hysteresis": hysteresis,
+                                "heat_threshold": target_temp - hysteresis,
+                                "cool_threshold": target_temp + hysteresis,
+                                "hvac_mode": hvac_mode,
+                                "reason": reason
+                            }
+                        )
             
-            if should_heat:
+            
+            if heating:
                 area_heating, area_max_temp = await self.cycle_handler.async_handle_heating_required(
                     area_id, area, current_temp, target_temp,
                     self.device_handler, self.temp_handler
                 )
                 heating_areas.extend(area_heating)
                 max_target_temp = max(max_target_temp, area_max_temp)
-            elif should_stop:
+            elif cooling:
+                # Handle cooling mode
+                await self.cycle_handler.async_handle_cooling_required(
+                    area_id, area, current_temp, target_temp,
+                    self.device_handler, self.temp_handler
+                )
+            elif should_stop_heat:
                 await self.cycle_handler.async_handle_heating_stop(
+                    area_id, area, current_temp, target_temp,
+                    self.device_handler
+                )
+            elif should_stop_cool:
+                await self.cycle_handler.async_handle_cooling_stop(
                     area_id, area, current_temp, target_temp,
                     self.device_handler
                 )
@@ -321,3 +351,4 @@ class ClimateController:
         # Save history periodically
         if should_record_history and history_tracker:
             await history_tracker.async_save()
+

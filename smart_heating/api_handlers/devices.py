@@ -41,7 +41,7 @@ async def handle_get_devices(hass: HomeAssistant, area_manager: AreaManager) -> 
 
 
 async def _discover_devices(hass: HomeAssistant, area_manager: AreaManager) -> web.Response:
-    """Discover climate and switch devices from Home Assistant.
+    """Discover climate, switch, and temperature sensor devices from Home Assistant.
     
     Args:
         hass: Home Assistant instance
@@ -57,15 +57,25 @@ async def _discover_devices(hass: HomeAssistant, area_manager: AreaManager) -> w
     device_reg = dr.async_get(hass)
     area_registry = ar.async_get(hass)
     
-    # Get all climate and switch entities by iterating through all entities
-    all_entities = [
-        entry for entry in entity_reg.entities.values()
-        if entry.domain in ("climate", "switch")
-    ]
+    # Get all climate, switch, and temperature sensor entities
+    all_entities = []
+    for entry in entity_reg.entities.values():
+        if entry.domain in ("climate", "switch"):
+            all_entities.append(entry)
+        elif entry.domain == "sensor":
+            # Only include sensors with temperature device class
+            state = hass.states.get(entry.entity_id)
+            if state and state.attributes.get("device_class") == "temperature":
+                all_entities.append(entry)
     
     for entry in all_entities:
         # Determine device type from domain
-        device_type = "climate" if entry.domain == "climate" else "switch"
+        if entry.domain == "climate":
+            device_type = "thermostat"  # Climate entities are thermostats/AC units
+        elif entry.domain == "switch":
+            device_type = "switch"
+        else:  # sensor with temperature device_class
+            device_type = "temperature_sensor"
         
         # Get device info if entity has a device_id
         device_name = None
@@ -120,13 +130,15 @@ async def _discover_devices(hass: HomeAssistant, area_manager: AreaManager) -> w
     _cache_timestamp = time.time()
     
     # Count by type
-    climate_count = sum(1 for d in devices if d["type"] == "climate")
+    thermostat_count = sum(1 for d in devices if d["type"] == "thermostat")
     switch_count = sum(1 for d in devices if d["type"] == "switch")
+    temp_sensor_count = sum(1 for d in devices if d["type"] == "temperature_sensor")
     
-    _LOGGER.info("Discovered %d devices (%d climate, %d switch)", 
+    _LOGGER.info("Discovered %d devices (%d thermostats, %d switches, %d temperature sensors)", 
                  len(devices),
-                 climate_count,
-                 switch_count)
+                 thermostat_count,
+                 switch_count,
+                 temp_sensor_count)
     
     return web.json_response({"devices": devices})
 
