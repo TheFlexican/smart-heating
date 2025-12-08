@@ -325,8 +325,8 @@ async def handle_get_safety_sensor(area_manager: AreaManager) -> web.Response:
     # Return first sensor if exists, otherwise empty config
     if sensors:
         return web.json_response({
-            "sensor_id": sensors[0]["entity_id"],
-            "enabled": True,
+            "sensor_id": sensors[0].get("sensor_id"),
+            "enabled": sensors[0].get("enabled", True),
             "alert_active": area_manager.is_safety_alert_active()
         })
     else:
