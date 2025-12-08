@@ -44,7 +44,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
-  
+
   // Get displayed temperature: use effective temperature when in preset mode, otherwise use target
   const getDisplayTemperature = () => {
     // When using preset mode (not manual override), show effective temperature
@@ -54,7 +54,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
     // Otherwise show the base target temperature
     return area.target_temperature
   }
-  
+
   const [temperature, setTemperature] = useState(getDisplayTemperature())
   const [presenceState, setPresenceState] = useState<string | null>(null)
 
@@ -172,10 +172,12 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
     if (device.type === 'thermostat') {
       if (device.hvac_action === 'heating') {
         return <LocalFireDepartmentIcon fontSize="small" sx={{ color: 'error.main' }} />
-      } else if (device.state === 'heat') {
+      } else if (device.hvac_action === 'cooling') {
+        return <AcUnitIcon fontSize="small" sx={{ color: 'info.main' }} />
+      } else if (device.state === 'heat' || device.state === 'heat_cool') {
         return <ThermostatIcon fontSize="small" sx={{ color: 'primary.main' }} />
       } else {
-        return <AcUnitIcon fontSize="small" sx={{ color: 'info.main' }} />
+        return <ThermostatIcon fontSize="small" sx={{ color: 'text.secondary' }} />
       }
     } else if (device.type === 'valve') {
       return <TuneIcon fontSize="small" sx={{ color: device.position > 0 ? 'warning.main' : 'text.secondary' }} />
@@ -197,63 +199,68 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
 
   const getThermostatStatus = (device: any): string[] => {
     const parts = []
-    
+
+    // Add hvac_action if available (heating, cooling, idle, etc.)
+    if (device.hvac_action && device.hvac_action !== 'idle' && device.hvac_action !== 'off') {
+      parts.push(`[${device.hvac_action}]`)
+    }
+
     const currentTemp = formatTemperature(device.current_temperature)
     if (currentTemp) {
       parts.push(currentTemp)
     }
-    
-    if (device.target_temperature !== undefined && device.target_temperature !== null && 
+
+    if (device.target_temperature !== undefined && device.target_temperature !== null &&
         device.current_temperature !== undefined && device.current_temperature !== null &&
         device.target_temperature > device.current_temperature) {
       parts.push(`→ ${device.target_temperature.toFixed(1)}°C`)
     }
-    
+
     if (parts.length === 0 && device.state) {
       parts.push(device.state)
     }
-    
+
     return parts
   }
 
   const getTemperatureSensorStatus = (device: any): string[] => {
     const parts = []
-    
+
     const temp = formatTemperature(device.temperature)
     if (temp) {
       parts.push(temp)
     } else if (isValidState(device.state)) {
       parts.push(`${device.state}°C`)
     }
-    
+
     return parts
   }
 
   const getValveStatus = (device: any): string[] => {
     const parts = []
-    
+
     if (device.position !== undefined && device.position !== null) {
       parts.push(`${device.position}%`)
     } else if (isValidState(device.state)) {
       parts.push(`${device.state}%`)
     }
-    
+
     return parts
   }
 
   const getGenericDeviceStatus = (device: any): string[] => {
     const parts = []
-    
+
     if (isValidState(device.state)) {
       parts.push(device.state)
     }
-    
+
     return parts
   }
 
   const getDeviceStatusText = (device: any): string => {
     let parts: string[] = []
-    
+
     if (device.type === 'thermostat') {
       parts = getThermostatStatus(device)
     } else if (device.type === 'temperature_sensor') {
@@ -263,14 +270,14 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
     } else {
       parts = getGenericDeviceStatus(device)
     }
-    
+
     return parts.length > 0 ? parts.join(' · ') : 'unavailable'
   }
 
   return (
     <Droppable droppableId={`area-${area.id}`}>
       {(provided, snapshot) => (
-        <Card 
+        <Card
           ref={provided.innerRef}
           {...provided.droppableProps}
           elevation={2}
@@ -322,9 +329,9 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
               {t('area.targetTemperature')}
               {area.preset_mode && area.preset_mode !== 'none' && (
-                <Chip 
-                  label={area.preset_mode.toUpperCase()} 
-                  size="small" 
+                <Chip
+                  label={area.preset_mode.toUpperCase()}
+                  size="small"
                   color="secondary"
                   sx={{ ml: 1, fontSize: { xs: '0.65rem', sm: '0.7rem' }, height: '20px' }}
                 />
@@ -424,14 +431,14 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
               <ListItem
                 key={device.id}
                 secondaryAction={
-                  <IconButton 
-                    edge="end" 
-                    size="small" 
+                  <IconButton
+                    edge="end"
+                    size="small"
                     onClick={(e) => {
                       e.stopPropagation()
                       handleRemoveDevice(device.id)
                     }}
-                    sx={{ 
+                    sx={{
                       color: 'text.secondary',
                       p: { xs: 0.5, sm: 1 }
                     }}
@@ -439,7 +446,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
                     <RemoveCircleOutlineIcon fontSize="small" />
                   </IconButton>
                 }
-                sx={{ 
+                sx={{
                   py: { xs: 0.5, sm: 1 },
                   pr: { xs: 5, sm: 6 }
                 }}
@@ -450,10 +457,10 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
                 <ListItemText
                   primary={
                     <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                      <Typography 
-                        variant="body2" 
+                      <Typography
+                        variant="body2"
                         color="text.primary"
-                        sx={{ 
+                        sx={{
                           fontSize: { xs: '0.8rem', sm: '0.875rem' },
                           wordBreak: 'break-word'
                         }}
@@ -461,14 +468,14 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
                         {device.name || device.id}
                       </Typography>
                       {device.type === 'thermostat' && device.hvac_action && (
-                        <Chip 
-                          label={device.hvac_action} 
-                          size="small" 
-                          sx={{ 
-                            height: { xs: 16, sm: 18 }, 
+                        <Chip
+                          label={device.hvac_action}
+                          size="small"
+                          sx={{
+                            height: { xs: 16, sm: 18 },
                             fontSize: { xs: '0.6rem', sm: '0.65rem' },
                             bgcolor: device.hvac_action === 'heating' ? 'error.main' : 'info.main'
-                          }} 
+                          }}
                         />
                       )}
                     </Box>

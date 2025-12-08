@@ -31,8 +31,6 @@ async def handle_get_devices(hass: HomeAssistant, area_manager: AreaManager) -> 
     Returns:
         JSON response with available devices
     """
-    global _devices_cache
-
     # Return cached devices if available
     if _devices_cache is not None:
         _LOGGER.debug("Returning cached device list (%d devices)", len(_devices_cache))

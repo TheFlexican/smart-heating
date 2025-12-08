@@ -23,19 +23,17 @@ interface DeviceOverviewProps {
 }
 
 const DeviceOverview = ({ areas }: DeviceOverviewProps) => {
-  const getDeviceStatusIcon = (device: any, areaTarget?: number) => {
+  const getDeviceStatusIcon = (device: any) => {
     if (device.type === 'thermostat') {
-      // Use area target temperature comparison instead of stale hvac_action
-      const shouldHeat = areaTarget !== undefined && 
-                        device.current_temperature !== undefined && 
-                        areaTarget > device.current_temperature
-      
-      if (shouldHeat) {
+      // Check actual hvac_action for real-time status
+      if (device.hvac_action === 'heating') {
         return <LocalFireDepartmentIcon fontSize="small" sx={{ color: 'error.main' }} />
-      } else if (device.state === 'heat') {
+      } else if (device.hvac_action === 'cooling') {
+        return <AcUnitIcon fontSize="small" sx={{ color: 'info.main' }} />
+      } else if (device.state === 'heat' || device.state === 'heat_cool') {
         return <ThermostatIcon fontSize="small" sx={{ color: 'primary.main' }} />
       } else {
-        return <AcUnitIcon fontSize="small" sx={{ color: 'info.main' }} />
+        return <ThermostatIcon fontSize="small" sx={{ color: 'text.secondary' }} />
       }
     } else if (device.type === 'valve') {
       return <TuneIcon fontSize="small" sx={{ color: device.position > 0 ? 'warning.main' : 'text.secondary' }} />
@@ -46,13 +44,14 @@ const DeviceOverview = ({ areas }: DeviceOverviewProps) => {
     }
   }
 
-  const getDeviceStatus = (device: any, areaTarget?: number) => {
+  const getDeviceStatus = (device: any) => {
     if (device.type === 'thermostat') {
-      // Use area target temperature comparison instead of hvac_action
-      const shouldHeat = areaTarget !== undefined && 
-                        device.current_temperature !== undefined && 
-                        areaTarget > device.current_temperature
-      return shouldHeat ? 'heating' : 'idle'
+      // Use actual hvac_action for real-time status
+      if (device.hvac_action) {
+        return device.hvac_action
+      }
+      // Fallback to state if hvac_action not available
+      return device.state || 'idle'
     } else if (device.type === 'temperature_sensor') {
       if (device.temperature !== undefined && device.temperature !== null) {
         return `${device.temperature.toFixed(1)}°C`
@@ -70,7 +69,7 @@ const DeviceOverview = ({ areas }: DeviceOverviewProps) => {
 
   const getDeviceDetails = (device: any, areaTarget?: number) => {
     const parts = []
-    
+
     if (device.type === 'thermostat') {
       if (device.current_temperature !== undefined && device.current_temperature !== null) {
         parts.push(`Current: ${device.current_temperature.toFixed(1)}°C`)
@@ -80,11 +79,11 @@ const DeviceOverview = ({ areas }: DeviceOverviewProps) => {
         parts.push(`Target: ${areaTarget.toFixed(1)}°C`)
       }
     }
-    
+
     return parts.join(' | ') || '-'
   }
 
-  const allDevices = areas.flatMap(area => 
+  const allDevices = areas.flatMap(area =>
     area.devices.map(device => ({
       ...device,
       areaName: area.name,
@@ -132,7 +131,7 @@ const DeviceOverview = ({ areas }: DeviceOverviewProps) => {
               <TableRow key={`${device.areaId}-${device.id}`} hover>
                 <TableCell>
                   <Box display="flex" alignItems="center" gap={1}>
-                    {getDeviceStatusIcon(device, device.areaTarget)}
+                    {getDeviceStatusIcon(device)}
                     <Typography variant="body2">
                       {device.name || device.id}
                     </Typography>
@@ -144,21 +143,19 @@ const DeviceOverview = ({ areas }: DeviceOverviewProps) => {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Chip 
-                    label={device.type.replace(/_/g, ' ')} 
-                    size="small" 
+                  <Chip
+                    label={device.type.replace(/_/g, ' ')}
+                    size="small"
                     variant="outlined"
                   />
                 </TableCell>
                 <TableCell>
-                  <Chip 
-                    label={getDeviceStatus(device, device.areaTarget)}
+                  <Chip
+                    label={getDeviceStatus(device)}
                     size="small"
                     color={
-                      device.type === 'thermostat' && 
-                      device.areaTarget !== undefined && 
-                      device.current_temperature !== undefined && 
-                      device.areaTarget > device.current_temperature ? 'error' :
+                      device.type === 'thermostat' && device.hvac_action === 'heating' ? 'error' :
+                      device.type === 'thermostat' && device.hvac_action === 'cooling' ? 'info' :
                       device.state === 'on' ? 'success' :
                       'default'
                     }
