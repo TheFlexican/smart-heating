@@ -291,6 +291,12 @@ export const setAreaPresetConfig = async (
     use_global_home: boolean
     use_global_sleep: boolean
     use_global_activity: boolean
+    away_temp: number
+    eco_temp: number
+    comfort_temp: number
+    home_temp: number
+    sleep_temp: number
+    activity_temp: number
   }>
 ): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/preset_config`, config)

@@ -555,7 +555,7 @@ async def handle_set_area_preset_config(
             {"error": f"Area {area_id} not found"}, status=404
         )
     
-    changes = {k: v for k, v in data.items() if k.startswith("use_global_")}
+    changes = {k: v for k, v in data.items() if k.startswith("use_global_") or k.endswith("_temp")}
     _LOGGER.warning("⚙️  API: SET PRESET CONFIG for %s: %s", area.name, changes)
     
     # Update use_global_* flags
@@ -573,6 +573,20 @@ async def handle_set_area_preset_config(
         area.use_global_activity = bool(data["use_global_activity"])
     if "use_global_presence" in data:
         area.use_global_presence = bool(data["use_global_presence"])
+    
+    # Update custom temperature values
+    if "away_temp" in data:
+        area.away_temp = float(data["away_temp"])
+    if "eco_temp" in data:
+        area.eco_temp = float(data["eco_temp"])
+    if "comfort_temp" in data:
+        area.comfort_temp = float(data["comfort_temp"])
+    if "home_temp" in data:
+        area.home_temp = float(data["home_temp"])
+    if "sleep_temp" in data:
+        area.sleep_temp = float(data["sleep_temp"])
+    if "activity_temp" in data:
+        area.activity_temp = float(data["activity_temp"])
     
     # Save to storage
     await area_manager.async_save()

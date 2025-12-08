@@ -503,6 +503,7 @@
     "presetUseCustom": "{{preset}}: Use Custom",
     "usingGlobalSetting": "Using global setting: {{temp}}°C",
     "usingCustomSetting": "Using custom setting: {{temp}}°C",
+    "customTemperature": "Custom Temperature",
     "customTempInfo": "Custom temperature can be set via Home Assistant services. Current effective temperature: {{temp}}°C",
     "presetConfigInfo": "Toggle each preset to choose between the global default temperature or a custom temperature for this area. Global presets can be configured in Settings → Global Presets.",
     "shutdownSwitchesPumps": "Shutdown switches/pumps when not heating",

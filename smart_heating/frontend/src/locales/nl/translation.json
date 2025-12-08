@@ -503,6 +503,7 @@
     "presetUseCustom": "{{preset}}: Gebruik Aangepast",
     "usingGlobalSetting": "Gebruikt globale instelling: {{temp}}°C",
     "usingCustomSetting": "Gebruikt aangepaste instelling: {{temp}}°C",
+    "customTemperature": "Aangepaste Temperatuur",
     "customTempInfo": "Aangepaste temperatuur kan worden ingesteld via Home Assistant services. Huidige effectieve temperatuur: {{temp}}°C",
     "presetConfigInfo": "Schakel elke voorinstelling om te kiezen tussen de globale standaardtemperatuur of een aangepaste temperatuur voor dit gebied. Globale voorinstellingen kunnen worden geconfigureerd in Instellingen → Globale Voorinstellingen.",
     "shutdownSwitchesPumps": "Schakel schakelaars/pompen uit wanneer niet verwarmd wordt",

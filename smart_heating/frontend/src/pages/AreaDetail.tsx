@@ -510,9 +510,34 @@ const ZoneDetail = () => {
                     }
                   />
                   {!useGlobal && (
-                    <Alert severity="info" sx={{ mt: 1 }}>
-                      {t('settingsCards.customTempInfo', { temp: effectiveTemp })}
-                    </Alert>
+                    <Box sx={{ mt: 2, pl: 2 }}>
+                      <Typography variant="body2" gutterBottom>
+                        {t('settingsCards.customTemperature')}: {preset.custom?.toFixed(1) ?? effectiveTemp?.toFixed(1)}°C
+                      </Typography>
+                      <Slider
+                        value={preset.custom ?? effectiveTemp ?? 20}
+                        min={10}
+                        max={30}
+                        step={0.5}
+                        marks={[
+                          { value: 15, label: '15°C' },
+                          { value: 20, label: '20°C' },
+                          { value: 25, label: '25°C' },
+                        ]}
+                        valueLabelDisplay="auto"
+                        onChange={async (_, newValue) => {
+                          const tempValue = newValue as number
+                          const tempKey = `${preset.key}_temp` as keyof Zone
+                          try {
+                            await setAreaPresetConfig(area.id, { [tempKey]: tempValue })
+                            await loadData()
+                          } catch (error) {
+                            console.error('Failed to update custom temperature:', error)
+                            alert(`Failed to update temperature: ${error}`)
+                          }
+                        }}
+                      />
+                    </Box>
                   )}
                 </Box>
               )
