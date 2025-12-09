@@ -30,6 +30,7 @@ async def handle_get_config(hass: HomeAssistant, area_manager: AreaManager) -> w
         "trv_temp_offset": area_manager.trv_temp_offset,
         "safety_sensors": area_manager.get_safety_sensors(),
         "safety_alert_active": area_manager.is_safety_alert_active(),
+        "hide_devices_panel": area_manager.hide_devices_panel,
     }
 
     return web.json_response(config)
@@ -101,12 +102,43 @@ async def handle_set_global_presets(area_manager: AreaManager, data: dict) -> we
     # Save to storage
     await area_manager.async_save()
 
-    _LOGGER.warning("✓ Global presets saved")
+    _LOGGER.warning("✓ Global presence saved")
 
     return web.json_response({"success": True})
 
 
 async def handle_get_hysteresis(area_manager: AreaManager) -> web.Response:
+    """Get global hysteresis value.
+
+    Args:
+        area_manager: Area manager instance
+
+    Returns:
+        JSON response with hysteresis value
+    """
+    return web.json_response({"hysteresis": area_manager.hysteresis})
+
+
+async def handle_set_hide_devices_panel(area_manager: AreaManager, data: dict) -> web.Response:
+    """Set hide devices panel setting.
+
+    Args:
+        area_manager: Area manager instance
+        data: Dictionary with hide_devices_panel boolean
+
+    Returns:
+        JSON response
+    """
+    if "hide_devices_panel" in data:
+        area_manager.hide_devices_panel = bool(data["hide_devices_panel"])
+        await area_manager.async_save()
+        _LOGGER.info("✓ Hide devices panel set to: %s", area_manager.hide_devices_panel)
+        return web.json_response({"success": True})
+
+    return web.json_response({"error": "Missing hide_devices_panel value"}, status=400)
+
+
+async def handle_get_opentherm_config(area_manager: AreaManager) -> web.Response:
     """Get global hysteresis value.
 
     Args:

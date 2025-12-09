@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { 
-  ThemeProvider, 
-  createTheme, 
-  CssBaseline, 
-  Box, 
-  Snackbar, 
-  Alert 
+import {
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+  Box,
+  Snackbar,
+  Alert
 } from '@mui/material'
 import { DragDropContext, DropResult } from 'react-beautiful-dnd'
 import Header from './components/Header'
@@ -87,6 +87,7 @@ interface ZonesOverviewProps {
   areas: Zone[]
   loading: boolean
   showHidden: boolean
+  hideDevicesPanel: boolean
   availableDevices: Device[]
   handleDragEnd: (result: DropResult) => void
   handleZonesUpdate: () => void
@@ -100,60 +101,63 @@ const ZonesOverview = ({
   areas,
   loading,
   showHidden,
+  hideDevicesPanel,
   availableDevices,
   handleDragEnd,
   handleZonesUpdate,
   setShowHidden,
 }: ZonesOverviewProps) => (
   <DragDropContext onDragEnd={handleDragEnd}>
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
+    <Box sx={{
+      display: 'flex',
+      flexDirection: 'column',
       height: '100vh',
       bgcolor: 'background.default'
     }}>
       <Header wsConnected={wsConnected} />
-      <Box sx={{ 
-        display: 'flex', 
-        flex: 1, 
+      <Box sx={{
+        display: 'flex',
+        flex: 1,
         overflow: 'hidden',
         flexDirection: { xs: 'column', md: 'row' }
       }}>
-        <Box sx={{ 
-          flex: 1, 
-          overflow: 'auto', 
+        <Box sx={{
+          flex: 1,
+          overflow: 'auto',
           p: { xs: 1.5, sm: 2, md: 3 },
-          bgcolor: 'background.default' 
+          bgcolor: 'background.default'
         }}>
           {safetyAlertActive && (
-            <Alert 
-              severity="error" 
+            <Alert
+              severity="error"
               sx={{ mb: 2 }}
               icon={<span style={{ fontSize: '24px' }}>🚨</span>}
             >
-              <strong>SAFETY ALERT ACTIVE!</strong> All heating has been shut down due to a safety sensor alert. 
+              <strong>SAFETY ALERT ACTIVE!</strong> All heating has been shut down due to a safety sensor alert.
               Please resolve the safety issue and manually re-enable areas in Settings.
             </Alert>
           )}
           <VacationModeBanner />
-          <OpenThermStatus 
+          <OpenThermStatus
             openthermGatewayId={openthermConfig.gateway_id}
             enabled={openthermConfig.enabled}
           />
-          <ZoneList 
-            areas={areas} 
+          <ZoneList
+            areas={areas}
             loading={loading}
             onUpdate={handleZonesUpdate}
             showHidden={showHidden}
             onToggleShowHidden={() => setShowHidden(!showHidden)}
           />
         </Box>
-        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-          <DevicePanel 
-            devices={availableDevices}
-            onUpdate={handleZonesUpdate}
-          />
-        </Box>
+        {!hideDevicesPanel && (
+          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+            <DevicePanel
+              devices={availableDevices}
+              onUpdate={handleZonesUpdate}
+            />
+          </Box>
+        )}
       </Box>
     </Box>
   </DragDropContext>
@@ -166,6 +170,7 @@ function App() {
   const [wsConnected, setWsConnected] = useState(false)
   const [showConnectionAlert, setShowConnectionAlert] = useState(false)
   const [showHidden, setShowHidden] = useState(false)
+  const [hideDevicesPanel, setHideDevicesPanel] = useState(false)
   const [openthermConfig, setOpenthermConfig] = useState<{
     gateway_id?: string
     enabled?: boolean
@@ -182,20 +187,23 @@ function App() {
         getSafetySensor().catch(() => null)
       ])
       setAreas(areasData)
-      
+
       // Check if safety alert is active
       if (safetySensorData?.alert_active) {
         setSafetyAlertActive(true)
       } else {
         setSafetyAlertActive(false)
       }
-      
+
       // Store OpenTherm config
       setOpenthermConfig({
         gateway_id: configData.opentherm_gateway_id,
         enabled: configData.opentherm_enabled
       })
-      
+
+      // Store hide devices panel setting
+      setHideDevicesPanel(configData.hide_devices_panel || false)
+
       // Filter out devices already assigned to areas
       const assignedDeviceIds = new Set(
         areasData.flatMap(area => area.devices.map(d => d.id))
@@ -245,7 +253,7 @@ function App() {
         .catch(() => setSafetyAlertActive(false))
     },
     onZoneUpdate: (updatedZone) => {
-      setAreas(prevAreas => 
+      setAreas(prevAreas =>
         prevAreas.map(z => z.id === updatedZone.id ? updatedZone : z)
       )
     },
@@ -275,10 +283,10 @@ function App() {
 
     const areaId = destination.droppableId.replace('area-', '')
     const deviceId = result.draggableId.replace('device-', '')
-    
+
     const device = availableDevices.find(d => d.id === deviceId)
     if (!device) return
-    
+
     try {
       await addDeviceToZone(areaId, {
         device_id: deviceId,
@@ -297,13 +305,14 @@ function App() {
       <Router basename="/smart_heating_ui">
         <Routes>
           <Route path="/" element={
-            <ZonesOverview 
+            <ZonesOverview
               wsConnected={wsConnected}
               safetyAlertActive={safetyAlertActive}
               openthermConfig={openthermConfig}
               areas={areas}
               loading={loading}
               showHidden={showHidden}
+              hideDevicesPanel={hideDevicesPanel}
               availableDevices={availableDevices}
               handleDragEnd={handleDragEnd}
               handleZonesUpdate={handleZonesUpdate}
@@ -317,15 +326,15 @@ function App() {
           <Route path="/analytics/comparison" element={<HistoricalComparisons />} />
         </Routes>
       </Router>
-      
+
       {/* Connection status notification */}
       <Snackbar
         open={showConnectionAlert}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
         autoHideDuration={null}
       >
-        <Alert 
-          severity="warning" 
+        <Alert
+          severity="warning"
           onClose={() => setShowConnectionAlert(false)}
           sx={{ width: '100%' }}
         >

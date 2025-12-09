@@ -75,6 +75,7 @@ from .api_handlers import (
     handle_set_frost_protection,
     handle_set_global_presence,
     handle_set_global_presets,
+    handle_set_hide_devices_panel,
     handle_set_history_config,
     handle_set_hvac_mode,
     handle_set_hysteresis_value,
@@ -371,6 +372,8 @@ class SmartHeatingAPIView(HomeAssistantView):
                 return await handle_set_global_presets(self.area_manager, data)
             elif endpoint == "global_presence":
                 return await handle_set_global_presence(self.area_manager, data)
+            elif endpoint == "hide_devices_panel":
+                return await handle_set_hide_devices_panel(self.area_manager, data)
             elif endpoint == "hysteresis":
                 # Get coordinator
                 entry_ids = [

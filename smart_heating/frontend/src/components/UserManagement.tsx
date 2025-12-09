@@ -208,13 +208,24 @@ export const UserManagement: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
-        <IconButton onClick={() => navigate('/')} size="large" color="primary">
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* Header */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          mb: 2,
+          borderRadius: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+        }}
+      >
+        <IconButton onClick={() => navigate('/')} edge="start">
           <ArrowBackIcon />
         </IconButton>
-        <PersonIcon fontSize="large" />
-        <Typography variant="h4">
+        <PersonIcon />
+        <Typography variant="h6">
           {t('users.title', 'User Management')}
         </Typography>
         <Box sx={{ flexGrow: 1 }} />
@@ -232,7 +243,9 @@ export const UserManagement: React.FC = () => {
         >
           {t('users.addUser', 'Add User')}
         </Button>
-      </Stack>
+      </Paper>
+
+      <Box sx={{ px: 3 }}>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
@@ -449,6 +462,7 @@ export const UserManagement: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   )
 }

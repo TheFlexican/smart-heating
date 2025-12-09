@@ -75,15 +75,15 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
   const filteredDevices = devices.filter(device => {
     // Type filter
     const typeMatch = !showOnlyHeating || ['climate', 'temperature'].includes(device.subtype || '')
-    
+
     // Search filter
     if (!deviceSearch) return typeMatch
-    
+
     const searchLower = deviceSearch.toLowerCase()
     const nameMatch = (device.name || device.id || '').toLowerCase().includes(searchLower)
     const entityMatch = (device.entity_id || device.id || '').toLowerCase().includes(searchLower)
     const areaMatch = (device.ha_area_name || '').toLowerCase().includes(searchLower)
-    
+
     return typeMatch && (nameMatch || entityMatch || areaMatch)
   })
 
@@ -91,6 +91,7 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
     <Paper
       sx={{
         width: 320,
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
         borderLeft: 1,
@@ -157,7 +158,7 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
         {filteredDevices.length === 0 ? (
           <Box sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="body2" color="text.secondary">
-              {deviceSearch 
+              {deviceSearch
                 ? t('devices.noMatch', { search: deviceSearch })
                 : showOnlyHeating
                   ? t('devices.noClimateDevices')
@@ -206,7 +207,7 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
                                 label={getDeviceTypeLabel(device.type)}
                                 size="small"
                                 variant="outlined"
-                                sx={{ 
+                                sx={{
                                   borderColor: 'divider',
                                   color: 'text.secondary',
                                   width: 'fit-content'

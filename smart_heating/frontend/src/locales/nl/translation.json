@@ -167,6 +167,12 @@
       "current": "Huidig",
       "heatingStarts": "Verwarming start wanneer de temperatuur",
       "belowTarget": "onder het doel daalt"
+    },
+    "ui": {
+      "title": "Gebruikersinterface",
+      "description": "Pas de gebruikersinterface aan naar uw voorkeuren.",
+      "hideDevicesPanel": "Verberg Beschikbare Apparaten Paneel",
+      "hideDevicesPanelDescription": "Verberg de sidebar met beschikbare apparaten wanneer u klaar bent met het instellen van zones. U kunt deze later altijd weer inschakelen indien nodig."
     }
   },
   "presetDescriptions": {

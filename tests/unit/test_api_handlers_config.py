@@ -1,26 +1,25 @@
 """Tests for configuration API handlers."""
 
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
-from aiohttp import web
 import json
+from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from smart_heating.api_handlers.config import (
-    handle_get_config,
-    handle_get_global_presets,
-    handle_set_global_presets,
-    handle_get_hysteresis,
-    handle_set_hysteresis_value,
-    handle_get_global_presence,
-    handle_set_global_presence,
-    handle_set_frost_protection,
-    handle_get_vacation_mode,
-    handle_enable_vacation_mode,
     handle_disable_vacation_mode,
+    handle_enable_vacation_mode,
+    handle_get_config,
+    handle_get_global_presence,
+    handle_get_global_presets,
+    handle_get_hysteresis,
     handle_get_safety_sensor,
-    handle_set_safety_sensor,
+    handle_get_vacation_mode,
     handle_remove_safety_sensor,
+    handle_set_frost_protection,
+    handle_set_global_presence,
+    handle_set_global_presets,
     handle_set_hvac_mode,
+    handle_set_hysteresis_value,
+    handle_set_safety_sensor,
 )
 from smart_heating.const import DOMAIN
 
@@ -56,15 +55,16 @@ def mock_area_manager():
     manager.frost_protection_temp = 5.0
     manager.get_safety_sensors.return_value = []
     manager.is_safety_alert_active.return_value = False
+    manager.hide_devices_panel = False
     manager.async_save = AsyncMock()
-    
+
     # Mock area
     mock_area = MagicMock()
     mock_area.id = "living_room"
     mock_area.hvac_mode = "heat"
     manager.get_area.return_value = mock_area
     manager.areas = {"living_room": mock_area}
-    
+
     return manager
 
 
@@ -82,19 +82,20 @@ class TestConfigHandlers:
     async def test_handle_get_config(self, mock_hass, mock_area_manager):
         """Test getting system configuration."""
         response = await handle_get_config(mock_hass, mock_area_manager)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
         assert body["opentherm_gateway_id"] == "climate.gateway"
-        assert body["opentherm_enabled"] == True
+        assert body["opentherm_enabled"] is True
         assert body["trv_heating_temp"] == 22.0
-        assert body["safety_alert_active"] == False
+        assert body["safety_alert_active"] is False
+        assert body["hide_devices_panel"] is False
 
     @pytest.mark.asyncio
     async def test_handle_get_global_presets(self, mock_area_manager):
         """Test getting global preset temperatures."""
         response = await handle_get_global_presets(mock_area_manager)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
         assert body["away_temp"] == 15.0
@@ -113,15 +114,15 @@ class TestConfigHandlers:
             "comfort_temp": 23.0,
             "home_temp": 19.0,
             "sleep_temp": 16.0,
-            "activity_temp": 22.0
+            "activity_temp": 22.0,
         }
-        
+
         response = await handle_set_global_presets(mock_area_manager, data)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
-        assert body["success"] == True
-        
+        assert body["success"] is True
+
         assert mock_area_manager.global_away_temp == 14.0
         assert mock_area_manager.global_eco_temp == 17.0
         assert mock_area_manager.global_comfort_temp == 23.0
@@ -134,9 +135,9 @@ class TestConfigHandlers:
     async def test_handle_set_global_presets_partial(self, mock_area_manager):
         """Test setting only some preset temperatures."""
         data = {"eco_temp": 17.5, "comfort_temp": 21.5}
-        
+
         response = await handle_set_global_presets(mock_area_manager, data)
-        
+
         assert response.status == 200
         assert mock_area_manager.global_eco_temp == 17.5
         assert mock_area_manager.global_comfort_temp == 21.5
@@ -147,27 +148,75 @@ class TestConfigHandlers:
     async def test_handle_get_hysteresis(self, mock_area_manager):
         """Test getting hysteresis value."""
         response = await handle_get_hysteresis(mock_area_manager)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
         assert body["hysteresis"] == 0.5
 
     @pytest.mark.asyncio
-    async def test_handle_set_hysteresis_value_success(self, mock_hass, mock_area_manager, mock_coordinator):
+    async def test_handle_set_hysteresis_value_success(
+        self, mock_hass, mock_area_manager, mock_coordinator
+    ):
         """Test setting hysteresis value."""
         data = {"hysteresis": 0.8}
-        
+
         response = await handle_set_hysteresis_value(
             mock_hass, mock_area_manager, mock_coordinator, data
         )
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
-        assert body["success"] == True
-        
+        assert body["success"] is True
+
         assert mock_area_manager.hysteresis == 0.8
         mock_area_manager.async_save.assert_called_once()
         mock_coordinator.async_request_refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_handle_set_hide_devices_panel_true(self, mock_area_manager):
+        """Test setting hide_devices_panel to true."""
+        from smart_heating.api_handlers.config import handle_set_hide_devices_panel
+
+        data = {"hide_devices_panel": True}
+
+        response = await handle_set_hide_devices_panel(mock_area_manager, data)
+
+        assert response.status == 200
+        body = json.loads(response.body.decode())
+        assert body["success"] is True
+
+        assert mock_area_manager.hide_devices_panel is True
+        mock_area_manager.async_save.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_handle_set_hide_devices_panel_false(self, mock_area_manager):
+        """Test setting hide_devices_panel to false."""
+        from smart_heating.api_handlers.config import handle_set_hide_devices_panel
+
+        data = {"hide_devices_panel": False}
+
+        response = await handle_set_hide_devices_panel(mock_area_manager, data)
+
+        assert response.status == 200
+        body = json.loads(response.body.decode())
+        assert body["success"] is True
+
+        assert mock_area_manager.hide_devices_panel is False
+        mock_area_manager.async_save.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_handle_set_hide_devices_panel_missing_value(self, mock_area_manager):
+        """Test setting hide_devices_panel with missing value."""
+        from smart_heating.api_handlers.config import handle_set_hide_devices_panel
+
+        data = {}
+
+        response = await handle_set_hide_devices_panel(mock_area_manager, data)
+
+        assert response.status == 400
+        body = json.loads(response.body.decode())
+        assert "error" in body
+        assert "Missing hide_devices_panel value" in body["error"]
 
     @pytest.mark.asyncio
     async def test_handle_set_hysteresis_value_out_of_range_low(
@@ -175,11 +224,11 @@ class TestConfigHandlers:
     ):
         """Test setting hysteresis below minimum."""
         data = {"hysteresis": 0.05}
-        
+
         response = await handle_set_hysteresis_value(
             mock_hass, mock_area_manager, mock_coordinator, data
         )
-        
+
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "error" in body
@@ -190,11 +239,11 @@ class TestConfigHandlers:
     ):
         """Test setting hysteresis above maximum."""
         data = {"hysteresis": 5.0}
-        
+
         response = await handle_set_hysteresis_value(
             mock_hass, mock_area_manager, mock_coordinator, data
         )
-        
+
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "error" in body
@@ -205,11 +254,11 @@ class TestConfigHandlers:
     ):
         """Test setting hysteresis without value."""
         data = {}
-        
+
         response = await handle_set_hysteresis_value(
             mock_hass, mock_area_manager, mock_coordinator, data
         )
-        
+
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "error" in body
@@ -218,7 +267,7 @@ class TestConfigHandlers:
     async def test_handle_get_global_presence(self, mock_area_manager):
         """Test getting global presence sensors."""
         response = await handle_get_global_presence(mock_area_manager)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
         assert body["sensors"] == ["binary_sensor.motion"]
@@ -227,13 +276,13 @@ class TestConfigHandlers:
     async def test_handle_set_global_presence(self, mock_area_manager):
         """Test setting global presence sensors."""
         data = {"sensors": ["binary_sensor.motion1", "binary_sensor.motion2"]}
-        
+
         response = await handle_set_global_presence(mock_area_manager, data)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
-        assert body["success"] == True
-        
+        assert body["success"] is True
+
         assert len(mock_area_manager.global_presence_sensors) == 2
         mock_area_manager.async_save.assert_called_once()
 
@@ -241,16 +290,16 @@ class TestConfigHandlers:
     async def test_handle_set_frost_protection_both(self, mock_area_manager):
         """Test setting frost protection with both enabled and temperature."""
         data = {"enabled": True, "temperature": 7.0}
-        
+
         response = await handle_set_frost_protection(mock_area_manager, data)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
-        assert body["success"] == True
-        assert body["enabled"] == True
+        assert body["success"] is True
+        assert body["enabled"] is True
         assert body["temperature"] == 7.0
-        
-        assert mock_area_manager.frost_protection_enabled == True
+
+        assert mock_area_manager.frost_protection_enabled is True
         assert mock_area_manager.frost_protection_temp == 7.0
         mock_area_manager.async_save.assert_called_once()
 
@@ -258,11 +307,11 @@ class TestConfigHandlers:
     async def test_handle_set_frost_protection_enabled_only(self, mock_area_manager):
         """Test setting only frost protection enabled flag."""
         data = {"enabled": True}
-        
+
         response = await handle_set_frost_protection(mock_area_manager, data)
-        
+
         assert response.status == 200
-        assert mock_area_manager.frost_protection_enabled == True
+        assert mock_area_manager.frost_protection_enabled is True
         # Temperature should remain unchanged
         assert mock_area_manager.frost_protection_temp == 5.0
 
@@ -270,22 +319,22 @@ class TestConfigHandlers:
     async def test_handle_set_frost_protection_temp_only(self, mock_area_manager):
         """Test setting only frost protection temperature."""
         data = {"temperature": 6.0}
-        
+
         response = await handle_set_frost_protection(mock_area_manager, data)
-        
+
         assert response.status == 200
         assert mock_area_manager.frost_protection_temp == 6.0
         # Enabled should remain unchanged
-        assert mock_area_manager.frost_protection_enabled == False
+        assert mock_area_manager.frost_protection_enabled is False
 
     @pytest.mark.asyncio
     async def test_handle_set_frost_protection_error(self, mock_area_manager):
         """Test frost protection with ValueError."""
         mock_area_manager.async_save.side_effect = ValueError("Invalid value")
-        
+
         data = {"enabled": True}
         response = await handle_set_frost_protection(mock_area_manager, data)
-        
+
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "error" in body
@@ -297,22 +346,22 @@ class TestConfigHandlers:
         mock_vacation.get_data.return_value = {
             "enabled": True,
             "start_date": "2024-01-01",
-            "end_date": "2024-01-07"
+            "end_date": "2024-01-07",
         }
         mock_hass.data[DOMAIN]["vacation_manager"] = mock_vacation
-        
+
         response = await handle_get_vacation_mode(mock_hass)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
-        assert body["enabled"] == True
+        assert body["enabled"] is True
         assert body["start_date"] == "2024-01-01"
 
     @pytest.mark.asyncio
     async def test_handle_get_vacation_mode_no_manager(self, mock_hass):
         """Test getting vacation mode when manager not initialized."""
         response = await handle_get_vacation_mode(mock_hass)
-        
+
         assert response.status == 500
         body = json.loads(response.body.decode())
         assert "error" in body
@@ -324,22 +373,16 @@ class TestConfigHandlers:
         mock_vacation.async_enable = AsyncMock()
         mock_vacation.get_data.return_value = {"enabled": True}
         mock_hass.data[DOMAIN]["vacation_manager"] = mock_vacation
-        
-        data = {
-            "start_date": "2024-01-01",
-            "end_date": "2024-01-07",
-            "temperature": 15.0
-        }
+
+        data = {"start_date": "2024-01-01", "end_date": "2024-01-07", "temperature": 15.0}
         response = await handle_enable_vacation_mode(mock_hass, data)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
-        assert body["enabled"] == True
-        
+        assert body["enabled"] is True
+
         mock_vacation.async_enable.assert_called_once_with(
-            start_date="2024-01-01",
-            end_date="2024-01-07",
-            temperature=15.0
+            start_date="2024-01-01", end_date="2024-01-07", temperature=15.0
         )
 
     @pytest.mark.asyncio
@@ -347,10 +390,10 @@ class TestConfigHandlers:
         """Test enabling vacation mode without dates."""
         mock_vacation = MagicMock()
         mock_hass.data[DOMAIN]["vacation_manager"] = mock_vacation
-        
+
         data = {"temperature": 15.0}  # Missing dates
         response = await handle_enable_vacation_mode(mock_hass, data)
-        
+
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "error" in body
@@ -358,12 +401,9 @@ class TestConfigHandlers:
     @pytest.mark.asyncio
     async def test_handle_enable_vacation_mode_no_manager(self, mock_hass):
         """Test enabling vacation mode when manager not initialized."""
-        data = {
-            "start_date": "2024-01-01",
-            "end_date": "2024-01-07"
-        }
+        data = {"start_date": "2024-01-01", "end_date": "2024-01-07"}
         response = await handle_enable_vacation_mode(mock_hass, data)
-        
+
         assert response.status == 500
         body = json.loads(response.body.decode())
         assert "error" in body
@@ -374,13 +414,13 @@ class TestConfigHandlers:
         mock_vacation = MagicMock()
         mock_vacation.async_enable = AsyncMock(side_effect=ValueError("Invalid dates"))
         mock_hass.data[DOMAIN]["vacation_manager"] = mock_vacation
-        
+
         data = {
             "start_date": "2024-01-07",
-            "end_date": "2024-01-01"  # End before start
+            "end_date": "2024-01-01",  # End before start
         }
         response = await handle_enable_vacation_mode(mock_hass, data)
-        
+
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "error" in body
@@ -391,20 +431,20 @@ class TestConfigHandlers:
         mock_vacation = MagicMock()
         mock_vacation.async_disable = AsyncMock()
         mock_hass.data[DOMAIN]["vacation_manager"] = mock_vacation
-        
+
         response = await handle_disable_vacation_mode(mock_hass)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
-        assert body["success"] == True
-        
+        assert body["success"] is True
+
         mock_vacation.async_disable.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_handle_disable_vacation_mode_no_manager(self, mock_hass):
         """Test disabling vacation mode when manager not initialized."""
         response = await handle_disable_vacation_mode(mock_hass)
-        
+
         assert response.status == 500
         body = json.loads(response.body.decode())
         assert "error" in body
@@ -416,27 +456,27 @@ class TestConfigHandlers:
             {"sensor_id": "binary_sensor.smoke", "enabled": True}
         ]
         mock_area_manager.is_safety_alert_active.return_value = False
-        
+
         response = await handle_get_safety_sensor(mock_area_manager)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
         assert body["sensor_id"] == "binary_sensor.smoke"
-        assert body["enabled"] == True
-        assert body["alert_active"] == False
+        assert body["enabled"] is True
+        assert body["alert_active"] is False
 
     @pytest.mark.asyncio
     async def test_handle_get_safety_sensor_without_sensor(self, mock_area_manager):
         """Test getting safety sensor when none configured."""
         mock_area_manager.get_safety_sensors.return_value = []
-        
+
         response = await handle_get_safety_sensor(mock_area_manager)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
         assert body["sensor_id"] is None
-        assert body["enabled"] == False
-        assert body["alert_active"] == False
+        assert body["enabled"] is False
+        assert body["alert_active"] is False
 
     @pytest.mark.asyncio
     async def test_handle_set_safety_sensor_success(self, mock_hass, mock_area_manager):
@@ -444,15 +484,15 @@ class TestConfigHandlers:
         mock_safety = MagicMock()
         mock_safety.async_reconfigure = AsyncMock()
         mock_hass.data[DOMAIN]["safety_monitor"] = mock_safety
-        
+
         data = {"sensor_id": "binary_sensor.smoke"}
         response = await handle_set_safety_sensor(mock_hass, mock_area_manager, data)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
-        assert body["success"] == True
+        assert body["success"] is True
         assert body["sensor_id"] == "binary_sensor.smoke"
-        
+
         mock_area_manager.clear_safety_sensors.assert_called_once()
         mock_area_manager.add_safety_sensor.assert_called_once_with("binary_sensor.smoke")
         mock_area_manager.async_save.assert_called_once()
@@ -464,7 +504,7 @@ class TestConfigHandlers:
         """Test setting safety sensor without sensor_id."""
         data = {}
         response = await handle_set_safety_sensor(mock_hass, mock_area_manager, data)
-        
+
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "error" in body
@@ -475,13 +515,13 @@ class TestConfigHandlers:
         mock_safety = MagicMock()
         mock_safety.async_reconfigure = AsyncMock()
         mock_hass.data[DOMAIN]["safety_monitor"] = mock_safety
-        
+
         response = await handle_remove_safety_sensor(mock_hass, mock_area_manager)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
-        assert body["success"] == True
-        
+        assert body["success"] is True
+
         mock_area_manager.clear_safety_sensors.assert_called_once()
         mock_area_manager.async_save.assert_called_once()
         mock_safety.async_reconfigure.assert_called_once()
@@ -492,15 +532,15 @@ class TestConfigHandlers:
         """Test setting HVAC mode."""
         mock_coordinator = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
-        
+
         data = {"hvac_mode": "cool"}
         response = await handle_set_hvac_mode(mock_hass, mock_area_manager, "living_room", data)
-        
+
         assert response.status == 200
         body = json.loads(response.body.decode())
-        assert body["success"] == True
+        assert body["success"] is True
         assert body["hvac_mode"] == "cool"
-        
+
         assert mock_area_manager.get_area.return_value.hvac_mode == "cool"
         mock_area_manager.async_save.assert_called_once()
         mock_coordinator.async_request_refresh.assert_called_once()
@@ -510,7 +550,7 @@ class TestConfigHandlers:
         """Test setting HVAC mode without mode parameter."""
         data = {}
         response = await handle_set_hvac_mode(mock_hass, mock_area_manager, "living_room", data)
-        
+
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "error" in body
@@ -519,10 +559,10 @@ class TestConfigHandlers:
     async def test_handle_set_hvac_mode_area_not_found(self, mock_hass, mock_area_manager):
         """Test setting HVAC mode for non-existent area."""
         mock_area_manager.get_area.return_value = None
-        
+
         data = {"hvac_mode": "cool"}
         response = await handle_set_hvac_mode(mock_hass, mock_area_manager, "nonexistent", data)
-        
+
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "error" in body

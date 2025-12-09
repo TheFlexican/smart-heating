@@ -9,6 +9,17 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 
 ### ✨ Functies
 
+**Beschikbare Apparaten Paneel Verbeteringen**
+- **Scroll probleem in Beschikbare Apparaten sidebar opgelost**: Juiste hoogte beperking toegevoegd om scrollen mogelijk te maken
+  - Paneel scrollt nu correct wanneer de apparatenlijst lang is
+  - Overflow gedrag gefixed voor betere UX op hoofddashboard
+- **Verberg optie toegevoegd voor Beschikbare Apparaten paneel**: Nieuwe UI instelling om sidebar te verbergen wanneer setup compleet is
+  - Toggle schakelaar in Globale Instellingen → Geavanceerd → Gebruikersinterface sectie
+  - Instelling: "Verberg Beschikbare Apparaten Paneel"
+  - Handig na initiële setup om schermruimte te maximaliseren voor zone monitoring
+  - Instelling is persistent en opgeslagen in storage
+  - Pagina herlaadt automatisch bij wisselen om wijzigingen toe te passen
+
 **Snelle Boost Toegang op Zone Kaarten**
 - **Boost knop toegevoegd aan zone kaarten**: Snelle één-klik boost activering vanaf hoofddashboard
   - Raket icoon knop (🚀) verschijnt naast menu knop op elke zone kaart

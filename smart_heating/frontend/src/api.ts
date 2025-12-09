@@ -335,6 +335,10 @@ export const setGlobalPresets = async (presets: Partial<{
   await axios.post(`${API_BASE}/global_presets`, presets)
 }
 
+export const setHideDevicesPanel = async (hide: boolean): Promise<void> => {
+  await axios.post(`${API_BASE}/hide_devices_panel`, { hide_devices_panel: hide })
+}
+
 export const setAreaPresetConfig = async (
   areaId: string,
   config: Partial<{

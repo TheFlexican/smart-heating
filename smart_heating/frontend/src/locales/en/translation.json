@@ -167,6 +167,12 @@
       "current": "Current",
       "heatingStarts": "Heating starts when temperature drops",
       "belowTarget": "below target"
+    },
+    "ui": {
+      "title": "User Interface",
+      "description": "Customize the user interface to your preferences.",
+      "hideDevicesPanel": "Hide Available Devices Panel",
+      "hideDevicesPanelDescription": "Hide the sidebar with available devices when you're done setting up zones. You can always enable it again later if needed."
     }
   },
   "presetDescriptions": {

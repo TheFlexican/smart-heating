@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### ✨ Features
 
+**Available Devices Panel Improvements**
+- **Fixed scroll issue in Available Devices sidebar**: Added proper height constraint to enable scrolling
+  - Panel now properly scrolls when device list is long
+  - Fixed overflow behavior for better UX on main dashboard
+- **Added hide option for Available Devices panel**: New UI setting to hide the sidebar when setup is complete
+  - Toggle switch in Global Settings → Advanced → User Interface section
+  - Setting: "Hide Available Devices Panel"
+  - Useful after initial setup to maximize screen space for zone monitoring
+  - Setting is persistent and saved in storage
+  - Page automatically reloads when toggled to apply changes
+
 **Quick Boost Access on Zone Cards**
 - **Added boost button to zone cards**: Quick one-click boost activation from main dashboard
   - Rocket icon button (🚀) appears next to menu button on each zone card

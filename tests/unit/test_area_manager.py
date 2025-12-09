@@ -1,12 +1,12 @@
 """Tests for Area Manager."""
+
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
-
 from smart_heating.area_manager import AreaManager
 from smart_heating.const import (
     DEFAULT_AWAY_TEMP,
@@ -17,7 +17,7 @@ from smart_heating.const import (
 )
 from smart_heating.models import Area
 
-from tests.unit.const import TEST_AREA_ID, TEST_AREA_NAME, TEST_TEMPERATURE
+from tests.unit.const import TEST_AREA_ID, TEST_AREA_NAME
 
 
 @pytest.fixture
@@ -39,6 +39,7 @@ class TestAreaManagerInitialization:
         assert area_manager.global_eco_temp == DEFAULT_ECO_TEMP
         assert area_manager.global_comfort_temp == DEFAULT_COMFORT_TEMP
         assert area_manager.global_away_temp == DEFAULT_AWAY_TEMP
+        assert area_manager.hide_devices_panel is False
 
     def test_storage_configuration(self, area_manager: AreaManager):
         """Test storage configuration."""
@@ -65,9 +66,7 @@ class TestAreaManagerLoading:
             "areas": [mock_area_data],  # List, not dict
         }
 
-        with patch.object(
-            area_manager._store, "async_load", return_value=storage_data
-        ):
+        with patch.object(area_manager._store, "async_load", return_value=storage_data):
             await area_manager.async_load()
             assert area_manager.opentherm_enabled is True
             assert area_manager.opentherm_gateway_id == "climate.opentherm"
@@ -89,9 +88,7 @@ class TestAreaManagerLoading:
             "areas": [],  # List, not dict
         }
 
-        with patch.object(
-            area_manager._store, "async_load", return_value=storage_data
-        ):
+        with patch.object(area_manager._store, "async_load", return_value=storage_data):
             await area_manager.async_load()
             assert area_manager.global_away_temp == 16.0
             assert area_manager.global_eco_temp == 18.0
@@ -103,6 +100,27 @@ class TestAreaManagerLoading:
             assert area_manager.frost_protection_enabled is True
             assert area_manager.frost_protection_temp == 5.0
 
+    async def test_async_load_with_hide_devices_panel(self, area_manager: AreaManager):
+        """Test loading hide_devices_panel setting."""
+        storage_data = {
+            "hide_devices_panel": True,
+            "areas": [],
+        }
+
+        with patch.object(area_manager._store, "async_load", return_value=storage_data):
+            await area_manager.async_load()
+            assert area_manager.hide_devices_panel is True
+
+    async def test_async_load_without_hide_devices_panel(self, area_manager: AreaManager):
+        """Test loading without hide_devices_panel (defaults to False)."""
+        storage_data = {
+            "areas": [],
+        }
+
+        with patch.object(area_manager._store, "async_load", return_value=storage_data):
+            await area_manager.async_load()
+            assert area_manager.hide_devices_panel is False
+
 
 class TestAreaManagerSaving:
     """Test AreaManager saving to storage."""
@@ -111,7 +129,7 @@ class TestAreaManagerSaving:
         """Test saving to storage."""
         # Initialize safety_sensors to avoid AttributeError
         area_manager.safety_sensors = []
-        
+
         # Add an area
         area = Area.from_dict(mock_area_data)
         area.area_manager = area_manager
@@ -120,7 +138,7 @@ class TestAreaManagerSaving:
         with patch.object(area_manager._store, "async_save", new=AsyncMock()) as mock_save:
             await area_manager.async_save()
             mock_save.assert_called_once()
-            
+
             # Verify saved data structure
             saved_data = mock_save.call_args[0][0]
             assert "areas" in saved_data
@@ -133,11 +151,11 @@ class TestAreaManagerSaving:
         """Test saving with no areas."""
         # Initialize safety_sensors to avoid AttributeError
         area_manager.safety_sensors = []
-        
+
         with patch.object(area_manager._store, "async_save", new=AsyncMock()) as mock_save:
             await area_manager.async_save()
             mock_save.assert_called_once()
-            
+
             saved_data = mock_save.call_args[0][0]
             assert saved_data["areas"] == []
 
@@ -241,16 +259,16 @@ class TestAreaOperations:
         """Test that operations on non-existent area raise ValueError."""
         with pytest.raises(ValueError, match="does not exist"):
             area_manager.enable_area("nonexistent")
-        
+
         with pytest.raises(ValueError, match="does not exist"):
             area_manager.disable_area("nonexistent")
-        
+
         with pytest.raises(ValueError, match="does not exist"):
             area_manager.update_area_temperature("nonexistent", 20.0)
-        
+
         with pytest.raises(ValueError, match="does not exist"):
             area_manager.set_area_target_temperature("nonexistent", 20.0)
-        
+
         with pytest.raises(ValueError, match="does not exist"):
             area_manager.add_device_to_area("nonexistent", "device.id", "type")
 
@@ -282,7 +300,7 @@ class TestGlobalSettings:
         area_manager.global_comfort_temp = 22.0
         area_manager.frost_protection_enabled = True
         area_manager.frost_protection_temp = 7.0
-        
+
         assert area_manager.global_eco_temp == 17.0
         assert area_manager.global_comfort_temp == 22.0
         assert area_manager.frost_protection_enabled is True
@@ -295,7 +313,7 @@ class TestOldSafetySensorMigration:
     async def test_load_old_safety_sensor_format(self, hass: HomeAssistant):
         """Test loading old single safety sensor format and migration."""
         area_manager = AreaManager(hass)
-        
+
         old_format_data = {
             "areas": {},
             "safety_sensor_id": "binary_sensor.smoke",
@@ -303,10 +321,10 @@ class TestOldSafetySensorMigration:
             "safety_sensor_alert_value": True,
             "safety_sensor_enabled": True,
         }
-        
+
         with patch.object(area_manager._store, "async_load", return_value=old_format_data):
             await area_manager.async_load()
-        
+
         # Should migrate to new format
         assert len(area_manager.safety_sensors) == 1
         assert area_manager.safety_sensors[0]["sensor_id"] == "binary_sensor.smoke"
@@ -317,7 +335,7 @@ class TestOldSafetySensorMigration:
     async def test_load_new_safety_sensor_format(self, hass: HomeAssistant):
         """Test loading new multi-sensor format."""
         area_manager = AreaManager(hass)
-        
+
         new_format_data = {
             "areas": {},
             "safety_sensors": [
@@ -325,20 +343,20 @@ class TestOldSafetySensorMigration:
                     "sensor_id": "binary_sensor.smoke",
                     "attribute": "smoke",
                     "alert_value": True,
-                    "enabled": True
+                    "enabled": True,
                 },
                 {
                     "sensor_id": "binary_sensor.co",
                     "attribute": "carbon_monoxide",
                     "alert_value": True,
-                    "enabled": True
-                }
-            ]
+                    "enabled": True,
+                },
+            ],
         }
-        
+
         with patch.object(area_manager._store, "async_load", return_value=new_format_data):
             await area_manager.async_load()
-        
+
         # Should load new format directly
         assert len(area_manager.safety_sensors) == 2
 
@@ -349,12 +367,9 @@ class TestSafetySensorManagement:
     def test_add_safety_sensor(self, area_manager: AreaManager):
         """Test adding a safety sensor."""
         area_manager.add_safety_sensor(
-            "binary_sensor.smoke",
-            attribute="smoke",
-            alert_value=True,
-            enabled=True
+            "binary_sensor.smoke", attribute="smoke", alert_value=True, enabled=True
         )
-        
+
         assert len(area_manager.safety_sensors) == 1
         assert area_manager.safety_sensors[0]["sensor_id"] == "binary_sensor.smoke"
 
@@ -362,7 +377,7 @@ class TestSafetySensorManagement:
         """Test adding safety sensor updates existing one."""
         area_manager.add_safety_sensor("binary_sensor.smoke", "smoke", True, True)
         area_manager.add_safety_sensor("binary_sensor.smoke", "state", "alarm", False)
-        
+
         assert len(area_manager.safety_sensors) == 1
         assert area_manager.safety_sensors[0]["attribute"] == "state"
         assert area_manager.safety_sensors[0]["alert_value"] == "alarm"
@@ -372,9 +387,9 @@ class TestSafetySensorManagement:
         """Test removing a safety sensor."""
         area_manager.add_safety_sensor("binary_sensor.smoke", "smoke", True, True)
         area_manager.add_safety_sensor("binary_sensor.co", "carbon_monoxide", True, True)
-        
+
         area_manager.remove_safety_sensor("binary_sensor.smoke")
-        
+
         assert len(area_manager.safety_sensors) == 1
         assert area_manager.safety_sensors[0]["sensor_id"] == "binary_sensor.co"
 
@@ -382,18 +397,18 @@ class TestSafetySensorManagement:
         """Test removing last sensor clears alert."""
         area_manager.add_safety_sensor("binary_sensor.smoke", "smoke", True, True)
         area_manager._safety_alert_active = True
-        
+
         area_manager.remove_safety_sensor("binary_sensor.smoke")
-        
+
         assert len(area_manager.safety_sensors) == 0
         assert area_manager._safety_alert_active is False
 
     def test_get_safety_sensors(self, area_manager: AreaManager):
         """Test getting safety sensors."""
         area_manager.add_safety_sensor("binary_sensor.smoke", "smoke", True, True)
-        
+
         sensors = area_manager.get_safety_sensors()
-        
+
         assert len(sensors) == 1
         assert sensors[0]["sensor_id"] == "binary_sensor.smoke"
         # Should return a copy
@@ -403,43 +418,47 @@ class TestSafetySensorManagement:
     def test_check_safety_sensor_status_no_sensors(self, area_manager: AreaManager):
         """Test checking status with no sensors."""
         is_alert, sensor_id = area_manager.check_safety_sensor_status()
-        
+
         assert is_alert is False
         assert sensor_id is None
 
     def test_check_safety_sensor_status_alert(self, hass: HomeAssistant, area_manager: AreaManager):
         """Test checking status with sensor in alert."""
         area_manager.add_safety_sensor("binary_sensor.smoke", "smoke", True, True)
-        
+
         # Mock sensor state
         hass.states.async_set("binary_sensor.smoke", "on", {"smoke": True})
-        
+
         is_alert, sensor_id = area_manager.check_safety_sensor_status()
-        
+
         assert is_alert is True
         assert sensor_id == "binary_sensor.smoke"
 
-    def test_check_safety_sensor_status_state_attribute(self, hass: HomeAssistant, area_manager: AreaManager):
+    def test_check_safety_sensor_status_state_attribute(
+        self, hass: HomeAssistant, area_manager: AreaManager
+    ):
         """Test checking status using state attribute."""
         area_manager.add_safety_sensor("binary_sensor.smoke", "state", "alarm", True)
-        
+
         # Mock sensor state
         hass.states.async_set("binary_sensor.smoke", "alarm", {})
-        
+
         is_alert, sensor_id = area_manager.check_safety_sensor_status()
-        
+
         assert is_alert is True
         assert sensor_id == "binary_sensor.smoke"
 
-    def test_check_safety_sensor_status_disabled_sensor(self, hass: HomeAssistant, area_manager: AreaManager):
+    def test_check_safety_sensor_status_disabled_sensor(
+        self, hass: HomeAssistant, area_manager: AreaManager
+    ):
         """Test checking status skips disabled sensors."""
         area_manager.add_safety_sensor("binary_sensor.smoke", "smoke", True, False)
-        
+
         # Mock sensor state in alert
         hass.states.async_set("binary_sensor.smoke", "on", {"smoke": True})
-        
+
         is_alert, sensor_id = area_manager.check_safety_sensor_status()
-        
+
         # Should skip disabled sensor
         assert is_alert is False
         assert sensor_id is None
@@ -447,9 +466,9 @@ class TestSafetySensorManagement:
     def test_safety_alert_active_status(self, area_manager: AreaManager):
         """Test safety alert active status."""
         assert area_manager.is_safety_alert_active() is False
-        
+
         area_manager.set_safety_alert_active(True)
-        
+
         assert area_manager.is_safety_alert_active() is True
 
     def test_set_safety_alert_active_logs_change(self, area_manager: AreaManager):
@@ -457,11 +476,11 @@ class TestSafetySensorManagement:
         # First change
         area_manager.set_safety_alert_active(True)
         assert area_manager._safety_alert_active is True
-        
+
         # Same value shouldn't trigger change
         area_manager.set_safety_alert_active(True)
         assert area_manager._safety_alert_active is True
-        
+
         # Different value triggers change
         area_manager.set_safety_alert_active(False)
         assert area_manager._safety_alert_active is False
@@ -474,15 +493,11 @@ class TestScheduleManagement:
         """Test adding schedule to area."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
         area_manager.areas[TEST_AREA_ID] = area
-        
+
         schedule = area_manager.add_schedule_to_area(
-            TEST_AREA_ID,
-            "schedule1",
-            "08:00",
-            21.0,
-            ["mon", "tue", "wed"]
+            TEST_AREA_ID, "schedule1", "08:00", 21.0, ["mon", "tue", "wed"]
         )
-        
+
         assert schedule.schedule_id == "schedule1"
         assert schedule.time == "08:00"
         assert schedule.temperature == 21.0
@@ -492,22 +507,16 @@ class TestScheduleManagement:
     def test_add_schedule_to_nonexistent_area(self, area_manager: AreaManager):
         """Test adding schedule to non-existent area raises error."""
         with pytest.raises(ValueError, match="does not exist"):
-            area_manager.add_schedule_to_area(
-                "nonexistent",
-                "schedule1",
-                "08:00",
-                21.0,
-                ["mon"]
-            )
+            area_manager.add_schedule_to_area("nonexistent", "schedule1", "08:00", 21.0, ["mon"])
 
     def test_remove_schedule_from_area(self, area_manager: AreaManager):
         """Test removing schedule from area."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
         area_manager.areas[TEST_AREA_ID] = area
-        
+
         area_manager.add_schedule_to_area(TEST_AREA_ID, "schedule1", "08:00", 21.0, ["mon"])
         area_manager.remove_schedule_from_area(TEST_AREA_ID, "schedule1")
-        
+
         assert "schedule1" not in area.schedules
 
     def test_remove_schedule_from_nonexistent_area(self, area_manager: AreaManager):
@@ -524,9 +533,9 @@ class TestDeviceManagement:
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
         area.add_device("device.id", "climate", None)
         area_manager.areas[TEST_AREA_ID] = area
-        
+
         area_manager.remove_device_from_area(TEST_AREA_ID, "device.id")
-        
+
         assert "device.id" not in area.devices
 
     def test_remove_device_from_nonexistent_area(self, area_manager: AreaManager):
@@ -541,14 +550,14 @@ class TestTRVSettings:
     def test_set_trv_temperatures(self, area_manager: AreaManager):
         """Test setting TRV temperatures."""
         area_manager.set_trv_temperatures(25.0, 10.0)
-        
+
         assert area_manager.trv_heating_temp == 25.0
         assert area_manager.trv_idle_temp == 10.0
 
     def test_set_trv_temperatures_with_offset(self, area_manager: AreaManager):
         """Test setting TRV temperatures with offset."""
         area_manager.set_trv_temperatures(25.0, 10.0, 5.0)
-        
+
         assert area_manager.trv_heating_temp == 25.0
         assert area_manager.trv_idle_temp == 10.0
         assert area_manager.trv_temp_offset == 5.0

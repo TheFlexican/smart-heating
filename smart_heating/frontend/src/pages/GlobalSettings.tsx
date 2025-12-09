@@ -14,6 +14,7 @@ import {
   ListItemText,
   Tabs,
   Tab,
+  Switch,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
@@ -26,7 +27,7 @@ import SecurityIcon from '@mui/icons-material/Security'
 import BackupIcon from '@mui/icons-material/Backup'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis, getSafetySensor, setSafetySensor, removeSafetySensor, type SafetySensorResponse } from '../api'
+import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis, getSafetySensor, setSafetySensor, removeSafetySensor, setHideDevicesPanel, getConfig, type SafetySensorResponse } from '../api'
 import { PresenceSensorConfig, WindowSensorConfig, SafetySensorConfig } from '../types'
 import SensorConfigDialog from '../components/SensorConfigDialog'
 import SafetySensorConfigDialog from '../components/SafetySensorConfigDialog'
@@ -99,13 +100,24 @@ export default function GlobalSettings() {
   const [hysteresisHelpOpen, setHysteresisHelpOpen] = useState(false)
   const [safetySensor, setSafetySensorState] = useState<SafetySensorResponse | null>(null)
   const [safetySensorDialogOpen, setSafetySensorDialogOpen] = useState(false)
+  const [hideDevicesPanel, setHideDevicesPanelState] = useState(false)
 
   useEffect(() => {
     loadPresets()
     loadHysteresis()
     loadPresenceSensors()
     loadSafetySensor()
+    loadConfig()
   }, [])
+
+  const loadConfig = async () => {
+    try {
+      const config = await getConfig()
+      setHideDevicesPanelState(config.hide_devices_panel || false)
+    } catch (err) {
+      console.error('Error loading config:', err)
+    }
+  }
 
   const loadPresets = async () => {
     try {
@@ -210,6 +222,21 @@ export default function GlobalSettings() {
     }, 500)
 
     setHysteresisSaveTimeout(timeout)
+  }
+
+  const handleToggleHideDevicesPanel = async (hide: boolean) => {
+    try {
+      setHideDevicesPanelState(hide)
+      await setHideDevicesPanel(hide)
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 2000)
+      // Reload to apply changes
+      setTimeout(() => window.location.reload(), 500)
+    } catch (err) {
+      setError('Failed to save setting')
+      console.error('Error saving hide devices panel:', err)
+      setHideDevicesPanelState(!hide)
+    }
   }
 
   const handleAddPresenceSensor = async (config: WindowSensorConfig | PresenceSensorConfig) => {
@@ -627,6 +654,42 @@ export default function GlobalSettings() {
                 />
               </Box>
             </Box>
+          </Paper>
+
+          {/* UI Settings */}
+          <Paper sx={{ p: 3, mt: 3 }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              {t('globalSettings.ui.title', 'User Interface')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              {t('globalSettings.ui.description', 'Customize the user interface to your preferences.')}
+            </Typography>
+
+            <Stack spacing={2}>
+              <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                p: 2,
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 1
+              }}>
+                <Box>
+                  <Typography variant="subtitle1">
+                    {t('globalSettings.ui.hideDevicesPanel', 'Hide Available Devices Panel')}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {t('globalSettings.ui.hideDevicesPanelDescription', 'Hide the sidebar with available devices when you\'re done setting up zones.')}
+                  </Typography>
+                </Box>
+                <Switch
+                  checked={hideDevicesPanel}
+                  onChange={(e) => handleToggleHideDevicesPanel(e.target.checked)}
+                  color="primary"
+                />
+              </Box>
+            </Stack>
           </Paper>
         </TabPanel>
 
