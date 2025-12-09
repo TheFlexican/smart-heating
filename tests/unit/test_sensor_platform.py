@@ -1,16 +1,13 @@
 """Tests for sensor platform."""
+
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-
-from smart_heating.sensor import async_setup_entry, SmartHeatingStatusSensor
 from smart_heating.const import DOMAIN, STATE_INITIALIZED
+from smart_heating.sensor import SmartHeatingStatusSensor, async_setup_entry
 
 
 @pytest.fixture
@@ -49,13 +46,13 @@ class TestSensorSetup:
         """Test sensor platform setup."""
         # Add coordinator to hass.data
         hass.data[DOMAIN] = {mock_config_entry.entry_id: mock_coordinator}
-        
+
         # Mock async_add_entities
         async_add_entities = AsyncMock()
-        
+
         # Call setup
         await async_setup_entry(hass, mock_config_entry, async_add_entities)
-        
+
         # Verify entities were added
         async_add_entities.assert_called_once()
         entities = async_add_entities.call_args[0][0]
@@ -94,7 +91,7 @@ class TestSmartHeatingStatusSensor:
     def test_extra_state_attributes_with_data(self, sensor, mock_coordinator):
         """Test extra_state_attributes with coordinator data."""
         attributes = sensor.extra_state_attributes
-        
+
         assert attributes["integration"] == "smart_heating"
         assert attributes["version"] == "2.0.0"
         assert attributes["area_count"] == 3
@@ -103,7 +100,7 @@ class TestSmartHeatingStatusSensor:
         """Test extra_state_attributes when area_count not in data."""
         mock_coordinator.data = {"status": "ready"}
         attributes = sensor.extra_state_attributes
-        
+
         assert attributes["integration"] == "smart_heating"
         assert attributes["version"] == "2.0.0"
         assert attributes["area_count"] == 0
@@ -112,7 +109,7 @@ class TestSmartHeatingStatusSensor:
         """Test extra_state_attributes when coordinator has no data."""
         mock_coordinator.data = None
         attributes = sensor.extra_state_attributes
-        
+
         assert attributes["integration"] == "smart_heating"
         assert attributes["version"] == "2.0.0"
         assert "area_count" not in attributes

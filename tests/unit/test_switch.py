@@ -1,12 +1,11 @@
 """Tests for Switch platform."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import HomeAssistant
-
 from smart_heating.switch import AreaSwitch, async_setup_entry
 
 from tests.unit.const import TEST_AREA_ID, TEST_AREA_NAME
@@ -20,7 +19,7 @@ def switch_entity(mock_coordinator, mock_config_entry) -> AreaSwitch:
     mock_area.area_id = TEST_AREA_ID
     mock_area.name = TEST_AREA_NAME
     mock_area.enabled = True
-    
+
     return AreaSwitch(mock_coordinator, mock_config_entry, mock_area)
 
 
@@ -35,14 +34,13 @@ class TestSwitchEntitySetup:
         mock_area = MagicMock()
         mock_area.area_id = TEST_AREA_ID
         mock_area.name = TEST_AREA_NAME
-        
+
         # Set up coordinator with area
-        mock_coordinator.area_manager.get_all_areas.return_value = {
-            TEST_AREA_ID: mock_area
-        }
-        
+        mock_coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
+
         # Store coordinator in hass.data
         from smart_heating.const import DOMAIN
+
         hass.data[DOMAIN] = {mock_config_entry.entry_id: mock_coordinator}
 
         async_add_entities = AsyncMock()
@@ -145,9 +143,9 @@ class TestSwitchEntityAttributes:
         switch_entity._area.target_temperature = 21.5
         switch_entity._area.current_temperature = 20.0
         switch_entity._area.devices = {"device1": MagicMock(), "device2": MagicMock()}
-        
+
         attrs = switch_entity.extra_state_attributes
-        
+
         # Check attributes
         assert attrs["area_id"] == TEST_AREA_ID
         assert attrs["area_name"] == TEST_AREA_NAME
@@ -159,11 +157,11 @@ class TestSwitchEntityAttributes:
     def test_available_true(self, switch_entity: AreaSwitch, mock_coordinator):
         """Test available property when coordinator successful."""
         mock_coordinator.last_update_success = True
-        
+
         assert switch_entity.available is True
 
     def test_available_false(self, switch_entity: AreaSwitch, mock_coordinator):
         """Test available property when coordinator failed."""
         mock_coordinator.last_update_success = False
-        
+
         assert switch_entity.available is False

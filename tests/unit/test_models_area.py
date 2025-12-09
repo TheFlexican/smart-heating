@@ -1,16 +1,14 @@
 """Tests for Area model."""
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest.mock import Mock
-
-import pytest
 
 from smart_heating.models.area import Area
 from smart_heating.models.schedule import Schedule
 
 from tests.unit.const import (
-    HVAC_HEAT,
     PRESET_COMFORT,
     PRESET_ECO,
     TEST_AREA_ID,
@@ -87,7 +85,7 @@ class TestAreaModel:
         area.add_device("climate.thermostat1", "thermostat")
         area.add_device("climate.thermostat2", "thermostat")
         area.add_device("sensor.temp", "temperature_sensor")
-        
+
         thermostats = area.get_thermostats()
         assert len(thermostats) == 2
         assert "climate.thermostat1" in thermostats
@@ -104,7 +102,9 @@ class TestAreaModel:
         )
 
         # Add window sensor
-        area.add_window_sensor("binary_sensor.window", action_when_open="reduce_temperature", temp_drop=2.0)
+        area.add_window_sensor(
+            "binary_sensor.window", action_when_open="reduce_temperature", temp_drop=2.0
+        )
         assert len(area.window_sensors) == 1
         assert area.window_sensors[0]["entity_id"] == "binary_sensor.window"
         assert area.window_sensors[0]["action_when_open"] == "reduce_temperature"
@@ -166,7 +166,7 @@ class TestAreaModel:
 
         # Set boost mode
         area.set_boost_mode(duration=60, temp=25.0)
-        
+
         assert area.boost_mode_active is True
         assert area.boost_duration == 60
         assert area.boost_temp == 25.0
@@ -249,13 +249,13 @@ class TestAreaDeviceTypes:
     def test_get_temperature_sensors(self):
         """Test getting temperature sensor devices."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
-        
+
         area.add_device("sensor.temp1", "temperature_sensor")
         area.add_device("sensor.temp2", "temperature_sensor")
         area.add_device("climate.thermostat", "thermostat")
-        
+
         sensors = area.get_temperature_sensors()
-        
+
         assert len(sensors) == 2
         assert "sensor.temp1" in sensors
         assert "sensor.temp2" in sensors
@@ -263,13 +263,13 @@ class TestAreaDeviceTypes:
     def test_get_opentherm_gateways(self):
         """Test getting OpenTherm gateway devices."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
-        
+
         area.add_device("climate.otgw1", "opentherm_gateway")
         area.add_device("climate.otgw2", "opentherm_gateway")
         area.add_device("climate.thermostat", "thermostat")
-        
+
         gateways = area.get_opentherm_gateways()
-        
+
         assert len(gateways) == 2
         assert "climate.otgw1" in gateways
         assert "climate.otgw2" in gateways
@@ -277,13 +277,13 @@ class TestAreaDeviceTypes:
     def test_get_switches(self):
         """Test getting switch devices."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
-        
+
         area.add_device("switch.pump1", "switch")
         area.add_device("switch.relay1", "switch")
         area.add_device("climate.thermostat", "thermostat")
-        
+
         switches = area.get_switches()
-        
+
         assert len(switches) == 2
         assert "switch.pump1" in switches
         assert "switch.relay1" in switches
@@ -291,13 +291,13 @@ class TestAreaDeviceTypes:
     def test_get_valves(self):
         """Test getting valve devices."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
-        
+
         area.add_device("number.valve1", "valve")
         area.add_device("number.valve2", "valve")
         area.add_device("climate.thermostat", "thermostat")
-        
+
         valves = area.get_valves()
-        
+
         assert len(valves) == 2
         assert "number.valve1" in valves
         assert "number.valve2" in valves
@@ -309,9 +309,9 @@ class TestAreaWindowSensors:
     def test_add_window_sensor_with_reduce_temperature(self):
         """Test adding window sensor with reduce_temperature action."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
-        
+
         area.add_window_sensor("binary_sensor.window1", "reduce_temperature", 2.5)
-        
+
         assert len(area.window_sensors) == 1
         assert area.window_sensors[0]["entity_id"] == "binary_sensor.window1"
         assert area.window_sensors[0]["action_when_open"] == "reduce_temperature"
@@ -320,9 +320,9 @@ class TestAreaWindowSensors:
     def test_add_window_sensor_with_turn_off(self):
         """Test adding window sensor with turn_off action."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
-        
+
         area.add_window_sensor("binary_sensor.window1", "turn_off")
-        
+
         assert len(area.window_sensors) == 1
         assert area.window_sensors[0]["entity_id"] == "binary_sensor.window1"
         assert area.window_sensors[0]["action_when_open"] == "turn_off"
@@ -331,22 +331,22 @@ class TestAreaWindowSensors:
     def test_add_duplicate_window_sensor(self):
         """Test adding duplicate window sensor is prevented."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
-        
+
         area.add_window_sensor("binary_sensor.window1", "reduce_temperature", 2.0)
         area.add_window_sensor("binary_sensor.window1", "reduce_temperature", 3.0)  # Duplicate
-        
+
         # Should still only have one sensor
         assert len(area.window_sensors) == 1
 
     def test_remove_window_sensor(self):
         """Test removing window sensor."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
-        
+
         area.add_window_sensor("binary_sensor.window1", "reduce_temperature", 2.0)
         area.add_window_sensor("binary_sensor.window2", "turn_off")
-        
+
         area.remove_window_sensor("binary_sensor.window1")
-        
+
         assert len(area.window_sensors) == 1
         assert area.window_sensors[0]["entity_id"] == "binary_sensor.window2"
 
@@ -356,8 +356,7 @@ class TestAreaPresetTemperatures:
 
     def test_get_preset_temperature_with_area_manager(self):
         """Test getting preset temperature with area manager."""
-        from unittest.mock import Mock
-        
+
         # Create a mock area manager with global temperatures
         area_manager = Mock()
         area_manager.global_home_temp = 20.0
@@ -366,12 +365,12 @@ class TestAreaPresetTemperatures:
         area_manager.global_eco_temp = 18.0
         area_manager.global_sleep_temp = 17.0
         area_manager.global_activity_temp = 23.0
-        
+
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
         area.area_manager = area_manager
         area.use_global_home = True
         area.preset_mode = "home"
-        
+
         # Should use global temperatures
         temp = area.get_preset_temperature()
         assert temp == 20.0
@@ -382,7 +381,7 @@ class TestAreaPresetTemperatures:
         area.home_temp = 20.0
         area.preset_mode = "home"
         area.area_manager = None  # No area manager
-        
+
         # Should use area-specific temperatures
         temp = area.get_preset_temperature()
         assert temp == 20.0
@@ -390,29 +389,29 @@ class TestAreaPresetTemperatures:
     def test_get_active_schedule_temperature(self):
         """Test getting temperature from active schedule."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
-        
+
         # Add schedule
         schedule = Schedule(
             schedule_id="test_schedule",
             time="08:00",  # Use 'time' instead of 'start_time'
             temperature=21.0,
-            days=["mon", "tue", "wed", "thu", "fri"]  # Use strings instead of numbers
+            days=["mon", "tue", "wed", "thu", "fri"],  # Use strings instead of numbers
         )
         area.schedules["test_schedule"] = schedule
-        
+
         # Monday at 8:30 AM
         current_time = datetime(2024, 1, 1, 8, 30)  # Monday
-        
+
         temp = area.get_active_schedule_temperature(current_time)
         assert temp == 21.0
 
     def test_get_active_schedule_temperature_no_schedule(self):
         """Test getting temperature when no schedule active."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
-        
+
         # No schedules
         current_time = datetime(2024, 1, 1, 8, 30)
-        
+
         temp = area.get_active_schedule_temperature(current_time)
         assert temp is None
 
@@ -420,10 +419,10 @@ class TestAreaPresetTemperatures:
         """Test getting temperature when window open with turn_off action."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
         area.target_temperature = 20.0
-        
+
         area.add_window_sensor("binary_sensor.window1", "turn_off")
         area.window_is_open = True
-        
+
         temp = area._get_window_open_temperature()
         assert temp == 5.0  # Frost protection
 
@@ -431,10 +430,10 @@ class TestAreaPresetTemperatures:
         """Test getting temperature when window open with reduce action."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
         area.target_temperature = 20.0
-        
+
         area.add_window_sensor("binary_sensor.window1", "reduce_temperature", 3.0)
         area.window_is_open = True
-        
+
         temp = area._get_window_open_temperature()
         assert temp == 17.0  # 20.0 - 3.0
 
@@ -442,10 +441,10 @@ class TestAreaPresetTemperatures:
         """Test getting temperature when window closed."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
         area.target_temperature = 20.0
-        
+
         area.add_window_sensor("binary_sensor.window1", "reduce_temperature", 3.0)
         area.window_is_open = False  # Window closed
-        
+
         temp = area._get_window_open_temperature()
         assert temp is None
 
@@ -455,16 +454,15 @@ class TestAreaNightBoost:
 
     def test_night_boost_with_area_logger(self):
         """Test night boost logging when area logger available."""
-        from unittest.mock import Mock
-        
+
         # Create mock hass with data
         hass = Mock()
         hass.data = {"smart_heating": {"area_logger": Mock()}}
-        
+
         # Create mock area manager
         area_manager = Mock()
         area_manager.hass = hass
-        
+
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
         area.area_manager = area_manager
         area.target_temperature = 20.0
@@ -472,10 +470,10 @@ class TestAreaNightBoost:
         area.night_boost_offset = 2.0
         area.night_boost_start_time = "22:00"
         area.night_boost_end_time = "06:00"
-        
+
         # Test at a time within the boost period
         current_time = datetime(2024, 1, 1, 23, 0)  # 11 PM
-        
+
         # Should log to area logger
         target = area._apply_night_boost(20.0, current_time)
         assert target == 22.0
@@ -487,12 +485,12 @@ class TestAreaNightBoost:
         area.night_boost_offset = 0.5
         area.night_boost_start_time = "03:00"
         area.night_boost_end_time = "07:00"
-        
+
         # Test during boost period
         current_time = datetime(2024, 1, 1, 5, 30)  # 5:30 AM
         target = area._apply_night_boost(18.5, current_time)
         assert target == 19.0  # 18.5 + 0.5
-        
+
     def test_night_boost_inactive_outside_period(self):
         """Test night boost doesn't apply outside configured period."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
@@ -500,12 +498,12 @@ class TestAreaNightBoost:
         area.night_boost_offset = 0.5
         area.night_boost_start_time = "03:00"
         area.night_boost_end_time = "07:00"
-        
+
         # Test outside boost period
         current_time = datetime(2024, 1, 1, 10, 0)  # 10 AM
         target = area._apply_night_boost(18.5, current_time)
         assert target == 18.5  # No change
-        
+
     def test_night_boost_works_with_schedule(self):
         """Test night boost works additively on top of active schedule."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
@@ -514,7 +512,7 @@ class TestAreaNightBoost:
         area.night_boost_start_time = "03:00"
         area.night_boost_end_time = "07:00"
         area.target_temperature = 20.0
-        
+
         # Add a sleep schedule that overlaps with night boost
         schedule = Schedule(
             schedule_id="sleep1",
@@ -525,15 +523,15 @@ class TestAreaNightBoost:
         )
         area.add_schedule(schedule)
         area.sleep_temp = 18.5
-        
+
         # Test at 5 AM - during both sleep schedule AND night boost
         current_time = datetime(2024, 1, 1, 5, 0)  # Monday 5 AM
-        
+
         # Night boost should work on top of sleep temperature
         # Sleep schedule gives 18.5°C, night boost adds 0.2°C = 18.7°C
         target = area._apply_night_boost(18.5, current_time)
         assert target == 18.7
-        
+
     def test_night_boost_disabled(self):
         """Test night boost doesn't apply when disabled."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
@@ -541,12 +539,12 @@ class TestAreaNightBoost:
         area.night_boost_offset = 2.0
         area.night_boost_start_time = "03:00"
         area.night_boost_end_time = "07:00"
-        
+
         # Test during what would be boost period
         current_time = datetime(2024, 1, 1, 5, 0)
         target = area._apply_night_boost(20.0, current_time)
         assert target == 20.0  # No change when disabled
-        
+
     def test_night_boost_crosses_midnight(self):
         """Test night boost works correctly when period crosses midnight."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
@@ -554,12 +552,12 @@ class TestAreaNightBoost:
         area.night_boost_offset = 0.3
         area.night_boost_start_time = "22:00"
         area.night_boost_end_time = "06:00"
-        
+
         # Test late night (before midnight)
         current_time = datetime(2024, 1, 1, 23, 30)  # 11:30 PM
         target = area._apply_night_boost(18.0, current_time)
         assert target == 18.3
-        
+
         # Test early morning (after midnight)
         current_time = datetime(2024, 1, 2, 4, 0)  # 4 AM
         target = area._apply_night_boost(18.0, current_time)
@@ -573,14 +571,14 @@ class TestAreaState:
         """Test state returns off when area disabled."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
         area.enabled = False
-        
+
         assert area.state == "off"
 
     def test_state_with_explicit_state(self):
         """Test state returns explicit _state when set."""
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
         area._state = "heating"
-        
+
         assert area.state == "heating"
 
     def test_state_based_on_temperature(self):
@@ -588,7 +586,7 @@ class TestAreaState:
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
         area.current_temperature = 18.0
         area.target_temperature = 21.0
-        
+
         # Should be heating (current < target - 0.5)
         assert area.state == "heating"
 
@@ -597,7 +595,7 @@ class TestAreaState:
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
         area.current_temperature = 20.0
         area.target_temperature = 20.0
-        
+
         # Should be idle (current >= target - 0.5)
         assert area.state == "idle"
 
@@ -613,9 +611,9 @@ class TestAreaFromDict:
             "target_temperature": 20.0,
             "boost_end_time": "2024-01-01T12:00:00",
         }
-        
+
         area = Area.from_dict(data)
-        
+
         assert area.boost_end_time is not None
         assert area.boost_end_time.year == 2024
 
@@ -627,9 +625,9 @@ class TestAreaFromDict:
             "target_temperature": 20.0,
             "hysteresis_override": 1.5,
         }
-        
+
         area = Area.from_dict(data)
-        
+
         assert area.hysteresis_override == 1.5
 
     def test_from_dict_legacy_window_sensors(self):
@@ -641,9 +639,9 @@ class TestAreaFromDict:
             "window_sensors": ["binary_sensor.window1", "binary_sensor.window2"],
             "window_open_temp_drop": 2.5,
         }
-        
+
         area = Area.from_dict(data)
-        
+
         assert len(area.window_sensors) == 2
         assert area.window_sensors[0]["entity_id"] == "binary_sensor.window1"
         assert area.window_sensors[0]["action_when_open"] == "reduce_temperature"
@@ -658,9 +656,9 @@ class TestAreaFromDict:
             "presence_sensors": ["binary_sensor.motion1", "binary_sensor.motion2"],
             "presence_temp_boost": 1.5,
         }
-        
+
         area = Area.from_dict(data)
-        
+
         assert len(area.presence_sensors) == 2
         assert area.presence_sensors[0]["entity_id"] == "binary_sensor.motion1"
         assert area.presence_sensors[0]["temp_boost_when_home"] == 1.5
@@ -675,10 +673,9 @@ class TestAreaFromDict:
             "auto_preset_home": "comfort",
             "auto_preset_away": "eco",
         }
-        
+
         area = Area.from_dict(data)
-        
+
         assert area.auto_preset_enabled is True
         assert area.auto_preset_home == "comfort"
         assert area.auto_preset_away == "eco"
-

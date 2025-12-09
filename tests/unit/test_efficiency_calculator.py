@@ -1,12 +1,11 @@
 """Tests for efficiency_calculator module."""
 
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from datetime import timedelta
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
-
 from smart_heating.efficiency_calculator import EfficiencyCalculator
 
 
@@ -46,22 +45,21 @@ def create_history_entry(state_value, current_temp=20.0, target_temp=21.0, times
 async def test_calculate_heating_time_all_heating(efficiency_calculator):
     """Test heating time calculation when always heating."""
     history_data = [create_history_entry("heating") for _ in range(10)]
-    
+
     result = efficiency_calculator._calculate_heating_time(history_data)
-    
+
     assert result == 100.0
 
 
 @pytest.mark.asyncio
 async def test_calculate_heating_time_half_heating(efficiency_calculator):
     """Test heating time calculation when heating 50% of time."""
-    history_data = (
-        [create_history_entry("heating") for _ in range(5)] +
-        [create_history_entry("idle") for _ in range(5)]
-    )
-    
+    history_data = [create_history_entry("heating") for _ in range(5)] + [
+        create_history_entry("idle") for _ in range(5)
+    ]
+
     result = efficiency_calculator._calculate_heating_time(history_data)
-    
+
     assert result == 50.0
 
 
@@ -78,11 +76,11 @@ async def test_calculate_avg_temp_delta(efficiency_calculator):
     history_data = [
         create_history_entry("heating", current_temp=19.0, target_temp=21.0),  # delta: 2.0
         create_history_entry("heating", current_temp=20.0, target_temp=21.0),  # delta: 1.0
-        create_history_entry("idle", current_temp=21.0, target_temp=21.0),      # delta: 0.0
+        create_history_entry("idle", current_temp=21.0, target_temp=21.0),  # delta: 0.0
     ]
-    
+
     result = efficiency_calculator._calculate_avg_temp_delta(history_data)
-    
+
     # Average of absolute deltas: (2.0 + 1.0 + 0.0) / 3 = 1.0
     assert result == 1.0
 
@@ -106,9 +104,9 @@ async def test_count_heating_cycles(efficiency_calculator):
         create_history_entry("idle"),
         create_history_entry("heating"),  # Cycle 3 start
     ]
-    
+
     result = efficiency_calculator._count_heating_cycles(history_data)
-    
+
     assert result == 3
 
 
@@ -116,9 +114,9 @@ async def test_count_heating_cycles(efficiency_calculator):
 async def test_count_heating_cycles_continuous_heating(efficiency_calculator):
     """Test counting cycles with continuous heating."""
     history_data = [create_history_entry("heating") for _ in range(10)]
-    
+
     result = efficiency_calculator._count_heating_cycles(history_data)
-    
+
     assert result == 0  # No cycles if always heating
 
 
@@ -137,9 +135,9 @@ async def test_calculate_temp_stability(efficiency_calculator):
         create_history_entry("heating", current_temp=20.0),
         create_history_entry("heating", current_temp=20.0),
     ]
-    
+
     result = efficiency_calculator._calculate_temp_stability(history_data)
-    
+
     # Std dev of [20, 20, 20] = 0
     assert result == 0.0
 
@@ -152,9 +150,9 @@ async def test_calculate_temp_stability_variable_temps(efficiency_calculator):
         create_history_entry("heating", current_temp=20.0),
         create_history_entry("heating", current_temp=22.0),
     ]
-    
+
     result = efficiency_calculator._calculate_temp_stability(history_data)
-    
+
     # Std dev should be > 0 for variable temps
     assert result > 0
 
@@ -169,7 +167,7 @@ async def test_calculate_energy_score_perfect(efficiency_calculator):
         cycles=5,
         data_points=240,  # 2 hours of data
     )
-    
+
     assert score == 100.0
 
 
@@ -183,7 +181,7 @@ async def test_calculate_energy_score_high_heating_time(efficiency_calculator):
         cycles=5,
         data_points=240,
     )
-    
+
     # Should be penalized: 100 - (80-50)*0.5 = 85
     assert score == 85.0
 
@@ -198,7 +196,7 @@ async def test_calculate_energy_score_high_temp_delta(efficiency_calculator):
         cycles=5,
         data_points=240,
     )
-    
+
     # Should be penalized: 100 - (3-1)*10 = 80
     assert score == 80.0
 
@@ -213,7 +211,7 @@ async def test_calculate_energy_score_clamped_to_zero(efficiency_calculator):
         cycles=100,
         data_points=120,
     )
-    
+
     assert score == 0.0
 
 
@@ -226,7 +224,7 @@ async def test_generate_recommendations_good_efficiency(efficiency_calculator):
         avg_temp_delta=0.5,
         cycles=5,
     )
-    
+
     assert len(recommendations) == 1
     assert "good" in recommendations[0].lower()
 
@@ -240,7 +238,7 @@ async def test_generate_recommendations_low_efficiency(efficiency_calculator):
         avg_temp_delta=0.5,
         cycles=5,
     )
-    
+
     assert len(recommendations) > 0
     assert any("low efficiency" in r.lower() for r in recommendations)
 
@@ -254,7 +252,7 @@ async def test_generate_recommendations_high_heating_time(efficiency_calculator)
         avg_temp_delta=0.5,
         cycles=5,
     )
-    
+
     assert any("70%" in r for r in recommendations)
 
 
@@ -267,7 +265,7 @@ async def test_generate_recommendations_many_cycles(efficiency_calculator):
         avg_temp_delta=0.5,
         cycles=25,
     )
-    
+
     assert any("cycles" in r.lower() for r in recommendations)
     assert any("hysteresis" in r.lower() for r in recommendations)
 
@@ -277,9 +275,9 @@ async def test_empty_metrics(efficiency_calculator):
     """Test empty metrics generation."""
     start = dt_util.now() - timedelta(days=1)
     end = dt_util.now()
-    
+
     result = efficiency_calculator._empty_metrics("area1", "day", start, end)
-    
+
     assert result["area_id"] == "area1"
     assert result["period"] == "day"
     assert result["heating_time_percentage"] == 0.0
@@ -296,13 +294,11 @@ async def test_calculate_area_efficiency_integration(efficiency_calculator, mock
         create_history_entry("heating", current_temp=20.0, target_temp=21.0),
         create_history_entry("idle", current_temp=21.0, target_temp=21.0),
     ] * 10  # Repeat to simulate more data
-    
+
     mock_history_tracker.get_history.return_value = history_data
-    
-    result = await efficiency_calculator.calculate_area_efficiency(
-        "living_room", period="day"
-    )
-    
+
+    result = await efficiency_calculator.calculate_area_efficiency("living_room", period="day")
+
     assert result["area_id"] == "living_room"
     assert result["period"] == "day"
     assert "heating_time_percentage" in result
@@ -314,11 +310,9 @@ async def test_calculate_area_efficiency_integration(efficiency_calculator, mock
 async def test_calculate_area_efficiency_no_data(efficiency_calculator, mock_history_tracker):
     """Test efficiency calculation with no historical data."""
     mock_history_tracker.get_history.return_value = []
-    
-    result = await efficiency_calculator.calculate_area_efficiency(
-        "living_room", period="day"
-    )
-    
+
+    result = await efficiency_calculator.calculate_area_efficiency("living_room", period="day")
+
     assert result["heating_time_percentage"] == 0.0
     assert result["data_points"] == 0
     assert "No data available" in result["recommendations"][0]
@@ -332,14 +326,14 @@ async def test_calculate_all_areas_efficiency(efficiency_calculator, mock_histor
         "living_room": Mock(enabled=True),
         "bedroom": Mock(enabled=True),
     }
-    
+
     history_data = [create_history_entry("heating")] * 10
     mock_history_tracker.get_history.return_value = history_data
-    
+
     results = await efficiency_calculator.calculate_all_areas_efficiency(
         mock_area_manager, period="day"
     )
-    
+
     assert len(results) == 2
     assert results[0]["area_id"] in ["living_room", "bedroom"]
     assert results[1]["area_id"] in ["living_room", "bedroom"]
@@ -353,14 +347,14 @@ async def test_calculate_all_areas_skips_disabled(efficiency_calculator, mock_hi
         "living_room": Mock(enabled=True),
         "bedroom": Mock(enabled=False),
     }
-    
+
     history_data = [create_history_entry("heating")] * 10
     mock_history_tracker.get_history.return_value = history_data
-    
+
     results = await efficiency_calculator.calculate_all_areas_efficiency(
         mock_area_manager, period="day"
     )
-    
+
     # Only living_room should be included
     assert len(results) == 1
     assert results[0]["area_id"] == "living_room"

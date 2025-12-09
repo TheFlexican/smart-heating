@@ -1,13 +1,12 @@
 """Tests for efficiency API handlers."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from aiohttp import web
-from aiohttp.test_utils import make_mocked_request
+from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+from aiohttp.test_utils import make_mocked_request
 from smart_heating.api_handlers.efficiency import (
-    handle_get_efficiency_report,
     handle_get_area_efficiency_history,
+    handle_get_efficiency_report,
 )
 
 
@@ -29,52 +28,56 @@ def mock_area_manager():
 def mock_efficiency_calculator():
     """Create a mock EfficiencyCalculator."""
     calculator = MagicMock()
-    
+
     # Mock single area efficiency response
-    calculator.calculate_area_efficiency = AsyncMock(return_value={
-        "area_id": "test_area",
-        "period": "week",
-        "start_time": "2025-12-02T00:00:00",
-        "end_time": "2025-12-09T00:00:00",
-        "energy_score": 75.0,
-        "heating_time_percentage": 45.0,
-        "heating_cycles": 8,
-        "average_temperature_delta": 1.2,
-        "temperature_stability": 0.8,
-        "data_points": 100,
-        "recommendations": ["System is operating efficiently."],
-    })
-    
+    calculator.calculate_area_efficiency = AsyncMock(
+        return_value={
+            "area_id": "test_area",
+            "period": "week",
+            "start_time": "2025-12-02T00:00:00",
+            "end_time": "2025-12-09T00:00:00",
+            "energy_score": 75.0,
+            "heating_time_percentage": 45.0,
+            "heating_cycles": 8,
+            "average_temperature_delta": 1.2,
+            "temperature_stability": 0.8,
+            "data_points": 100,
+            "recommendations": ["System is operating efficiently."],
+        }
+    )
+
     # Mock all areas efficiency response
-    calculator.calculate_all_areas_efficiency = AsyncMock(return_value=[
-        {
-            "area_id": "area_1",
-            "period": "week",
-            "start_time": "2025-12-02T00:00:00",
-            "end_time": "2025-12-09T00:00:00",
-            "energy_score": 80.0,
-            "heating_time_percentage": 40.0,
-            "heating_cycles": 5,
-            "average_temperature_delta": 1.0,
-            "temperature_stability": 0.9,
-            "data_points": 100,
-            "recommendations": ["Good efficiency."],
-        },
-        {
-            "area_id": "area_2",
-            "period": "week",
-            "start_time": "2025-12-02T00:00:00",
-            "end_time": "2025-12-09T00:00:00",
-            "energy_score": 60.0,
-            "heating_time_percentage": 65.0,
-            "heating_cycles": 12,
-            "average_temperature_delta": 2.5,
-            "temperature_stability": 0.6,
-            "data_points": 100,
-            "recommendations": ["Consider improving insulation."],
-        },
-    ])
-    
+    calculator.calculate_all_areas_efficiency = AsyncMock(
+        return_value=[
+            {
+                "area_id": "area_1",
+                "period": "week",
+                "start_time": "2025-12-02T00:00:00",
+                "end_time": "2025-12-09T00:00:00",
+                "energy_score": 80.0,
+                "heating_time_percentage": 40.0,
+                "heating_cycles": 5,
+                "average_temperature_delta": 1.0,
+                "temperature_stability": 0.9,
+                "data_points": 100,
+                "recommendations": ["Good efficiency."],
+            },
+            {
+                "area_id": "area_2",
+                "period": "week",
+                "start_time": "2025-12-02T00:00:00",
+                "end_time": "2025-12-09T00:00:00",
+                "energy_score": 60.0,
+                "heating_time_percentage": 65.0,
+                "heating_cycles": 12,
+                "average_temperature_delta": 2.5,
+                "temperature_stability": 0.6,
+                "data_points": 100,
+                "recommendations": ["Consider improving insulation."],
+            },
+        ]
+    )
+
     return calculator
 
 
@@ -88,14 +91,14 @@ async def test_handle_get_efficiency_report_single_area(
         "/api/smart_heating/efficiency/all_areas?area_id=test_area&period=week",
         query_string="area_id=test_area&period=week",
     )
-    
+
     response = await handle_get_efficiency_report(
         mock_hass, mock_area_manager, mock_efficiency_calculator, request
     )
-    
+
     assert response.status == 200
     data = response.body._value
-    
+
     # Verify response structure matches TypeScript interface
     assert b"area_id" in data
     assert b"period" in data
@@ -103,7 +106,7 @@ async def test_handle_get_efficiency_report_single_area(
     assert b"recommendations" in data
     assert b"energy_score" in data  # Inside metrics
     assert b"heating_time_percentage" in data
-    
+
     mock_efficiency_calculator.calculate_area_efficiency.assert_called_once_with(
         "test_area", "week"
     )
@@ -119,21 +122,21 @@ async def test_handle_get_efficiency_report_all_areas(
         "/api/smart_heating/efficiency/all_areas?period=week",
         query_string="period=week",
     )
-    
+
     response = await handle_get_efficiency_report(
         mock_hass, mock_area_manager, mock_efficiency_calculator, request
     )
-    
+
     assert response.status == 200
     data = response.body._value
-    
+
     # Verify response structure
     assert b"period" in data
     assert b"summary_metrics" in data
     assert b"area_reports" in data
     assert b"recommendations" in data
     assert b"energy_score" in data  # In summary_metrics
-    
+
     mock_efficiency_calculator.calculate_all_areas_efficiency.assert_called_once_with(
         mock_area_manager, "week"
     )
@@ -149,13 +152,13 @@ async def test_handle_get_efficiency_report_default_period(
         "/api/smart_heating/efficiency/all_areas",
         query_string="",
     )
-    
+
     response = await handle_get_efficiency_report(
         mock_hass, mock_area_manager, mock_efficiency_calculator, request
     )
-    
+
     assert response.status == 200
-    
+
     # Should use default period "day"
     mock_efficiency_calculator.calculate_all_areas_efficiency.assert_called_once_with(
         mock_area_manager, "day"
@@ -172,26 +175,27 @@ async def test_handle_get_efficiency_report_response_structure(
         "/api/smart_heating/efficiency/all_areas?period=week",
         query_string="period=week",
     )
-    
+
     response = await handle_get_efficiency_report(
         mock_hass, mock_area_manager, mock_efficiency_calculator, request
     )
-    
+
     import json
+
     data = json.loads(response.body._value)
-    
+
     # Verify top-level structure
     assert "period" in data
     assert "summary_metrics" in data
     assert "area_reports" in data
     assert "recommendations" in data
-    
+
     # Verify summary_metrics structure
     assert "energy_score" in data["summary_metrics"]
     assert "heating_time_percentage" in data["summary_metrics"]
     assert "heating_cycles" in data["summary_metrics"]
     assert "avg_temp_delta" in data["summary_metrics"]
-    
+
     # Verify area_reports structure
     assert len(data["area_reports"]) == 2
     for report in data["area_reports"]:
@@ -199,7 +203,7 @@ async def test_handle_get_efficiency_report_response_structure(
         assert "period" in report
         assert "metrics" in report
         assert "recommendations" in report
-        
+
         # Verify nested metrics structure
         assert "energy_score" in report["metrics"]
         assert "heating_time_percentage" in report["metrics"]
@@ -212,29 +216,25 @@ async def test_handle_get_efficiency_report_error_handling(
     mock_hass, mock_area_manager, mock_efficiency_calculator
 ):
     """Test error handling in efficiency report."""
-    mock_efficiency_calculator.calculate_all_areas_efficiency.side_effect = Exception(
-        "Test error"
-    )
-    
+    mock_efficiency_calculator.calculate_all_areas_efficiency.side_effect = Exception("Test error")
+
     request = make_mocked_request(
         "GET",
         "/api/smart_heating/efficiency/all_areas?period=week",
         query_string="period=week",
     )
-    
+
     response = await handle_get_efficiency_report(
         mock_hass, mock_area_manager, mock_efficiency_calculator, request
     )
-    
+
     assert response.status == 500
     data = response.body._value
     assert b"error" in data
 
 
 @pytest.mark.asyncio
-async def test_handle_get_area_efficiency_history(
-    mock_hass, mock_efficiency_calculator
-):
+async def test_handle_get_area_efficiency_history(mock_hass, mock_efficiency_calculator):
     """Test getting efficiency history for an area."""
     mock_efficiency_calculator.calculate_area_efficiency = AsyncMock(
         return_value={
@@ -251,21 +251,21 @@ async def test_handle_get_area_efficiency_history(
             "recommendations": ["System is operating efficiently."],
         }
     )
-    
+
     request = make_mocked_request(
         "GET",
         "/api/smart_heating/efficiency/history/test_area?periods=7&period_type=day",
         query_string="periods=7&period_type=day",
     )
-    
+
     response = await handle_get_area_efficiency_history(
         mock_hass, mock_efficiency_calculator, request, "test_area"
     )
-    
+
     assert response.status == 200
     data = response.body._value
     assert b"history" in data
-    
+
     # Should call calculate_area_efficiency for each period (7 times)
     assert mock_efficiency_calculator.calculate_area_efficiency.call_count == 7
 
@@ -286,18 +286,18 @@ async def test_handle_get_area_efficiency_history_default_params(
             "recommendations": [],
         }
     )
-    
+
     request = make_mocked_request(
         "GET",
         "/api/smart_heating/efficiency/history/test_area",
         query_string="",
     )
-    
+
     response = await handle_get_area_efficiency_history(
         mock_hass, mock_efficiency_calculator, request, "test_area"
     )
-    
+
     assert response.status == 200
-    
+
     # Should use default: 7 periods of type "day"
     assert mock_efficiency_calculator.calculate_area_efficiency.call_count == 7

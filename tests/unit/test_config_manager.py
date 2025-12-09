@@ -1,9 +1,9 @@
 """Tests for ConfigManager - Basic smoke tests."""
 
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from smart_heating.config_manager import ConfigManager
 from smart_heating.const import DOMAIN
 
@@ -32,7 +32,7 @@ def mock_hass():
 def mock_area_manager():
     """Create mock AreaManager."""
     manager = MagicMock()
-    
+
     # Mock area
     mock_area = MagicMock()
     mock_area.to_dict.return_value = {
@@ -40,7 +40,7 @@ def mock_area_manager():
         "enabled": True,
         "target_temperature": 21.0,
     }
-    
+
     manager.get_all_areas.return_value = {"living_room": mock_area}
     manager.frost_protection_enabled = True
     manager.frost_protection_min_temp = 7.0
@@ -57,7 +57,7 @@ def mock_area_manager():
     manager.opentherm_gateway_id = None
     manager.get_safety_sensors.return_value = []
     manager.async_save = AsyncMock()
-    
+
     return manager
 
 
@@ -76,14 +76,14 @@ class TestConfigManagerBasics:
         """Test that ConfigManager can be initialized."""
         with patch("smart_heating.config_manager.Path.mkdir"):
             manager = ConfigManager(mock_hass, mock_area_manager, "/config/.storage/smart_heating")
-        
+
         assert manager is not None
         assert isinstance(manager.storage_path, Path)
 
     async def test_export_returns_data(self, config_manager):
         """Test that export returns configuration data."""
         result = await config_manager.async_export_config()
-        
+
         assert "version" in result
         assert "export_date" in result
         assert "areas" in result
@@ -92,14 +92,14 @@ class TestConfigManagerBasics:
     async def test_export_includes_areas(self, config_manager):
         """Test that export includes area data."""
         result = await config_manager.async_export_config()
-        
+
         assert "living_room" in result["areas"]
         assert result["areas"]["living_room"]["name"] == "Living Room"
 
     async def test_export_includes_global_settings(self, config_manager):
         """Test that export includes global settings."""
         result = await config_manager.async_export_config()
-        
+
         settings = result["global_settings"]
         assert "frost_protection" in settings
         assert "global_presets" in settings
@@ -111,15 +111,15 @@ class TestConfigManagerBasics:
         data = {
             "version": "0.6.0",
             "areas": {},
-            "global_settings": {
-                "frost_protection": {"enabled": True, "min_temp": 7.0}
-            },
+            "global_settings": {"frost_protection": {"enabled": True, "min_temp": 7.0}},
             "vacation_mode": {},
         }
-        
-        with patch.object(config_manager, "_async_create_backup", new=AsyncMock(return_value="backup.json")):
+
+        with patch.object(
+            config_manager, "_async_create_backup", new=AsyncMock(return_value="backup.json")
+        ):
             result = await config_manager.async_import_config(data, create_backup=True)
-        
+
         # Should complete without error
         assert isinstance(result, dict)
 
@@ -131,10 +131,10 @@ class TestConfigManagerBasics:
             "global_settings": {},
             "vacation_mode": {},
         }
-        
+
         backup_mock = AsyncMock()
         with patch.object(config_manager, "_async_create_backup", backup_mock):
             await config_manager.async_import_config(data, create_backup=False)
-        
+
         # Backup should not be called
         backup_mock.assert_not_called()

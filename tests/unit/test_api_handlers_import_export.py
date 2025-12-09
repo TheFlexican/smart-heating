@@ -1,15 +1,15 @@
 """Tests for import/export API handlers - Basic smoke tests."""
 
 import json
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch, mock_open
+from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
+import pytest
 from smart_heating.api_handlers.import_export import (
     handle_export_config,
     handle_import_config,
-    handle_validate_config,
     handle_list_backups,
     handle_restore_backup,
+    handle_validate_config,
 )
 
 
@@ -26,9 +26,9 @@ def mock_config_manager():
     """Create mock ConfigManager."""
     from pathlib import Path
     from unittest.mock import PropertyMock
-    
+
     manager = MagicMock()
-    
+
     # Mock export - returns valid data
     manager.async_export_config = AsyncMock(
         return_value={
@@ -39,7 +39,7 @@ def mock_config_manager():
             "vacation_mode": {},
         }
     )
-    
+
     # Mock import - returns changes dict
     manager.async_import_config = AsyncMock(
         return_value={
@@ -48,18 +48,18 @@ def mock_config_manager():
             "global_settings_updated": False,
         }
     )
-    
+
     # Mock validate - internal method
     manager._validate_import_data = MagicMock()
-    
+
     # Mock area_manager for validate handler
     manager.area_manager.get_all_areas.return_value = {}
-    
+
     # Mock backup_dir for list/restore handlers
     backup_dir = MagicMock(spec=Path)
     backup_dir.exists.return_value = False
     type(manager).backup_dir = PropertyMock(return_value=backup_dir)
-    
+
     return manager
 
 
@@ -69,7 +69,7 @@ class TestExportHandler:
     async def test_export_returns_json_response(self, mock_hass, mock_config_manager):
         """Test that export returns a response with JSON content."""
         response = await handle_export_config(mock_hass, mock_config_manager)
-        
+
         assert response.status == 200
         assert "application/json" in response.headers["Content-Type"]
         assert "attachment" in response.headers["Content-Disposition"]
@@ -85,9 +85,9 @@ class TestImportHandler:
             "areas": {},
             "global_settings": {},
         }
-        
+
         response = await handle_import_config(mock_hass, mock_config_manager, data)
-        
+
         assert response.status == 200
         # Verify async_import_config was called with create_backup=True
         mock_config_manager.async_import_config.assert_called_once_with(data, create_backup=True)
@@ -98,10 +98,10 @@ class TestImportHandler:
         mock_config_manager.async_import_config = AsyncMock(
             side_effect=ValueError("Invalid version")
         )
-        
+
         data = {"version": "99.99.99"}
         response = await handle_import_config(mock_hass, mock_config_manager, data)
-        
+
         assert response.status == 400
         data = json.loads(response.body)
         assert "error" in data
@@ -115,10 +115,10 @@ class TestImportHandler:
                 "global_settings_updated": True,
             }
         )
-        
+
         data = {"version": "0.6.0", "areas": {}}
         response = await handle_import_config(mock_hass, mock_config_manager, data)
-        
+
         assert response.status == 200
         result = json.loads(response.body)
         assert result["success"] is True
@@ -131,31 +131,26 @@ class TestValidateHandler:
     async def test_validate_returns_response(self, mock_hass, mock_config_manager):
         """Test that validate handler returns a response."""
         data = {"version": "0.6.0", "areas": {}}
-        
+
         # Just check it returns something
         response = await handle_validate_config(mock_hass, mock_config_manager, data)
-        
+
         assert response.status == 200
 
     async def test_validate_with_preview(self, mock_hass, mock_config_manager):
         """Test validate returns preview information."""
-        mock_config_manager.area_manager.get_all_areas.return_value = {
-            "living_room": MagicMock()
-        }
-        
+        mock_config_manager.area_manager.get_all_areas.return_value = {"living_room": MagicMock()}
+
         data = {
             "version": "0.6.0",
             "export_date": "2024-01-15T10:30:00",
-            "areas": {
-                "living_room": {"name": "Living Room"},
-                "bedroom": {"name": "Bedroom"}
-            },
+            "areas": {"living_room": {"name": "Living Room"}, "bedroom": {"name": "Bedroom"}},
             "global_settings": {},
             "vacation_mode": {},
         }
-        
+
         response = await handle_validate_config(mock_hass, mock_config_manager, data)
-        
+
         assert response.status == 200
         result = json.loads(response.body)
         assert result["valid"] is True
@@ -167,10 +162,10 @@ class TestValidateHandler:
         mock_config_manager._validate_import_data = MagicMock(
             side_effect=ValueError("Missing required field")
         )
-        
+
         data = {"version": "0.6.0"}
         response = await handle_validate_config(mock_hass, mock_config_manager, data)
-        
+
         assert response.status == 400
         result = json.loads(response.body)
         assert result["valid"] is False
@@ -183,18 +178,18 @@ class TestBackupHandlers:
     async def test_list_backups_returns_response(self, mock_hass, mock_config_manager):
         """Test that list backups returns a response."""
         response = await handle_list_backups(mock_hass, mock_config_manager)
-        
+
         assert response.status == 200
 
     async def test_list_backups_with_files(self, mock_hass, mock_config_manager):
         """Test listing backups when files exist."""
         from pathlib import Path
         from unittest.mock import PropertyMock
-        
+
         # Mock backup directory with files
         backup_dir = MagicMock(spec=Path)
         backup_dir.exists.return_value = True
-        
+
         # Mock backup file
         mock_file = MagicMock(spec=Path)
         mock_file.name = "backup_20240115_120000.json"
@@ -202,12 +197,12 @@ class TestBackupHandlers:
         mock_stat.st_size = 1024
         mock_stat.st_mtime = 1705320000.0
         mock_file.stat.return_value = mock_stat
-        
+
         backup_dir.glob.return_value = [mock_file]
         type(mock_config_manager).backup_dir = PropertyMock(return_value=backup_dir)
-        
+
         response = await handle_list_backups(mock_hass, mock_config_manager)
-        
+
         assert response.status == 200
         data = json.loads(response.body)
         assert "backups" in data
@@ -218,25 +213,23 @@ class TestBackupHandlers:
         """Test restoring non-existent backup."""
         from pathlib import Path
         from unittest.mock import PropertyMock
-        
+
         # Mock backup directory
         backup_dir = MagicMock(spec=Path)
         backup_file = MagicMock(spec=Path)
         backup_file.exists.return_value = False
         backup_dir.__truediv__.return_value = backup_file
         type(mock_config_manager).backup_dir = PropertyMock(return_value=backup_dir)
-        
-        response = await handle_restore_backup(
-            mock_hass, mock_config_manager, "nonexistent.json"
-        )
-        
+
+        response = await handle_restore_backup(mock_hass, mock_config_manager, "nonexistent.json")
+
         assert response.status == 404
 
     async def test_restore_backup_success(self, mock_hass, mock_config_manager):
         """Test successful backup restore."""
         from pathlib import Path
         from unittest.mock import PropertyMock
-        
+
         # Mock backup directory and file
         backup_dir = MagicMock(spec=Path)
         backup_file = MagicMock(spec=Path)
@@ -244,25 +237,23 @@ class TestBackupHandlers:
         backup_file.__str__.return_value = "/path/to/backup.json"
         backup_dir.__truediv__.return_value = backup_file
         type(mock_config_manager).backup_dir = PropertyMock(return_value=backup_dir)
-        
+
         # Mock file content
-        backup_content = json.dumps({
-            "version": "0.6.0",
-            "areas": {},
-            "global_settings": {},
-        })
-        
+        backup_content = json.dumps(
+            {
+                "version": "0.6.0",
+                "areas": {},
+                "global_settings": {},
+            }
+        )
+
         with patch("builtins.open", mock_open(read_data=backup_content)):
-            response = await handle_restore_backup(
-                mock_hass, mock_config_manager, "backup.json"
-            )
-        
+            response = await handle_restore_backup(mock_hass, mock_config_manager, "backup.json")
+
         assert response.status == 200
         data = json.loads(response.body)
         assert data["success"] is True
-        response = await handle_restore_backup(
-            mock_hass, mock_config_manager, "backup.json"
-        )
-        
+        response = await handle_restore_backup(mock_hass, mock_config_manager, "backup.json")
+
         # Any response is fine for smoke test
         assert response is not None

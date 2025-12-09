@@ -80,7 +80,10 @@ class EfficiencyCalculator:
             # Calculate overall efficiency score (0-100)
             # Higher score = more efficient
             energy_score = self._calculate_energy_score(
-                heating_time_percentage, avg_temp_delta, heating_cycles, len(history_data)
+                heating_time_percentage,
+                avg_temp_delta,
+                heating_cycles,
+                len(history_data),
             )
 
             return {

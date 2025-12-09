@@ -1,14 +1,11 @@
 """Tests for user_manager module."""
 
 import json
-from datetime import datetime
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-
 from smart_heating.user_manager import UserManager
 
 
@@ -41,7 +38,7 @@ async def user_manager(mock_hass, temp_storage_path):
 async def test_user_manager_initialization(mock_hass, temp_storage_path):
     """Test UserManager initialization."""
     manager = UserManager(mock_hass, temp_storage_path)
-    
+
     assert manager.hass == mock_hass
     assert manager._storage_file == Path(temp_storage_path) / "user_profiles.json"
     assert "users" in manager._data
@@ -54,13 +51,13 @@ async def test_async_load_creates_file_if_not_exists(mock_hass, temp_storage_pat
     """Test that async_load creates file if it doesn't exist."""
     manager = UserManager(mock_hass, temp_storage_path)
     await manager.async_load()
-    
+
     assert manager._storage_file.exists()
-    
+
     # Verify file contents
     with open(manager._storage_file, "r") as f:
         data = json.load(f)
-    
+
     assert "users" in data
     assert "presence_state" in data
     assert "settings" in data
@@ -71,7 +68,7 @@ async def test_async_load_reads_existing_file(mock_hass, temp_storage_path):
     """Test that async_load reads existing file."""
     storage_file = Path(temp_storage_path) / "user_profiles.json"
     storage_file.parent.mkdir(parents=True, exist_ok=True)
-    
+
     test_data = {
         "users": {
             "test_user": {
@@ -85,13 +82,13 @@ async def test_async_load_reads_existing_file(mock_hass, temp_storage_path):
         "presence_state": {"users_home": [], "active_user": None, "combined_mode": "none"},
         "settings": {"multi_user_strategy": "priority", "enabled": True},
     }
-    
+
     with open(storage_file, "w") as f:
         json.dump(test_data, f)
-    
+
     manager = UserManager(mock_hass, temp_storage_path)
     await manager.async_load()
-    
+
     assert "test_user" in manager._data["users"]
     assert manager._data["users"]["test_user"]["name"] == "Test User"
 
@@ -107,13 +104,13 @@ async def test_create_user_profile(user_manager):
         priority=8,
         areas=["living_room"],
     )
-    
+
     assert user["user_id"] == "person.john"
     assert user["name"] == "John Doe"
     assert user["preset_preferences"]["home"] == 21.0
     assert user["priority"] == 8
     assert user["areas"] == ["living_room"]
-    
+
     # Verify it was saved
     assert "user1" in user_manager._data["users"]
 
@@ -128,7 +125,7 @@ async def test_create_user_profile_duplicate_raises_error(user_manager):
         preset_preferences={},
         priority=5,
     )
-    
+
     with pytest.raises(ValueError, match="already exists"):
         await user_manager.create_user_profile(
             user_id="user1",
@@ -162,12 +159,12 @@ async def test_update_user_profile(user_manager):
         preset_preferences={"home": 21.0},
         priority=5,
     )
-    
+
     updated = await user_manager.update_user_profile(
         "user1",
         {"name": "John Smith", "priority": 8},
     )
-    
+
     assert updated["name"] == "John Smith"
     assert updated["priority"] == 8
     assert updated["preset_preferences"]["home"] == 21.0  # Unchanged
@@ -190,11 +187,11 @@ async def test_delete_user_profile(user_manager):
         preset_preferences={},
         priority=5,
     )
-    
+
     assert "user1" in user_manager._data["users"]
-    
+
     await user_manager.delete_user_profile("user1")
-    
+
     assert "user1" not in user_manager._data["users"]
 
 
@@ -215,9 +212,9 @@ async def test_get_user_profile(user_manager):
         preset_preferences={"home": 21.0},
         priority=5,
     )
-    
+
     user = user_manager.get_user_profile("user1")
-    
+
     assert user is not None
     assert user["name"] == "John Doe"
 
@@ -246,9 +243,9 @@ async def test_get_all_users(user_manager):
         preset_preferences={},
         priority=8,
     )
-    
+
     users = user_manager.get_all_users()
-    
+
     assert len(users) == 2
     assert "user1" in users
     assert "user2" in users
@@ -258,7 +255,7 @@ async def test_get_all_users(user_manager):
 async def test_get_presence_state(user_manager):
     """Test getting presence state."""
     state = user_manager.get_presence_state()
-    
+
     assert "users_home" in state
     assert "active_user" in state
     assert "combined_mode" in state
@@ -271,7 +268,7 @@ async def test_update_settings(user_manager):
     settings = await user_manager.update_settings(
         {"multi_user_strategy": "average", "enabled": False}
     )
-    
+
     assert settings["multi_user_strategy"] == "average"
     assert settings["enabled"] is False
 
@@ -288,9 +285,9 @@ async def test_get_highest_priority_user(user_manager):
     await user_manager.create_user_profile(
         user_id="user3", name="User 3", person_entity="person.user3", priority=3
     )
-    
+
     highest = user_manager._get_highest_priority_user(["user1", "user2", "user3"])
-    
+
     assert highest == "user2"
 
 
@@ -304,13 +301,13 @@ async def test_get_active_user_preferences(user_manager, mock_hass):
         preset_preferences={"home": 21.0, "away": 16.0},
         priority=8,
     )
-    
+
     # Simulate user being home
     user_manager._data["presence_state"]["users_home"] = ["user1"]
     user_manager._data["presence_state"]["active_user"] = "user1"
-    
+
     prefs = user_manager.get_active_user_preferences()
-    
+
     assert prefs is not None
     assert prefs["home"] == 21.0
     assert prefs["away"] == 16.0
@@ -327,7 +324,7 @@ async def test_get_active_user_preferences_no_user_home(user_manager):
 async def test_get_active_user_preferences_disabled(user_manager):
     """Test getting preferences when feature is disabled."""
     await user_manager.update_settings({"enabled": False})
-    
+
     prefs = user_manager.get_active_user_preferences()
     assert prefs is None
 
@@ -349,13 +346,13 @@ async def test_get_combined_preferences_priority_strategy(user_manager):
         preset_preferences={"home": 22.0},
         priority=8,
     )
-    
+
     user_manager._data["presence_state"]["users_home"] = ["user1", "user2"]
     user_manager._data["presence_state"]["active_user"] = "user2"
     user_manager._data["settings"]["multi_user_strategy"] = "priority"
-    
+
     prefs = user_manager.get_combined_preferences()
-    
+
     # Should use user2's preferences (higher priority)
     assert prefs["home"] == 22.0
 
@@ -377,12 +374,12 @@ async def test_get_combined_preferences_average_strategy(user_manager):
         preset_preferences={"home": 22.0, "away": 18.0},
         priority=8,
     )
-    
+
     user_manager._data["presence_state"]["users_home"] = ["user1", "user2"]
     user_manager._data["settings"]["multi_user_strategy"] = "average"
-    
+
     prefs = user_manager.get_combined_preferences()
-    
+
     # Should average: (20+22)/2 = 21, (16+18)/2 = 17
     assert prefs["home"] == 21.0
     assert prefs["away"] == 17.0
@@ -399,15 +396,15 @@ async def test_area_filtering_in_preferences(user_manager):
         priority=5,
         areas=["living_room"],  # Only cares about living room
     )
-    
+
     user_manager._data["presence_state"]["users_home"] = ["user1"]
     user_manager._data["presence_state"]["active_user"] = "user1"
-    
+
     # Should return preferences for living room
     prefs = user_manager.get_active_user_preferences("living_room")
     assert prefs is not None
     assert prefs["home"] == 21.0
-    
+
     # Should return None for bedroom
     prefs = user_manager.get_active_user_preferences("bedroom")
     assert prefs is None
@@ -417,10 +414,10 @@ async def test_area_filtering_in_preferences(user_manager):
 async def test_cleanup(user_manager):
     """Test cleanup removes listeners."""
     user_manager._unsub_person_listeners = [Mock(), Mock()]
-    
+
     await user_manager.cleanup()
-    
+
     for unsub in user_manager._unsub_person_listeners:
         unsub.assert_called_once()
-    
+
     assert len(user_manager._unsub_person_listeners) == 0

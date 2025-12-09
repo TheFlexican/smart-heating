@@ -1,26 +1,25 @@
 """Tests for ha_services/schedule_handlers module."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
-import uuid
 
 import pytest
 from homeassistant.core import ServiceCall
-
-from smart_heating.ha_services.schedule_handlers import (
-    async_handle_add_schedule,
-    async_handle_remove_schedule,
-    async_handle_enable_schedule,
-    async_handle_disable_schedule,
-    async_handle_set_night_boost,
-    async_handle_copy_schedule,
-)
 from smart_heating.const import (
     ATTR_AREA_ID,
-    ATTR_SCHEDULE_ID,
-    ATTR_TIME,
-    ATTR_TEMPERATURE,
     ATTR_DAYS,
+    ATTR_SCHEDULE_ID,
+    ATTR_TEMPERATURE,
+    ATTR_TIME,
+)
+from smart_heating.ha_services.schedule_handlers import (
+    async_handle_add_schedule,
+    async_handle_copy_schedule,
+    async_handle_disable_schedule,
+    async_handle_enable_schedule,
+    async_handle_remove_schedule,
+    async_handle_set_night_boost,
 )
 from smart_heating.models import Schedule
 
@@ -77,9 +76,7 @@ class TestScheduleHandlers:
     """Test schedule service handlers."""
 
     @pytest.mark.asyncio
-    async def test_async_handle_add_schedule_success(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_add_schedule_success(self, mock_area_manager, mock_coordinator):
         """Test adding schedule successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -89,9 +86,9 @@ class TestScheduleHandlers:
             ATTR_TEMPERATURE: 21.5,
             ATTR_DAYS: ["monday", "tuesday"],
         }
-        
+
         await async_handle_add_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Verify schedule was added
         mock_area_manager.add_schedule_to_area.assert_called_once_with(
             "living_room", "morning", "08:00", 21.5, ["monday", "tuesday"]
@@ -102,9 +99,7 @@ class TestScheduleHandlers:
         mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_handle_add_schedule_no_days(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_add_schedule_no_days(self, mock_area_manager, mock_coordinator):
         """Test adding schedule without days parameter."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -113,18 +108,16 @@ class TestScheduleHandlers:
             ATTR_TIME: "08:00",
             ATTR_TEMPERATURE: 21.5,
         }
-        
+
         await async_handle_add_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Verify schedule was added with None for days
         mock_area_manager.add_schedule_to_area.assert_called_once_with(
             "living_room", "morning", "08:00", 21.5, None
         )
 
     @pytest.mark.asyncio
-    async def test_async_handle_add_schedule_error(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_add_schedule_error(self, mock_area_manager, mock_coordinator):
         """Test adding schedule when add_schedule_to_area raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -133,30 +126,28 @@ class TestScheduleHandlers:
             ATTR_TIME: "08:00",
             ATTR_TEMPERATURE: 21.5,
         }
-        
+
         # Make add_schedule_to_area raise ValueError
         mock_area_manager.add_schedule_to_area.side_effect = ValueError("Schedule exists")
-        
+
         # Should not raise, just log error
         await async_handle_add_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
         mock_coordinator.async_request_refresh.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_handle_remove_schedule_success(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_remove_schedule_success(self, mock_area_manager, mock_coordinator):
         """Test removing schedule successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
             ATTR_AREA_ID: "living_room",
             ATTR_SCHEDULE_ID: "morning",
         }
-        
+
         await async_handle_remove_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Verify schedule was removed
         mock_area_manager.remove_schedule_from_area.assert_called_once_with(
             "living_room", "morning"
@@ -167,22 +158,20 @@ class TestScheduleHandlers:
         mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_handle_remove_schedule_error(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_remove_schedule_error(self, mock_area_manager, mock_coordinator):
         """Test removing schedule when remove_schedule_from_area raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
             ATTR_AREA_ID: "living_room",
             ATTR_SCHEDULE_ID: "morning",
         }
-        
+
         # Make remove_schedule_from_area raise ValueError
         mock_area_manager.remove_schedule_from_area.side_effect = ValueError("Schedule not found")
-        
+
         # Should not raise, just log error
         await async_handle_remove_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
         mock_coordinator.async_request_refresh.assert_not_called()
@@ -197,11 +186,11 @@ class TestScheduleHandlers:
             ATTR_AREA_ID: "living_room",
             ATTR_SCHEDULE_ID: "schedule_1",
         }
-        
+
         mock_schedule.enabled = False  # Start disabled
-        
+
         await async_handle_enable_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Verify schedule was enabled
         assert mock_schedule.enabled is True
         # Verify data was saved
@@ -219,13 +208,13 @@ class TestScheduleHandlers:
             ATTR_AREA_ID: "unknown_area",
             ATTR_SCHEDULE_ID: "schedule_1",
         }
-        
+
         # Make get_area return None
         mock_area_manager.get_area.return_value = None
-        
+
         # Should not raise, just log error
         await async_handle_enable_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
         mock_coordinator.async_request_refresh.assert_not_called()
@@ -240,10 +229,10 @@ class TestScheduleHandlers:
             ATTR_AREA_ID: "living_room",
             ATTR_SCHEDULE_ID: "unknown_schedule",
         }
-        
+
         # Schedule not in area.schedules
         await async_handle_enable_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
         mock_coordinator.async_request_refresh.assert_not_called()
@@ -258,11 +247,11 @@ class TestScheduleHandlers:
             ATTR_AREA_ID: "living_room",
             ATTR_SCHEDULE_ID: "schedule_1",
         }
-        
+
         mock_schedule.enabled = True  # Start enabled
-        
+
         await async_handle_disable_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Verify schedule was disabled
         assert mock_schedule.enabled is False
         # Verify data was saved
@@ -280,10 +269,10 @@ class TestScheduleHandlers:
             ATTR_AREA_ID: "living_room",
             ATTR_SCHEDULE_ID: "unknown_schedule",
         }
-        
+
         # Schedule not in area.schedules
         await async_handle_disable_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
         mock_coordinator.async_request_refresh.assert_not_called()
@@ -304,9 +293,9 @@ class TestScheduleHandlers:
             "smart_night_boost_target_time": "07:00",
             "weather_entity_id": "weather.home",
         }
-        
+
         await async_handle_set_night_boost(call, mock_area_manager, mock_coordinator)
-        
+
         # Verify all settings were updated
         assert mock_area.night_boost_enabled is True
         assert mock_area.night_boost_offset == 1.0
@@ -331,11 +320,11 @@ class TestScheduleHandlers:
             "night_boost_enabled": True,
             "night_boost_offset": 1.5,
         }
-        
+
         original_start = mock_area.night_boost_start_time
-        
+
         await async_handle_set_night_boost(call, mock_area_manager, mock_coordinator)
-        
+
         # Verify only specified settings were updated
         assert mock_area.night_boost_enabled is True
         assert mock_area.night_boost_offset == 1.5
@@ -352,13 +341,13 @@ class TestScheduleHandlers:
             ATTR_AREA_ID: "unknown_area",
             "night_boost_enabled": True,
         }
-        
+
         # Make get_area return None
         mock_area_manager.get_area.return_value = None
-        
+
         # Should not raise, just log error
         await async_handle_set_night_boost(call, mock_area_manager, mock_coordinator)
-        
+
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
         mock_coordinator.async_request_refresh.assert_not_called()
@@ -372,7 +361,7 @@ class TestScheduleHandlers:
         source_area.schedules = {"schedule_1": mock_schedule}
         target_area = MagicMock()
         target_area.add_schedule = MagicMock()
-        
+
         # Mock get_area to return different areas
         def get_area(area_id):
             if area_id == "source_area":
@@ -380,18 +369,18 @@ class TestScheduleHandlers:
             elif area_id == "target_area":
                 return target_area
             return None
-        
+
         mock_area_manager.get_area.side_effect = get_area
-        
+
         call = MagicMock(spec=ServiceCall)
         call.data = {
             "source_area_id": "source_area",
             "source_schedule_id": "schedule_1",
             "target_area_id": "target_area",
         }
-        
+
         await async_handle_copy_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Verify schedule was added to target area
         target_area.add_schedule.assert_called_once()
         # Verify data was saved
@@ -408,16 +397,16 @@ class TestScheduleHandlers:
         source_area.schedules = {"schedule_1": mock_schedule}
         target_area = MagicMock()
         target_area.add_schedule = MagicMock()
-        
+
         def get_area(area_id):
             if area_id == "source_area":
                 return source_area
             elif area_id == "target_area":
                 return target_area
             return None
-        
+
         mock_area_manager.get_area.side_effect = get_area
-        
+
         call = MagicMock(spec=ServiceCall)
         call.data = {
             "source_area_id": "source_area",
@@ -425,9 +414,9 @@ class TestScheduleHandlers:
             "target_area_id": "target_area",
             "target_days": ["monday", "tuesday", "wednesday"],
         }
-        
+
         await async_handle_copy_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Verify schedule was added 3 times (one for each day)
         assert target_area.add_schedule.call_count == 3
 
@@ -437,16 +426,16 @@ class TestScheduleHandlers:
     ):
         """Test copying schedule when source area not found."""
         mock_area_manager.get_area.return_value = None
-        
+
         call = MagicMock(spec=ServiceCall)
         call.data = {
             "source_area_id": "unknown_area",
             "source_schedule_id": "schedule_1",
             "target_area_id": "target_area",
         }
-        
+
         await async_handle_copy_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
         mock_coordinator.async_request_refresh.assert_not_called()
@@ -458,23 +447,23 @@ class TestScheduleHandlers:
         """Test copying schedule when target area not found."""
         source_area = MagicMock()
         source_area.schedules = {"schedule_1": mock_schedule}
-        
+
         def get_area(area_id):
             if area_id == "source_area":
                 return source_area
             return None
-        
+
         mock_area_manager.get_area.side_effect = get_area
-        
+
         call = MagicMock(spec=ServiceCall)
         call.data = {
             "source_area_id": "source_area",
             "source_schedule_id": "schedule_1",
             "target_area_id": "unknown_area",
         }
-        
+
         await async_handle_copy_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
         mock_coordinator.async_request_refresh.assert_not_called()
@@ -487,25 +476,25 @@ class TestScheduleHandlers:
         source_area = MagicMock()
         source_area.schedules = {}  # No schedules
         target_area = MagicMock()
-        
+
         def get_area(area_id):
             if area_id == "source_area":
                 return source_area
             elif area_id == "target_area":
                 return target_area
             return None
-        
+
         mock_area_manager.get_area.side_effect = get_area
-        
+
         call = MagicMock(spec=ServiceCall)
         call.data = {
             "source_area_id": "source_area",
             "source_schedule_id": "unknown_schedule",
             "target_area_id": "target_area",
         }
-        
+
         await async_handle_copy_schedule(call, mock_area_manager, mock_coordinator)
-        
+
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
         mock_coordinator.async_request_refresh.assert_not_called()

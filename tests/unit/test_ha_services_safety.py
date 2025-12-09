@@ -1,16 +1,16 @@
 """Tests for ha_services/safety_handlers module."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant, ServiceCall
-
-from smart_heating.ha_services.safety_handlers import (
-    async_handle_set_safety_sensor,
-    async_handle_remove_safety_sensor,
-)
 from smart_heating.const import DOMAIN
+from smart_heating.ha_services.safety_handlers import (
+    async_handle_remove_safety_sensor,
+    async_handle_set_safety_sensor,
+)
 
 
 @pytest.fixture
@@ -56,7 +56,7 @@ class TestSafetyHandlers:
     ):
         """Test setting safety sensor successfully."""
         mock_hass.data[DOMAIN]["safety_monitor"] = mock_safety_monitor
-        
+
         call = MagicMock(spec=ServiceCall)
         call.data = {
             "sensor_id": "binary_sensor.smoke_detector",
@@ -64,11 +64,9 @@ class TestSafetyHandlers:
             "alert_value": True,
             "enabled": True,
         }
-        
-        await async_handle_set_safety_sensor(
-            call, mock_hass, mock_area_manager, mock_coordinator
-        )
-        
+
+        await async_handle_set_safety_sensor(call, mock_hass, mock_area_manager, mock_coordinator)
+
         # Verify sensor was added
         mock_area_manager.add_safety_sensor.assert_called_once_with(
             "binary_sensor.smoke_detector", "smoke", True, True
@@ -84,14 +82,12 @@ class TestSafetyHandlers:
     ):
         """Test setting safety sensor with default values."""
         mock_hass.data[DOMAIN]["safety_monitor"] = mock_safety_monitor
-        
+
         call = MagicMock(spec=ServiceCall)
         call.data = {"sensor_id": "binary_sensor.smoke_detector"}
-        
-        await async_handle_set_safety_sensor(
-            call, mock_hass, mock_area_manager, mock_coordinator
-        )
-        
+
+        await async_handle_set_safety_sensor(call, mock_hass, mock_area_manager, mock_coordinator)
+
         # Verify sensor was added with defaults
         mock_area_manager.add_safety_sensor.assert_called_once_with(
             "binary_sensor.smoke_detector", "smoke", True, True
@@ -105,11 +101,9 @@ class TestSafetyHandlers:
         # No safety_monitor in hass.data
         call = MagicMock(spec=ServiceCall)
         call.data = {"sensor_id": "binary_sensor.smoke_detector"}
-        
-        await async_handle_set_safety_sensor(
-            call, mock_hass, mock_area_manager, mock_coordinator
-        )
-        
+
+        await async_handle_set_safety_sensor(call, mock_hass, mock_area_manager, mock_coordinator)
+
         # Verify sensor was still added
         mock_area_manager.add_safety_sensor.assert_called_once()
         # Verify data was saved
@@ -122,14 +116,12 @@ class TestSafetyHandlers:
         """Test setting safety sensor when error occurs."""
         call = MagicMock(spec=ServiceCall)
         call.data = {"sensor_id": "binary_sensor.smoke_detector"}
-        
+
         # Make add_safety_sensor raise exception
         mock_area_manager.add_safety_sensor.side_effect = Exception("Sensor error")
-        
+
         # Should not raise, just log error
-        await async_handle_set_safety_sensor(
-            call, mock_hass, mock_area_manager, mock_coordinator
-        )
+        await async_handle_set_safety_sensor(call, mock_hass, mock_area_manager, mock_coordinator)
 
     @pytest.mark.asyncio
     async def test_async_handle_remove_safety_sensor_success(
@@ -137,14 +129,14 @@ class TestSafetyHandlers:
     ):
         """Test removing safety sensor successfully."""
         mock_hass.data[DOMAIN]["safety_monitor"] = mock_safety_monitor
-        
+
         call = MagicMock(spec=ServiceCall)
         call.data = {"sensor_id": "binary_sensor.smoke_detector"}
-        
+
         await async_handle_remove_safety_sensor(
             call, mock_hass, mock_area_manager, mock_coordinator
         )
-        
+
         # Verify sensor was removed
         mock_area_manager.remove_safety_sensor.assert_called_once_with(
             "binary_sensor.smoke_detector"
@@ -162,11 +154,11 @@ class TestSafetyHandlers:
         # No safety_monitor in hass.data
         call = MagicMock(spec=ServiceCall)
         call.data = {"sensor_id": "binary_sensor.smoke_detector"}
-        
+
         await async_handle_remove_safety_sensor(
             call, mock_hass, mock_area_manager, mock_coordinator
         )
-        
+
         # Verify sensor was still removed
         mock_area_manager.remove_safety_sensor.assert_called_once()
         # Verify data was saved
@@ -179,10 +171,10 @@ class TestSafetyHandlers:
         """Test removing safety sensor when error occurs."""
         call = MagicMock(spec=ServiceCall)
         call.data = {"sensor_id": "binary_sensor.smoke_detector"}
-        
+
         # Make remove_safety_sensor raise exception
         mock_area_manager.remove_safety_sensor.side_effect = Exception("Sensor not found")
-        
+
         # Should not raise, just log error
         await async_handle_remove_safety_sensor(
             call, mock_hass, mock_area_manager, mock_coordinator

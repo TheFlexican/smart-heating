@@ -135,7 +135,7 @@ async def handle_set_history_config(hass: HomeAssistant, data: dict) -> web.Resp
             return web.json_response({"error": ERROR_HISTORY_NOT_AVAILABLE}, status=503)
 
         history_tracker.set_retention_days(int(retention_days))
-        
+
         # Note: storage_backend changes should use the migration API
         # This is just for initial config or to store preference
         storage_backend = data.get("storage_backend")
@@ -143,9 +143,9 @@ async def handle_set_history_config(hass: HomeAssistant, data: dict) -> web.Resp
             _LOGGER.info(
                 "Storage backend preference set to %s. "
                 "Use migration API to switch backends with data migration.",
-                storage_backend
+                storage_backend,
             )
-        
+
         await history_tracker.async_save()
 
         # Trigger cleanup if retention was reduced
@@ -153,9 +153,9 @@ async def handle_set_history_config(hass: HomeAssistant, data: dict) -> web.Resp
 
         return web.json_response(
             {
-                "success": True, 
+                "success": True,
                 "retention_days": history_tracker.get_retention_days(),
-                "storage_backend": history_tracker.get_storage_backend()
+                "storage_backend": history_tracker.get_storage_backend(),
             }
         )
     except ValueError as err:
@@ -189,7 +189,9 @@ async def handle_get_history_storage_info(hass: HomeAssistant) -> web.Response:
     return web.json_response(response)
 
 
-async def handle_migrate_history_storage(hass: HomeAssistant, data: dict) -> web.Response:
+async def handle_migrate_history_storage(
+    hass: HomeAssistant, data: dict
+) -> web.Response:
     """Migrate history between storage backends.
 
     Args:

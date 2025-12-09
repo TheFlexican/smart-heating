@@ -1,29 +1,25 @@
 """Tests for Climate platform."""
+
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.components.climate import (
-    HVACMode,
-    ClimateEntityFeature,
     ATTR_TEMPERATURE,
-    ATTR_PRESET_MODE,
+    ClimateEntityFeature,
+    HVACMode,
 )
-from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
-
 from smart_heating.climate import (
     AreaClimate,
     async_setup_entry,
 )
 from smart_heating.const import (
     PRESET_COMFORT,
-    PRESET_ECO,
-    PRESET_AWAY,
 )
 
-from tests.unit.const import TEST_AREA_ID, TEST_AREA_NAME, TEST_TEMPERATURE
+from tests.unit.const import TEST_AREA_ID, TEST_AREA_NAME
 
 
 @pytest.fixture
@@ -40,7 +36,7 @@ def climate_entity(hass: HomeAssistant, mock_coordinator, mock_config_entry) -> 
     mock_area.preset_mode = PRESET_COMFORT
     mock_area.hvac_mode = "heat"
     mock_area.boost_mode_active = False
-    
+
     return AreaClimate(mock_coordinator, mock_config_entry, mock_area)
 
 
@@ -55,22 +51,19 @@ class TestClimateEntitySetup:
         mock_area = MagicMock()
         mock_area.area_id = TEST_AREA_ID
         mock_area.name = TEST_AREA_NAME
-        
+
         # Set up coordinator with area
-        mock_coordinator.area_manager.get_all_areas.return_value = {
-            TEST_AREA_ID: mock_area
-        }
-        
+        mock_coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
+
         # Store coordinator in hass.data as async_setup_entry expects
         from smart_heating.const import DOMAIN
+
         hass.data[DOMAIN] = {mock_config_entry.entry_id: mock_coordinator}
 
         async_add_entities = AsyncMock()
-        
-        await async_setup_entry(
-            hass, mock_config_entry, async_add_entities
-        )
-        
+
+        await async_setup_entry(hass, mock_config_entry, async_add_entities)
+
         # Should have created climate entities
         assert async_add_entities.called
         call_args = async_add_entities.call_args
@@ -108,6 +101,7 @@ class TestClimateEntityProperties:
     def test_temperature_unit(self, climate_entity: AreaClimate):
         """Test temperature unit."""
         from homeassistant.const import UnitOfTemperature
+
         assert climate_entity.temperature_unit == UnitOfTemperature.CELSIUS
 
     def test_min_temp(self, climate_entity: AreaClimate):
@@ -203,10 +197,10 @@ class TestClimateEntityActions:
         """Test setting temperature when no temperature provided."""
         climate_entity.hass = hass
         mock_coordinator.area_manager.set_area_target_temperature = MagicMock()
-        
+
         # Call without temperature
         await climate_entity.async_set_temperature()
-        
+
         # Should not call set_area_target_temperature
         mock_coordinator.area_manager.set_area_target_temperature.assert_not_called()
 
@@ -221,16 +215,16 @@ class TestClimateEntityAttributes:
         climate_entity._area.get_thermostats = MagicMock(return_value=["thermostat1"])
         climate_entity._area.get_temperature_sensors = MagicMock(return_value=["sensor1"])
         climate_entity._area.get_opentherm_gateways = MagicMock(return_value=["gateway1"])
-        
+
         attrs = climate_entity.extra_state_attributes
-        
+
         # Check basic attributes
         assert attrs["area_id"] == TEST_AREA_ID
         assert attrs["area_name"] == TEST_AREA_NAME
         assert attrs["area_state"] == "heat"
         assert attrs["device_count"] == 2
         assert attrs["devices"] == ["device1", "device2"]
-        
+
         # Check device type attributes
         assert attrs["thermostats"] == ["thermostat1"]
         assert attrs["temperature_sensors"] == ["sensor1"]
@@ -243,13 +237,13 @@ class TestClimateEntityAttributes:
         climate_entity._area.get_thermostats = MagicMock(return_value=[])
         climate_entity._area.get_temperature_sensors = MagicMock(return_value=[])
         climate_entity._area.get_opentherm_gateways = MagicMock(return_value=[])
-        
+
         attrs = climate_entity.extra_state_attributes
-        
+
         # Check basic attributes
         assert attrs["area_id"] == TEST_AREA_ID
         assert attrs["device_count"] == 0
-        
+
         # Device type attributes should not be present when empty
         assert "thermostats" not in attrs
         assert "temperature_sensors" not in attrs
@@ -258,11 +252,11 @@ class TestClimateEntityAttributes:
     def test_available_true(self, climate_entity: AreaClimate, mock_coordinator):
         """Test available property when coordinator successful."""
         mock_coordinator.last_update_success = True
-        
+
         assert climate_entity.available is True
 
     def test_available_false(self, climate_entity: AreaClimate, mock_coordinator):
         """Test available property when coordinator failed."""
         mock_coordinator.last_update_success = False
-        
+
         assert climate_entity.available is False

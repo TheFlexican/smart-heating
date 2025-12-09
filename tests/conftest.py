@@ -1,21 +1,17 @@
 """Common fixtures for Smart Heating tests."""
+
 from __future__ import annotations
 
 from collections.abc import Generator
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.setup import async_setup_component
-
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-
 from smart_heating.const import DOMAIN
-
 
 pytest_plugins = "pytest_homeassistant_custom_component"
 
@@ -40,9 +36,7 @@ def mock_config_entry() -> MockConfigEntry:
 @pytest.fixture
 def mock_setup_entry() -> Generator[AsyncMock]:
     """Override async_setup_entry."""
-    with patch(
-        "smart_heating.async_setup_entry", return_value=True
-    ) as mock_setup_entry:
+    with patch("smart_heating.async_setup_entry", return_value=True) as mock_setup_entry:
         yield mock_setup_entry
 
 
@@ -52,35 +46,13 @@ async def init_integration(
 ) -> MockConfigEntry:
     """Set up the Smart Heating integration for testing."""
     mock_config_entry.add_to_hass(hass)
-    
+
     # Initialize the domain data structure
     hass.data[DOMAIN] = {}
-    
+
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done()
-    
-    return mock_config_entry
 
-
-@pytest.fixture
-def mock_config_entry() -> MockConfigEntry:
-    """Return the default mocked config entry."""
-    return MockConfigEntry(
-        domain=DOMAIN,
-        title="Smart Heating",
-        data={"name": "Smart Heating"},
-        entry_id="test_entry_id",
-        version=1,
-    )
-
-
-@pytest.fixture
-async def init_integration(
-    hass: MockHomeAssistant, mock_config_entry: MockConfigEntry
-) -> MockConfigEntry:
-    """Set up the Smart Heating integration for testing."""
-    mock_config_entry.add_to_hass(hass)
-    # Mock the setup
     return mock_config_entry
 
 
@@ -218,5 +190,4 @@ def mock_learning_data() -> dict[str, Any]:
 @pytest.fixture
 def mock_hass() -> MagicMock:
     """Return a mocked HomeAssistant instance."""
-    return MockHomeAssistant()
-
+    return MagicMock(spec=HomeAssistant)

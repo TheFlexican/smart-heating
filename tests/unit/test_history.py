@@ -1,11 +1,12 @@
 """Tests for history module."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
-import pytest
 
-from smart_heating.history import HistoryTracker, CLEANUP_INTERVAL
+import pytest
+from smart_heating.history import CLEANUP_INTERVAL, HistoryTracker
 
 
 @pytest.fixture
@@ -27,7 +28,7 @@ def mock_store():
 @pytest.fixture
 async def history_tracker(mock_hass, mock_store):
     """Create history tracker instance."""
-    with patch('smart_heating.history.Store', return_value=mock_store):
+    with patch("smart_heating.history.Store", return_value=mock_store):
         tracker = HistoryTracker(mock_hass)
         return tracker
 
@@ -37,14 +38,14 @@ class TestHistoryTrackerInit:
 
     def test_init(self, mock_hass):
         """Test initialization."""
-        with patch('smart_heating.history.Store') as mock_store_class:
+        with patch("smart_heating.history.Store") as mock_store_class:
             tracker = HistoryTracker(mock_hass)
-            
+
             assert tracker.hass == mock_hass
             assert tracker._history == {}
             assert tracker._retention_days == 30  # DEFAULT_HISTORY_RETENTION_DAYS
             assert tracker._cleanup_unsub is None
-            
+
             # Verify store was created
             mock_store_class.assert_called_once()
 
@@ -56,19 +57,17 @@ class TestHistoryTrackerLoad:
     async def test_async_load_no_data(self, history_tracker, mock_store):
         """Test loading when no data in storage."""
         mock_store.async_load.return_value = None
-        
-        with patch('smart_heating.history.async_track_time_interval') as mock_track:
+
+        with patch("smart_heating.history.async_track_time_interval") as mock_track:
             await history_tracker.async_load()
-            
+
             # Should have empty history
             assert history_tracker._history == {}
             assert history_tracker._retention_days == 30
-            
+
             # Should schedule cleanup
             mock_track.assert_called_once_with(
-                history_tracker.hass,
-                history_tracker._async_periodic_cleanup,
-                CLEANUP_INTERVAL
+                history_tracker.hass, history_tracker._async_periodic_cleanup, CLEANUP_INTERVAL
             )
 
     @pytest.mark.asyncio
@@ -85,13 +84,13 @@ class TestHistoryTrackerLoad:
                     }
                 ]
             },
-            "retention_days": 30
+            "retention_days": 30,
         }
         mock_store.async_load.return_value = mock_data
-        
-        with patch('smart_heating.history.async_track_time_interval'):
+
+        with patch("smart_heating.history.async_track_time_interval"):
             await history_tracker.async_load()
-            
+
             # Should load history and retention
             assert history_tracker._history == mock_data["history"]
             assert history_tracker._retention_days == 30
@@ -114,9 +113,9 @@ class TestHistoryTrackerSave:
             ]
         }
         history_tracker._retention_days = 30
-        
+
         await history_tracker.async_save()
-        
+
         # Verify save was called with correct data
         mock_store.async_save.assert_called_once()
         call_args = mock_store.async_save.call_args[0][0]
@@ -133,9 +132,9 @@ class TestHistoryTrackerUnload:
         # Setup cleanup subscription
         mock_unsub = MagicMock()
         history_tracker._cleanup_unsub = mock_unsub
-        
+
         await history_tracker.async_unload()
-        
+
         # Should call unsub and clear it
         mock_unsub.assert_called_once()
         assert history_tracker._cleanup_unsub is None
@@ -161,18 +160,16 @@ class TestHistoryTrackerCleanup:
             "target_temperature": 21.0,
             "state": "heating",
         }
-        
-        history_tracker._history = {
-            "living_room": [old_entry, new_entry]
-        }
+
+        history_tracker._history = {"living_room": [old_entry, new_entry]}
         history_tracker._retention_days = 30
-        
+
         await history_tracker._async_cleanup_old_entries()
-        
+
         # Old entry should be removed
         assert len(history_tracker._history["living_room"]) == 1
         assert history_tracker._history["living_room"][0] == new_entry
-        
+
         # Should save after cleanup
         mock_store.async_save.assert_called_once()
 
@@ -186,16 +183,14 @@ class TestHistoryTrackerCleanup:
             "target_temperature": 21.0,
             "state": "heating",
         }
-        
-        history_tracker._history = {
-            "living_room": [new_entry]
-        }
-        
+
+        history_tracker._history = {"living_room": [new_entry]}
+
         await history_tracker._async_cleanup_old_entries()
-        
+
         # All entries should remain
         assert len(history_tracker._history["living_room"]) == 1
-        
+
         # Should not save when nothing removed
         mock_store.async_save.assert_not_called()
 
@@ -203,9 +198,9 @@ class TestHistoryTrackerCleanup:
     async def test_periodic_cleanup(self, history_tracker):
         """Test periodic cleanup task."""
         history_tracker._async_cleanup_old_entries = AsyncMock()
-        
+
         await history_tracker._async_periodic_cleanup()
-        
+
         # Should call cleanup
         history_tracker._async_cleanup_old_entries.assert_called_once()
 
@@ -216,14 +211,12 @@ class TestHistoryTrackerRecord:
     @pytest.mark.asyncio
     async def test_record_temperature_new_area(self, history_tracker):
         """Test recording temperature for new area."""
-        await history_tracker.async_record_temperature(
-            "living_room", 20.0, 21.0, "heating"
-        )
-        
+        await history_tracker.async_record_temperature("living_room", 20.0, 21.0, "heating")
+
         # Should create history for area
         assert "living_room" in history_tracker._history
         assert len(history_tracker._history["living_room"]) == 1
-        
+
         entry = history_tracker._history["living_room"][0]
         assert entry["current_temperature"] == 20.0
         assert entry["target_temperature"] == 21.0
@@ -242,11 +235,9 @@ class TestHistoryTrackerRecord:
                 "state": "heating",
             }
         ]
-        
-        await history_tracker.async_record_temperature(
-            "living_room", 20.5, 21.0, "heating"
-        )
-        
+
+        await history_tracker.async_record_temperature("living_room", 20.5, 21.0, "heating")
+
         # Should append new entry
         assert len(history_tracker._history["living_room"]) == 2
         assert history_tracker._history["living_room"][1]["current_temperature"] == 20.5
@@ -264,11 +255,9 @@ class TestHistoryTrackerRecord:
             }
             for _ in range(1001)
         ]
-        
-        await history_tracker.async_record_temperature(
-            "living_room", 20.5, 21.0, "heating"
-        )
-        
+
+        await history_tracker.async_record_temperature("living_room", 20.5, 21.0, "heating")
+
         # Should limit to 1000 entries
         assert len(history_tracker._history["living_room"]) == 1000
 
@@ -279,7 +268,7 @@ class TestHistoryTrackerGet:
     def test_get_history_no_data(self, history_tracker):
         """Test getting history for area with no data."""
         result = history_tracker.get_history("unknown_area")
-        
+
         assert result == []
 
     def test_get_history_all(self, history_tracker):
@@ -292,9 +281,9 @@ class TestHistoryTrackerGet:
                 "state": "heating",
             }
         ]
-        
+
         result = history_tracker.get_history("living_room")
-        
+
         assert len(result) == 1
         assert result == history_tracker._history["living_room"]
 
@@ -313,11 +302,11 @@ class TestHistoryTrackerGet:
             "target_temperature": 21.0,
             "state": "heating",
         }
-        
+
         history_tracker._history["living_room"] = [old_entry, recent_entry]
-        
+
         result = history_tracker.get_history("living_room", hours=24)
-        
+
         # Should only return entry from last 24 hours
         assert len(result) == 1
         assert result[0] == recent_entry
@@ -345,14 +334,14 @@ class TestHistoryTrackerGet:
                 "state": "heating",
             },
         ]
-        
+
         history_tracker._history["living_room"] = entries
-        
+
         start = now - timedelta(days=4)
         end = now - timedelta(days=2)
-        
+
         result = history_tracker.get_history("living_room", start_time=start, end_time=end)
-        
+
         # Should only return entry within custom range
         assert len(result) == 1
         assert result[0] == entries[1]
@@ -363,9 +352,9 @@ class TestHistoryTrackerGet:
             "living_room": [{"timestamp": datetime.now().isoformat()}],
             "bedroom": [{"timestamp": datetime.now().isoformat()}],
         }
-        
+
         result = history_tracker.get_all_history()
-        
+
         assert result == history_tracker._history
         assert len(result) == 2
 
@@ -376,7 +365,7 @@ class TestHistoryTrackerRetention:
     def test_set_retention_days(self, history_tracker):
         """Test setting retention days."""
         history_tracker.set_retention_days(30)
-        
+
         assert history_tracker._retention_days == 30
 
     def test_set_retention_days_invalid(self, history_tracker):
@@ -387,7 +376,7 @@ class TestHistoryTrackerRetention:
     def test_get_retention_days(self, history_tracker):
         """Test getting retention days."""
         history_tracker._retention_days = 45
-        
+
         assert history_tracker.get_retention_days() == 45
 
 
@@ -399,11 +388,13 @@ class TestHistoryTrackerDatabaseStorage:
         """Test that SQLite falls back to JSON storage."""
         mock_recorder = MagicMock()
         mock_recorder.db_url = "sqlite:///home-assistant_v2.db"
-        
-        with patch('smart_heating.history.Store', return_value=mock_store), \
-             patch('smart_heating.history.get_instance', return_value=mock_recorder):
+
+        with (
+            patch("smart_heating.history.Store", return_value=mock_store),
+            patch("smart_heating.history.get_instance", return_value=mock_recorder),
+        ):
             tracker = HistoryTracker(mock_hass, storage_backend="database")
-            
+
             # Should fall back to JSON
             assert tracker._storage_backend == "json"
 
@@ -414,13 +405,15 @@ class TestHistoryTrackerDatabaseStorage:
         mock_recorder.db_url = "mysql://user:pass@localhost/homeassistant"
         mock_engine = MagicMock()
         mock_recorder.engine = mock_engine
-        
-        with patch('smart_heating.history.Store', return_value=mock_store), \
-             patch('smart_heating.history.get_instance', return_value=mock_recorder), \
-             patch('smart_heating.history.Table') as mock_table, \
-             patch('smart_heating.history.MetaData'):
+
+        with (
+            patch("smart_heating.history.Store", return_value=mock_store),
+            patch("smart_heating.history.get_instance", return_value=mock_recorder),
+            patch("smart_heating.history.Table"),
+            patch("smart_heating.history.MetaData"),
+        ):
             tracker = HistoryTracker(mock_hass, storage_backend="database")
-            
+
             # Should accept MySQL
             assert tracker._storage_backend == "database"
             assert tracker._db_table is not None
@@ -432,13 +425,15 @@ class TestHistoryTrackerDatabaseStorage:
         mock_recorder.db_url = "postgresql://user:pass@localhost/homeassistant"
         mock_engine = MagicMock()
         mock_recorder.engine = mock_engine
-        
-        with patch('smart_heating.history.Store', return_value=mock_store), \
-             patch('smart_heating.history.get_instance', return_value=mock_recorder), \
-             patch('smart_heating.history.Table') as mock_table, \
-             patch('smart_heating.history.MetaData'):
+
+        with (
+            patch("smart_heating.history.Store", return_value=mock_store),
+            patch("smart_heating.history.get_instance", return_value=mock_recorder),
+            patch("smart_heating.history.Table"),
+            patch("smart_heating.history.MetaData"),
+        ):
             tracker = HistoryTracker(mock_hass, storage_backend="database")
-            
+
             # Should accept PostgreSQL
             assert tracker._storage_backend == "database"
             assert tracker._db_table is not None
@@ -456,7 +451,7 @@ class TestHistoryTrackerMigration:
     async def test_migrate_invalid_backend(self, history_tracker):
         """Test migrating to invalid backend."""
         result = await history_tracker.async_migrate_storage("invalid")
-        
+
         assert result["success"] is False
         assert "message" in result
 
@@ -468,8 +463,7 @@ class TestHistoryTrackerDatabaseStats:
     async def test_get_database_stats_json_backend(self, history_tracker):
         """Test getting database stats with JSON backend."""
         result = await history_tracker.async_get_database_stats()
-        
+
         # Should return dict with enabled: False for JSON backend
         assert result["enabled"] is False
         assert "message" in result
-

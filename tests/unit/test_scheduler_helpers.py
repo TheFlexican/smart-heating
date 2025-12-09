@@ -1,14 +1,11 @@
 """Tests for Scheduler helper methods."""
+
 from __future__ import annotations
 
 from datetime import datetime, time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from homeassistant.core import HomeAssistant, State
-
-from smart_heating.scheduler import ScheduleExecutor
-from smart_heating.models.schedule import Schedule
 from smart_heating.const import (
     PRESET_AWAY,
     PRESET_COMFORT,
@@ -16,6 +13,8 @@ from smart_heating.const import (
     PRESET_HOME,
     PRESET_SLEEP,
 )
+from smart_heating.models.schedule import Schedule
+from smart_heating.scheduler import ScheduleExecutor
 
 
 @pytest.fixture
@@ -93,20 +92,26 @@ class TestScheduleTimeMatching:
             start_time="22:00",
             end_time="07:00",
             temperature=18.0,
-            enabled=True
+            enabled=True,
         )
-        
+
         # Test time at 02:00 (early morning, should match)
         current_time = time(2, 0)
-        assert scheduler._is_time_in_midnight_crossing_schedule_from_previous_day(
-            schedule, current_time
-        ) is True
-        
+        assert (
+            scheduler._is_time_in_midnight_crossing_schedule_from_previous_day(
+                schedule, current_time
+            )
+            is True
+        )
+
         # Test time at 08:00 (after end time, should not match)
         current_time = time(8, 0)
-        assert scheduler._is_time_in_midnight_crossing_schedule_from_previous_day(
-            schedule, current_time
-        ) is False
+        assert (
+            scheduler._is_time_in_midnight_crossing_schedule_from_previous_day(
+                schedule, current_time
+            )
+            is False
+        )
 
     def test_is_time_in_midnight_crossing_schedule_today(self, scheduler):
         """Test checking if time is in midnight-crossing schedule that starts today."""
@@ -118,20 +123,20 @@ class TestScheduleTimeMatching:
             start_time="22:00",
             end_time="07:00",
             temperature=18.0,
-            enabled=True
+            enabled=True,
         )
-        
+
         # Test time at 23:00 (evening, should match)
         current_time = time(23, 0)
-        assert scheduler._is_time_in_midnight_crossing_schedule_today(
-            schedule, current_time
-        ) is True
-        
+        assert (
+            scheduler._is_time_in_midnight_crossing_schedule_today(schedule, current_time) is True
+        )
+
         # Test time at 02:00 (early morning, should not match - that's from previous day)
         current_time = time(2, 0)
-        assert scheduler._is_time_in_midnight_crossing_schedule_today(
-            schedule, current_time
-        ) is False
+        assert (
+            scheduler._is_time_in_midnight_crossing_schedule_today(schedule, current_time) is False
+        )
 
     def test_is_time_in_normal_schedule(self, scheduler):
         """Test checking if time is in normal (non-midnight-crossing) schedule."""
@@ -143,17 +148,17 @@ class TestScheduleTimeMatching:
             start_time="08:00",
             end_time="22:00",
             temperature=21.0,
-            enabled=True
+            enabled=True,
         )
-        
+
         # Test time at 10:00 (should match)
         current_time = time(10, 0)
         assert scheduler._is_time_in_normal_schedule(schedule, current_time) is True
-        
+
         # Test time at 07:00 (before start, should not match)
         current_time = time(7, 0)
         assert scheduler._is_time_in_normal_schedule(schedule, current_time) is False
-        
+
         # Test time at 23:00 (after end, should not match)
         current_time = time(23, 0)
         assert scheduler._is_time_in_normal_schedule(schedule, current_time) is False
@@ -172,7 +177,7 @@ class TestFindActiveSchedule:
                 start_time="08:00",
                 end_time="17:00",
                 temperature=20.0,
-                enabled=True
+                enabled=True,
             ),
             "2": Schedule(
                 schedule_id="2",
@@ -181,15 +186,15 @@ class TestFindActiveSchedule:
                 start_time="17:00",
                 end_time="22:00",
                 temperature=21.0,
-                enabled=True
-            )
+                enabled=True,
+            ),
         }
-        
+
         # Test at 10:00 Monday
         schedule = scheduler._find_active_schedule(schedules, "Monday", time(10, 0))
         assert schedule is not None
         assert schedule.schedule_id == "1"
-        
+
         # Test at 20:00 Monday
         schedule = scheduler._find_active_schedule(schedules, "Monday", time(20, 0))
         assert schedule is not None
@@ -205,15 +210,15 @@ class TestFindActiveSchedule:
                 start_time="22:00",
                 end_time="07:00",
                 temperature=18.0,
-                enabled=True
+                enabled=True,
             )
         }
-        
+
         # Test at 23:00 Sunday (start of schedule)
         schedule = scheduler._find_active_schedule(schedules, "Sunday", time(23, 0))
         assert schedule is not None
         assert schedule.schedule_id == "1"
-        
+
         # Test at 02:00 Monday (continuation from Sunday)
         schedule = scheduler._find_active_schedule(schedules, "Monday", time(2, 0))
         assert schedule is not None
@@ -229,10 +234,10 @@ class TestFindActiveSchedule:
                 start_time="08:00",
                 end_time="17:00",
                 temperature=20.0,
-                enabled=True
+                enabled=True,
             )
         }
-        
+
         # Test at 07:00 Monday (before any schedule)
         schedule = scheduler._find_active_schedule(schedules, "Monday", time(7, 0))
         assert schedule is None
@@ -251,7 +256,7 @@ class TestGetPresetTemperature:
         # Set up area manager with global temps
         mock_area_manager.global_comfort_temp = 21.5
         mock_area.use_global_comfort = True
-        
+
         temp = scheduler._get_preset_temperature(mock_area, PRESET_COMFORT)
         # Should use global temp
         assert temp == 21.5
@@ -277,45 +282,37 @@ class TestOutdoorTemperature:
     def test_get_outdoor_temperature_no_entity(self, scheduler, mock_area):
         """Test getting outdoor temperature when no weather entity configured."""
         mock_area.weather_entity_id = None
-        
+
         temp = scheduler._get_outdoor_temperature(mock_area)
         assert temp is None
 
     def test_get_outdoor_temperature_celsius(self, scheduler, mock_area, hass):
         """Test getting outdoor temperature in Celsius."""
         mock_area.weather_entity_id = "weather.home"
-        
+
         # Create a state for the weather entity
-        hass.states.async_set(
-            "weather.home",
-            "12.5",
-            {"unit_of_measurement": "°C"}
-        )
-        
+        hass.states.async_set("weather.home", "12.5", {"unit_of_measurement": "°C"})
+
         temp = scheduler._get_outdoor_temperature(mock_area)
         assert temp == 12.5
 
     def test_get_outdoor_temperature_fahrenheit(self, scheduler, mock_area, hass):
         """Test getting outdoor temperature in Fahrenheit."""
         mock_area.weather_entity_id = "weather.home"
-        
+
         # Create a state for the weather entity
-        hass.states.async_set(
-            "weather.home",
-            "55.0",
-            {"unit_of_measurement": "°F"}
-        )
-        
+        hass.states.async_set("weather.home", "55.0", {"unit_of_measurement": "°F"})
+
         temp = scheduler._get_outdoor_temperature(mock_area)
         assert temp == pytest.approx(12.78, abs=0.01)
 
     def test_get_outdoor_temperature_unavailable(self, scheduler, mock_area, hass):
         """Test getting outdoor temperature when unavailable."""
         mock_area.weather_entity_id = "weather.home"
-        
+
         # Create unavailable state
         hass.states.async_set("weather.home", "unavailable")
-        
+
         temp = scheduler._get_outdoor_temperature(mock_area)
         assert temp is None
 
@@ -327,9 +324,9 @@ class TestTargetTimeFromConfig:
         """Test getting target time from area configuration."""
         mock_area.smart_night_boost_target_time = "06:30"
         now = datetime(2024, 1, 1, 22, 0)  # 10 PM
-        
+
         target_time = scheduler._get_target_time_from_config(mock_area, now)
-        
+
         assert target_time is not None
         assert target_time.hour == 6
         assert target_time.minute == 30
@@ -338,9 +335,9 @@ class TestTargetTimeFromConfig:
         """Test getting target time when not configured."""
         mock_area.smart_night_boost_target_time = None
         now = datetime(2024, 1, 1, 22, 0)
-        
+
         target_time = scheduler._get_target_time_from_config(mock_area, now)
-        
+
         assert target_time is None
 
 
@@ -357,11 +354,13 @@ class TestApplyScheduleMethods:
             start_time="08:00",
             end_time="17:00",
             preset_mode=PRESET_COMFORT,
-            enabled=True
+            enabled=True,
         )
-        
-        await scheduler._apply_preset_schedule(mock_area, schedule, "climate.smart_heating_living_room")
-        
+
+        await scheduler._apply_preset_schedule(
+            mock_area, schedule, "climate.smart_heating_living_room"
+        )
+
         # Should set preset mode
         assert mock_area.preset_mode == PRESET_COMFORT
         # Should update target temperature to match preset
@@ -370,7 +369,9 @@ class TestApplyScheduleMethods:
         mock_area_manager.async_save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_apply_preset_schedule_clears_manual_override(self, scheduler, mock_area, mock_area_manager, hass):
+    async def test_apply_preset_schedule_clears_manual_override(
+        self, scheduler, mock_area, mock_area_manager, hass
+    ):
         """Test that applying schedule clears manual override."""
         mock_area.manual_override = True
         schedule = Schedule(
@@ -380,11 +381,13 @@ class TestApplyScheduleMethods:
             start_time="08:00",
             end_time="17:00",
             preset_mode=PRESET_COMFORT,
-            enabled=True
+            enabled=True,
         )
-        
-        await scheduler._apply_preset_schedule(mock_area, schedule, "climate.smart_heating_living_room")
-        
+
+        await scheduler._apply_preset_schedule(
+            mock_area, schedule, "climate.smart_heating_living_room"
+        )
+
         # Should clear manual override
         assert mock_area.manual_override is False
 
@@ -398,11 +401,13 @@ class TestApplyScheduleMethods:
             start_time="08:00",
             end_time="17:00",
             temperature=21.5,
-            enabled=True
+            enabled=True,
         )
-        
-        await scheduler._apply_temperature_schedule(mock_area, schedule, "climate.smart_heating_living_room")
-        
+
+        await scheduler._apply_temperature_schedule(
+            mock_area, schedule, "climate.smart_heating_living_room"
+        )
+
         # Should set target temperature
         assert mock_area.target_temperature == 21.5
         # Should save
@@ -411,7 +416,9 @@ class TestApplyScheduleMethods:
         # in test environment - that's expected and logged as a warning
 
     @pytest.mark.asyncio
-    async def test_apply_temperature_schedule_clears_manual_override(self, scheduler, mock_area, mock_area_manager, hass):
+    async def test_apply_temperature_schedule_clears_manual_override(
+        self, scheduler, mock_area, mock_area_manager, hass
+    ):
         """Test that applying temperature schedule clears manual override."""
         mock_area.manual_override = True
         schedule = Schedule(
@@ -421,10 +428,12 @@ class TestApplyScheduleMethods:
             start_time="08:00",
             end_time="17:00",
             temperature=21.0,
-            enabled=True
+            enabled=True,
         )
-        
-        await scheduler._apply_temperature_schedule(mock_area, schedule, "climate.smart_heating_living_room")
-        
+
+        await scheduler._apply_temperature_schedule(
+            mock_area, schedule, "climate.smart_heating_living_room"
+        )
+
         # Should clear manual override
         assert mock_area.manual_override is False

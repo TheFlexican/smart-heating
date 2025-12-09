@@ -1,21 +1,18 @@
 """Tests for utility modules."""
+
 from __future__ import annotations
 
-from unittest.mock import MagicMock
-
-import pytest
-
-from smart_heating.utils.validators import (
-    validate_temperature,
-    validate_schedule_data,
-    validate_area_id,
-    validate_entity_id,
-)
+from smart_heating.models.area import Area
 from smart_heating.utils.response_builders import (
     build_area_response,
     build_device_info,
 )
-from smart_heating.models.area import Area
+from smart_heating.utils.validators import (
+    validate_area_id,
+    validate_entity_id,
+    validate_schedule_data,
+    validate_temperature,
+)
 
 from tests.unit.const import TEST_TEMPERATURE
 
@@ -28,10 +25,10 @@ class TestValidators:
         is_valid, error = validate_temperature(TEST_TEMPERATURE)
         assert is_valid is True
         assert error is None
-        
+
         is_valid, error = validate_temperature(5.0)
         assert is_valid is True
-        
+
         is_valid, error = validate_temperature(35.0)
         assert is_valid is True
 
@@ -40,15 +37,15 @@ class TestValidators:
         is_valid, error = validate_temperature(4.0)
         assert is_valid is False
         assert error is not None
-        
+
         is_valid, error = validate_temperature(36.0)
         assert is_valid is False
         assert error is not None
-        
+
         is_valid, error = validate_temperature("not_a_number")
         assert is_valid is False
         assert error is not None
-        
+
         is_valid, error = validate_temperature(None)
         assert is_valid is False
         assert "required" in error.lower()
@@ -63,7 +60,7 @@ class TestValidators:
         """Test area ID validation with invalid values."""
         is_valid, error = validate_area_id("")
         assert is_valid is False
-        
+
         is_valid, error = validate_area_id(None)
         assert is_valid is False
 
@@ -72,7 +69,7 @@ class TestValidators:
         is_valid, error = validate_entity_id("climate.living_room")
         assert is_valid is True
         assert error is None
-        
+
         is_valid, error = validate_entity_id("sensor.temperature")
         assert is_valid is True
 
@@ -80,7 +77,7 @@ class TestValidators:
         """Test entity ID validation with invalid values."""
         is_valid, error = validate_entity_id("invalid")
         assert is_valid is False
-        
+
         is_valid, error = validate_entity_id("")
         assert is_valid is False
 
@@ -105,7 +102,7 @@ class TestValidators:
         }
         is_valid, error = validate_schedule_data(schedule_data)
         assert is_valid is False
-        
+
         # Invalid time format - missing colon
         schedule_data = {
             "time": "0700",
@@ -114,7 +111,7 @@ class TestValidators:
         }
         is_valid, error = validate_schedule_data(schedule_data)
         assert is_valid is False
-        
+
         # Invalid hours
         schedule_data = {
             "time": "25:00",
@@ -123,7 +120,7 @@ class TestValidators:
         }
         is_valid, error = validate_schedule_data(schedule_data)
         assert is_valid is False
-        
+
         # Invalid minutes
         schedule_data = {
             "time": "12:60",
@@ -132,7 +129,7 @@ class TestValidators:
         }
         is_valid, error = validate_schedule_data(schedule_data)
         assert is_valid is False
-        
+
         # Invalid day
         schedule_data = {
             "time": "07:00",
@@ -141,7 +138,7 @@ class TestValidators:
         }
         is_valid, error = validate_schedule_data(schedule_data)
         assert is_valid is False
-        
+
         # Invalid time - non-numeric hours/minutes (triggers ValueError in int())
         schedule_data = {
             "time": "ab:cd",
@@ -151,7 +148,7 @@ class TestValidators:
         is_valid, error = validate_schedule_data(schedule_data)
         assert is_valid is False
         assert "invalid time format" in error.lower()
-        
+
         # Invalid temperature in schedule data
         schedule_data = {
             "time": "07:00",
@@ -173,9 +170,9 @@ class TestResponseBuilders:
             name="Living Room",
             target_temperature=21.0,
         )
-        
+
         response = build_area_response(area)
-        
+
         assert response is not None
         assert isinstance(response, dict)
 
@@ -186,8 +183,8 @@ class TestResponseBuilders:
             "mqtt_topic": None,
             "entity_id": "climate.living_room",
         }
-        
+
         info = build_device_info("climate.living_room", device_data)
-        
+
         assert info is not None
         assert isinstance(info, dict)
