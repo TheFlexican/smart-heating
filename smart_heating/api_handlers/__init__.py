@@ -68,6 +68,11 @@ from .import_export import (
 from .logs import (
     handle_get_area_logs,
 )
+from .opentherm import (
+    handle_clear_opentherm_logs,
+    handle_discover_opentherm_capabilities,
+    handle_get_opentherm_logs,
+)
 from .schedules import (
     handle_add_schedule,
     handle_cancel_boost,
@@ -172,6 +177,10 @@ __all__ = [
     "handle_restore_backup",
     # Logs
     "handle_get_area_logs",
+    # OpenTherm
+    "handle_get_opentherm_logs",
+    "handle_discover_opentherm_capabilities",
+    "handle_clear_opentherm_logs",
     # System
     "handle_get_status",
     "handle_get_entity_state",
