@@ -9,15 +9,18 @@ from homeassistant.helpers import area_registry as ar
 from ..area_manager import AreaManager
 from ..const import DOMAIN
 from ..models import Area
-from ..utils import build_area_response, build_device_info, get_coordinator_devices
+from ..utils import (
+    build_area_response,
+    build_device_info,
+    get_coordinator,
+    get_coordinator_devices,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 
 # noqa: ASYNC109 - Web API handlers must be async per aiohttp convention
-async def handle_get_areas(
-    hass: HomeAssistant, area_manager: AreaManager
-) -> web.Response:
+async def handle_get_areas(hass: HomeAssistant, area_manager: AreaManager) -> web.Response:
     """Get all Home Assistant areas.
 
     Args:
@@ -46,9 +49,7 @@ async def handle_get_areas(
             for dev_id, dev_data in stored_area.devices.items():
                 state = hass.states.get(dev_id)
                 coord_device = coordinator_devices.get(dev_id)
-                devices_list.append(
-                    build_device_info(dev_id, dev_data, state, coord_device)
-                )
+                devices_list.append(build_device_info(dev_id, dev_data, state, coord_device))
 
             # Build area response using utility
             area_response = build_area_response(stored_area, devices_list)
@@ -140,9 +141,7 @@ async def handle_set_temperature(
 
         old_temp = area.target_temperature
         old_effective = area.get_effective_target_temperature()
-        preset_context = (
-            f", preset={area.preset_mode}" if area.preset_mode != "none" else ""
-        )
+        preset_context = f", preset={area.preset_mode}" if area.preset_mode != "none" else ""
 
         _LOGGER.warning(
             "🌡️ API: SET TEMPERATURE for %s: %.1f°C → %.1f°C%s | Effective: %.1f°C → ?",
@@ -157,9 +156,7 @@ async def handle_set_temperature(
 
         # Clear manual override mode when user controls temperature via app
         if area and hasattr(area, "manual_override") and area.manual_override:
-            _LOGGER.warning(
-                "🔓 Clearing manual override for %s - app now in control", area.name
-            )
+            _LOGGER.warning("🔓 Clearing manual override for %s - app now in control", area.name)
             area.manual_override = False
 
         await area_manager.async_save()
@@ -178,23 +175,8 @@ async def handle_set_temperature(
             await climate_controller.async_control_heating()
 
         # Request coordinator refresh
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True})
@@ -224,9 +206,7 @@ async def handle_enable_area(
         if safety_monitor and area_manager.is_safety_alert_active():
             # If area being enabled, check if we should clear global safety alert
             area_manager.set_safety_alert_active(False)
-            _LOGGER.info(
-                "Safety alert cleared - area '%s' manually re-enabled", area_id
-            )
+            _LOGGER.info("Safety alert cleared - area '%s' manually re-enabled", area_id)
 
         # Trigger immediate climate control
         climate_controller = hass.data.get(DOMAIN, {}).get("climate_controller")
@@ -234,23 +214,8 @@ async def handle_enable_area(
             await climate_controller.async_control_heating()
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True})
@@ -281,23 +246,8 @@ async def handle_disable_area(
             await climate_controller.async_control_heating()
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True})
@@ -344,23 +294,8 @@ async def handle_hide_area(
         await area_manager.async_save()
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True})
@@ -407,23 +342,8 @@ async def handle_unhide_area(
         await area_manager.async_save()
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True})
@@ -454,28 +374,11 @@ async def handle_set_switch_shutdown(
         area.shutdown_switches_when_idle = shutdown
         await area_manager.async_save()
 
-        _LOGGER.info(
-            "Area %s: shutdown_switches_when_idle set to %s", area_id, shutdown
-        )
+        _LOGGER.info("Area %s: shutdown_switches_when_idle set to %s", area_id, shutdown)
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True})
@@ -508,9 +411,7 @@ async def handle_set_area_hysteresis(
         if use_global:
             # Use global hysteresis setting
             area.hysteresis_override = None
-            _LOGGER.info(
-                "Area %s: Setting hysteresis_override to None (global)", area_id
-            )
+            _LOGGER.info("Area %s: Setting hysteresis_override to None (global)", area_id)
         else:
             # Use area-specific hysteresis
             hysteresis = data.get("hysteresis")
@@ -527,30 +428,13 @@ async def handle_set_area_hysteresis(
                 )
 
             area.hysteresis_override = float(hysteresis)
-            _LOGGER.info(
-                "Area %s: Setting hysteresis_override to %.1f°C", area_id, hysteresis
-            )
+            _LOGGER.info("Area %s: Setting hysteresis_override to %.1f°C", area_id, hysteresis)
 
         await area_manager.async_save()
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True})
@@ -578,30 +462,28 @@ async def handle_set_auto_preset(
         if not area:
             return web.json_response({"error": f"Area {area_id} not found"}, status=404)
 
-        # Update auto preset settings
+        # Update auto preset settings (support both 'enabled' and 'auto_preset_enabled')
         if "auto_preset_enabled" in data:
             area.auto_preset_enabled = bool(data["auto_preset_enabled"])
+        elif "enabled" in data:
+            area.auto_preset_enabled = bool(data["enabled"])
+
+        # Update preset selections
+        if "auto_preset_home" in data:
+            area.auto_preset_home = str(data["auto_preset_home"])
+        elif "home_preset" in data:
+            area.auto_preset_home = str(data["home_preset"])
+
+        if "auto_preset_away" in data:
+            area.auto_preset_away = str(data["auto_preset_away"])
+        elif "away_preset" in data:
+            area.auto_preset_away = str(data["away_preset"])
 
         await area_manager.async_save()
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True})
@@ -628,11 +510,7 @@ async def handle_set_area_preset_config(
     if not area:
         return web.json_response({"error": f"Area {area_id} not found"}, status=404)
 
-    changes = {
-        k: v
-        for k, v in data.items()
-        if k.startswith("use_global_") or k.endswith("_temp")
-    }
+    changes = {k: v for k, v in data.items() if k.startswith("use_global_") or k.endswith("_temp")}
     _LOGGER.warning("⚙️  API: SET PRESET CONFIG for %s: %s", area.name, changes)
 
     # Update use_global_* flags
@@ -671,23 +549,8 @@ async def handle_set_area_preset_config(
     _LOGGER.warning("✓ Preset config saved for %s", area.name)
 
     # Refresh coordinator to update frontend
-    entry_ids = [
-        key
-        for key in hass.data[DOMAIN].keys()
-        if key
-        not in [
-            "history",
-            "climate_controller",
-            "schedule_executor",
-            "climate_unsub",
-            "learning_engine",
-            "area_logger",
-            "vacation_manager",
-            "safety_monitor",
-        ]
-    ]
-    if entry_ids:
-        coordinator = hass.data[DOMAIN][entry_ids[0]]
+    coordinator = get_coordinator(hass)
+    if coordinator:
         await coordinator.async_request_refresh()
 
     return web.json_response({"success": True})
@@ -749,23 +612,8 @@ async def handle_set_manual_override(
         await climate_controller.async_control_heating()
 
     # Refresh coordinator
-    entry_ids = [
-        key
-        for key in hass.data[DOMAIN].keys()
-        if key
-        not in [
-            "history",
-            "climate_controller",
-            "schedule_executor",
-            "climate_unsub",
-            "learning_engine",
-            "area_logger",
-            "vacation_manager",
-            "safety_monitor",
-        ]
-    ]
-    if entry_ids:
-        coordinator = hass.data[DOMAIN][entry_ids[0]]
+    coordinator = get_coordinator(hass)
+    if coordinator:
         await coordinator.async_request_refresh()
 
     return web.json_response({"success": True})
@@ -819,23 +667,8 @@ async def handle_set_primary_temperature_sensor(
         await climate_controller.async_control_heating()
 
     # Refresh coordinator
-    entry_ids = [
-        key
-        for key in hass.data[DOMAIN].keys()
-        if key
-        not in [
-            "history",
-            "climate_controller",
-            "schedule_executor",
-            "climate_unsub",
-            "learning_engine",
-            "area_logger",
-            "vacation_manager",
-            "safety_monitor",
-        ]
-    ]
-    if entry_ids:
-        coordinator = hass.data[DOMAIN][entry_ids[0]]
+    coordinator = get_coordinator(hass)
+    if coordinator:
         await coordinator.async_request_refresh()
 
     return web.json_response({"success": True})

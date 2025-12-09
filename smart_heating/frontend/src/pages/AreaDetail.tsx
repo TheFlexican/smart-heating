@@ -934,7 +934,7 @@ const ZoneDetail = () => {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
-                        enabled: e.target.checked
+                        auto_preset_enabled: e.target.checked
                       })
                     })
                     loadData()
@@ -963,8 +963,7 @@ const ZoneDetail = () => {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                              enabled: true,
-                              home_preset: e.target.value
+                              auto_preset_home: e.target.value
                             })
                           })
                           loadData()
@@ -990,8 +989,7 @@ const ZoneDetail = () => {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                              enabled: true,
-                              away_preset: e.target.value
+                              auto_preset_away: e.target.value
                             })
                           })
                           loadData()

@@ -6,7 +6,7 @@ from aiohttp import web
 from homeassistant.core import HomeAssistant
 
 from ..area_manager import AreaManager
-from ..const import DOMAIN
+from ..utils import get_coordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,23 +42,8 @@ async def handle_add_window_sensor(
         await area_manager.async_save()
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True, "entity_id": entity_id})
@@ -89,23 +74,8 @@ async def handle_remove_window_sensor(
         await area_manager.async_save()
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True})
@@ -144,23 +114,8 @@ async def handle_add_presence_sensor(
         await area_manager.async_save()
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True, "entity_id": entity_id})
@@ -191,23 +146,8 @@ async def handle_remove_presence_sensor(
         await area_manager.async_save()
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True})

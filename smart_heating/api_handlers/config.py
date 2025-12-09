@@ -7,13 +7,12 @@ from homeassistant.core import HomeAssistant
 
 from ..area_manager import AreaManager
 from ..const import DOMAIN
+from ..utils import get_coordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def handle_get_config(
-    hass: HomeAssistant, area_manager: AreaManager
-) -> web.Response:
+async def handle_get_config(hass: HomeAssistant, area_manager: AreaManager) -> web.Response:
     """Get system configuration.
 
     Args:
@@ -57,9 +56,7 @@ async def handle_get_global_presets(area_manager: AreaManager) -> web.Response:
     )
 
 
-async def handle_set_global_presets(
-    area_manager: AreaManager, data: dict
-) -> web.Response:
+async def handle_set_global_presets(area_manager: AreaManager, data: dict) -> web.Response:
     """Set global preset temperatures.
 
     Args:
@@ -77,33 +74,23 @@ async def handle_set_global_presets(
     if "away_temp" in data:
         old = area_manager.global_away_temp
         area_manager.global_away_temp = float(data["away_temp"])
-        _LOGGER.warning(
-            "  Global Away: %.1f°C → %.1f°C", old, area_manager.global_away_temp
-        )
+        _LOGGER.warning("  Global Away: %.1f°C → %.1f°C", old, area_manager.global_away_temp)
     if "eco_temp" in data:
         old = area_manager.global_eco_temp
         area_manager.global_eco_temp = float(data["eco_temp"])
-        _LOGGER.warning(
-            "  Global Eco: %.1f°C → %.1f°C", old, area_manager.global_eco_temp
-        )
+        _LOGGER.warning("  Global Eco: %.1f°C → %.1f°C", old, area_manager.global_eco_temp)
     if "comfort_temp" in data:
         old = area_manager.global_comfort_temp
         area_manager.global_comfort_temp = float(data["comfort_temp"])
-        _LOGGER.warning(
-            "  Global Comfort: %.1f°C → %.1f°C", old, area_manager.global_comfort_temp
-        )
+        _LOGGER.warning("  Global Comfort: %.1f°C → %.1f°C", old, area_manager.global_comfort_temp)
     if "home_temp" in data:
         old = area_manager.global_home_temp
         area_manager.global_home_temp = float(data["home_temp"])
-        _LOGGER.warning(
-            "  Global Home: %.1f°C → %.1f°C", old, area_manager.global_home_temp
-        )
+        _LOGGER.warning("  Global Home: %.1f°C → %.1f°C", old, area_manager.global_home_temp)
     if "sleep_temp" in data:
         old = area_manager.global_sleep_temp
         area_manager.global_sleep_temp = float(data["sleep_temp"])
-        _LOGGER.warning(
-            "  Global Sleep: %.1f°C → %.1f°C", old, area_manager.global_sleep_temp
-        )
+        _LOGGER.warning("  Global Sleep: %.1f°C → %.1f°C", old, area_manager.global_sleep_temp)
     if "activity_temp" in data:
         old = area_manager.global_activity_temp
         area_manager.global_activity_temp = float(data["activity_temp"])
@@ -186,9 +173,7 @@ async def handle_get_global_presence(area_manager: AreaManager) -> web.Response:
     return web.json_response({"sensors": area_manager.global_presence_sensors})
 
 
-async def handle_set_global_presence(
-    area_manager: AreaManager, data: dict
-) -> web.Response:
+async def handle_set_global_presence(area_manager: AreaManager, data: dict) -> web.Response:
     """Set global presence sensors.
 
     Args:
@@ -215,9 +200,7 @@ async def handle_set_global_presence(
     return web.json_response({"success": True})
 
 
-async def handle_set_frost_protection(
-    area_manager: AreaManager, data: dict
-) -> web.Response:
+async def handle_set_frost_protection(area_manager: AreaManager, data: dict) -> web.Response:
     """Set global frost protection settings.
 
     Args:
@@ -260,9 +243,7 @@ async def handle_get_vacation_mode(hass: HomeAssistant) -> web.Response:
     """
     vacation_manager = hass.data[DOMAIN].get("vacation_manager")
     if not vacation_manager:
-        return web.json_response(
-            {"error": "Vacation manager not initialized"}, status=500
-        )
+        return web.json_response({"error": "Vacation manager not initialized"}, status=500)
 
     return web.json_response(vacation_manager.get_data())
 
@@ -279,18 +260,14 @@ async def handle_enable_vacation_mode(hass: HomeAssistant, data: dict) -> web.Re
     """
     vacation_manager = hass.data[DOMAIN].get("vacation_manager")
     if not vacation_manager:
-        return web.json_response(
-            {"error": "Vacation manager not initialized"}, status=500
-        )
+        return web.json_response({"error": "Vacation manager not initialized"}, status=500)
 
     start_date = data.get("start_date")
     end_date = data.get("end_date")
     temperature = data.get("temperature")
 
     if not start_date or not end_date:
-        return web.json_response(
-            {"error": "start_date and end_date are required"}, status=400
-        )
+        return web.json_response({"error": "start_date and end_date are required"}, status=400)
 
     try:
         await vacation_manager.async_enable(
@@ -313,9 +290,7 @@ async def handle_disable_vacation_mode(hass: HomeAssistant) -> web.Response:
     """
     vacation_manager = hass.data[DOMAIN].get("vacation_manager")
     if not vacation_manager:
-        return web.json_response(
-            {"error": "Vacation manager not initialized"}, status=500
-        )
+        return web.json_response({"error": "Vacation manager not initialized"}, status=500)
 
     await vacation_manager.async_disable()
 
@@ -343,9 +318,7 @@ async def handle_get_safety_sensor(area_manager: AreaManager) -> web.Response:
             }
         )
     else:
-        return web.json_response(
-            {"sensor_id": None, "enabled": False, "alert_active": False}
-        )
+        return web.json_response({"sensor_id": None, "enabled": False, "alert_active": False})
 
 
 async def handle_set_safety_sensor(
@@ -405,9 +378,7 @@ async def handle_remove_safety_sensor(
         await safety_monitor.async_reconfigure()
 
     # Broadcast configuration change via WebSocket
-    hass.bus.async_fire(
-        f"{DOMAIN}_safety_sensor_changed", {"sensor_id": None, "enabled": False}
-    )
+    hass.bus.async_fire(f"{DOMAIN}_safety_sensor_changed", {"sensor_id": None, "enabled": False})
 
     _LOGGER.info("Safety sensor removed via API")
     return web.json_response({"success": True})
@@ -440,23 +411,8 @@ async def handle_set_hvac_mode(
         await area_manager.async_save()
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True, "hvac_mode": hvac_mode})

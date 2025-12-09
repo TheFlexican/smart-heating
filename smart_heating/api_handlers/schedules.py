@@ -10,7 +10,7 @@ from homeassistant.helpers import area_registry as ar
 from ..area_manager import AreaManager
 from ..const import DOMAIN
 from ..models import Area, Schedule
-from ..utils import validate_area_id, validate_temperature
+from ..utils import get_coordinator, validate_area_id, validate_temperature
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,9 +62,7 @@ async def handle_add_schedule(
                 area.area_manager = area_manager
                 area_manager.areas[area_id] = area
             else:
-                return web.json_response(
-                    {"error": f"Area {area_id} not found"}, status=404
-                )
+                return web.json_response({"error": f"Area {area_id} not found"}, status=404)
 
         # Create schedule from frontend data
         # Validate required fields - accept either 'time' (legacy) or 'start_time' (new)
@@ -194,23 +192,8 @@ async def handle_set_preset_mode(
             _LOGGER.info("Triggered immediate climate control after preset change")
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True, "preset_mode": preset_mode})
@@ -244,23 +227,8 @@ async def handle_set_boost_mode(
         await area_manager.async_save()
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response(
@@ -297,23 +265,8 @@ async def handle_cancel_boost(
         await area_manager.async_save()
 
         # Refresh coordinator
-        entry_ids = [
-            key
-            for key in hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-            ]
-        ]
-        if entry_ids:
-            coordinator = hass.data[DOMAIN][entry_ids[0]]
+        coordinator = get_coordinator(hass)
+        if coordinator:
             await coordinator.async_request_refresh()
 
         return web.json_response({"success": True, "boost_active": False})
