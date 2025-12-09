@@ -15,6 +15,8 @@ import {
   Tabs,
   Tab,
   Switch,
+  TextField,
+  FormControlLabel,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
@@ -28,7 +30,7 @@ import BackupIcon from '@mui/icons-material/Backup'
 import FireplaceIcon from '@mui/icons-material/Fireplace'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis, getSafetySensor, setSafetySensor, removeSafetySensor, setHideDevicesPanel, getConfig, type SafetySensorResponse } from '../api'
+import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis, getSafetySensor, setSafetySensor, removeSafetySensor, setHideDevicesPanel, getConfig, setOpenthermGateway, type SafetySensorResponse } from '../api'
 import { PresenceSensorConfig, WindowSensorConfig, SafetySensorConfig } from '../types'
 import SensorConfigDialog from '../components/SensorConfigDialog'
 import SafetySensorConfigDialog from '../components/SafetySensorConfigDialog'
@@ -104,6 +106,11 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
   const [safetySensorDialogOpen, setSafetySensorDialogOpen] = useState(false)
   const [hideDevicesPanel, setHideDevicesPanelState] = useState(false)
 
+  // OpenTherm Gateway Configuration
+  const [openthermGatewayId, setOpenthermGatewayId] = useState<string>('')
+  const [openthermEnabled, setOpenthermEnabled] = useState<boolean>(false)
+  const [openthermSaving, setOpenthermSaving] = useState(false)
+
   useEffect(() => {
     loadPresets()
     loadHysteresis()
@@ -116,6 +123,10 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
     try {
       const config = await getConfig()
       setHideDevicesPanelState(config.hide_devices_panel || false)
+
+      // Load OpenTherm configuration
+      setOpenthermGatewayId(config.opentherm_gateway_id || '')
+      setOpenthermEnabled(config.opentherm_enabled || false)
     } catch (err) {
       console.error('Error loading config:', err)
     }
@@ -238,6 +249,20 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
       setError('Failed to save setting')
       console.error('Error saving hide devices panel:', err)
       setHideDevicesPanelState(!hide)
+    }
+  }
+
+  const handleSaveOpenthermConfig = async () => {
+    try {
+      setOpenthermSaving(true)
+      await setOpenthermGateway(openthermGatewayId, openthermEnabled)
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 2000)
+    } catch (err) {
+      setError('Failed to save OpenTherm configuration')
+      console.error('Error saving OpenTherm config:', err)
+    } finally {
+      setOpenthermSaving(false)
     }
   }
 
@@ -749,6 +774,48 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
 
         {/* OpenTherm Tab */}
         <TabPanel value={activeTab} index={6}>
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              {t('globalSettings.opentherm.title', 'OpenTherm Gateway Configuration')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              {t('globalSettings.opentherm.description', 'Configure the OpenTherm Gateway device ID for boiler control. Find the ID in Settings → Devices & Services → OpenTherm Gateway → Configure → ID field.')}
+            </Typography>
+
+            <Stack spacing={3} sx={{ mt: 3 }}>
+              <TextField
+                label={t('globalSettings.opentherm.gatewayId', 'Gateway Device ID')}
+                value={openthermGatewayId}
+                onChange={(e) => setOpenthermGatewayId(e.target.value)}
+                placeholder="128937219831729813"
+                helperText={t('globalSettings.opentherm.gatewayIdHelp', 'Numeric ID from OpenTherm Gateway integration configuration')}
+                fullWidth
+              />
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={openthermEnabled}
+                    onChange={(e) => setOpenthermEnabled(e.target.checked)}
+                  />
+                }
+                label={t('globalSettings.opentherm.enabled', 'Enable OpenTherm Control')}
+              />
+
+              <Button
+                variant="contained"
+                onClick={handleSaveOpenthermConfig}
+                disabled={openthermSaving || !openthermGatewayId.trim()}
+              >
+                {openthermSaving ? (
+                  <CircularProgress size={24} />
+                ) : (
+                  t('globalSettings.opentherm.save', 'Save Configuration')
+                )}
+              </Button>
+            </Stack>
+          </Paper>
+
           <OpenThermLogger />
         </TabPanel>
       </Box>
