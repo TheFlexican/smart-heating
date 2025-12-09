@@ -590,9 +590,15 @@ class DeviceControlHandler:
                 )
 
                 # Use OpenTherm Gateway integration service
-                # The gateway_id is the ID shown in HA UI under Settings -> Devices & Services -> OpenTherm Gateway
-                # For production system: 128937219831729813
-                gateway_device_id = "128937219831729813"
+                # Get gateway_device_id from area_manager configuration
+                gateway_device_id = self.area_manager.opentherm_gateway_device_id
+
+                if not gateway_device_id:
+                    _LOGGER.error(
+                        "OpenTherm Gateway Device ID not configured. "
+                        "Please set it via service call: smart_heating.set_opentherm_gateway"
+                    )
+                    return
 
                 try:
                     await self.hass.services.async_call(
@@ -637,7 +643,13 @@ class DeviceControlHandler:
                     )
             else:
                 # Turn off boiler by setting setpoint to 0
-                gateway_device_id = "128937219831729813"
+                gateway_device_id = self.area_manager.opentherm_gateway_device_id
+
+                if not gateway_device_id:
+                    _LOGGER.warning(
+                        "OpenTherm Gateway Device ID not configured, cannot turn off"
+                    )
+                    return
 
                 try:
                     await self.hass.services.async_call(

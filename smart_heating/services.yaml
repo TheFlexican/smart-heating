@@ -311,12 +311,21 @@ set_opentherm_gateway:
   fields:
     gateway_id:
       name: Gateway Entity ID
-      description: Entity ID of the OpenTherm gateway climate entity (e.g., climate.opentherm_gateway)
+      description: Entity ID of the OpenTherm gateway climate entity (e.g., climate.opentherm_thermostaat)
       required: false
-      example: "climate.opentherm_gateway"
+      example: "climate.opentherm_thermostaat"
       selector:
         entity:
           domain: climate
+    gateway_device_id:
+      name: Gateway Device ID
+      description: >-
+        Device ID from OpenTherm Gateway integration configuration.
+        Find in Settings -> Devices & Services -> OpenTherm Gateway -> ID field.
+      required: false
+      example: "128937219831729813"
+      selector:
+        text:
     enabled:
       name: Enabled
       description: Enable or disable OpenTherm gateway control
@@ -494,7 +503,7 @@ add_window_sensor:
       selector:
         entity:
           domain: binary_sensor
-          device_class: 
+          device_class:
             - window
             - door
             - opening
@@ -538,7 +547,7 @@ add_presence_sensor:
       selector:
         entity:
           domain: binary_sensor
-          device_class: 
+          device_class:
             - motion
             - occupancy
             - presence
