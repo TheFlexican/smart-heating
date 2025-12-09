@@ -260,6 +260,8 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
     try {
       setOpenthermSaving(true)
       await setOpenthermGateway(openthermGatewayId, openthermEnabled)
+      // Reload config to confirm saved values
+      await loadConfig()
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
     } catch (err) {
