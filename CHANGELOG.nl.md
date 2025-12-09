@@ -9,6 +9,64 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 
 ### ✨ Functies
 
+**Multi-Gebruiker Aanwezigheidsdetectie (v0.6.0)**
+- **Individuele gebruikersvoorkeuren voor temperatuur**: Maak gebruikersprofielen met aangepaste temperatuurinstellingen voor alle presets
+  - Koppel gebruikersprofielen aan Home Assistant persoon entiteiten voor automatische aanwezigheidsdetectie
+  - Prioriteitssysteem (1-10) of gemiddelde strategie voor het combineren van voorkeuren wanneer meerdere gebruikers thuis zijn
+  - Gebruikerstoewijzing per ruimte - pas gebruikersvoorkeuren alleen toe op specifieke zones
+  - Real-time aanwezigheidsstatus tracking met visuele indicatoren
+- **Gebruikersbeheer UI**: Complete interface voor het beheren van gebruikersprofielen
+  - Aanmaken, bewerken en verwijderen van gebruikersprofielen
+  - Configureer 6 preset temperaturen per gebruiker (thuis, weg, slapen, eco, comfort, boost)
+  - Stel prioriteitsniveaus in en selecteer voorkeurcombinatiestrategie
+  - Bekijk actieve gebruikers en hun aanwezigheidsstatus
+  - Toegang via Instellingen → Gebruikersbeheer
+- **API endpoints**: Volledige REST API voor gebruikers CRUD operaties en voorkeurqueries
+  - GET/POST /api/smart_heating/users - Lijst en maak gebruikers aan
+  - GET/PUT/DELETE /api/smart_heating/users/{user_id} - Beheer individuele gebruikers
+  - GET /api/smart_heating/users/active_preferences - Haal gecombineerde voorkeuren op voor actieve gebruikers
+
+**Verwarmingsefficiëntie Rapporten (v0.6.0)**
+- **Prestatie-analyse**: Uitgebreide efficiëntie metrieken voor alle verwarmingszones
+  - Energie score (0-100) gebaseerd op verwarmingscycli, temperatuurstabiliteit en tijdsefficiëntie
+  - Verwarmingstijd percentage - volg hoe lang verwarming actief is
+  - Verwarmingscyclus telling - identificeer zones met overmatig schakelen
+  - Gemiddeld temperatuurverschil - meet hoe ver zones van doeltemperaturen afwijken
+  - Automatische aanbevelingen gebaseerd op prestatie-analyse
+- **Tijdsperiode analyse**: Bekijk efficiëntie over verschillende tijdspannes
+  - Dag, week, maand en jaar weergaven
+  - Historische trend tracking
+  - Zone-per-zone vergelijkingstabellen
+- **Analytics UI**: Interactief dashboard met grafieken en metrieken
+  - Overzichtsweergave met alle zones gerangschikt op efficiëntie
+  - Gedetailleerde per-zone uitsplitsingen met specifieke aanbevelingen
+  - Kleurgecodeerde scores (Uitstekend/Goed/Redelijk/Slecht)
+  - Toegang via Analytics → Efficiëntie Rapporten
+- **API endpoints**: Efficiëntiedata ophalen voor alle zones
+  - GET /api/smart_heating/efficiency/report/{area_id} - Enkele zone efficiëntie
+  - GET /api/smart_heating/efficiency/all_areas - Vergelijk alle zones
+
+**Historische Vergelijkingen (v0.6.0)**
+- **Periode-over-periode analyse**: Vergelijk verwarmingsprestaties over tijd
+  - Vergelijk huidige dag/week/maand/jaar met vorige periode
+  - Aangepaste datumbereik vergelijkingen voor twee willekeurige perioden
+  - Delta berekeningen die verbeteringen of verslechteringen tonen
+  - Percentage verandering indicatoren met trend pijlen
+- **Multi-metriek vergelijking**: Volg veranderingen over alle efficiëntie metrieken
+  - Energie score delta's
+  - Verwarmingstijd veranderingen
+  - Cyclus telling variaties
+  - Temperatuurverschil trends
+- **Vergelijking UI**: Visuele interface voor het analyseren van prestatieveranderingen
+  - Zij-aan-zij metriek vergelijkingen
+  - Verbetering/verslechtering indicatoren met kleurcodering
+  - Samenvattingstekst die algemene trends uitlegt
+  - Zone sortering op verbeteringsniveau
+  - Toegang via Analytics → Historische Vergelijkingen
+- **API endpoints**: Vergelijkingsdata voor vooraf ingestelde en aangepaste perioden
+  - GET /api/smart_heating/comparison/{period} - Vooraf ingestelde periode vergelijking
+  - POST /api/smart_heating/comparison/custom - Aangepast datumbereik vergelijking
+
 **Primaire Temperatuursensor Selectie**
 - **Selecteer welk apparaat de temperatuur meet**: Kies een specifieke temperatuursensor of thermostaat voor elke ruimte
   - Handig wanneer je meerdere temperatuur bronnen hebt (bijv. airconditioning + aparte temperatuursensor)

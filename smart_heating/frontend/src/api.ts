@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Area, Device, DeviceAdd, ScheduleEntry, LearningStats, HassEntity, WindowSensorConfig, PresenceSensorConfig, VacationMode } from './types'
+import { Area, Device, DeviceAdd, ScheduleEntry, LearningStats, HassEntity, WindowSensorConfig, PresenceSensorConfig, VacationMode, UserProfile, UserData, PresenceState, MultiUserSettings, EfficiencyReport, ComparisonResult } from './types'
 
 const API_BASE = '/api/smart_heating'
 
@@ -486,5 +486,110 @@ export const restoreBackup = async (filename: string): Promise<{
   error?: string
 }> => {
   const response = await axios.post(`${API_BASE}/backups/${filename}/restore`)
+  return response.data
+}
+
+// ========== User Management (Multi-User Presence Tracking) ==========
+
+export const getUsers = async (): Promise<UserData> => {
+  const response = await axios.get(`${API_BASE}/users`)
+  return response.data
+}
+
+export const getUser = async (userId: string): Promise<{ user: UserProfile }> => {
+  const response = await axios.get(`${API_BASE}/users/${userId}`)
+  return response.data
+}
+
+export const createUser = async (user: {
+  user_id: string
+  name: string
+  person_entity: string
+  preset_preferences?: { [preset: string]: number }
+  priority?: number
+  areas?: string[]
+}): Promise<{ user: UserProfile }> => {
+  const response = await axios.post(`${API_BASE}/users`, user)
+  return response.data
+}
+
+export const updateUser = async (
+  userId: string,
+  updates: Partial<Omit<UserProfile, 'user_id'>>
+): Promise<{ user: UserProfile }> => {
+  const response = await axios.post(`${API_BASE}/users/${userId}`, updates)
+  return response.data
+}
+
+export const deleteUser = async (userId: string): Promise<{ message: string }> => {
+  const response = await axios.delete(`${API_BASE}/users/${userId}`)
+  return response.data
+}
+
+export const updateUserSettings = async (settings: Partial<MultiUserSettings>): Promise<{ settings: MultiUserSettings }> => {
+  const response = await axios.post(`${API_BASE}/users/settings`, settings)
+  return response.data
+}
+
+export const getPresenceState = async (): Promise<{ presence_state: PresenceState }> => {
+  const response = await axios.get(`${API_BASE}/users/presence`)
+  return response.data
+}
+
+export const getActivePreferences = async (areaId?: string): Promise<{
+  active_user_preferences: { [preset: string]: number } | null
+  combined_preferences: { [preset: string]: number } | null
+}> => {
+  const url = areaId 
+    ? `${API_BASE}/users/preferences?area_id=${encodeURIComponent(areaId)}`
+    : `${API_BASE}/users/preferences`
+  const response = await axios.get(url)
+  return response.data
+}
+
+// Efficiency Reports API
+export const getEfficiencyReport = async (
+  areaId: string,
+  period: 'day' | 'week' | 'month' | 'year' = 'week'
+): Promise<EfficiencyReport> => {
+  const response = await axios.get(`${API_BASE}/efficiency/report/${areaId}?period=${period}`)
+  return response.data
+}
+
+export const getAllAreasEfficiency = async (
+  period: 'day' | 'week' | 'month' | 'year' = 'week'
+): Promise<EfficiencyReport> => {
+  const response = await axios.get(`${API_BASE}/efficiency/all_areas?period=${period}`)
+  return response.data
+}
+
+export const getEfficiencyHistory = async (
+  areaId: string,
+  days: number = 30
+): Promise<{ history: EfficiencyReport[] }> => {
+  const response = await axios.get(`${API_BASE}/efficiency/history/${areaId}?days=${days}`)
+  return response.data
+}
+
+// Historical Comparison API
+export const getComparison = async (
+  period: 'day' | 'week' | 'month' | 'year'
+): Promise<ComparisonResult> => {
+  const response = await axios.get(`${API_BASE}/comparison/${period}`)
+  return response.data
+}
+
+export const getCustomComparison = async (
+  startA: string,
+  endA: string,
+  startB: string,
+  endB: string
+): Promise<ComparisonResult> => {
+  const response = await axios.post(`${API_BASE}/comparison/custom`, {
+    start_a: startA,
+    end_a: endA,
+    start_b: startB,
+    end_b: endB
+  })
   return response.data
 }

@@ -88,7 +88,9 @@ async def async_handle_set_trv_temperatures(
         )
     else:
         _LOGGER.debug(
-            "Setting TRV temperatures: heating=%.1f°C, idle=%.1f°C", heating_temp, idle_temp
+            "Setting TRV temperatures: heating=%.1f°C, idle=%.1f°C",
+            heating_temp,
+            idle_temp,
         )
 
     try:
@@ -103,7 +105,9 @@ async def async_handle_set_trv_temperatures(
             )
         else:
             _LOGGER.info(
-                "Set TRV temperatures: heating=%.1f°C, idle=%.1f°C", heating_temp, idle_temp
+                "Set TRV temperatures: heating=%.1f°C, idle=%.1f°C",
+                heating_temp,
+                idle_temp,
             )
     except ValueError as err:
         _LOGGER.error("Failed to set TRV temperatures: %s", err)
@@ -123,7 +127,9 @@ async def async_handle_set_frost_protection(
     temp = call.data.get(ATTR_FROST_PROTECTION_TEMP)
 
     _LOGGER.debug(
-        "Setting frost protection: enabled=%s, temp=%.1f°C", enabled, temp if temp else 7.0
+        "Setting frost protection: enabled=%s, temp=%.1f°C",
+        enabled,
+        temp if temp else 7.0,
     )
 
     try:

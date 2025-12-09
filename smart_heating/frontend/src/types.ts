@@ -185,3 +185,86 @@ export interface DeviceAdd {
   device_type: string
   mqtt_topic?: string
 }
+
+// User profile for multi-user presence tracking
+export interface UserProfile {
+  user_id: string  // Person entity ID
+  name: string
+  preset_preferences: {
+    [preset: string]: number  // Preset name -> preferred temperature
+  }
+  priority: number  // 1-10, higher = more important
+  areas: string[]  // Empty = all areas
+}
+
+export interface PresenceState {
+  users_home: string[]  // List of user IDs currently home
+  active_user: string | null  // Highest priority user currently home
+  combined_mode: 'none' | 'single' | 'multiple'
+}
+
+export interface MultiUserSettings {
+  multi_user_strategy: 'priority' | 'average'
+  enabled: boolean
+}
+
+export interface UserData {
+  users: { [user_id: string]: UserProfile }
+  presence_state: PresenceState
+  settings: MultiUserSettings
+}
+
+// Efficiency metrics for heating performance
+export interface EfficiencyMetrics {
+  energy_score: number  // 0-100 score
+  heating_time_percentage: number  // % of time heating was active
+  heating_cycles: number  // Number of on/off cycles
+  avg_temp_delta: number  // Average difference from target temp
+}
+
+export interface EfficiencyReport {
+  area_id?: string
+  area_name?: string
+  period: 'day' | 'week' | 'month' | 'year'
+  start_date: string
+  end_date: string
+  metrics: EfficiencyMetrics
+  recommendations: string[]
+  summary_metrics?: EfficiencyMetrics  // For all-areas report
+  area_reports?: EfficiencyReport[]  // For all-areas report
+}
+
+// Historical comparison types
+export interface MetricDelta {
+  change: number  // Absolute change
+  percent_change: number  // Percentage change
+  is_improvement: boolean  // Whether change is positive
+}
+
+export interface ComparisonResult {
+  period: 'day' | 'week' | 'month' | 'year' | 'custom'
+  current_start: string
+  current_end: string
+  previous_start: string
+  previous_end: string
+  current_summary: EfficiencyMetrics
+  previous_summary: EfficiencyMetrics
+  summary_delta?: {
+    energy_score: MetricDelta
+    heating_time: MetricDelta
+    heating_cycles: MetricDelta
+    temp_delta: MetricDelta
+  }
+  area_comparisons?: {
+    area_id: string
+    area_name: string
+    current_metrics: EfficiencyMetrics
+    previous_metrics: EfficiencyMetrics
+    deltas: {
+      energy_score: MetricDelta
+      heating_time: MetricDelta
+      heating_cycles: MetricDelta
+      temp_delta: MetricDelta
+    }
+  }[]
+}

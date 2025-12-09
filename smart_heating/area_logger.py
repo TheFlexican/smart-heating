@@ -51,7 +51,11 @@ class AreaLogger:
         return area_path / f"{event_type}.jsonl"
 
     def log_event(
-        self, area_id: str, event_type: str, message: str, details: dict[str, Any] | None = None
+        self,
+        area_id: str,
+        event_type: str,
+        message: str,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """Log an event for a specific area (schedules async file write).
 
@@ -84,7 +88,9 @@ class AreaLogger:
             f"({details})" if details else "",
         )
 
-    async def _async_write_log(self, area_id: str, event_type: str, entry: dict) -> None:
+    async def _async_write_log(
+        self, area_id: str, event_type: str, entry: dict
+    ) -> None:
         """Asynchronously write log entry to file.
 
         Args:

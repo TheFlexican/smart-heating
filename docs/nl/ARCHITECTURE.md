@@ -902,6 +902,82 @@ Zones en configuratie worden opgeslagen met Home Assistant's storage API:
 }
 ```
 
+## Code Structuur
+
+**v0.6.0+ Modulaire Architectuur:**
+
+De backend is gerefactored naar een schone modulaire structuur volgens single-responsibility principes:
+
+### Core Integratie Bestanden
+- `__init__.py` (591 regels) - Integratie setup, coordinator initialisatie
+- `area_manager.py` - Zone beheer en opslag
+- `coordinator.py` - Data update coordinator met manual override detectie
+- `climate.py` - Climate platform (zone entiteiten)
+- `switch.py` - Switch platform (zone in/uitschakelen)
+- `sensor.py` - Sensor platform
+- `config_flow.py` - Configuratie flow
+
+### Service Handler Modules (`ha_services/`)
+Geëxtraheerd uit `__init__.py` - 29 Home Assistant service handlers:
+- `__init__.py` - Centrale exports
+- `schemas.py` - 22 service validatie schemas
+- `area_handlers.py` - Stel temperatuur in, in/uitschakelen zone
+- `device_handlers.py` - Apparaten toevoegen/verwijderen
+- `schedule_handlers.py` - Schema beheer, nacht boost, kopiëren
+- `hvac_handlers.py` - Preset modus, boost modus, HVAC modus
+- `sensor_handlers.py` - Raam/aanwezigheid sensor beheer
+- `config_handlers.py` - Globale instellingen, vorst bescherming, presets
+- `safety_handlers.py` - Veiligheidssensor configuratie
+- `vacation_handlers.py` - Vakantie modus controle
+- `system_handlers.py` - Refresh, status
+
+### API Handler Modules (`api_handlers/`)
+Geëxtraheerd uit `api.py` - 60+ REST API endpoint handlers:
+- `__init__.py` - Centrale exports
+- `areas.py` - 12 zone beheer endpoints
+- `devices.py` - 4 apparaat ontdekking/toewijzing endpoints
+- `schedules.py` - 5 schema/preset/boost endpoints
+- `sensors.py` - 5 sensor beheer endpoints
+- `config.py` - 15 globale configuratie endpoints
+- `history.py` - 4 geschiedenis/leer endpoints
+- `logs.py` - 1 logging endpoint
+- `system.py` - 3 systeem status endpoints
+- `users.py` - **6 gebruikersbeheer endpoints (v0.6.0+)**
+- `efficiency.py` - **3 efficiëntie rapportage endpoints (v0.6.0+)**
+- `comparison.py` - **2 historische vergelijking endpoints (v0.6.0+)**
+
+### Manager/Controller Modules
+- `climate_controller.py` - HVAC apparaat controle logica
+- `scheduler.py` - Schema uitvoering (1-minuut interval)
+- `learning_engine.py` - ML-gebaseerd temperatuur leren
+- `safety_monitor.py` - Nooduitschakeling bij veiligheidsalarm
+- `vacation_manager.py` - Vakantie modus coördinatie
+- `history.py` - Temperatuur logging en retentie
+- `area_logger.py` - Per-zone gebeurtenis logging
+- `user_manager.py` - **Multi-gebruiker aanwezigheid tracking (v0.6.0+)**
+- `efficiency_calculator.py` - **Verwarmingsefficiëntie analyses (v0.6.0+)**
+- `comparison_engine.py` - **Historische prestatie vergelijkingen (v0.6.0+)**
+
+### Model Modules (`models/`)
+- `area.py` - Zone data model
+- `schedule.py` - Schema data model
+
+### Utility Modules (`utils/`)
+- `validators.py` - Input validatie functies
+- `response_builders.py` - API response formatting
+- `coordinator_helpers.py` - Coordinator utility functies
+- `device_registry.py` - HA device registry helpers
+
+### API & Communicatie
+- `api.py` (446 regels) - REST API routing, statische bestand serving
+- `websocket.py` - WebSocket real-time updates
+
+**Refactoring Impact:**
+- Fase 2 (ha_services/): `__init__.py` gereduceerd van 1,126 → 591 regels (47% reductie)
+- Fase 3 (api_handlers/): `api.py` gereduceerd van 2,518 → 446 regels (82% reductie)
+- Totaal: 72% code reductie met 20 gefocuste, single-responsibility modules
+- Onderhoudbaarheid: Significant verbeterd met duidelijke scheiding van verantwoordelijkheden
+
 ## Zigbee2MQTT Integratie
 
 ### Apparaat Ontdekking
@@ -957,13 +1033,211 @@ Voorbeeld:
 2. Voeg client functie toe aan `frontend/src/api.ts`
 3. Gebruik in React componenten
 
+## V0.6.0 Functies: Analyses & Multi-Gebruiker Systeem
+
+### Multi-Gebruiker Aanwezigheid Tracking (`user_manager.py`)
+
+Beheert meerdere gebruikers met individuele verwarmingsvoorkeuren en aanwezigheidsdetectie.
+
+**Kernfunctionaliteit:**
+- **Gebruikersbeheer**: Maak, werk bij, verwijder gebruikers gekoppeld aan Home Assistant persoon entiteiten
+- **Aanwezigheidsdetectie**: Volgt automatisch wie thuis is via persoon entiteit statussen
+- **Voorkeur Samenvoegen**: Combineert meerdere gebruikers preset voorkeuren wanneer meerdere mensen thuis zijn
+- **Prioriteit Systeem**: Gebruiker met hoogste prioriteit heeft voorrang bij conflicten
+- **Zone-Specifieke Gebruikers**: Optionele zone beperkingen voor per-kamer gebruikersvoorkeuren
+
+**Data Model:**
+```python
+User:
+  - user_id: str (persoon entiteit ID, bijv. "person.john")
+  - name: str (weergave naam)
+  - preset_preferences: Dict[str, float] (home: 21.0, away: 16.0, etc.)
+  - priority: int (1-10, hoger = meer prioriteit)
+  - areas: List[str] (optionele zone beperkingen)
+
+PresenceState:
+  - users_home: List[str] (momenteel aanwezige gebruiker IDs)
+  - active_user: Optional[str] (hoogste prioriteit gebruiker)
+  - combined_mode: str ("none", "single", "multiple")
+
+Settings:
+  - multi_user_strategy: str ("priority" of "average")
+  - enabled: bool
+```
+
+**Samenvoeg Strategieën:**
+1. **Prioriteit Modus** (standaard): Voorkeuren van gebruiker met hoogste prioriteit winnen
+2. **Gemiddelde Modus**: Gemiddelde temperatuur over alle aanwezige gebruikers
+
+**API Endpoints:**
+- `GET /api/smart_heating/users` - Lijst alle gebruikers met aanwezigheid status
+- `POST /api/smart_heating/users` - Maak nieuwe gebruiker
+- `PUT /api/smart_heating/users/{user_id}` - Werk gebruikersvoorkeuren bij
+- `DELETE /api/smart_heating/users/{user_id}` - Verwijder gebruiker
+- `PUT /api/smart_heating/users/settings` - Werk globale instellingen bij
+
+**Integratie:**
+- Wordt automatisch bijgewerkt wanneer persoon entiteiten van status veranderen (thuis/weg)
+- Preset temperaturen passen aan op basis van actieve gebruiker(s)
+- Opgeslagen in Home Assistant storage
+- Real-time WebSocket updates naar frontend
+
+### Efficiëntie Calculator (`efficiency_calculator.py`)
+
+Analyseert verwarmingssysteem prestaties met behulp van historische climate entiteit data.
+
+**Berekende Metrieken:**
+- **Energie Score** (0-100): Algemene efficiëntie rating
+  - Factoren: verwarmingstijd, temperatuur delta, cyclus frequentie, stabiliteit
+  - Hogere score = efficiëntere werking
+- **Verwarmingstijd Percentage**: % van tijd dat HVAC actief verwarmde
+- **Gemiddelde Temperatuur Delta**: Gemiddeld verschil tussen doel en werkelijke temperatuur
+- **Verwarmingscycli**: Aantal aan/uit cycli (minder = betere efficiëntie)
+- **Temperatuur Stabiliteit**: Standaarddeviatie van temperatuur variaties
+
+**Ondersteunde Tijdsperiodes:**
+- `day` - Laatste 24 uur
+- `week` - Laatste 7 dagen
+- `month` - Laatste 30 dagen
+- `custom` - Gebruiker-gedefinieerde datumbereik
+
+**Data Bron:**
+- Gebruikt Home Assistant recorder database via `history.state_changes_during_period()`
+- Analyseert climate entiteit statussen (hvac_action, current_temperature, temperature attributen)
+- Voert queries uit in recorder executor voor optimale prestaties
+
+**Aanbevelingen Engine:**
+Genereert bruikbare inzichten gebaseerd op metrieken:
+- "Uitstekende efficiëntie" (score > 80)
+- "Goede isolatie gedetecteerd" (lage delta)
+- "Verlaag doeltemperatuur" (hoge verwarmingstijd)
+- "Controleer op tocht" (hoge cyclus)
+- "Verbeter isolatie" (slechte stabiliteit)
+
+**API Endpoints:**
+- `GET /api/smart_heating/efficiency/all_areas?period=week` - Samenvatting voor alle zones
+- `GET /api/smart_heating/efficiency/report/{area_id}?period=week` - Enkele zone efficiëntie
+- `GET /api/smart_heating/efficiency/history/{area_id}?period=week` - Multi-dag uitsplitsing
+
+**Retour Structuur:**
+```json
+{
+  "area_id": "woonkamer",
+  "period": "week",
+  "start_time": "2025-12-02T00:00:00",
+  "end_time": "2025-12-09T00:00:00",
+  "heating_time_percentage": 35.2,
+  "average_temperature_delta": 0.8,
+  "heating_cycles": 12,
+  "energy_score": 78.5,
+  "temperature_stability": 0.4,
+  "data_points": 8640,
+  "recommendations": [
+    "Goede efficiëntie - behoud huidige instellingen"
+  ]
+}
+```
+
+### Vergelijkings Engine (`comparison_engine.py`)
+
+Vergelijkt verwarmingsprestaties over verschillende tijdsperiodes om verbeteringen te volgen.
+
+**Vergelijkings Types:**
+1. **Week-over-Week**: Huidige week vs vorige week
+2. **Maand-over-Maand**: Huidige maand vs vorige maand
+3. **Aangepaste Periodes**: Gebruiker-gedefinieerde datumbereiken
+
+**Delta Berekeningen:**
+Voor elke metriek, berekent:
+- **Absolute Verandering**: Huidig - Vorig
+- **Percentage Verandering**: ((Huidig - Vorig) / Vorig) × 100
+- **Verbeterings Vlag**: Boolean die aangeeft of verandering gunstig is
+- **Energie Besparing Schatting**: Geprojecteerde energie reductie percentage
+
+**Verbeteringslogica:**
+- Energie Score: Hoger is beter
+- Verwarmingstijd: Lager is beter (minder energie gebruikt)
+- Temperatuur Delta: Lager is beter (dichter bij doel)
+- Verwarmingscycli: Lager is beter (stabieler)
+- Temperatuur Stabiliteit: Lager is beter (minder fluctuatie)
+
+**Samenvatting Generatie:**
+Genereert automatisch leesbare samenvattingen:
+- "Efficiëntie verbeterd met 12.5% - geweldige vooruitgang!"
+- "Efficiëntie gedaald met 5.2% - waarschijnlijk door weersveranderingen"
+- "Kleine efficiëntie daling van 1.8% - binnen normale variatie"
+
+**API Endpoints:**
+- `GET /api/smart_heating/comparison/{period}` - Week/maand vergelijking voor alle zones
+- `POST /api/smart_heating/comparison/custom` - Aangepaste datumbereik vergelijking
+
+**Aangepaste Vergelijking Verzoek:**
+```json
+{
+  "area_id": "woonkamer",
+  "start_a": "2025-12-01T00:00:00",
+  "end_a": "2025-12-07T00:00:00",
+  "start_b": "2025-11-24T00:00:00",
+  "end_b": "2025-11-30T00:00:00"
+}
+```
+
+**Retour Structuur:**
+```json
+{
+  "area_id": "woonkamer",
+  "comparison_type": "week",
+  "period_a": {
+    "name": "Huidige Periode",
+    "start": "2025-12-02T00:00:00",
+    "end": "2025-12-09T00:00:00",
+    "metrics": { /* volledige efficiëntie metrieken */ }
+  },
+  "period_b": {
+    "name": "Laatste 1 we(e)k(en)",
+    "start": "2025-11-25T00:00:00",
+    "end": "2025-12-02T00:00:00",
+    "metrics": { /* volledige efficiëntie metrieken */ }
+  },
+  "delta": {
+    "energy_score": {
+      "absolute": 5.2,
+      "percentage": 7.1,
+      "current": 78.5,
+      "previous": 73.3,
+      "improved": true
+    },
+    "estimated_energy_savings": {
+      "percentage": 7.1,
+      "description": "Energieverbruik significant gedaald."
+    }
+  },
+  "summary": "Efficiëntie verbeterd met 7.1% - geweldige vooruitgang!"
+}
+```
+
+**Integratie met Frontend:**
+- Drie nieuwe React componenten: `UserManagement`, `EfficiencyReports`, `HistoricalComparisons`
+- Real-time updates via WebSocket subscriptions
+- Material-UI grafieken en delta indicatoren (▲/▼ pijlen met kleur codering)
+- Periode selectoren voor dag/week/maand weergaven
+- Aangepaste datumbereik kiezers voor flexibele analyse
+
+**Prestatie Overwegingen:**
+- Database queries gebruiken recorder executor (non-blocking)
+- Resultaten gesorteerd voor UX (slechtste efficiëntie eerst voor rapporten, beste verbeteringen eerst voor vergelijkingen)
+- Lege data netjes afgehandeld met "Geen data beschikbaar" berichten
+- Caching mogelijkheden voor veelgebruikte periodes (toekomstige verbetering)
+
 ## Toekomstige Verbeteringen
 
+- [x] ~~Multi-gebruiker aanwezigheid tracking~~ **Geïmplementeerd in v0.6.0**
+- [x] ~~Analytics dashboard~~ **Geïmplementeerd in v0.6.0**
 - [ ] Drag-and-drop apparaat toewijzing
-- [ ] Zone planning/programma's
-- [ ] Analytics dashboard
-- [ ] Slimme verwarmings algoritmes
-- [ ] Energie monitoring
-- [ ] Meertalige ondersteuning
+- [ ] Slimme verwarmings algoritmes met ML voorspellingen
+- [ ] Energie monitoring integratie met utility meters
+- [ ] Exporteer analyses rapporten naar PDF/CSV
 - [ ] Mobiele app integratie
 - [ ] Spraakbesturing optimalisatie
+- [ ] Weer-gebaseerde efficiëntie correcties
+- [ ] Kosten analyse met energie prijzen

@@ -118,13 +118,16 @@ class VacationManager:
             # Check if person came home
             if old_state.state == "not_home" and new_state.state == "home":
                 _LOGGER.info(
-                    "Person %s came home - disabling vacation mode", event.data.get("entity_id")
+                    "Person %s came home - disabling vacation mode",
+                    event.data.get("entity_id"),
                 )
                 await self.async_disable()
 
         # Set up listener for each person entity
         for entity_id in self._data["person_entities"]:
-            unsub = async_track_state_change_event(self.hass, [entity_id], person_state_changed)
+            unsub = async_track_state_change_event(
+                self.hass, [entity_id], person_state_changed
+            )
             self._unsub_person_listeners.append(unsub)
 
         _LOGGER.debug("Set up %d person listeners", len(self._unsub_person_listeners))

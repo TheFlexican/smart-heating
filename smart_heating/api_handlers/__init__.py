@@ -32,11 +32,19 @@ from .config import (
     handle_set_hysteresis_value,
     handle_set_safety_sensor,
 )
+from .comparison import (
+    handle_get_comparison,
+    handle_get_custom_comparison,
+)
 from .devices import (
     handle_add_device,
     handle_get_devices,
     handle_refresh_devices,
     handle_remove_device,
+)
+from .efficiency import (
+    handle_get_area_efficiency_history,
+    handle_get_efficiency_report,
 )
 from .history import (
     handle_get_history,
@@ -73,6 +81,16 @@ from .system import (
     handle_get_entity_state,
     handle_get_status,
 )
+from .users import (
+    handle_create_user,
+    handle_delete_user,
+    handle_get_active_preferences,
+    handle_get_presence_state,
+    handle_get_user,
+    handle_get_users,
+    handle_update_user,
+    handle_update_user_settings,
+)
 
 __all__ = [
     # Areas
@@ -93,6 +111,9 @@ __all__ = [
     "handle_refresh_devices",
     "handle_add_device",
     "handle_remove_device",
+    # Efficiency
+    "handle_get_efficiency_report",
+    "handle_get_area_efficiency_history",
     # Schedules
     "handle_add_schedule",
     "handle_remove_schedule",
@@ -121,6 +142,9 @@ __all__ = [
     "handle_set_safety_sensor",
     "handle_remove_safety_sensor",
     "handle_set_hvac_mode",
+    # Comparison
+    "handle_get_comparison",
+    "handle_get_custom_comparison",
     # History
     "handle_get_history",
     "handle_get_learning_stats",
@@ -139,4 +163,13 @@ __all__ = [
     "handle_get_entity_state",
     "handle_call_service",
     "handle_set_primary_temperature_sensor",
+    # Users
+    "handle_get_users",
+    "handle_get_user",
+    "handle_create_user",
+    "handle_update_user",
+    "handle_delete_user",
+    "handle_update_user_settings",
+    "handle_get_presence_state",
+    "handle_get_active_preferences",
 ]

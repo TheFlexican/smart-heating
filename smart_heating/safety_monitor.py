@@ -49,7 +49,9 @@ class SafetyMonitor:
         # Filter for enabled sensors
         enabled_sensors = [s for s in safety_sensors if s.get("enabled", True)]
 
-        _LOGGER.warning("Setting up listeners for %d enabled safety sensors", len(enabled_sensors))
+        _LOGGER.warning(
+            "Setting up listeners for %d enabled safety sensors", len(enabled_sensors)
+        )
 
         if enabled_sensors:
             # Collect all sensor IDs
@@ -62,7 +64,9 @@ class SafetyMonitor:
                 sensor_state = self.hass.states.get(sensor_id)
                 if sensor_state:
                     _LOGGER.warning(
-                        "Sensor %s exists! Current state: %s", sensor_id, sensor_state.state
+                        "Sensor %s exists! Current state: %s",
+                        sensor_id,
+                        sensor_state.state,
                     )
                 else:
                     _LOGGER.warning("WARNING: Sensor %s does not exist yet!", sensor_id)
@@ -72,13 +76,16 @@ class SafetyMonitor:
                 self.hass, sensor_ids, self._handle_safety_sensor_state_change
             )
             _LOGGER.warning(
-                "Safety sensor listeners registered successfully for %d sensors", len(sensor_ids)
+                "Safety sensor listeners registered successfully for %d sensors",
+                len(sensor_ids),
             )
 
             # Check initial state
             await self._check_safety_status()
         else:
-            _LOGGER.warning("No enabled safety sensors configured, skipping listener setup")
+            _LOGGER.warning(
+                "No enabled safety sensors configured, skipping listener setup"
+            )
 
     @callback
     def _handle_safety_sensor_state_change(self, event: Event) -> None:

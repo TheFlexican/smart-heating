@@ -102,7 +102,9 @@ class TemperatureSensorHandler:
             return temp_value
         except (ValueError, TypeError):
             _LOGGER.warning(
-                "Invalid current_temperature from thermostat %s: %s", thermostat_id, current_temp
+                "Invalid current_temperature from thermostat %s: %s",
+                thermostat_id,
+                current_temp,
             )
             return None
 

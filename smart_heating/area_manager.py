@@ -86,7 +86,9 @@ class AreaManager:
             # Load global configuration
             self.opentherm_gateway_id = data.get("opentherm_gateway_id")
             self.opentherm_enabled = data.get("opentherm_enabled", False)
-            self.trv_heating_temp = data.get("trv_heating_temp", DEFAULT_TRV_HEATING_TEMP)
+            self.trv_heating_temp = data.get(
+                "trv_heating_temp", DEFAULT_TRV_HEATING_TEMP
+            )
             self.trv_idle_temp = data.get("trv_idle_temp", DEFAULT_TRV_IDLE_TEMP)
             self.trv_temp_offset = data.get("trv_temp_offset", DEFAULT_TRV_TEMP_OFFSET)
             self.frost_protection_enabled = data.get("frost_protection_enabled", False)
@@ -98,10 +100,14 @@ class AreaManager:
             # Load global preset temperatures
             self.global_away_temp = data.get("global_away_temp", DEFAULT_AWAY_TEMP)
             self.global_eco_temp = data.get("global_eco_temp", DEFAULT_ECO_TEMP)
-            self.global_comfort_temp = data.get("global_comfort_temp", DEFAULT_COMFORT_TEMP)
+            self.global_comfort_temp = data.get(
+                "global_comfort_temp", DEFAULT_COMFORT_TEMP
+            )
             self.global_home_temp = data.get("global_home_temp", DEFAULT_HOME_TEMP)
             self.global_sleep_temp = data.get("global_sleep_temp", DEFAULT_SLEEP_TEMP)
-            self.global_activity_temp = data.get("global_activity_temp", DEFAULT_ACTIVITY_TEMP)
+            self.global_activity_temp = data.get(
+                "global_activity_temp", DEFAULT_ACTIVITY_TEMP
+            )
 
             # Load global presence sensors
             self.global_presence_sensors = data.get("global_presence_sensors", [])
@@ -112,7 +118,9 @@ class AreaManager:
                 self.safety_sensors = data.get("safety_sensors", [])
             elif data.get("safety_sensor_id"):
                 # Migrate old single sensor format to new list format
-                _LOGGER.info("Migrating old safety sensor format to new multi-sensor format")
+                _LOGGER.info(
+                    "Migrating old safety sensor format to new multi-sensor format"
+                )
                 self.safety_sensors = [
                     {
                         "sensor_id": data.get("safety_sensor_id"),
@@ -342,7 +350,9 @@ class AreaManager:
         area.remove_schedule(schedule_id)
         _LOGGER.info("Removed schedule %s from area %s", schedule_id, area_id)
 
-    def set_opentherm_gateway(self, gateway_id: str | None, enabled: bool = True) -> None:
+    def set_opentherm_gateway(
+        self, gateway_id: str | None, enabled: bool = True
+    ) -> None:
         """Set the global OpenTherm gateway.
 
         Args:
@@ -352,7 +362,9 @@ class AreaManager:
         self.opentherm_gateway_id = gateway_id
         self.opentherm_enabled = enabled and gateway_id is not None
         _LOGGER.info(
-            "OpenTherm gateway set to %s (enabled: %s)", gateway_id, self.opentherm_enabled
+            "OpenTherm gateway set to %s (enabled: %s)",
+            gateway_id,
+            self.opentherm_enabled,
         )
 
     def add_safety_sensor(
@@ -409,7 +421,9 @@ class AreaManager:
         Args:
             sensor_id: Entity ID of the safety sensor to remove
         """
-        self.safety_sensors = [s for s in self.safety_sensors if s["sensor_id"] != sensor_id]
+        self.safety_sensors = [
+            s for s in self.safety_sensors if s["sensor_id"] != sensor_id
+        ]
         # Clear alert if no sensors remain
         if not self.safety_sensors:
             self._safety_alert_active = False
@@ -508,5 +522,7 @@ class AreaManager:
             )
         else:
             _LOGGER.info(
-                "TRV temperatures set: heating=%.1f°C, idle=%.1f°C", heating_temp, idle_temp
+                "TRV temperatures set: heating=%.1f°C, idle=%.1f°C",
+                heating_temp,
+                idle_temp,
             )

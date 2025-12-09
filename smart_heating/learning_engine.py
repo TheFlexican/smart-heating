@@ -88,7 +88,9 @@ class LearningEngine:
         # Register statistics metadata for all metrics
         await self._async_register_statistics_metadata()
 
-        _LOGGER.info("Learning engine setup complete (weather entity: %s)", self._weather_entity)
+        _LOGGER.info(
+            "Learning engine setup complete (weather entity: %s)", self._weather_entity
+        )
 
     async def _async_detect_weather_entity(self) -> str | None:
         """Auto-detect the weather entity.
@@ -103,7 +105,9 @@ class LearningEngine:
                 _LOGGER.info("Auto-detected weather entity: %s", entity_id)
                 return entity_id
 
-        _LOGGER.warning("No weather entity found - outdoor temperature correlation disabled")
+        _LOGGER.warning(
+            "No weather entity found - outdoor temperature correlation disabled"
+        )
         return None
 
     async def _async_register_statistics_metadata(self) -> None:
@@ -233,7 +237,10 @@ class LearningEngine:
         try:
             # Ensure metadata is registered
             await self._async_ensure_statistic_metadata(
-                event.area_id, "heating_rate", f"Heating Rate - {event.area_id}", "°C/min"
+                event.area_id,
+                "heating_rate",
+                f"Heating Rate - {event.area_id}",
+                "°C/min",
             )
 
             # Record heating rate
@@ -270,7 +277,9 @@ class LearningEngine:
             if event.outdoor_temp is not None:
                 await self._async_record_outdoor_correlation(event)
         except Exception as err:
-            _LOGGER.error("Failed to record heating event for %s: %s", event.area_id, err)
+            _LOGGER.error(
+                "Failed to record heating event for %s: %s", event.area_id, err
+            )
 
     async def _async_record_outdoor_correlation(self, event: HeatingEvent) -> None:
         """Record outdoor temperature correlation.
@@ -309,10 +318,14 @@ class LearningEngine:
             )
 
             _LOGGER.debug(
-                "Recorded outdoor correlation for %s: %.1f°C", event.area_id, event.outdoor_temp
+                "Recorded outdoor correlation for %s: %.1f°C",
+                event.area_id,
+                event.outdoor_temp,
             )
         except Exception as err:
-            _LOGGER.error("Failed to record outdoor correlation for %s: %s", event.area_id, err)
+            _LOGGER.error(
+                "Failed to record outdoor correlation for %s: %s", event.area_id, err
+            )
 
     async def _async_get_outdoor_temperature(self) -> float | None:
         """Get current outdoor temperature from weather entity.
@@ -386,7 +399,9 @@ class LearningEngine:
 
         return int(predicted_minutes)
 
-    async def _async_get_recent_heating_rates(self, area_id: str, days: int = 30) -> list[float]:
+    async def _async_get_recent_heating_rates(
+        self, area_id: str, days: int = 30
+    ) -> list[float]:
         """Get recent heating rates from statistics.
 
         Args:
@@ -440,7 +455,9 @@ class LearningEngine:
             _LOGGER.error("Failed to retrieve heating rates for %s: %s", area_id, err)
             return []
 
-    async def _async_calculate_outdoor_adjustment(self, current_outdoor_temp: float) -> float:
+    async def _async_calculate_outdoor_adjustment(
+        self, current_outdoor_temp: float
+    ) -> float:
         """Calculate heating rate adjustment based on outdoor temperature.
 
         Args:
@@ -479,7 +496,9 @@ class LearningEngine:
         # For now, return None until we have enough data
 
         # TODO: Implement based on historical overnight cooldown patterns
-        _LOGGER.debug("Smart night boost calculation not yet implemented for %s", area_id)
+        _LOGGER.debug(
+            "Smart night boost calculation not yet implemented for %s", area_id
+        )
         return None
 
     async def async_get_learning_stats(self, area_id: str) -> dict[str, Any]:

@@ -31,8 +31,16 @@ Een Home Assistant custom integratie voor intelligente multi-zone verwarmingsreg
 ### 🎯 Preset Modi & Automatisering
 - **6 preset modi** - Weg, Eco, Comfort, Thuis, Slapen, Activiteit (+ Boost)
 - **Globale presets** - Configureer standaard temperaturen eenmaal, pas toe op alle zones
+- **Multi-gebruiker ondersteuning** - Individuele temperatuurvoorkeuren per gebruiker met automatische aanwezigheidsdetectie
 - **Aanwezigheidsdetectie** - Automatische modus wisseling gebaseerd op aanwezigheid
 - **Raam sensoren** - Auto-aanpassen of pauzeren verwarming bij open ramen/deuren
+
+### 📊 Analytics & Inzichten
+- **Efficiëntie rapporten** - Analyseer verwarmingsprestaties met 0-100 energie scores
+- **Historische vergelijkingen** - Vergelijk prestaties over verschillende tijdsperioden
+- **Prestatie metrieken** - Volg verwarmingstijd, cycli, temperatuurverschillen
+- **Slimme aanbevelingen** - Automatische suggesties om efficiëntie te verbeteren
+- **Trend visualisatie** - Grafieken en tabellen die verwarmingspatronen over tijd tonen
 
 ### 🔒 Veiligheid & Controle
 - **Vorstbescherming** - Globale minimumtemperatuur om bevriezing te voorkomen
@@ -164,6 +172,18 @@ POST /api/smart_heating/areas/{area_id}/schedule
   "end_time": "09:00",
   "preset_mode": "comfort"
 }
+
+# Gebruikersbeheer
+GET /api/smart_heating/users
+POST /api/smart_heating/users
+GET /api/smart_heating/users/{user_id}
+GET /api/smart_heating/users/active_preferences
+
+# Analytics
+GET /api/smart_heating/efficiency/report/{area_id}
+GET /api/smart_heating/efficiency/all_areas
+GET /api/smart_heating/comparison/{period}
+POST /api/smart_heating/comparison/custom
 ```
 
 Zie [API Documentatie](docs/nl/ARCHITECTURE.md#api-endpoints) voor complete endpoint lijst.

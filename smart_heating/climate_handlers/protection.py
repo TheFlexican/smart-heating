@@ -13,7 +13,9 @@ _LOGGER = logging.getLogger(__name__)
 class ProtectionHandler:
     """Handle frost protection, vacation mode, and manual override."""
 
-    def __init__(self, hass: HomeAssistant, area_manager: AreaManager, area_logger=None):
+    def __init__(
+        self, hass: HomeAssistant, area_manager: AreaManager, area_logger=None
+    ):
         """Initialize protection handler.
 
         Args:
@@ -48,7 +50,9 @@ class ProtectionHandler:
                 target_temp = frost_temp
 
         # Apply vacation mode frost protection override if active
-        vacation_manager = self.hass.data.get("smart_heating", {}).get("vacation_manager")
+        vacation_manager = self.hass.data.get("smart_heating", {}).get(
+            "vacation_manager"
+        )
         if vacation_manager and vacation_manager.is_active():
             vacation_min_temp = vacation_manager.get_min_temperature()
             if vacation_min_temp and target_temp < vacation_min_temp:
@@ -64,13 +68,17 @@ class ProtectionHandler:
 
     def apply_vacation_mode(self, area_id: str, area: Area) -> None:
         """Apply vacation mode preset if active."""
-        vacation_manager = self.hass.data.get("smart_heating", {}).get("vacation_manager")
+        vacation_manager = self.hass.data.get("smart_heating", {}).get(
+            "vacation_manager"
+        )
         if vacation_manager and vacation_manager.is_active():
             vacation_preset = vacation_manager.get_preset_mode()
             if vacation_preset:
                 area.preset_mode = vacation_preset
                 _LOGGER.debug(
-                    "Area %s: Vacation mode active - using preset %s", area_id, vacation_preset
+                    "Area %s: Vacation mode active - using preset %s",
+                    area_id,
+                    vacation_preset,
                 )
                 if self.area_logger:
                     self.area_logger.log_event(
@@ -90,7 +98,9 @@ class ProtectionHandler:
             area: Area instance
             device_control_handler: Device control handler for switch control
         """
-        _LOGGER.info("Area %s in MANUAL OVERRIDE mode - skipping thermostat control", area_id)
+        _LOGGER.info(
+            "Area %s in MANUAL OVERRIDE mode - skipping thermostat control", area_id
+        )
         area.state = "manual"
         if self.area_logger:
             self.area_logger.log_event(
@@ -105,11 +115,20 @@ class ProtectionHandler:
         await device_control_handler.async_control_switches(area, is_heating)
 
     async def async_handle_disabled_area(
-        self, area_id: str, area: Area, device_handler, history_tracker, should_record_history: bool
+        self,
+        area_id: str,
+        area: Area,
+        device_handler,
+        history_tracker,
+        should_record_history: bool,
     ) -> None:
         """Handle a disabled area - turn off devices and record history."""
         # Record history for disabled areas too
-        if should_record_history and history_tracker and area.current_temperature is not None:
+        if (
+            should_record_history
+            and history_tracker
+            and area.current_temperature is not None
+        ):
             await history_tracker.async_record_temperature(
                 area_id, area.current_temperature, area.target_temperature, area.state
             )

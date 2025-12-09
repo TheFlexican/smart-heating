@@ -98,7 +98,9 @@ class DeviceControlHandler:
 
         state = self.hass.states.get(entity_id)
         if not state:
-            _LOGGER.warning("Cannot determine capabilities for %s: entity not found", entity_id)
+            _LOGGER.warning(
+                "Cannot determine capabilities for %s: entity not found", entity_id
+            )
             self._device_capabilities[entity_id] = capabilities
             return capabilities
 
@@ -123,11 +125,15 @@ class DeviceControlHandler:
             if "position" in state.attributes:
                 capabilities["supports_position"] = True
                 _LOGGER.debug(
-                    "Valve %s (climate) supports position control via attribute", entity_id
+                    "Valve %s (climate) supports position control via attribute",
+                    entity_id,
                 )
 
             # Check if it supports temperature
-            if "temperature" in state.attributes or "target_temp_low" in state.attributes:
+            if (
+                "temperature" in state.attributes
+                or "target_temp_low" in state.attributes
+            ):
                 capabilities["supports_temperature"] = True
                 _LOGGER.debug("Valve %s supports temperature control", entity_id)
 
@@ -175,7 +181,11 @@ class DeviceControlHandler:
                         blocking=False,
                     )
                 else:
-                    _LOGGER.debug("Power switch %s already on for %s", switch_id, climate_entity_id)
+                    _LOGGER.debug(
+                        "Power switch %s already on for %s",
+                        switch_id,
+                        climate_entity_id,
+                    )
                 return  # Found and handled the switch
 
         # No power switch found, which is normal for most thermostats
@@ -219,7 +229,11 @@ class DeviceControlHandler:
                 return  # Found and handled the switch
 
     async def async_control_thermostats(
-        self, area: Area, heating: bool, target_temp: Optional[float], hvac_mode: str = "heat"
+        self,
+        area: Area,
+        heating: bool,
+        target_temp: Optional[float],
+        hvac_mode: str = "heat",
     ) -> None:
         """Control thermostats in an area.
 
@@ -241,7 +255,9 @@ class DeviceControlHandler:
                     await self._async_ensure_climate_power_on(thermostat_id)
 
                     # Set HVAC mode first
-                    ha_hvac_mode = HVAC_MODE_HEAT if hvac_mode == "heat" else HVAC_MODE_COOL
+                    ha_hvac_mode = (
+                        HVAC_MODE_HEAT if hvac_mode == "heat" else HVAC_MODE_COOL
+                    )
                     await self.hass.services.async_call(
                         CLIMATE_DOMAIN,
                         "set_hvac_mode",
@@ -251,7 +267,9 @@ class DeviceControlHandler:
                         },
                         blocking=False,
                     )
-                    _LOGGER.debug("Set thermostat %s to %s mode", thermostat_id, hvac_mode)
+                    _LOGGER.debug(
+                        "Set thermostat %s to %s mode", thermostat_id, hvac_mode
+                    )
 
                     # Only set temperature if it has changed (avoid API rate limiting)
                     last_temp = self._last_set_temperatures.get(thermostat_id)
@@ -378,7 +396,8 @@ class DeviceControlHandler:
                         _LOGGER.debug("Turned off switch %s", switch_id)
                     else:
                         _LOGGER.debug(
-                            "Keeping switch %s on (shutdown_switches_when_idle=False)", switch_id
+                            "Keeping switch %s on (shutdown_switches_when_idle=False)",
+                            switch_id,
                         )
             except Exception as err:
                 _LOGGER.error("Failed to control switch %s: %s", switch_id, err)
@@ -410,7 +429,9 @@ class DeviceControlHandler:
                                 blocking=False,
                             )
                             _LOGGER.debug(
-                                "Opened valve %s to %.0f%%", valve_id, capabilities["position_max"]
+                                "Opened valve %s to %.0f%%",
+                                valve_id,
+                                capabilities["position_max"],
                             )
                         else:
                             await self.hass.services.async_call(
@@ -423,7 +444,9 @@ class DeviceControlHandler:
                                 blocking=False,
                             )
                             _LOGGER.debug(
-                                "Closed valve %s to %.0f%%", valve_id, capabilities["position_min"]
+                                "Closed valve %s to %.0f%%",
+                                valve_id,
+                                capabilities["position_min"],
                             )
 
                     elif (
@@ -445,7 +468,9 @@ class DeviceControlHandler:
                                 },
                                 blocking=False,
                             )
-                            _LOGGER.debug("Set valve %s position to %.0f%%", valve_id, position)
+                            _LOGGER.debug(
+                                "Set valve %s position to %.0f%%", valve_id, position
+                            )
                         except Exception:
                             _LOGGER.debug(
                                 "Valve %s doesn't support set_position, using temperature control",
@@ -455,10 +480,15 @@ class DeviceControlHandler:
                             capabilities["supports_temperature"] = True
 
                 # Fall back to temperature control
-                if not capabilities["supports_position"] and capabilities["supports_temperature"]:
+                if (
+                    not capabilities["supports_position"]
+                    and capabilities["supports_temperature"]
+                ):
                     if heating and target_temp is not None:
                         offset = self.area_manager.trv_temp_offset
-                        heating_temp = max(target_temp + offset, self.area_manager.trv_heating_temp)
+                        heating_temp = max(
+                            target_temp + offset, self.area_manager.trv_heating_temp
+                        )
                         await self.hass.services.async_call(
                             CLIMATE_DOMAIN,
                             SERVICE_SET_TEMPERATURE,
@@ -468,7 +498,9 @@ class DeviceControlHandler:
                             },
                             blocking=False,
                         )
-                        _LOGGER.debug("Set TRV %s to heating temp %.1f°C", valve_id, heating_temp)
+                        _LOGGER.debug(
+                            "Set TRV %s to heating temp %.1f°C", valve_id, heating_temp
+                        )
                     else:
                         idle_temp = self.area_manager.trv_idle_temp
                         await self.hass.services.async_call(
@@ -480,14 +512,17 @@ class DeviceControlHandler:
                             },
                             blocking=False,
                         )
-                        _LOGGER.debug("Set TRV %s to idle temp %.1f°C", valve_id, idle_temp)
+                        _LOGGER.debug(
+                            "Set TRV %s to idle temp %.1f°C", valve_id, idle_temp
+                        )
 
                 if (
                     not capabilities["supports_position"]
                     and not capabilities["supports_temperature"]
                 ):
                     _LOGGER.warning(
-                        "Valve %s doesn't support position or temperature control", valve_id
+                        "Valve %s doesn't support position or temperature control",
+                        valve_id,
                     )
 
             except Exception as err:
@@ -516,7 +551,9 @@ class DeviceControlHandler:
                     },
                     blocking=False,
                 )
-                _LOGGER.info("OpenTherm gateway: Boiler ON, setpoint=%.1f°C", boiler_setpoint)
+                _LOGGER.info(
+                    "OpenTherm gateway: Boiler ON, setpoint=%.1f°C", boiler_setpoint
+                )
             else:
                 await self.hass.services.async_call(
                     CLIMATE_DOMAIN,

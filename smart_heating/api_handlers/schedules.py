@@ -62,7 +62,9 @@ async def handle_add_schedule(
                 area.area_manager = area_manager
                 area_manager.areas[area_id] = area
             else:
-                return web.json_response({"error": f"Area {area_id} not found"}, status=404)
+                return web.json_response(
+                    {"error": f"Area {area_id} not found"}, status=404
+                )
 
         # Create schedule from frontend data
         # Validate required fields - accept either 'time' (legacy) or 'start_time' (new)
@@ -166,7 +168,8 @@ async def handle_set_preset_mode(
         # Clear manual override mode when user sets preset via app
         if hasattr(area, "manual_override") and area.manual_override:
             _LOGGER.warning(
-                "🔓 Clearing manual override for %s - preset mode now in control", area.name
+                "🔓 Clearing manual override for %s - preset mode now in control",
+                area.name,
             )
             area.manual_override = False
 

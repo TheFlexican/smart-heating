@@ -18,7 +18,9 @@ class SmartHeatingConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Handle the initial step.
 
         This is a simple config flow that doesn't require any user input.
@@ -85,7 +87,9 @@ class SmartHeatingConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class SmartHeatingOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for Smart Heating."""
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Manage the options.
 
         Args:
@@ -147,7 +151,9 @@ class SmartHeatingOptionsFlowHandler(config_entries.OptionsFlow):
                 )
 
                 if is_opentherm:
-                    climate_entities.append((entity_id, f"{friendly_name} ({entity_id})"))
+                    climate_entities.append(
+                        (entity_id, f"{friendly_name} ({entity_id})")
+                    )
 
         # Sort by friendly name
         climate_entities.sort(key=lambda x: x[1])
@@ -161,7 +167,9 @@ class SmartHeatingOptionsFlowHandler(config_entries.OptionsFlow):
         options_dict.update(dict(climate_entities))
 
         # Show options form
-        _LOGGER.debug("Showing options form with %d climate entities", len(climate_entities))
+        _LOGGER.debug(
+            "Showing options form with %d climate entities", len(climate_entities)
+        )
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(

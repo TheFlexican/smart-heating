@@ -46,7 +46,9 @@ async def async_setup_entry(
 
     # Add entities
     async_add_entities(entities)
-    _LOGGER.info("Smart Heating climate platform setup complete with %d areas", len(entities))
+    _LOGGER.info(
+        "Smart Heating climate platform setup complete with %d areas", len(entities)
+    )
 
 
 class AreaClimate(CoordinatorEntity, ClimateEntity):
@@ -130,10 +132,14 @@ class AreaClimate(CoordinatorEntity, ClimateEntity):
         if temperature is None:
             return
 
-        _LOGGER.debug("Setting area %s temperature to %.1f°C", self._area.area_id, temperature)
+        _LOGGER.debug(
+            "Setting area %s temperature to %.1f°C", self._area.area_id, temperature
+        )
 
         # Update area manager
-        self.coordinator.area_manager.set_area_target_temperature(self._area.area_id, temperature)
+        self.coordinator.area_manager.set_area_target_temperature(
+            self._area.area_id, temperature
+        )
 
         # Save to storage
         await self.coordinator.area_manager.async_save()

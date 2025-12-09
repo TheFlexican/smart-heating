@@ -81,7 +81,9 @@ class HistoryTracker:
         for area_id in list(self._history.keys()):
             original_count = len(self._history[area_id])
             self._history[area_id] = [
-                entry for entry in self._history[area_id] if entry["timestamp"] > cutoff_iso
+                entry
+                for entry in self._history[area_id]
+                if entry["timestamp"] > cutoff_iso
             ]
             removed = original_count - len(self._history[area_id])
             total_removed += removed
@@ -180,7 +182,11 @@ class HistoryTracker:
             # Hours-based query
             cutoff = datetime.now() - timedelta(hours=hours)
             cutoff_iso = cutoff.isoformat()
-            return [entry for entry in self._history[area_id] if entry["timestamp"] > cutoff_iso]
+            return [
+                entry
+                for entry in self._history[area_id]
+                if entry["timestamp"] > cutoff_iso
+            ]
         else:
             # Return all available history (within retention period)
             return self._history[area_id]
@@ -204,7 +210,9 @@ class HistoryTracker:
 
         old_retention = self._retention_days
         self._retention_days = days
-        _LOGGER.info("History retention changed from %d to %d days", old_retention, days)
+        _LOGGER.info(
+            "History retention changed from %d to %d days", old_retention, days
+        )
 
     def get_retention_days(self) -> int:
         """Get the current retention period.

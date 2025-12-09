@@ -15,6 +15,7 @@ from .api import setup_api
 from .area_logger import AreaLogger
 from .area_manager import AreaManager
 from .climate_controller import ClimateController
+from .comparison_engine import ComparisonEngine
 from .const import (
     ATTR_AREA_ID,
     ATTR_AREA_NAME,
@@ -82,10 +83,12 @@ from .const import (
     SERVICE_SET_TRV_TEMPERATURES,
 )
 from .coordinator import SmartHeatingCoordinator
+from .efficiency_calculator import EfficiencyCalculator
 from .history import HistoryTracker
 from .learning_engine import LearningEngine
 from .safety_monitor import SafetyMonitor
 from .scheduler import ScheduleExecutor
+from .user_manager import UserManager
 from .vacation_manager import VacationManager
 from .websocket import setup_websocket
 
@@ -145,6 +148,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await vacation_manager.async_load()
     hass.data[DOMAIN]["vacation_manager"] = vacation_manager
     _LOGGER.info("Vacation manager initialized")
+
+    # Create user manager
+    user_manager = UserManager(hass, storage_path)
+    await user_manager.async_load()
+    hass.data[DOMAIN]["user_manager"] = user_manager
+    _LOGGER.info("User manager initialized")
+
+    # Create efficiency calculator
+    efficiency_calculator = EfficiencyCalculator(hass)
+    hass.data[DOMAIN]["efficiency_calculator"] = efficiency_calculator
+    _LOGGER.info("Efficiency calculator initialized")
+
+    # Create comparison engine
+    comparison_engine = ComparisonEngine(hass, efficiency_calculator)
+    hass.data[DOMAIN]["comparison_engine"] = comparison_engine
+    _LOGGER.info("Comparison engine initialized")
 
     # Create safety monitor
     safety_monitor = SafetyMonitor(hass, area_manager)
@@ -241,7 +260,10 @@ async def async_register_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
         hass: Home Assistant instance
         entry: Config entry
     """
-    from homeassistant.components.frontend import async_register_built_in_panel, async_remove_panel
+    from homeassistant.components.frontend import (
+        async_register_built_in_panel,
+        async_remove_panel,
+    )
 
     # Remove panel if it already exists (from previous failed setup)
     try:
@@ -265,7 +287,9 @@ async def async_register_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
     _LOGGER.info("Smart Heating panel registered in sidebar")
 
 
-async def async_setup_services(hass: HomeAssistant, coordinator: SmartHeatingCoordinator) -> None:
+async def async_setup_services(
+    hass: HomeAssistant, coordinator: SmartHeatingCoordinator
+) -> None:
     """Set up services for Smart Heating.
 
     Args:
@@ -339,61 +363,97 @@ async def async_setup_services(hass: HomeAssistant, coordinator: SmartHeatingCoo
     hass.services.async_register(
         DOMAIN,
         SERVICE_ADD_DEVICE_TO_AREA,
-        partial(async_handle_add_device, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_add_device, area_manager=area_manager, coordinator=coordinator
+        ),
         schema=ADD_DEVICE_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_REMOVE_DEVICE_FROM_AREA,
-        partial(async_handle_remove_device, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_remove_device,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=REMOVE_DEVICE_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_SET_AREA_TEMPERATURE,
-        partial(async_handle_set_temperature, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_set_temperature,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=SET_TEMPERATURE_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_ENABLE_AREA,
-        partial(async_handle_enable_area, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_enable_area, area_manager=area_manager, coordinator=coordinator
+        ),
         schema=ZONE_ID_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_DISABLE_AREA,
-        partial(async_handle_disable_area, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_disable_area,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=ZONE_ID_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_ADD_SCHEDULE,
-        partial(async_handle_add_schedule, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_add_schedule,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=ADD_SCHEDULE_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_REMOVE_SCHEDULE,
-        partial(async_handle_remove_schedule, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_remove_schedule,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=REMOVE_SCHEDULE_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_ENABLE_SCHEDULE,
-        partial(async_handle_enable_schedule, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_enable_schedule,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=SCHEDULE_CONTROL_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_DISABLE_SCHEDULE,
-        partial(async_handle_disable_schedule, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_disable_schedule,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=SCHEDULE_CONTROL_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_SET_NIGHT_BOOST,
-        partial(async_handle_set_night_boost, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_set_night_boost,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=NIGHT_BOOST_SCHEMA,
     )
     hass.services.async_register(
@@ -406,7 +466,9 @@ async def async_setup_services(hass: HomeAssistant, coordinator: SmartHeatingCoo
         DOMAIN,
         SERVICE_SET_OPENTHERM_GATEWAY,
         partial(
-            async_handle_set_opentherm_gateway, area_manager=area_manager, coordinator=coordinator
+            async_handle_set_opentherm_gateway,
+            area_manager=area_manager,
+            coordinator=coordinator,
         ),
         schema=OPENTHERM_GATEWAY_SCHEMA,
     )
@@ -414,47 +476,69 @@ async def async_setup_services(hass: HomeAssistant, coordinator: SmartHeatingCoo
         DOMAIN,
         SERVICE_SET_TRV_TEMPERATURES,
         partial(
-            async_handle_set_trv_temperatures, area_manager=area_manager, coordinator=coordinator
+            async_handle_set_trv_temperatures,
+            area_manager=area_manager,
+            coordinator=coordinator,
         ),
         schema=TRV_TEMPERATURES_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_SET_PRESET_MODE,
-        partial(async_handle_set_preset_mode, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_set_preset_mode,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=PRESET_MODE_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_SET_BOOST_MODE,
-        partial(async_handle_set_boost_mode, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_set_boost_mode,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=BOOST_MODE_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_CANCEL_BOOST,
-        partial(async_handle_cancel_boost, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_cancel_boost,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=CANCEL_BOOST_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_SET_FROST_PROTECTION,
         partial(
-            async_handle_set_frost_protection, area_manager=area_manager, coordinator=coordinator
+            async_handle_set_frost_protection,
+            area_manager=area_manager,
+            coordinator=coordinator,
         ),
         schema=FROST_PROTECTION_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_ADD_WINDOW_SENSOR,
-        partial(async_handle_add_window_sensor, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_add_window_sensor,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=WINDOW_SENSOR_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_REMOVE_WINDOW_SENSOR,
         partial(
-            async_handle_remove_window_sensor, area_manager=area_manager, coordinator=coordinator
+            async_handle_remove_window_sensor,
+            area_manager=area_manager,
+            coordinator=coordinator,
         ),
         schema=WINDOW_SENSOR_SCHEMA,
     )
@@ -462,7 +546,9 @@ async def async_setup_services(hass: HomeAssistant, coordinator: SmartHeatingCoo
         DOMAIN,
         SERVICE_ADD_PRESENCE_SENSOR,
         partial(
-            async_handle_add_presence_sensor, area_manager=area_manager, coordinator=coordinator
+            async_handle_add_presence_sensor,
+            area_manager=area_manager,
+            coordinator=coordinator,
         ),
         schema=PRESENCE_SENSOR_SCHEMA,
     )
@@ -470,20 +556,30 @@ async def async_setup_services(hass: HomeAssistant, coordinator: SmartHeatingCoo
         DOMAIN,
         SERVICE_REMOVE_PRESENCE_SENSOR,
         partial(
-            async_handle_remove_presence_sensor, area_manager=area_manager, coordinator=coordinator
+            async_handle_remove_presence_sensor,
+            area_manager=area_manager,
+            coordinator=coordinator,
         ),
         schema=PRESENCE_SENSOR_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_SET_HVAC_MODE,
-        partial(async_handle_set_hvac_mode, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_set_hvac_mode,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=HVAC_MODE_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_COPY_SCHEDULE,
-        partial(async_handle_copy_schedule, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_copy_schedule,
+            area_manager=area_manager,
+            coordinator=coordinator,
+        ),
         schema=COPY_SCHEDULE_SCHEMA,
     )
     hass.services.async_register(
@@ -578,7 +674,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         try:
             from homeassistant.components.frontend import async_remove_panel
 
-            async_remove_panel(hass, "smart_heating")  # Not actually async despite the name
+            async_remove_panel(
+                hass, "smart_heating"
+            )  # Not actually async despite the name
             _LOGGER.debug("Smart Heating panel removed from sidebar")
         except Exception as err:
             _LOGGER.warning("Failed to remove panel: %s", err)

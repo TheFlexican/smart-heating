@@ -13,7 +13,9 @@ _LOGGER = logging.getLogger(__name__)
 ERROR_HISTORY_NOT_AVAILABLE = "History not available"
 
 
-async def handle_get_history(hass: HomeAssistant, area_id: str, request) -> web.Response:
+async def handle_get_history(
+    hass: HomeAssistant, area_id: str, request
+) -> web.Response:
     """Get temperature history for an area.
 
     Args:
@@ -43,7 +45,9 @@ async def handle_get_history(hass: HomeAssistant, area_id: str, request) -> web.
             # Custom time range
             start_dt = datetime.fromisoformat(start_time)
             end_dt = datetime.fromisoformat(end_time)
-            history = history_tracker.get_history(area_id, start_time=start_dt, end_time=end_dt)
+            history = history_tracker.get_history(
+                area_id, start_time=start_dt, end_time=end_dt
+            )
         elif hours:
             # Hours-based query
             hours_int = int(hours)
@@ -64,7 +68,9 @@ async def handle_get_history(hass: HomeAssistant, area_id: str, request) -> web.
             }
         )
     except ValueError as err:
-        return web.json_response({"error": f"Invalid time parameter: {err}"}, status=400)
+        return web.json_response(
+            {"error": f"Invalid time parameter: {err}"}, status=400
+        )
 
 
 async def handle_get_learning_stats(hass: HomeAssistant, area_id: str) -> web.Response:

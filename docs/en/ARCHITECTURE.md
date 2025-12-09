@@ -955,7 +955,7 @@ Extracted from `__init__.py` - 29 Home Assistant service handlers:
 - `system_handlers.py` - Refresh, status
 
 ### API Handler Modules (`api_handlers/`)
-Extracted from `api.py` - 49 REST API endpoint handlers:
+Extracted from `api.py` - 60+ REST API endpoint handlers:
 - `__init__.py` - Central exports
 - `areas.py` - 12 area management endpoints
 - `devices.py` - 4 device discovery/assignment endpoints
@@ -965,6 +965,9 @@ Extracted from `api.py` - 49 REST API endpoint handlers:
 - `history.py` - 4 history/learning endpoints
 - `logs.py` - 1 logging endpoint
 - `system.py` - 3 system status endpoints
+- `users.py` - **6 user management endpoints (v0.6.0+)**
+- `efficiency.py` - **3 efficiency reporting endpoints (v0.6.0+)**
+- `comparison.py` - **2 historical comparison endpoints (v0.6.0+)**
 
 ### Manager/Controller Modules
 - `climate_controller.py` - HVAC device control logic
@@ -974,6 +977,9 @@ Extracted from `api.py` - 49 REST API endpoint handlers:
 - `vacation_manager.py` - Vacation mode coordination
 - `history.py` - Temperature logging and retention
 - `area_logger.py` - Per-area event logging
+- `user_manager.py` - **Multi-user presence tracking (v0.6.0+)**
+- `efficiency_calculator.py` - **Heating efficiency analytics (v0.6.0+)**
+- `comparison_engine.py` - **Historical performance comparisons (v0.6.0+)**
 
 ### Model Modules (`models/`)
 - `area.py` - Area data model
@@ -1025,13 +1031,211 @@ Extracted from `api.py` - 49 REST API endpoint handlers:
 4. Register service in `__init__.py` (async_setup_services)
 5. Document in `services.yaml`
 
+## V0.6.0 Features: Analytics & Multi-User System
+
+### Multi-User Presence Tracking (`user_manager.py`)
+
+Manages multiple users with individual heating preferences and presence detection.
+
+**Core Functionality:**
+- **User Management**: Create, update, delete users linked to Home Assistant person entities
+- **Presence Detection**: Automatically tracks who's home via person entity states
+- **Preference Merging**: Combines multiple users' preset preferences when multiple people are home
+- **Priority System**: User with highest priority takes precedence in conflicts
+- **Area-Specific Users**: Optional area restrictions for per-room user preferences
+
+**Data Model:**
+```python
+User:
+  - user_id: str (person entity ID, e.g., "person.john")
+  - name: str (display name)
+  - preset_preferences: Dict[str, float] (home: 21.0, away: 16.0, etc.)
+  - priority: int (1-10, higher = more priority)
+  - areas: List[str] (optional area restrictions)
+
+PresenceState:
+  - users_home: List[str] (currently present user IDs)
+  - active_user: Optional[str] (highest priority user)
+  - combined_mode: str ("none", "single", "multiple")
+
+Settings:
+  - multi_user_strategy: str ("priority" or "average")
+  - enabled: bool
+```
+
+**Merging Strategies:**
+1. **Priority Mode** (default): Highest priority user's preferences win
+2. **Average Mode**: Average temperature across all present users
+
+**API Endpoints:**
+- `GET /api/smart_heating/users` - List all users with presence state
+- `POST /api/smart_heating/users` - Create new user
+- `PUT /api/smart_heating/users/{user_id}` - Update user preferences
+- `DELETE /api/smart_heating/users/{user_id}` - Remove user
+- `PUT /api/smart_heating/users/settings` - Update global settings
+
+**Integration:**
+- Automatically updates when person entities change state (home/away)
+- Preset temperatures adjust based on active user(s)
+- Persisted in Home Assistant storage
+- Real-time WebSocket updates to frontend
+
+### Efficiency Calculator (`efficiency_calculator.py`)
+
+Analyzes heating system performance using historical climate entity data.
+
+**Metrics Calculated:**
+- **Energy Score** (0-100): Overall efficiency rating
+  - Factors: heating time, temperature delta, cycling frequency, stability
+  - Higher score = more efficient operation
+- **Heating Time Percentage**: % of time HVAC was actively heating
+- **Average Temperature Delta**: Mean difference between target and actual temperature
+- **Heating Cycles**: Number of on/off cycles (fewer = better efficiency)
+- **Temperature Stability**: Standard deviation of temperature variations
+
+**Time Periods Supported:**
+- `day` - Last 24 hours
+- `week` - Last 7 days
+- `month` - Last 30 days
+- `custom` - User-defined date range
+
+**Data Source:**
+- Uses Home Assistant recorder database via `history.state_changes_during_period()`
+- Analyzes climate entity states (hvac_action, current_temperature, temperature attributes)
+- Executes queries in recorder executor for optimal performance
+
+**Recommendations Engine:**
+Generates actionable insights based on metrics:
+- "Excellent efficiency" (score > 80)
+- "Good insulation detected" (low delta)
+- "Reduce target temperature" (high heating time)
+- "Check for drafts" (high cycling)
+- "Improve insulation" (poor stability)
+
+**API Endpoints:**
+- `GET /api/smart_heating/efficiency/all_areas?period=week` - Summary for all areas
+- `GET /api/smart_heating/efficiency/report/{area_id}?period=week` - Single area efficiency
+- `GET /api/smart_heating/efficiency/history/{area_id}?period=week` - Multi-day breakdown
+
+**Return Structure:**
+```json
+{
+  "area_id": "woonkamer",
+  "period": "week",
+  "start_time": "2025-12-02T00:00:00",
+  "end_time": "2025-12-09T00:00:00",
+  "heating_time_percentage": 35.2,
+  "average_temperature_delta": 0.8,
+  "heating_cycles": 12,
+  "energy_score": 78.5,
+  "temperature_stability": 0.4,
+  "data_points": 8640,
+  "recommendations": [
+    "Good efficiency - maintain current settings"
+  ]
+}
+```
+
+### Comparison Engine (`comparison_engine.py`)
+
+Compares heating performance across different time periods to track improvements.
+
+**Comparison Types:**
+1. **Week-over-Week**: Current week vs previous week
+2. **Month-over-Month**: Current month vs previous month
+3. **Custom Periods**: User-defined date ranges
+
+**Delta Calculations:**
+For each metric, calculates:
+- **Absolute Change**: Current - Previous
+- **Percentage Change**: ((Current - Previous) / Previous) × 100
+- **Improvement Flag**: Boolean indicating if change is beneficial
+- **Energy Savings Estimate**: Projected energy reduction percentage
+
+**Improvement Logic:**
+- Energy Score: Higher is better
+- Heating Time: Lower is better (less energy used)
+- Temperature Delta: Lower is better (closer to target)
+- Heating Cycles: Lower is better (more stable)
+- Temperature Stability: Lower is better (less fluctuation)
+
+**Summary Generation:**
+Auto-generates human-readable summaries:
+- "Efficiency improved by 12.5% - great progress!"
+- "Efficiency decreased by 5.2% - likely due to weather changes"
+- "Minor efficiency decrease of 1.8% - within normal variation"
+
+**API Endpoints:**
+- `GET /api/smart_heating/comparison/{period}` - Week/month comparison for all areas
+- `POST /api/smart_heating/comparison/custom` - Custom date range comparison
+
+**Custom Comparison Request:**
+```json
+{
+  "area_id": "woonkamer",
+  "start_a": "2025-12-01T00:00:00",
+  "end_a": "2025-12-07T00:00:00",
+  "start_b": "2025-11-24T00:00:00",
+  "end_b": "2025-11-30T00:00:00"
+}
+```
+
+**Return Structure:**
+```json
+{
+  "area_id": "woonkamer",
+  "comparison_type": "week",
+  "period_a": {
+    "name": "Current Period",
+    "start": "2025-12-02T00:00:00",
+    "end": "2025-12-09T00:00:00",
+    "metrics": { /* full efficiency metrics */ }
+  },
+  "period_b": {
+    "name": "Last 1 week(s)",
+    "start": "2025-11-25T00:00:00",
+    "end": "2025-12-02T00:00:00",
+    "metrics": { /* full efficiency metrics */ }
+  },
+  "delta": {
+    "energy_score": {
+      "absolute": 5.2,
+      "percentage": 7.1,
+      "current": 78.5,
+      "previous": 73.3,
+      "improved": true
+    },
+    "estimated_energy_savings": {
+      "percentage": 7.1,
+      "description": "Energy usage decreased significantly."
+    }
+  },
+  "summary": "Efficiency improved by 7.1% - great progress!"
+}
+```
+
+**Integration with Frontend:**
+- Three new React components: `UserManagement`, `EfficiencyReports`, `HistoricalComparisons`
+- Real-time updates via WebSocket subscriptions
+- Material-UI charts and delta indicators (▲/▼ arrows with color coding)
+- Period selectors for day/week/month views
+- Custom date range pickers for flexible analysis
+
+**Performance Considerations:**
+- Database queries use recorder executor (non-blocking)
+- Results sorted for UX (worst efficiency first for reports, best improvements first for comparisons)
+- Empty data handled gracefully with "No data available" messages
+- Caching opportunities for frequently-accessed periods (future enhancement)
+
 ## Future Enhancements
 
+- [x] ~~Multi-user presence tracking~~ **Implemented in v0.6.0**
+- [x] ~~Analytics dashboard~~ **Implemented in v0.6.0**
 - [ ] Drag-and-drop device assignment
-- [ ] Area scheduling/programs
-- [ ] Analytics dashboard
-- [ ] Smart heating algorithms
-- [ ] Energy monitoring
-- [ ] Multi-language support
+- [ ] Smart heating algorithms with ML predictions
+- [ ] Energy monitoring integration with utility meters
+- [ ] Export analytics reports to PDF/CSV
 - [ ] Mobile app integration
 - [ ] Voice control optimization
+- [ ] Weather-based efficiency corrections
+- [ ] Cost analysis with energy pricing

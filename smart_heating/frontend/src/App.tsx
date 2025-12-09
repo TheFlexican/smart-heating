@@ -16,6 +16,9 @@ import OpenThermStatus from './components/OpenThermStatus'
 import { VacationModeBanner } from './components/VacationModeBanner'
 import ZoneDetail from './pages/AreaDetail'
 import GlobalSettings from './pages/GlobalSettings'
+import { UserManagement } from './components/UserManagement'
+import EfficiencyReports from './components/EfficiencyReports'
+import HistoricalComparisons from './components/HistoricalComparisons'
 import { Zone, Device } from './types'
 import { getZones, getDevices, addDeviceToZone, getConfig, getSafetySensor } from './api'
 import { useWebSocket } from './hooks/useWebSocket'
@@ -309,6 +312,9 @@ function App() {
           } />
           <Route path="/area/:areaId" element={<ZoneDetail />} />
           <Route path="/settings/global" element={<GlobalSettings />} />
+          <Route path="/settings/users" element={<UserManagement />} />
+          <Route path="/analytics/efficiency" element={<EfficiencyReports />} />
+          <Route path="/analytics/comparison" element={<HistoricalComparisons />} />
         </Routes>
       </Router>
       

@@ -50,8 +50,12 @@ class ClimateController:
             area_logger: Area logger instance
         """
         self.area_logger = area_logger
-        self.sensor_handler = SensorMonitoringHandler(self.hass, self.area_manager, area_logger)
-        self.protection_handler = ProtectionHandler(self.hass, self.area_manager, area_logger)
+        self.sensor_handler = SensorMonitoringHandler(
+            self.hass, self.area_manager, area_logger
+        )
+        self.protection_handler = ProtectionHandler(
+            self.hass, self.area_manager, area_logger
+        )
         self.cycle_handler = HeatingCycleHandler(
             self.hass, self.area_manager, self.learning_engine, area_logger
         )
@@ -83,7 +87,9 @@ class ClimateController:
             return False
         return self.sensor_handler.check_window_sensors(area_id, area)
 
-    def _log_window_state_change(self, area_id: str, area, any_window_open: bool) -> None:
+    def _log_window_state_change(
+        self, area_id: str, area, any_window_open: bool
+    ) -> None:
         """Log window state change (delegates to handler)."""
         if self.sensor_handler:
             self.sensor_handler.log_window_state_change(area_id, area, any_window_open)
@@ -100,7 +106,9 @@ class ClimateController:
             return False
         return self.sensor_handler.check_presence_sensors(area_id, sensors)
 
-    async def _handle_auto_preset_change(self, area_id: str, area, presence: bool) -> None:
+    async def _handle_auto_preset_change(
+        self, area_id: str, area, presence: bool
+    ) -> None:
         """Handle auto preset change (delegates to handler)."""
         if self.sensor_handler:
             await self.sensor_handler.handle_auto_preset_change(area_id, area, presence)
@@ -152,7 +160,9 @@ class ClimateController:
         self, any_heating: bool, max_target_temp: float
     ) -> None:
         """Control OpenTherm gateway (delegates to handler)."""
-        await self.device_handler.async_control_opentherm_gateway(any_heating, max_target_temp)
+        await self.device_handler.async_control_opentherm_gateway(
+            any_heating, max_target_temp
+        )
 
     async def _async_get_outdoor_temperature(self, area):
         """Get outdoor temperature (delegates to handler)."""
@@ -189,7 +199,10 @@ class ClimateController:
                 avg_temp = sum(temps) / len(temps)
                 area.current_temperature = avg_temp
                 _LOGGER.debug(
-                    "Area %s temperature: %.1f°C (from %d sensors)", area_id, avg_temp, len(temps)
+                    "Area %s temperature: %.1f°C (from %d sensors)",
+                    area_id,
+                    avg_temp,
+                    len(temps),
                 )
 
     async def _async_set_area_heating(
@@ -223,14 +236,25 @@ class ClimateController:
         # Control each area
         for area_id, area in self.area_manager.get_all_areas().items():
             # Record history for ALL areas
-            if should_record_history and history_tracker and area.current_temperature is not None:
+            if (
+                should_record_history
+                and history_tracker
+                and area.current_temperature is not None
+            ):
                 await history_tracker.async_record_temperature(
-                    area_id, area.current_temperature, area.target_temperature, area.state
+                    area_id,
+                    area.current_temperature,
+                    area.target_temperature,
+                    area.state,
                 )
 
             if not area.enabled:
                 await self.protection_handler.async_handle_disabled_area(
-                    area_id, area, self.device_handler, history_tracker, should_record_history
+                    area_id,
+                    area,
+                    self.device_handler,
+                    history_tracker,
+                    should_record_history,
                 )
                 continue
 
@@ -269,7 +293,9 @@ class ClimateController:
                 )
 
             # Apply frost protection
-            target_temp = self.protection_handler.apply_frost_protection(area_id, target_temp)
+            target_temp = self.protection_handler.apply_frost_protection(
+                area_id, target_temp
+            )
 
             # Apply HVAC mode
             if hasattr(area, "hvac_mode") and area.hvac_mode == "off":
@@ -346,7 +372,12 @@ class ClimateController:
             elif cooling:
                 # Handle cooling mode
                 await self.cycle_handler.async_handle_cooling_required(
-                    area_id, area, current_temp, target_temp, self.device_handler, self.temp_handler
+                    area_id,
+                    area,
+                    current_temp,
+                    target_temp,
+                    self.device_handler,
+                    self.temp_handler,
                 )
             elif should_stop_heat:
                 await self.cycle_handler.async_handle_heating_stop(

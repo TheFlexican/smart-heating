@@ -31,8 +31,16 @@ A Home Assistant custom integration for intelligent multi-zone heating control w
 ### 🎯 Preset Modes & Automation
 - **6 preset modes** - Away, Eco, Comfort, Home, Sleep, Activity (+ Boost)
 - **Global presets** - Configure default temperatures once, apply to all zones
+- **Multi-user support** - Individual temperature preferences per user with automatic presence detection
 - **Presence detection** - Automatic mode switching based on occupancy
 - **Window sensors** - Auto-adjust or pause heating when windows/doors open
+
+### 📊 Analytics & Insights
+- **Efficiency reports** - Analyze heating performance with 0-100 energy scores
+- **Historical comparisons** - Compare performance across different time periods
+- **Performance metrics** - Track heating time, cycles, temperature deltas
+- **Smart recommendations** - Automatic suggestions to improve efficiency
+- **Trend visualization** - Charts and tables showing heating patterns over time
 
 ### 🔒 Safety & Control
 - **Frost protection** - Global minimum temperature to prevent freezing
@@ -164,6 +172,18 @@ POST /api/smart_heating/areas/{area_id}/schedule
   "end_time": "09:00",
   "preset_mode": "comfort"
 }
+
+# User management
+GET /api/smart_heating/users
+POST /api/smart_heating/users
+GET /api/smart_heating/users/{user_id}
+GET /api/smart_heating/users/active_preferences
+
+# Analytics
+GET /api/smart_heating/efficiency/report/{area_id}
+GET /api/smart_heating/efficiency/all_areas
+GET /api/smart_heating/comparison/{period}
+POST /api/smart_heating/comparison/custom
 ```
 
 See [API Documentation](docs/en/ARCHITECTURE.md#api-endpoints) for complete endpoint list.

@@ -15,7 +15,11 @@ class HeatingCycleHandler:
     """Handle heating cycle logic and orchestration."""
 
     def __init__(
-        self, hass: HomeAssistant, area_manager: AreaManager, learning_engine=None, area_logger=None
+        self,
+        hass: HomeAssistant,
+        area_manager: AreaManager,
+        learning_engine=None,
+        area_logger=None,
     ):
         """Initialize heating cycle handler.
 
@@ -32,7 +36,9 @@ class HeatingCycleHandler:
         self._area_heating_events = {}  # Track active heating events per area
         self._record_counter = 0
 
-    async def async_prepare_heating_cycle(self, temp_handler, sensor_handler) -> tuple[bool, Any]:
+    async def async_prepare_heating_cycle(
+        self, temp_handler, sensor_handler
+    ) -> tuple[bool, Any]:
         """Prepare for heating control cycle.
 
         Args:
@@ -58,7 +64,10 @@ class HeatingCycleHandler:
                 avg_temp = sum(temps) / len(temps)
                 area.current_temperature = avg_temp
                 _LOGGER.debug(
-                    "Area %s temperature: %.1f°C (from %d sensors)", area_id, avg_temp, len(temps)
+                    "Area %s temperature: %.1f°C (from %d sensors)",
+                    area_id,
+                    avg_temp,
+                    len(temps),
                 )
 
         # Update window and presence sensor states
@@ -127,17 +136,28 @@ class HeatingCycleHandler:
                 area_id,
                 "heating",
                 f"Heating started - reaching {target_temp:.1f}°C",
-                {"current_temp": current_temp, "target_temp": target_temp, "state": "heating"},
+                {
+                    "current_temp": current_temp,
+                    "target_temp": target_temp,
+                    "state": "heating",
+                },
             )
 
         return heating_areas, max_target_temp
 
     async def async_handle_heating_stop(
-        self, area_id: str, area: Area, current_temp: float, target_temp: float, device_handler
+        self,
+        area_id: str,
+        area: Area,
+        current_temp: float,
+        target_temp: float,
+        device_handler,
     ) -> None:
         """Handle when heating should stop for an area."""
         # Check if thermostats are still actively heating
-        thermostats_still_heating = device_handler.is_any_thermostat_actively_heating(area)
+        thermostats_still_heating = device_handler.is_any_thermostat_actively_heating(
+            area
+        )
 
         if thermostats_still_heating:
             _LOGGER.info(
@@ -166,7 +186,9 @@ class HeatingCycleHandler:
                 area_id=area_id, current_temp=current_temp
             )
             _LOGGER.debug(
-                "Completed learning event for area %s (reached %.1f°C)", area_id, current_temp
+                "Completed learning event for area %s (reached %.1f°C)",
+                area_id,
+                current_temp,
             )
 
         # Turn off heating
@@ -187,7 +209,11 @@ class HeatingCycleHandler:
                 area_id,
                 "heating",
                 f"Heating stopped - target {target_temp:.1f}°C reached",
-                {"current_temp": current_temp, "target_temp": target_temp, "state": "idle"},
+                {
+                    "current_temp": current_temp,
+                    "target_temp": target_temp,
+                    "state": "idle",
+                },
             )
 
     async def async_handle_cooling_required(
@@ -220,7 +246,9 @@ class HeatingCycleHandler:
             )
 
         # Control all devices in cooling mode
-        await device_handler.async_control_thermostats(area, True, target_temp, hvac_mode="cool")
+        await device_handler.async_control_thermostats(
+            area, True, target_temp, hvac_mode="cool"
+        )
         await device_handler.async_control_switches(area, True)
         await device_handler.async_control_valves(area, True, target_temp)
 
@@ -237,17 +265,28 @@ class HeatingCycleHandler:
                 area_id,
                 "cooling",
                 f"Cooling started - reaching {target_temp:.1f}°C",
-                {"current_temp": current_temp, "target_temp": target_temp, "state": "cooling"},
+                {
+                    "current_temp": current_temp,
+                    "target_temp": target_temp,
+                    "state": "cooling",
+                },
             )
 
         return cooling_areas, min_target_temp
 
     async def async_handle_cooling_stop(
-        self, area_id: str, area: Area, current_temp: float, target_temp: float, device_handler
+        self,
+        area_id: str,
+        area: Area,
+        current_temp: float,
+        target_temp: float,
+        device_handler,
     ) -> None:
         """Handle when cooling should stop for an area."""
         # Check if thermostats are still actively cooling
-        thermostats_still_cooling = device_handler.is_any_thermostat_actively_cooling(area)
+        thermostats_still_cooling = device_handler.is_any_thermostat_actively_cooling(
+            area
+        )
 
         if thermostats_still_cooling:
             _LOGGER.info(
@@ -274,11 +313,15 @@ class HeatingCycleHandler:
             del self._area_heating_events[area_id]
             # TODO: Add async_end_cooling_event to learning engine
             _LOGGER.debug(
-                "Completed cooling event for area %s (reached %.1f°C)", area_id, current_temp
+                "Completed cooling event for area %s (reached %.1f°C)",
+                area_id,
+                current_temp,
             )
 
         # Turn off cooling
-        await device_handler.async_control_thermostats(area, False, target_temp, hvac_mode="cool")
+        await device_handler.async_control_thermostats(
+            area, False, target_temp, hvac_mode="cool"
+        )
         await device_handler.async_control_switches(area, False)
         await device_handler.async_control_valves(area, False, target_temp)
 
@@ -295,5 +338,9 @@ class HeatingCycleHandler:
                 area_id,
                 "cooling",
                 f"Cooling stopped - target {target_temp:.1f}°C reached",
-                {"current_temp": current_temp, "target_temp": target_temp, "state": "idle"},
+                {
+                    "current_temp": current_temp,
+                    "target_temp": target_temp,
+                    "state": "idle",
+                },
             )

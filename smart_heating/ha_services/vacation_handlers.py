@@ -44,7 +44,10 @@ async def async_handle_enable_vacation_mode(
         )
 
         _LOGGER.info(
-            "Vacation mode enabled: %s to %s, preset=%s", start_date, end_date, preset_mode
+            "Vacation mode enabled: %s to %s, preset=%s",
+            start_date,
+            end_date,
+            preset_mode,
         )
     except Exception as err:
         _LOGGER.error("Failed to enable vacation mode: %s", err)

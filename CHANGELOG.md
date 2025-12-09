@@ -9,6 +9,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### ✨ Features
 
+**Multi-User Presence Tracking (v0.6.0)**
+- **Individual user temperature preferences**: Create user profiles with custom temperature settings for all presets
+  - Link user profiles to Home Assistant person entities for automatic presence detection
+  - Priority-based system (1-10) or average strategy for combining preferences when multiple users are home
+  - Per-area user assignments - apply user preferences only to specific zones
+  - Real-time presence status tracking with visual indicators
+- **User Management UI**: Complete interface for managing user profiles
+  - Create, edit, and delete user profiles
+  - Configure 6 preset temperatures per user (home, away, sleep, eco, comfort, boost)
+  - Set priority levels and select preference combination strategy
+  - View active users and their presence status
+  - Access via Settings → User Management
+- **API endpoints**: Full REST API for user CRUD operations and preference queries
+  - GET/POST /api/smart_heating/users - List and create users
+  - GET/PUT/DELETE /api/smart_heating/users/{user_id} - Manage individual users
+  - GET /api/smart_heating/users/active_preferences - Get combined preferences for active users
+
+**Heating Efficiency Reports (v0.6.0)**
+- **Performance analytics**: Comprehensive efficiency metrics for all heating areas
+  - Energy score (0-100) based on heating cycles, temperature stability, and time efficiency
+  - Heating time percentage - track how long heating is active
+  - Heating cycle count - identify areas with excessive cycling
+  - Average temperature delta - measure how far from target temperatures areas run
+  - Automatic recommendations based on performance analysis
+- **Time period analysis**: View efficiency across different time spans
+  - Day, week, month, and year views
+  - Historical trend tracking
+  - Area-by-area comparison tables
+- **Analytics UI**: Interactive dashboard with charts and metrics
+  - Summary view with all areas ranked by efficiency
+  - Detailed per-area breakdowns with specific recommendations
+  - Color-coded scores (Excellent/Good/Fair/Poor)
+  - Access via Analytics → Efficiency Reports
+- **API endpoints**: Efficiency data retrieval for all areas
+  - GET /api/smart_heating/efficiency/report/{area_id} - Single area efficiency
+  - GET /api/smart_heating/efficiency/all_areas - Compare all areas
+
+**Historical Comparisons (v0.6.0)**
+- **Period-over-period analysis**: Compare heating performance across time
+  - Compare current day/week/month/year to previous period
+  - Custom date range comparisons for any two periods
+  - Delta calculations showing improvements or regressions
+  - Percentage change indicators with trend arrows
+- **Multi-metric comparison**: Track changes across all efficiency metrics
+  - Energy score deltas
+  - Heating time changes
+  - Cycle count variations
+  - Temperature delta trends
+- **Comparison UI**: Visual interface for analyzing performance changes
+  - Side-by-side metric comparisons
+  - Improvement/regression indicators with color coding
+  - Summary text explaining overall trends
+  - Area sorting by improvement level
+  - Access via Analytics → Historical Comparisons
+- **API endpoints**: Comparison data for preset and custom periods
+  - GET /api/smart_heating/comparison/{period} - Preset period comparison
+  - POST /api/smart_heating/comparison/custom - Custom date range comparison
+
 **Primary Temperature Sensor Selection**
 - **Select which device measures temperature**: Choose a specific temperature sensor or thermostat for each area
   - Useful when you have multiple temperature sources (e.g., air conditioner + dedicated temperature sensor)

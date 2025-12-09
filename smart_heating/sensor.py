@@ -64,7 +64,8 @@ class SmartHeatingStatusSensor(CoordinatorEntity, SensorEntity):
         self._attr_icon = "mdi:radiator"
 
         _LOGGER.debug(
-            "SmartHeatingStatusSensor initialized with unique_id: %s", self._attr_unique_id
+            "SmartHeatingStatusSensor initialized with unique_id: %s",
+            self._attr_unique_id,
         )
 
     @property

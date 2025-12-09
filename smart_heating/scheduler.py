@@ -59,7 +59,9 @@ class ScheduleExecutor:
             self._async_check_schedules,
             SCHEDULE_CHECK_INTERVAL,
         )
-        _LOGGER.info("Schedule executor started, checking every %s", SCHEDULE_CHECK_INTERVAL)
+        _LOGGER.info(
+            "Schedule executor started, checking every %s", SCHEDULE_CHECK_INTERVAL
+        )
 
     def async_stop(self) -> None:
         """Stop the schedule executor."""
@@ -159,7 +161,15 @@ class ScheduleExecutor:
         Returns:
             Previous day name
         """
-        day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        day_order = [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+        ]
         current_day_idx = day_order.index(current_day)
         return day_order[(current_day_idx - 1) % 7]
 
@@ -234,7 +244,9 @@ class ScheduleExecutor:
         if start_time <= end_time:
             if start_time <= current_time < end_time:
                 _LOGGER.debug(
-                    "Matched normal schedule: %s-%s", schedule.start_time, schedule.end_time
+                    "Matched normal schedule: %s-%s",
+                    schedule.start_time,
+                    schedule.end_time,
                 )
                 return True
         return False
@@ -271,7 +283,9 @@ class ScheduleExecutor:
         # SECOND: Check midnight-crossing schedules that start today (high priority)
         for schedule in schedules.values():
             if schedule.day == current_day:
-                if self._is_time_in_midnight_crossing_schedule_today(schedule, current_time):
+                if self._is_time_in_midnight_crossing_schedule_today(
+                    schedule, current_time
+                ):
                     return schedule
 
         # THIRD: Check normal (non-midnight-crossing) schedules for current day
@@ -297,12 +311,16 @@ class ScheduleExecutor:
         """
         # Use schedule's start time as target
         target_hour, target_min = map(int, morning_schedule.start_time.split(":"))
-        target_time = now.replace(hour=target_hour, minute=target_min, second=0, microsecond=0)
+        target_time = now.replace(
+            hour=target_hour, minute=target_min, second=0, microsecond=0
+        )
 
         # Determine target temperature from schedule
         if morning_schedule.preset_mode:
             # Get temperature from preset mode
-            target_temp = self._get_preset_temperature(area, morning_schedule.preset_mode)
+            target_temp = self._get_preset_temperature(
+                area, morning_schedule.preset_mode
+            )
         elif morning_schedule.temperature is not None:
             target_temp = morning_schedule.temperature
         else:
@@ -328,7 +346,9 @@ class ScheduleExecutor:
 
         return target_time, target_temp
 
-    def _get_target_time_from_config(self, area: Area, now: datetime) -> Optional[datetime]:
+    def _get_target_time_from_config(
+        self, area: Area, now: datetime
+    ) -> Optional[datetime]:
         """Get target time from area configuration.
 
         Args:
@@ -341,8 +361,12 @@ class ScheduleExecutor:
         if not area.smart_night_boost_target_time:
             return None
 
-        target_hour, target_min = map(int, area.smart_night_boost_target_time.split(":"))
-        target_time = now.replace(hour=target_hour, minute=target_min, second=0, microsecond=0)
+        target_hour, target_min = map(
+            int, area.smart_night_boost_target_time.split(":")
+        )
+        target_time = now.replace(
+            hour=target_hour, minute=target_min, second=0, microsecond=0
+        )
 
         _LOGGER.debug(
             "Smart night boost for %s: Using configured target time %s",
@@ -415,7 +439,8 @@ class ScheduleExecutor:
 
         if current_temp is None:
             _LOGGER.warning(
-                "Cannot predict smart night boost for %s: no temperature data", area.area_id
+                "Cannot predict smart night boost for %s: no temperature data",
+                area.area_id,
             )
             return
 
@@ -429,7 +454,8 @@ class ScheduleExecutor:
 
         if predicted_minutes is None:
             _LOGGER.debug(
-                "No prediction available for area %s, using default night boost", area.area_id
+                "No prediction available for area %s, using default night boost",
+                area.area_id,
             )
             return
 
@@ -477,7 +503,9 @@ class ScheduleExecutor:
                     target_temp,
                 )
 
-    def _find_first_morning_schedule(self, schedules: dict, now: datetime) -> Optional[object]:
+    def _find_first_morning_schedule(
+        self, schedules: dict, now: datetime
+    ) -> Optional[object]:
         """Find the first schedule entry in the morning (after midnight, before noon).
 
         This is used by smart night boost to determine when to start heating.
@@ -546,7 +574,9 @@ class ScheduleExecutor:
         # Default fallback
         return area.target_temperature
 
-    async def _apply_preset_schedule(self, area, schedule, climate_entity_id: str) -> None:
+    async def _apply_preset_schedule(
+        self, area, schedule, climate_entity_id: str
+    ) -> None:
         """Apply a schedule that uses a preset mode.
 
         Args:
@@ -588,7 +618,8 @@ class ScheduleExecutor:
         manual_override_cleared = False
         if hasattr(area, "manual_override") and area.manual_override:
             _LOGGER.info(
-                "Clearing manual override for %s - schedule now controls preset", area.name
+                "Clearing manual override for %s - schedule now controls preset",
+                area.name,
             )
             area.manual_override = False
             manual_override_cleared = True
@@ -626,7 +657,9 @@ class ScheduleExecutor:
             schedule.preset_mode,
         )
 
-    async def _apply_temperature_schedule(self, area, schedule, climate_entity_id: str) -> None:
+    async def _apply_temperature_schedule(
+        self, area, schedule, climate_entity_id: str
+    ) -> None:
         """Apply a schedule that uses a direct temperature.
 
         Args:
@@ -662,7 +695,8 @@ class ScheduleExecutor:
         # Clear manual override when schedule applies a temperature
         if hasattr(area, "manual_override") and area.manual_override:
             _LOGGER.info(
-                "Clearing manual override for %s - schedule now controls temperature", area.name
+                "Clearing manual override for %s - schedule now controls temperature",
+                area.name,
             )
             area.manual_override = False
 

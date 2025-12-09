@@ -60,6 +60,20 @@ Home Assistant integration for zone-based heating control with learning capabili
 - Token budget is 1,000,000 - use it fully to complete work
 - No matter how complex or time-consuming, finish what you start
 
+**RULE #5.2: Task Planning & Tracking**
+- **DO NOT create detailed implementation plans** - Jump straight into implementation
+- **DO use manage_todo_list tool** to track multi-step work as you implement
+- **Create todos at start of complex tasks** to track what needs to be done
+- **Update todos as in-progress/completed** while working through the task
+- **Keep todos actionable and specific** - "Implement X feature" not "Plan X feature"
+- Example workflow:
+  1. User: "Add multi-user presence tracking"
+  2. Create todos: Backend, API, Frontend, Tests
+  3. Mark todo #1 in-progress → implement → mark completed
+  4. Mark todo #2 in-progress → implement → mark completed
+  5. Continue until all todos complete
+- Skip todo tracking for simple single-step tasks
+
 **RULE #6: Test Coverage**
 - **Minimum 80% code coverage required** for all Python modules
 - **Two test layers:** Python unit tests (pytest) + E2E tests (Playwright)
