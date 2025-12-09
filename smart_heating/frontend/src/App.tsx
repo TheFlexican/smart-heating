@@ -88,7 +88,6 @@ const createHATheme = (mode: 'light' | 'dark') => createTheme({
 interface ZonesOverviewProps {
   wsConnected: boolean
   safetyAlertActive: boolean
-  openthermConfig: { gateway_id?: string; enabled?: boolean }
   areas: Zone[]
   loading: boolean
   showHidden: boolean
@@ -103,7 +102,6 @@ interface ZonesOverviewProps {
 const ZonesOverview = ({
   wsConnected,
   safetyAlertActive,
-  openthermConfig,
   areas,
   loading,
   showHidden,
@@ -175,10 +173,6 @@ function App() {
   const [showConnectionAlert, setShowConnectionAlert] = useState(false)
   const [showHidden, setShowHidden] = useState(false)
   const [hideDevicesPanel, setHideDevicesPanel] = useState(false)
-  const [openthermConfig, setOpenthermConfig] = useState<{
-    gateway_id?: string
-    enabled?: boolean
-  }>({})
   const [safetyAlertActive, setSafetyAlertActive] = useState(false)
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>(() => {
     // Load theme preference from localStorage
@@ -223,12 +217,6 @@ function App() {
       } else {
         setSafetyAlertActive(false)
       }
-
-      // Store OpenTherm config
-      setOpenthermConfig({
-        gateway_id: configData.opentherm_gateway_id,
-        enabled: configData.opentherm_enabled
-      })
 
       // Store hide devices panel setting
       setHideDevicesPanel(configData.hide_devices_panel || false)
@@ -342,7 +330,6 @@ function App() {
             <ZonesOverview
               wsConnected={wsConnected}
               safetyAlertActive={safetyAlertActive}
-              openthermConfig={openthermConfig}
               areas={areas}
               loading={loading}
               showHidden={showHidden}
