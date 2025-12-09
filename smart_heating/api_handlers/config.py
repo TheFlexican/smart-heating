@@ -429,9 +429,20 @@ async def handle_set_safety_sensor(
     if not sensor_id:
         return web.json_response({"error": "sensor_id is required"}, status=400)
 
-    # Clear existing sensors and add new one
-    area_manager.clear_safety_sensors()
-    area_manager.add_safety_sensor(sensor_id)
+    attribute = data.get("attribute", "state")
+    alert_value = data.get("alert_value")
+    enabled = data.get("enabled", True)
+
+    if alert_value is None:
+        return web.json_response({"error": "alert_value is required"}, status=400)
+
+    # Add the safety sensor
+    area_manager.add_safety_sensor(
+        sensor_id=sensor_id,
+        attribute=attribute,
+        alert_value=alert_value,
+        enabled=enabled,
+    )
     await area_manager.async_save()
 
     # Reconfigure safety monitor
@@ -441,26 +452,28 @@ async def handle_set_safety_sensor(
 
     # Broadcast configuration change via WebSocket
     hass.bus.async_fire(
-        f"{DOMAIN}_safety_sensor_changed", {"sensor_id": sensor_id, "enabled": True}
+        f"{DOMAIN}_safety_sensor_changed",
+        {"sensor_id": sensor_id, "enabled": enabled},
     )
 
-    _LOGGER.info("Safety sensor set to %s via API", sensor_id)
+    _LOGGER.info("Safety sensor added: %s via API", sensor_id)
     return web.json_response({"success": True, "sensor_id": sensor_id})
 
 
 async def handle_remove_safety_sensor(
-    hass: HomeAssistant, area_manager: AreaManager
+    hass: HomeAssistant, area_manager: AreaManager, sensor_id: str
 ) -> web.Response:
     """Remove safety sensor.
 
     Args:
         hass: Home Assistant instance
         area_manager: Area manager instance
+        sensor_id: Sensor ID to remove
 
     Returns:
         JSON response
     """
-    area_manager.clear_safety_sensors()
+    area_manager.remove_safety_sensor(sensor_id)
     await area_manager.async_save()
 
     # Reconfigure safety monitor
@@ -470,10 +483,10 @@ async def handle_remove_safety_sensor(
 
     # Broadcast configuration change via WebSocket
     hass.bus.async_fire(
-        f"{DOMAIN}_safety_sensor_changed", {"sensor_id": None, "enabled": False}
+        f"{DOMAIN}_safety_sensor_changed", {"sensor_id": sensor_id, "enabled": False}
     )
 
-    _LOGGER.info("Safety sensor removed via API")
+    _LOGGER.info("Safety sensor removed: %s via API", sensor_id)
     return web.json_response({"success": True})
 
 

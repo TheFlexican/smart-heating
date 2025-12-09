@@ -565,7 +565,15 @@ class SmartHeatingAPIView(HomeAssistantView):
             if endpoint == "vacation_mode":
                 return await handle_disable_vacation_mode(self.hass)
             elif endpoint == "safety_sensor":
-                return await handle_remove_safety_sensor(self.hass, self.area_manager)
+                # Get sensor_id from query parameter
+                sensor_id = request.query.get("sensor_id")
+                if not sensor_id:
+                    return web.json_response(
+                        {"error": "sensor_id query parameter is required"}, status=400
+                    )
+                return await handle_remove_safety_sensor(
+                    self.hass, self.area_manager, sensor_id
+                )
             elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and "/devices/" in endpoint:
                 parts = endpoint.split("/")
                 area_id = parts[1]
