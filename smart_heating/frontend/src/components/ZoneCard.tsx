@@ -234,10 +234,12 @@ const ZoneCard = ({ area, onUpdate, index }: ZoneCardProps) => {
       parts.push(currentTemp)
     }
 
-    if (device.target_temperature !== undefined && device.target_temperature !== null &&
+    // Use area's target temperature instead of device's stale target
+    const areaTarget = area.target_temperature
+    if (areaTarget !== undefined && areaTarget !== null &&
         device.current_temperature !== undefined && device.current_temperature !== null &&
-        device.target_temperature > device.current_temperature) {
-      const targetTemp = formatTemperature(device.target_temperature)
+        areaTarget > device.current_temperature) {
+      const targetTemp = formatTemperature(areaTarget)
       if (targetTemp) parts.push(`→ ${targetTemp}`)
     }
 
