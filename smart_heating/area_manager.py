@@ -39,9 +39,8 @@ class AreaManager:
         self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
 
         # Global OpenTherm gateway configuration
-        self.opentherm_gateway_id: str | None = None  # Climate entity ID
-        self.opentherm_gateway_device_id: str | None = (
-            None  # Service gateway_id (from integration config)
+        self.opentherm_gateway_id: str | None = (
+            None  # Gateway device ID for service calls
         )
         self.opentherm_enabled: bool = False
 
@@ -91,7 +90,6 @@ class AreaManager:
         if data is not None:
             # Load global configuration
             self.opentherm_gateway_id = data.get("opentherm_gateway_id")
-            self.opentherm_gateway_device_id = data.get("opentherm_gateway_device_id")
             self.opentherm_enabled = data.get("opentherm_enabled", False)
             self.trv_heating_temp = data.get(
                 "trv_heating_temp", DEFAULT_TRV_HEATING_TEMP
@@ -156,7 +154,6 @@ class AreaManager:
         _LOGGER.debug("Saving areas to storage")
         data = {
             "opentherm_gateway_id": self.opentherm_gateway_id,
-            "opentherm_gateway_device_id": self.opentherm_gateway_device_id,
             "opentherm_enabled": self.opentherm_enabled,
             "trv_heating_temp": self.trv_heating_temp,
             "trv_idle_temp": self.trv_idle_temp,
@@ -361,25 +358,19 @@ class AreaManager:
         _LOGGER.info("Removed schedule %s from area %s", schedule_id, area_id)
 
     async def set_opentherm_gateway(
-        self,
-        gateway_id: str | None,
-        gateway_device_id: str | None = None,
-        enabled: bool = True,
+        self, gateway_id: str | None, enabled: bool = True
     ) -> None:
-        """Set the global OpenTherm gateway.
+        """Set the global OpenTherm gateway device ID.
 
         Args:
-            gateway_id: Entity ID of the OpenTherm gateway climate entity (or None to disable)
-            gateway_device_id: Device ID for service calls (from integration configuration)
+            gateway_id: Device ID of the OpenTherm gateway (from integration configuration ID field)
             enabled: Whether to enable OpenTherm control
         """
         self.opentherm_gateway_id = gateway_id
-        self.opentherm_gateway_device_id = gateway_device_id
         self.opentherm_enabled = enabled and gateway_id is not None
         _LOGGER.info(
-            "OpenTherm gateway set to %s (device_id: %s, enabled: %s)",
+            "OpenTherm gateway set to %s (enabled: %s)",
             gateway_id,
-            gateway_device_id,
             self.opentherm_enabled,
         )
         await self.async_save()

@@ -590,13 +590,13 @@ class DeviceControlHandler:
                 )
 
                 # Use OpenTherm Gateway integration service
-                # Get gateway_device_id from area_manager configuration
-                gateway_device_id = self.area_manager.opentherm_gateway_device_id
+                # Get gateway_id directly from area_manager configuration
+                gateway_device_id = self.area_manager.opentherm_gateway_id
 
                 if not gateway_device_id:
                     _LOGGER.error(
-                        "OpenTherm Gateway Device ID not configured. "
-                        "Please set it via service call: smart_heating.set_opentherm_gateway"
+                        "OpenTherm Gateway ID not configured. "
+                        "Please set it via Global Settings or service call: smart_heating.set_opentherm_gateway"
                     )
                     return
 
@@ -643,11 +643,11 @@ class DeviceControlHandler:
                     )
             else:
                 # Turn off boiler by setting setpoint to 0
-                gateway_device_id = self.area_manager.opentherm_gateway_device_id
+                gateway_device_id = self.area_manager.opentherm_gateway_id
 
                 if not gateway_device_id:
                     _LOGGER.warning(
-                        "OpenTherm Gateway Device ID not configured, cannot turn off"
+                        "OpenTherm Gateway ID not configured, cannot turn off"
                     )
                     return
 

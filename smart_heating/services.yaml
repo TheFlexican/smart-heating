@@ -307,22 +307,16 @@ set_hysteresis:
 
 set_opentherm_gateway:
   name: Set OpenTherm Gateway
-  description: Configure the global OpenTherm gateway for boiler control (shared across all areas)
+  description: >-
+    Configure the OpenTherm Gateway device ID for boiler control.
+    Find the ID in Settings -> Devices & Services -> OpenTherm Gateway -> Configure -> ID field.
   fields:
     gateway_id:
-      name: Gateway Entity ID
-      description: Entity ID of the OpenTherm gateway climate entity (e.g., climate.opentherm_thermostaat)
-      required: false
-      example: "climate.opentherm_thermostaat"
-      selector:
-        entity:
-          domain: climate
-    gateway_device_id:
       name: Gateway Device ID
       description: >-
-        Device ID from OpenTherm Gateway integration configuration.
-        Find in Settings -> Devices & Services -> OpenTherm Gateway -> ID field.
-      required: false
+        Device ID from the OpenTherm Gateway integration configuration (numeric ID).
+        Example: 128937219831729813
+      required: true
       example: "128937219831729813"
       selector:
         text:
