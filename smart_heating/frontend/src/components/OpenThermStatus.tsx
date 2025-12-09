@@ -22,6 +22,8 @@ interface OpenThermState {
   control_setpoint?: number
   flame_on?: boolean
   heating_active?: boolean
+  slave_ch_active?: boolean
+  ch_active?: boolean
   friendly_name?: string
 }
 
@@ -38,7 +40,7 @@ export default function OpenThermStatus({ openthermGatewayId, enabled }: OpenThe
     const fetchState = async () => {
       try {
         const entityState = await getEntityState(openthermGatewayId)
-        
+
         if (entityState) {
           setState({
             current_temperature: entityState.attributes.current_temperature,
@@ -99,14 +101,21 @@ export default function OpenThermStatus({ openthermGatewayId, enabled }: OpenThe
     )
   }
 
-  const isHeating = state.heating_active || state.flame_on
+  // Check multiple possible heating indicators
+  const isHeating =
+    state.heating_active ||
+    state.flame_on ||
+    state.slave_ch_active ||
+    state.ch_active ||
+    state.hvac_action === 'heating'
+
   const boilerTemp = state.ch_water_temp || state.boiler_water_temp
   const targetTemp = state.control_setpoint || state.target_temp || state.temperature
 
   return (
-    <Card 
-      sx={{ 
-        mb: 3, 
+    <Card
+      sx={{
+        mb: 3,
         bgcolor: 'background.paper',
         border: isHeating ? '2px solid' : '1px solid',
         borderColor: isHeating ? 'error.main' : 'divider',
@@ -115,11 +124,11 @@ export default function OpenThermStatus({ openthermGatewayId, enabled }: OpenThe
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LocalFireDepartmentIcon 
-              sx={{ 
+            <LocalFireDepartmentIcon
+              sx={{
                 color: isHeating ? 'error.main' : 'text.secondary',
-                fontSize: 28 
-              }} 
+                fontSize: 28
+              }}
             />
             <Typography variant="h6">
               {state.friendly_name || 'OpenTherm Gateway'}
@@ -130,7 +139,7 @@ export default function OpenThermStatus({ openthermGatewayId, enabled }: OpenThe
             label={isHeating ? 'Heating' : 'Idle'}
             color={isHeating ? 'error' : 'default'}
             size="small"
-            sx={{ 
+            sx={{
               fontWeight: 'bold',
               animation: isHeating ? 'pulse 2s ease-in-out infinite' : 'none',
               '@keyframes pulse': {
@@ -142,7 +151,7 @@ export default function OpenThermStatus({ openthermGatewayId, enabled }: OpenThe
         </Box>
 
         <Grid container spacing={2}>
-          {boilerTemp !== undefined && (
+          {boilerTemp != null && (
             <Grid item xs={12} sm={4}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <WaterDropIcon sx={{ color: 'primary.main' }} />
@@ -158,7 +167,7 @@ export default function OpenThermStatus({ openthermGatewayId, enabled }: OpenThe
             </Grid>
           )}
 
-          {targetTemp !== undefined && (
+          {targetTemp != null && (
             <Grid item xs={12} sm={4}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <ThermostatIcon sx={{ color: 'secondary.main' }} />
