@@ -61,6 +61,7 @@ def websocket_subscribe_updates(
         "schedule_executor",
         "learning_engine",
         "area_logger",
+        "opentherm_logger",
         "vacation_manager",
         "safety_monitor",
         "climate_unsub",
@@ -70,23 +71,19 @@ def websocket_subscribe_updates(
         "config_manager",
     }
 
-    entry_ids = [key for key in hass.data[DOMAIN].keys() if key not in exclude_keys]
+    # Find the coordinator entry (should be a config entry ID with async_add_listener)
+    coordinator = None
+    for key, value in hass.data[DOMAIN].items():
+        if key not in exclude_keys and hasattr(value, "async_add_listener"):
+            coordinator = value
+            _LOGGER.debug(f"WebSocket: Found coordinator with key '{key}'")
+            break
 
-    _LOGGER.warning(
-        f"WebSocket: Available keys in hass.data[DOMAIN]: {list(hass.data[DOMAIN].keys())}"
-    )
-    _LOGGER.warning(f"WebSocket: Filtered entry_ids: {entry_ids}")
-
-    if not entry_ids:
-        connection.send_error(msg["id"], "not_loaded", "Smart Heating not loaded")
+    if not coordinator:
+        connection.send_error(
+            msg["id"], "not_loaded", "Smart Heating coordinator not found"
+        )
         return
-
-    entry_id = entry_ids[0]
-    coordinator = hass.data[DOMAIN][entry_id]
-
-    _LOGGER.warning(
-        f"WebSocket: Selected entry_id '{entry_id}', type: {type(coordinator).__name__}"
-    )
 
     # Subscribe to coordinator updates
     unsub = coordinator.async_add_listener(forward_messages)
