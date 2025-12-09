@@ -682,7 +682,8 @@ export const clearOpenThermLogs = async (): Promise<{ success: boolean, message:
 }
 
 export const setOpenthermGateway = async (gatewayId: string, enabled: boolean): Promise<void> => {
-  await axios.post('/api/services/smart_heating/set_opentherm_gateway', {
+  await axios.post(`${API_BASE}/call_service`, {
+    service: 'set_opentherm_gateway',
     gateway_id: gatewayId,
     enabled: enabled
   })
