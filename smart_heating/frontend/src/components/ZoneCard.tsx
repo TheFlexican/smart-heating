@@ -16,7 +16,8 @@ import {
   ListItemIcon,
   MenuItem,
   FormControlLabel,
-  Switch
+  Switch,
+  Tooltip
 } from '@mui/material'
 import { Droppable } from 'react-beautiful-dnd'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
@@ -32,8 +33,9 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import PersonIcon from '@mui/icons-material/Person'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import { Zone } from '../types'
-import { setZoneTemperature, removeDeviceFromZone, hideZone, unhideZone, getEntityState, setManualOverride } from '../api'
+import { setZoneTemperature, removeDeviceFromZone, hideZone, unhideZone, getEntityState, setManualOverride, setBoostMode, cancelBoost } from '../api'
 
 interface ZoneCardProps {
   area: Zone
@@ -134,6 +136,23 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
 
   const handleSliderClick = (event: React.MouseEvent) => {
     event.stopPropagation()
+  }
+
+  const handleBoostToggle = async (event: React.MouseEvent) => {
+    event.stopPropagation()
+    try {
+      if (area.boost_mode_active) {
+        await cancelBoost(area.id)
+      } else {
+        // Use area's boost settings or defaults
+        const boostTemp = area.boost_temp || 25
+        const boostDuration = area.boost_duration || 60
+        await setBoostMode(area.id, boostDuration, boostTemp)
+      }
+      onUpdate()
+    } catch (error) {
+      console.error('Failed to toggle boost mode:', error)
+    }
   }
 
   const getStateColor = () => {
@@ -315,9 +334,34 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
                   sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
                 />
               )}
+              {area.boost_mode_active && (
+                <Chip
+                  icon={<RocketLaunchIcon />}
+                  label="BOOST"
+                  color="error"
+                  size="small"
+                  sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
+                />
+              )}
             </Box>
           </Box>
-          <Box onClick={(e) => e.stopPropagation()}>
+          <Box onClick={(e) => e.stopPropagation()} display="flex" gap={1}>
+            <Tooltip title={area.boost_mode_active ? t('boost.quickBoostActive') : t('boost.quickBoostInactive')}>
+              <IconButton
+                size="small"
+                onClick={handleBoostToggle}
+                sx={{
+                  p: { xs: 0.5, sm: 1 },
+                  color: area.boost_mode_active ? 'error.main' : 'text.secondary',
+                  bgcolor: area.boost_mode_active ? 'error.dark' : 'transparent',
+                  '&:hover': {
+                    bgcolor: area.boost_mode_active ? 'error.dark' : 'rgba(255, 255, 255, 0.08)',
+                  }
+                }}
+              >
+                <RocketLaunchIcon />
+              </IconButton>
+            </Tooltip>
             <IconButton size="small" onClick={handleMenuOpen} sx={{ p: { xs: 0.5, sm: 1 } }}>
               <MoreVertIcon />
             </IconButton>

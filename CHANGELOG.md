@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### ✨ Features
+
+**Quick Boost Access on Zone Cards**
+- **Added boost button to zone cards**: Quick one-click boost activation from main dashboard
+  - Rocket icon button (🚀) appears next to menu button on each zone card
+  - Visual feedback: Gray when inactive, red background when boost is active
+  - "BOOST" status chip displays in card header when boost mode is active
+  - One-click activation using area's saved boost settings (temperature & duration)
+  - Click again to cancel boost mode
+  - Detailed boost configuration (temp/duration) remains in area detail settings
+  - Improves UX by reducing clicks needed to activate quick heating
+
 ### 🐛 Bug Fixes
 
 **Efficiency Reports UI Fixes**
@@ -17,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - Response now includes proper structure: `{area_id, period, metrics: {energy_score, ...}, recommendations}`
 - **Added back buttons to all page components**: Improved navigation UX
   - Added back button (←) to Efficiency Reports page
-  - Added back button (←) to Historical Comparisons page  
+  - Added back button (←) to Historical Comparisons page
   - Added back button (←) to User Management page
   - Added back button (←) to Vacation Mode Settings page
   - Added back button (←) to Import/Export page
@@ -196,7 +208,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - Cache persists across API calls to `/api/smart_heating/devices`
   - Use `/api/smart_heating/devices/refresh` to force re-discovery
   - Reduces Home Assistant entity registry queries from ~every 30 seconds to on-demand only
-- **Performance impact**: 
+- **Performance impact**:
   - Eliminates unnecessary CPU usage from repeated entity registry scans
   - Faster API response times (cached list returned instantly)
   - Discovery only happens on startup and manual refresh
@@ -224,7 +236,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - Extracted `ZonesOverview` component to reduce cognitive complexity
   - Replaced `.flatMap()` with explicit `for...of` loops for better readability
   - All issues resolved (100%)
-  
+
 - **ZoneCard.tsx** - Fixed 3/3 SonarQube issues:
   - Reduced cognitive complexity by extracting helper functions:
     - `formatTemperature()` - Temperature formatting with null safety
@@ -235,7 +247,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     - `getGenericDeviceStatus()` - Generic device status logic
   - Replaced deprecated `secondaryTypographyProps` with `slotProps.secondary`
   - All issues resolved (100%)
-  
+
 - **AreaDetail.tsx** - Fixed 32/42 SonarQube issues (76% resolution):
   - Made all component props `Readonly<>` for immutability
   - Replaced deprecated `inputProps` / `InputLabelProps` with `slotProps`
@@ -354,7 +366,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 **Test Environment**
 - Added MOES smoke detector (`binary_sensor.smoke_detector`)
-- Added TuYa CO detector (`binary_sensor.co_detector`) 
+- Added TuYa CO detector (`binary_sensor.co_detector`)
 - Test sensors included in `setup.sh` for development
 
 **Translation Support**
@@ -543,7 +555,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 **Learning Engine Parameter Fix**
 - Fixed `async_predict_heating_time()` parameter mismatch
-  - Changed `start_temp` → `current_temp` 
+  - Changed `start_temp` → `current_temp`
   - Removed unused `outdoor_temp` parameter
   - Smart night boost predictions working correctly
 
@@ -829,7 +841,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **New Area Setting**: `shutdown_switches_when_idle` - Control whether switches/pumps turn off when area not heating
 - **Default Behavior**: Enabled (true) - switches automatically turn off when heating stops
 - **Optional Always-On Mode**: Disable setting to keep pumps running continuously regardless of heating demand
-- **Use Cases**: 
+- **Use Cases**:
   - Enable for energy efficiency (pumps off when not needed)
   - Disable for systems requiring continuous circulation
   - Perfect for zone valves that need constant pump pressure
@@ -1458,7 +1470,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - All entities now use `smart_heating` prefix instead of `area_heater`
   - Panel URL changed from `/area_heater_manager/` to `/smart_heating/`
   - All service names changed from `area_heater_manager.*` to `smart_heating.*`
-  
+
 - **Terminology Update**: Aligned with Home Assistant conventions
   - "Zones" renamed to "Areas" throughout the codebase
   - All service calls now use "area" instead of "zone" terminology
@@ -1496,18 +1508,18 @@ If upgrading from v0.1.0 or earlier:
   - Create, delete and manage heating areas
   - Persistent storage of area configuration
   - Area enable/disable functionality
-  
+
 - **Multi-Platform Support**
   - Climate entities per area for thermostat control
   - Switch entities for area on/off switching
   - Sensor entity for system status
-  
+
 - **Zigbee2MQTT Integration**
   - Support for thermostats
   - Support for temperature sensors
   - Support for OpenTherm gateways
   - Support for smart radiator valves
-  
+
 - **Extensive Service Calls**
   - `add_device_to_area` - Add device to area
   - `remove_device_from_area` - Remove device from area
@@ -1515,7 +1527,7 @@ If upgrading from v0.1.0 or earlier:
   - `enable_area` - Enable area
   - `disable_area` - Disable area
   - `refresh` - Manually refresh data
-  
+
 - **Documentation**
   - Extensive README with installation instructions
   - GETTING_STARTED guide for new users
@@ -1524,7 +1536,7 @@ If upgrading from v0.1.0 or earlier:
     - `examples/scripts.yaml` - Script examples
     - `examples/lovelace.yaml` - Dashboard examples
     - `examples/configuration.yaml` - Helper configuration
-  
+
 - **Developer Features**
   - Extensive debug logging
   - Data coordinator with 30-second update interval
@@ -1542,7 +1554,7 @@ If upgrading from v0.1.0 or earlier:
   - `area_manager.py` - Core area management logic
   - `climate.py` - Climate platform implementation
   - `switch.py` - Switch platform implementation
-  
+
 - **Modified Files**:
   - `__init__.py` - Service registration and setup
   - `coordinator.py` - Area data updates
@@ -1562,12 +1574,12 @@ No known bugs in this release.
   - Data update coordinator
   - Status sensor entity
   - Refresh service
-  
+
 - **Documentation**
   - Basic README with installation instructions
   - License (MIT)
   - Deploy script for development
-  
+
 ### 📚 Technical
 - **Core Files**:
   - `__init__.py` - Integration entry point

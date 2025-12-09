@@ -184,7 +184,10 @@
     "activate": "Activate Boost",
     "cancel": "Cancel Boost",
     "active": "Boost Active",
-    "endsAt": "Ends at {{time}}"
+    "endsAt": "Ends at {{time}}",
+    "quickBoost": "Quick Boost",
+    "quickBoostActive": "Boost active - Click to cancel",
+    "quickBoostInactive": "Click to activate boost mode"
   },
   "schedule": {
     "title": "Schedules",

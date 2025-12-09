@@ -184,7 +184,10 @@
     "activate": "Boost Activeren",
     "cancel": "Boost Annuleren",
     "active": "Boost Actief",
-    "endsAt": "Eindigt om {{time}}"
+    "endsAt": "Eindigt om {{time}}",
+    "quickBoost": "Snelle Boost",
+    "quickBoostActive": "Boost actief - Klik om te annuleren",
+    "quickBoostInactive": "Klik om boost modus te activeren"
   },
   "schedule": {
     "title": "Schema's",

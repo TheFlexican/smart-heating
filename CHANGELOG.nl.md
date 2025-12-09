@@ -7,6 +7,18 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 
 ## [Niet Uitgebracht]
 
+### ✨ Functies
+
+**Snelle Boost Toegang op Zone Kaarten**
+- **Boost knop toegevoegd aan zone kaarten**: Snelle één-klik boost activering vanaf hoofddashboard
+  - Raket icoon knop (🚀) verschijnt naast menu knop op elke zone kaart
+  - Visuele feedback: Grijs wanneer inactief, rode achtergrond wanneer boost actief is
+  - "BOOST" status chip toont in kaart header wanneer boost modus actief is
+  - Één-klik activering met opgeslagen boost instellingen van de zone (temperatuur & duur)
+  - Klik opnieuw om boost modus te annuleren
+  - Gedetailleerde boost configuratie (temp/duur) blijft in zone detail instellingen
+  - Verbetert UX door aantal klikken te verminderen voor snelle verwarming activering
+
 ### 🐛 Bugfixes
 
 **Efficiëntie Rapporten UI Fixes**
@@ -224,7 +236,7 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
   - `ZonesOverview` component geëxtraheerd om cognitieve complexiteit te verminderen
   - `.flatMap()` vervangen door expliciete `for...of` loops voor betere leesbaarheid
   - Alle problemen opgelost (100%)
-  
+
 - **ZoneCard.tsx** - 3/3 SonarQube problemen opgelost:
   - Cognitieve complexiteit verminderd door helper functies te extraheren:
     - `formatTemperature()` - Temperatuur formattering met null veiligheid
@@ -235,7 +247,7 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
     - `getGenericDeviceStatus()` - Generieke apparaat status logica
   - Verouderde `secondaryTypographyProps` vervangen door `slotProps.secondary`
   - Alle problemen opgelost (100%)
-  
+
 - **AreaDetail.tsx** - 32/42 SonarQube problemen opgelost (76% oplossing):
   - Alle component props `Readonly<>` gemaakt voor onveranderlijkheid
   - Verouderde `inputProps` / `InputLabelProps` vervangen door `slotProps`
