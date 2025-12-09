@@ -347,7 +347,7 @@ class AreaManager:
         area.remove_schedule(schedule_id)
         _LOGGER.info("Removed schedule %s from area %s", schedule_id, area_id)
 
-    def set_opentherm_gateway(self, gateway_id: str | None, enabled: bool = True) -> None:
+    async def set_opentherm_gateway(self, gateway_id: str | None, enabled: bool = True) -> None:
         """Set the global OpenTherm gateway.
 
         Args:
@@ -361,6 +361,7 @@ class AreaManager:
             gateway_id,
             self.opentherm_enabled,
         )
+        await self.async_save()
 
     def add_safety_sensor(
         self,

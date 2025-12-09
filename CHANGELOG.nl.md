@@ -9,6 +9,26 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 
 ### ✨ Functies
 
+**Configureerbare Verwarmingstypes voor OpenTherm Optimalisatie**
+- **Per-zone verwarmingstype configuratie toegevoegd**: Optimaliseer ketel setpoint voor verschillende verwarmingssystemen
+  - Ondersteuning voor radiatoren (standaard) en vloerverwarming types
+  - Aangepaste overhead temperatuur overschrijving (0-30°C)
+  - Slimme setpoint berekening: vloerverwarming +10°C, radiatoren +20°C
+  - Gemengd systeem ondersteuning: gebruikt hoogste overhead voor veiligheid
+- **Verbeterde OpenTherm logging**: Toont verwarmingstype uitsplitsing in logs
+  - Toont aantal vloerverwarming vs radiator zones actief
+  - Toont overhead temperatuur gebruikt voor setpoint berekening
+  - Voorbeeld: "Boiler ON - Setpoint: 35.0°C | overhead +10°C | 1 floor heating + 0 radiator"
+- **Nieuw API endpoint**: `POST /api/smart_heating/areas/{area_id}/heating_type`
+  - Stel verwarmingstype in: "radiator" of "floor_heating"
+  - Configureer aangepaste overhead temperatuur
+  - Invoer validatie voor verwarmingstype en overhead bereik
+- **Efficiëntie verbeteringen voor vloerverwarming**:
+  - Lagere watertemperaturen (30-40°C in plaats van 50-60°C)
+  - Betere modulatie efficiëntie (20-30% in plaats van 40-50%)
+  - Verminderd schakelen, langere brandtijden, lager energieverbruik
+  - Comfortabelere en stabielere vloerverwarming werking
+
 **Mushroom-Stijl UI Verbeteringen**
 - **Mushroom-geïnspireerd kaart ontwerp geïmplementeerd**: Moderne, gepolijste interface met vloeiende transities
   - Afgeronde hoeken (borderRadius: 3) voor alle kaarten en componenten

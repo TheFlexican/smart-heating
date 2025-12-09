@@ -1,0 +1,328 @@
+import { useState, useEffect } from 'react'
+import {
+  Box,
+  Typography,
+  Paper,
+  Button,
+  Stack,
+  Chip,
+  CircularProgress,
+  Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  Collapse,
+} from '@mui/material'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import DeleteIcon from '@mui/icons-material/Delete'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import FireplaceIcon from '@mui/icons-material/Fireplace'
+import ThermostatIcon from '@mui/icons-material/Thermostat'
+import HomeIcon from '@mui/icons-material/Home'
+import InfoIcon from '@mui/icons-material/Info'
+import { useTranslation } from 'react-i18next'
+import {
+  getOpenThermLogs,
+  getOpenThermCapabilities,
+  discoverOpenThermCapabilities,
+  clearOpenThermLogs,
+} from '../api'
+
+interface OpenThermLog {
+  timestamp: string
+  event_type: string
+  data: any
+  message?: string
+}
+
+export default function OpenThermLogger() {
+  const { t } = useTranslation()
+  const [logs, setLogs] = useState<OpenThermLog[]>([])
+  const [capabilities, setCapabilities] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
+  const [autoRefresh, setAutoRefresh] = useState(true)
+
+  const fetchLogs = async () => {
+    try {
+      const data = await getOpenThermLogs(100) // Last 100 logs
+      setLogs(data.logs)
+      setError(null)
+    } catch (err) {
+      setError(t('opentherm.error.fetchLogs', 'Failed to load OpenTherm logs'))
+      console.error(err)
+    }
+  }
+
+  const fetchCapabilities = async () => {
+    try {
+      const data = await getOpenThermCapabilities()
+      setCapabilities(data)
+    } catch (err) {
+      console.error('Failed to load capabilities:', err)
+    }
+  }
+
+  const handleDiscoverCapabilities = async () => {
+    try {
+      const data = await discoverOpenThermCapabilities()
+      setCapabilities(data)
+      setError(null)
+    } catch (err) {
+      setError(t('opentherm.error.discover', 'Failed to discover gateway capabilities'))
+      console.error(err)
+    }
+  }
+
+  const handleClearLogs = async () => {
+    try {
+      await clearOpenThermLogs()
+      setLogs([])
+      setError(null)
+    } catch (err) {
+      setError(t('opentherm.error.clearLogs', 'Failed to clear logs'))
+      console.error(err)
+    }
+  }
+
+  const toggleRow = (index: number) => {
+    const newExpanded = new Set(expandedRows)
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index)
+    } else {
+      newExpanded.add(index)
+    }
+    setExpandedRows(newExpanded)
+  }
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true)
+      await Promise.all([fetchLogs(), fetchCapabilities()])
+      setLoading(false)
+    }
+    loadData()
+  }, [])
+
+  useEffect(() => {
+    if (!autoRefresh) return
+
+    const interval = setInterval(() => {
+      fetchLogs()
+    }, 5000) // Refresh every 5 seconds
+
+    return () => clearInterval(interval)
+  }, [autoRefresh])
+
+  const getEventIcon = (eventType: string) => {
+    switch (eventType) {
+      case 'boiler_control':
+        return <FireplaceIcon fontSize="small" />
+      case 'zone_demand':
+        return <HomeIcon fontSize="small" />
+      case 'modulation':
+        return <ThermostatIcon fontSize="small" />
+      case 'gateway_info':
+        return <InfoIcon fontSize="small" />
+      default:
+        return null
+    }
+  }
+
+  const getEventColor = (eventType: string, data: any) => {
+    switch (eventType) {
+      case 'boiler_control':
+        return data.state === 'ON' ? 'success' : 'default'
+      case 'zone_demand':
+        return data.heating ? 'warning' : 'default'
+      case 'modulation':
+        return data.flame_on ? 'error' : 'default'
+      default:
+        return 'info'
+    }
+  }
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp)
+    return date.toLocaleTimeString('nl-NL', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  }
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    )
+  }
+
+  return (
+    <Stack spacing={3}>
+      {/* Header Controls */}
+      <Paper sx={{ p: 2 }}>
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+          <Typography variant="h6">
+            {t('opentherm.title', 'OpenTherm Gateway Monitor')}
+          </Typography>
+          <Stack direction="row" spacing={1}>
+            <Button
+              size="small"
+              startIcon={<RefreshIcon />}
+              onClick={fetchLogs}
+              variant="outlined"
+            >
+              {t('common.refresh', 'Refresh')}
+            </Button>
+            <Button
+              size="small"
+              onClick={handleDiscoverCapabilities}
+              variant="outlined"
+            >
+              {t('opentherm.discoverCapabilities', 'Discover Capabilities')}
+            </Button>
+            <Button
+              size="small"
+              startIcon={<DeleteIcon />}
+              onClick={handleClearLogs}
+              color="error"
+              variant="outlined"
+            >
+              {t('common.clear', 'Clear')}
+            </Button>
+          </Stack>
+        </Stack>
+
+        <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+          <Chip
+            label={`${t('opentherm.autoRefresh', 'Auto-refresh')}: ${autoRefresh ? 'ON' : 'OFF'}`}
+            color={autoRefresh ? 'success' : 'default'}
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            size="small"
+          />
+          <Chip
+            label={`${logs.length} ${t('opentherm.logs', 'logs')}`}
+            size="small"
+          />
+        </Stack>
+      </Paper>
+
+      {error && (
+        <Alert severity="error" onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Gateway Capabilities */}
+      {capabilities && capabilities.available && (
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            {t('opentherm.capabilities', 'Gateway Capabilities')}
+          </Typography>
+          <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+            {capabilities.attributes && Object.entries(capabilities.attributes).map(([key, value]: [string, any]) => (
+              <Chip
+                key={key}
+                label={`${key}: ${typeof value === 'boolean' ? (value ? 'ON' : 'OFF') : value}`}
+                size="small"
+                variant="outlined"
+              />
+            ))}
+          </Stack>
+        </Paper>
+      )}
+
+      {/* Logs Table */}
+      <TableContainer component={Paper}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell width={30}></TableCell>
+              <TableCell>{t('opentherm.table.time', 'Time')}</TableCell>
+              <TableCell>{t('opentherm.table.type', 'Type')}</TableCell>
+              <TableCell>{t('opentherm.table.message', 'Message')}</TableCell>
+              <TableCell align="right">{t('opentherm.table.details', 'Details')}</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {logs.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  <Typography variant="body2" color="text.secondary">
+                    {t('opentherm.noLogs', 'No logs available')}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              logs.map((log, index) => (
+                <>
+                  <TableRow key={index} hover>
+                    <TableCell>
+                      <IconButton size="small" onClick={() => toggleRow(index)}>
+                        {expandedRows.has(index) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      </IconButton>
+                    </TableCell>
+                    <TableCell>{formatTimestamp(log.timestamp)}</TableCell>
+                    <TableCell>
+                      <Chip
+                        icon={getEventIcon(log.event_type) || undefined}
+                        label={log.event_type.replace('_', ' ')}
+                        size="small"
+                        color={getEventColor(log.event_type, log.data)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{log.message || '-'}</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      {log.event_type === 'boiler_control' && (
+                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          {log.data.setpoint && (
+                            <Chip label={`${log.data.setpoint}°C`} size="small" />
+                          )}
+                          {log.data.num_heating_areas !== undefined && (
+                            <Chip
+                              label={`${log.data.num_heating_areas} zones`}
+                              size="small"
+                              color="warning"
+                            />
+                          )}
+                        </Stack>
+                      )}
+                      {log.event_type === 'modulation' && log.data.modulation_level !== undefined && (
+                        <Chip
+                          label={`${log.data.modulation_level}%`}
+                          size="small"
+                          color={log.data.modulation_level > 0 ? 'success' : 'default'}
+                        />
+                      )}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={5} sx={{ py: 0 }}>
+                      <Collapse in={expandedRows.has(index)} timeout="auto" unmountOnExit>
+                        <Box sx={{ p: 2, bgcolor: 'background.default' }}>
+                          <pre style={{ margin: 0, fontSize: '0.875rem' }}>
+                            {JSON.stringify(log.data, null, 2)}
+                          </pre>
+                        </Box>
+                      </Collapse>
+                    </TableCell>
+                  </TableRow>
+                </>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Stack>
+  )
+}

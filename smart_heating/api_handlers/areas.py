@@ -492,6 +492,69 @@ async def handle_set_auto_preset(
         return web.json_response({"error": str(err)}, status=500)
 
 
+async def handle_set_heating_type(
+    hass: HomeAssistant, area_manager: AreaManager, area_id: str, data: dict
+) -> web.Response:
+    """Set heating type configuration for area.
+
+    Args:
+        hass: Home Assistant instance
+        area_manager: Area manager instance
+        area_id: Area identifier
+        data: {"heating_type": "radiator"|"floor_heating", "custom_overhead_temp": float (optional)}
+
+    Returns:
+        JSON response
+    """
+    try:
+        area = area_manager.get_area(area_id)
+        if not area:
+            return web.json_response({"error": f"Area {area_id} not found"}, status=404)
+
+        # Validate and set heating type
+        if "heating_type" in data:
+            heating_type = data["heating_type"]
+            if heating_type not in ["radiator", "floor_heating"]:
+                return web.json_response(
+                    {"error": "heating_type must be 'radiator' or 'floor_heating'"},
+                    status=400,
+                )
+            area.heating_type = heating_type
+            _LOGGER.info("Area %s: Setting heating_type to %s", area_id, heating_type)
+
+        # Set custom overhead temperature (optional)
+        if "custom_overhead_temp" in data:
+            custom_overhead = data["custom_overhead_temp"]
+            if custom_overhead is not None:
+                # Validate range
+                if custom_overhead < 0 or custom_overhead > 30:
+                    return web.json_response(
+                        {"error": "custom_overhead_temp must be between 0 and 30°C"},
+                        status=400,
+                    )
+                area.custom_overhead_temp = float(custom_overhead)
+                _LOGGER.info(
+                    "Area %s: Setting custom_overhead_temp to %.1f°C",
+                    area_id,
+                    custom_overhead,
+                )
+            else:
+                area.custom_overhead_temp = None
+                _LOGGER.info("Area %s: Clearing custom_overhead_temp", area_id)
+
+        await area_manager.async_save()
+
+        # Refresh coordinator
+        coordinator = get_coordinator(hass)
+        if coordinator:
+            await coordinator.async_request_refresh()
+
+        return web.json_response({"success": True})
+    except Exception as err:
+        _LOGGER.error("Error setting heating type for area %s: %s", area_id, err)
+        return web.json_response({"error": str(err)}, status=500)
+
+
 async def handle_set_area_preset_config(
     hass: HomeAssistant, area_manager: AreaManager, area_id: str, data: dict
 ) -> web.Response:

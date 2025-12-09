@@ -650,3 +650,33 @@ export const getCustomComparison = async (
   })
   return response.data
 }
+
+// OpenTherm Gateway Logging API
+export const getOpenThermLogs = async (limit?: number): Promise<{
+  logs: Array<{
+    timestamp: string
+    event_type: string
+    data: any
+    message?: string
+  }>
+  count: number
+}> => {
+  const params = limit ? `?limit=${limit}` : ''
+  const response = await axios.get(`${API_BASE}/opentherm/logs${params}`)
+  return response.data
+}
+
+export const getOpenThermCapabilities = async (): Promise<any> => {
+  const response = await axios.get(`${API_BASE}/opentherm/capabilities`)
+  return response.data
+}
+
+export const discoverOpenThermCapabilities = async (): Promise<any> => {
+  const response = await axios.post(`${API_BASE}/opentherm/capabilities/discover`)
+  return response.data
+}
+
+export const clearOpenThermLogs = async (): Promise<{ success: boolean, message: string }> => {
+  const response = await axios.post(`${API_BASE}/opentherm/logs/clear`)
+  return response.data
+}

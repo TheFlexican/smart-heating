@@ -25,6 +25,7 @@ import BeachAccessIcon from '@mui/icons-material/BeachAccess'
 import TuneIcon from '@mui/icons-material/Tune'
 import SecurityIcon from '@mui/icons-material/Security'
 import BackupIcon from '@mui/icons-material/Backup'
+import FireplaceIcon from '@mui/icons-material/Fireplace'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis, getSafetySensor, setSafetySensor, removeSafetySensor, setHideDevicesPanel, getConfig, type SafetySensorResponse } from '../api'
@@ -34,6 +35,7 @@ import SafetySensorConfigDialog from '../components/SafetySensorConfigDialog'
 import { VacationModeSettings } from '../components/VacationModeSettings'
 import HysteresisHelpModal from '../components/HysteresisHelpModal'
 import ImportExport from '../components/ImportExport'
+import OpenThermLogger from '../components/OpenThermLogger'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -358,6 +360,11 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
             icon={<BackupIcon />}
             iconPosition="start"
             label={t('globalSettings.tabs.importExport', 'Import/Export')}
+          />
+          <Tab
+            icon={<FireplaceIcon />}
+            iconPosition="start"
+            label={t('globalSettings.tabs.opentherm', 'OpenTherm')}
           />
         </Tabs>
       </Box>
@@ -738,6 +745,11 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
             </Typography>
             <ImportExport />
           </Paper>
+        </TabPanel>
+
+        {/* OpenTherm Tab */}
+        <TabPanel value={activeTab} index={6}>
+          <OpenThermLogger />
         </TabPanel>
       </Box>
 

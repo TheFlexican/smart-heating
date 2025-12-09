@@ -19,9 +19,9 @@ Home Assistant integration for zone-based heating control with learning capabili
 - **NEVER** commit code without user testing and approval first
 - **NEVER** create git tags without explicit user request
 - **NEVER** push to GitHub without user confirmation
-- **NEVER** push any code wheb there are tailing tests
-- After implementing features: Deploy → Let user test → Wait for approval → THEN commit/tag/push
-- Workflow: Code → Deploy → Test → Approve → Git operations
+- **NEVER** push any code when there are failing tests
+- After implementing features: Deploy → Test API → Run Tests → Update Docs & Translations → Let user test → Wait for approval → THEN commit/tag/push
+- Workflow: Code → Deploy (bash scripts/deploy_test.sh) → Test API → Run bash tests/run_tests.sh → Run E2E tests → Update Docs (EN+NL) → Update Translations (EN+NL) → User approval → Git operations
 
 **RULE #3.1: Version Synchronization**
 - App version MUST match git tag version
@@ -36,14 +36,15 @@ Home Assistant integration for zone-based heating control with learning capabili
 **RULE #4: Update Documentation & Translations**
 - **ALWAYS** update documentation in BOTH languages (EN + NL) when making changes
 - **ALWAYS** update translations when adding/modifying UI text
+- **ALWAYS** do this BEFORE running tests and asking for user approval
 - Required updates:
   - `CHANGELOG.md` + `CHANGELOG.nl.md` - Version history
-  - `README.md` + `README.nl.md` - User documentation
+  - `README.md` + `README.nl.md` - User documentation (if user-facing changes)
   - `docs/en/ARCHITECTURE.md` + `docs/nl/ARCHITECTURE.md` - Architecture changes
   - `docs/en/DEVELOPER.md` + `docs/nl/DEVELOPER.md` - Developer workflow changes
   - Frontend translations: `locales/en/translation.json` + `locales/nl/translation.json`
 - Root `ARCHITECTURE.md` should match `docs/en/ARCHITECTURE.md`
-- Workflow: Code → Test → Update All Docs & Translations (EN+NL) → E2E Tests → Commit
+- Workflow: Code → Deploy (bash scripts/deploy_test.sh) → Test API → Update All Docs & Translations (EN+NL) → Run Tests (bash tests/run_tests.sh && cd tests/e2e && npm test) → User approval → Commit
 
 **RULE #5: Maintain Code Quality**
 - Follow existing code patterns and styles for Home Assistant and this project
@@ -101,7 +102,7 @@ Home Assistant integration for zone-based heating control with learning capabili
 **Python Unit Tests (pytest):**
 - Location: `tests/unit/` directory
 - Framework: pytest with pytest-asyncio, pytest-cov, pytest-homeassistant-custom-component
-- Run: `./run_tests.sh` (automated) or `pytest tests/unit --cov=smart_heating -v`
+- Run: `bash tests/run_tests.sh` (automated) or `pytest tests/unit --cov=smart_heating -v`
 - Coverage: HTML report at `coverage_html/index.html`, enforced 80% threshold
 - Test files: 12+ files with 126+ test functions covering:
   - `test_area_manager.py` - Area CRUD, global settings (19 tests, 90%+ target)
@@ -128,7 +129,7 @@ Home Assistant integration for zone-based heating control with learning capabili
 **When Adding New Features:**
 1. Write Python unit tests FIRST (TDD approach recommended)
 2. Add E2E tests for user-facing features
-3. Run both test suites: `./run_tests.sh && cd tests/e2e && npm test`
+3. Run both test suites: `bash tests/run_tests.sh && cd tests/e2e && npm test`
 4. Verify coverage meets 80%: check `coverage_html/index.html`
 5. Update tests when modifying existing code
 6. Test edge cases, error conditions, and boundary values
@@ -147,7 +148,7 @@ Home Assistant integration for zone-based heating control with learning capabili
 **Quick Commands:**
 ```bash
 # Run Python unit tests
-./run_tests.sh
+bash tests/run_tests.sh
 
 # Run specific test file
 pytest tests/unit/test_area_manager.py -v
@@ -163,10 +164,11 @@ cd tests/e2e && npm test
 ```
 smart_heating/          # Main integration (backend .py files + frontend/)
 tests/e2e/             # Playwright tests
+tests/unit/            # Python unit tests
 docs/                  # Language-specific documentation
   en/                  # English technical docs (ARCHITECTURE.md, DEVELOPER.md)
   nl/                  # Dutch technical docs (ARCHITECTURE.md, DEVELOPER.md)
-sync.sh / setup.sh     # Deploy to test container
+scripts/deploy_test.sh # Deploy to test container (PRIMARY DEPLOY SCRIPT)
 ```
 
 ## Documentation Structure
@@ -196,16 +198,20 @@ sync.sh / setup.sh     # Deploy to test container
 
 **Note:** No time constraints - take time to ensure quality and completeness
 
-**Primary Script:** `./sync.sh` - builds frontend, syncs to container, restarts HA
-**Full Reset:** `./setup.sh` - complete container restart (use when sync.sh isn't enough)
+**Primary Deploy Script:** `bash scripts/deploy_test.sh` - builds frontend, syncs to container, restarts HA
 
 ```bash
-# Normal cycle:
+# Normal development cycle:
 1. Edit code
-2. ./sync.sh
-3. Clear cache (Cmd+Shift+R)
+2. bash scripts/deploy_test.sh  # ALWAYS use this script
+3. Clear browser cache (Cmd+Shift+R)
 4. Test at http://localhost:8123
+5. Run tests: bash tests/run_tests.sh && cd tests/e2e && npm test
+6. Update docs & translations (EN + NL)
+7. Commit only after user approval
 ```
+
+**CRITICAL:** Always use `bash scripts/deploy_test.sh` for deployment - never use sync.sh or setup.sh
 
 ## Testing
 

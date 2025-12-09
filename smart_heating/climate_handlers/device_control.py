@@ -98,9 +98,7 @@ class DeviceControlHandler:
 
         state = self.hass.states.get(entity_id)
         if not state:
-            _LOGGER.warning(
-                "Cannot determine capabilities for %s: entity not found", entity_id
-            )
+            _LOGGER.warning("Cannot determine capabilities for %s: entity not found", entity_id)
             self._device_capabilities[entity_id] = capabilities
             return capabilities
 
@@ -130,10 +128,7 @@ class DeviceControlHandler:
                 )
 
             # Check if it supports temperature
-            if (
-                "temperature" in state.attributes
-                or "target_temp_low" in state.attributes
-            ):
+            if "temperature" in state.attributes or "target_temp_low" in state.attributes:
                 capabilities["supports_temperature"] = True
                 _LOGGER.debug("Valve %s supports temperature control", entity_id)
 
@@ -255,9 +250,7 @@ class DeviceControlHandler:
                     await self._async_ensure_climate_power_on(thermostat_id)
 
                     # Set HVAC mode first
-                    ha_hvac_mode = (
-                        HVAC_MODE_HEAT if hvac_mode == "heat" else HVAC_MODE_COOL
-                    )
+                    ha_hvac_mode = HVAC_MODE_HEAT if hvac_mode == "heat" else HVAC_MODE_COOL
                     await self.hass.services.async_call(
                         CLIMATE_DOMAIN,
                         "set_hvac_mode",
@@ -267,9 +260,7 @@ class DeviceControlHandler:
                         },
                         blocking=False,
                     )
-                    _LOGGER.debug(
-                        "Set thermostat %s to %s mode", thermostat_id, hvac_mode
-                    )
+                    _LOGGER.debug("Set thermostat %s to %s mode", thermostat_id, hvac_mode)
 
                     # Only set temperature if it has changed (avoid API rate limiting)
                     last_temp = self._last_set_temperatures.get(thermostat_id)
@@ -468,9 +459,7 @@ class DeviceControlHandler:
                                 },
                                 blocking=False,
                             )
-                            _LOGGER.debug(
-                                "Set valve %s position to %.0f%%", valve_id, position
-                            )
+                            _LOGGER.debug("Set valve %s position to %.0f%%", valve_id, position)
                         except Exception:
                             _LOGGER.debug(
                                 "Valve %s doesn't support set_position, using temperature control",
@@ -480,15 +469,10 @@ class DeviceControlHandler:
                             capabilities["supports_temperature"] = True
 
                 # Fall back to temperature control
-                if (
-                    not capabilities["supports_position"]
-                    and capabilities["supports_temperature"]
-                ):
+                if not capabilities["supports_position"] and capabilities["supports_temperature"]:
                     if heating and target_temp is not None:
                         offset = self.area_manager.trv_temp_offset
-                        heating_temp = max(
-                            target_temp + offset, self.area_manager.trv_heating_temp
-                        )
+                        heating_temp = max(target_temp + offset, self.area_manager.trv_heating_temp)
                         await self.hass.services.async_call(
                             CLIMATE_DOMAIN,
                             SERVICE_SET_TEMPERATURE,
@@ -498,9 +482,7 @@ class DeviceControlHandler:
                             },
                             blocking=False,
                         )
-                        _LOGGER.debug(
-                            "Set TRV %s to heating temp %.1f°C", valve_id, heating_temp
-                        )
+                        _LOGGER.debug("Set TRV %s to heating temp %.1f°C", valve_id, heating_temp)
                     else:
                         idle_temp = self.area_manager.trv_idle_temp
                         await self.hass.services.async_call(
@@ -512,9 +494,7 @@ class DeviceControlHandler:
                             },
                             blocking=False,
                         )
-                        _LOGGER.debug(
-                            "Set TRV %s to idle temp %.1f°C", valve_id, idle_temp
-                        )
+                        _LOGGER.debug("Set TRV %s to idle temp %.1f°C", valve_id, idle_temp)
 
                 if (
                     not capabilities["supports_position"]
@@ -539,9 +519,54 @@ class DeviceControlHandler:
         if not gateway_id:
             return
 
+        # Get OpenTherm logger from hass.data
+        from ..const import DOMAIN
+
+        opentherm_logger = self.hass.data.get(DOMAIN, {}).get("opentherm_logger")
+
         try:
+            # Collect heating areas and their types for logging
+            heating_area_ids = []
+            heating_types = {}  # area_id -> heating_type
+            overhead_temps = {}  # area_id -> overhead_temp
+
             if any_heating:
-                boiler_setpoint = max_target_temp + 20
+                for area_id, area in self.area_manager.get_all_areas().items():
+                    if area.state == "heating":
+                        heating_area_ids.append(area_id)
+                        heating_types[area_id] = area.heating_type
+
+                        # Calculate overhead for this area
+                        if area.custom_overhead_temp is not None:
+                            overhead_temps[area_id] = area.custom_overhead_temp
+                        elif area.heating_type == "floor_heating":
+                            overhead_temps[area_id] = 10.0  # Default for floor heating
+                        else:  # radiator
+                            overhead_temps[area_id] = 20.0  # Default for radiator
+
+                        # Log individual zone demand
+                        if opentherm_logger and area.current_temperature is not None:
+                            opentherm_logger.log_zone_demand(
+                                area_id=area_id,
+                                area_name=area.name,
+                                heating=True,
+                                current_temp=area.current_temperature,
+                                target_temp=area.target_temperature,
+                            )
+
+            # Control boiler
+            if any_heating:
+                # Calculate overhead based on heating types
+                # Use the highest overhead for safety (fastest heating requirement)
+                overhead = max(overhead_temps.values()) if overhead_temps else 20.0
+                boiler_setpoint = max_target_temp + overhead
+
+                # Determine heating type breakdown for logging
+                floor_heating_count = sum(
+                    1 for ht in heating_types.values() if ht == "floor_heating"
+                )
+                radiator_count = sum(1 for ht in heating_types.values() if ht == "radiator")
+
                 await self.hass.services.async_call(
                     CLIMATE_DOMAIN,
                     SERVICE_SET_TEMPERATURE,
@@ -552,8 +577,24 @@ class DeviceControlHandler:
                     blocking=False,
                 )
                 _LOGGER.info(
-                    "OpenTherm gateway: Boiler ON, setpoint=%.1f°C", boiler_setpoint
+                    "OpenTherm gateway: Boiler ON, setpoint=%.1f°C (overhead=%.1f°C, %d floor heating, %d radiator)",
+                    boiler_setpoint,
+                    overhead,
+                    floor_heating_count,
+                    radiator_count,
                 )
+
+                # Log boiler control with heating type context
+                if opentherm_logger:
+                    opentherm_logger.log_boiler_control(
+                        state="ON",
+                        setpoint=boiler_setpoint,
+                        heating_areas=heating_area_ids,
+                        max_target_temp=max_target_temp,
+                        overhead=overhead,
+                        floor_heating_count=floor_heating_count,
+                        radiator_count=radiator_count,
+                    )
             else:
                 await self.hass.services.async_call(
                     CLIMATE_DOMAIN,
@@ -562,6 +603,26 @@ class DeviceControlHandler:
                     blocking=False,
                 )
                 _LOGGER.info("OpenTherm gateway: Boiler OFF")
+
+                # Log boiler control
+                if opentherm_logger:
+                    opentherm_logger.log_boiler_control(
+                        state="OFF",
+                        heating_areas=[],
+                    )
+
+            # Get and log modulation status
+            if opentherm_logger:
+                gateway_state = self.hass.states.get(gateway_id)
+                if gateway_state and gateway_state.state != "unavailable":
+                    attrs = gateway_state.attributes
+                    opentherm_logger.log_modulation(
+                        modulation_level=attrs.get("relative_mod_level"),
+                        flame_on=attrs.get("flame_on"),
+                        ch_water_temp=attrs.get("ch_water_temp"),
+                        control_setpoint=attrs.get("control_setpoint"),
+                        boiler_water_temp=attrs.get("boiler_water_temp"),
+                    )
 
         except Exception as err:
             _LOGGER.error("Failed to control OpenTherm gateway %s: %s", gateway_id, err)

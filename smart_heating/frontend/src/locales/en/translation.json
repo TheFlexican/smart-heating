@@ -116,7 +116,8 @@
       "vacation": "Vacation",
       "safety": "Safety",
       "advanced": "Advanced",
-      "importExport": "Import/Export"
+      "importExport": "Import/Export",
+      "opentherm": "OpenTherm"
     },
     "saveSuccess": "Settings saved successfully",
     "presets": {
@@ -452,6 +453,8 @@
     "smartNightBoostDescription": "ML-based optimal heating start time prediction",
     "heatingControlTitle": "Heating Control Settings",
     "heatingControlDescription": "Configure temperature hysteresis and limits",
+    "heatingTypeTitle": "Heating System Type",
+    "heatingTypeDescription": "Configure heating system type for optimal boiler control",
     "historyManagementTitle": "History Data Management",
     "historyManagementDescription": "Configure temperature history retention and recording",
     "switchPumpControlTitle": "Switch/Pump Control",
@@ -540,7 +543,15 @@
     "smartNightBoostNotEnabled": "Smart night boost is not enabled",
     "enableSmartNightBoostInfo": "Enable smart night boost in the Settings tab to start collecting learning data.",
     "adaptiveLearningInfo": "The adaptive learning system will automatically track heating cycles and improve predictions over time.",
-    "noLogsYet": "No log entries yet. Logs will appear as heating events occur."
+    "noLogsYet": "No log entries yet. Logs will appear as heating events occur.",
+    "heatingType": "Heating System Type",
+    "heatingTypeRadiator": "Radiator",
+    "heatingTypeFloorHeating": "Floor Heating",
+    "heatingTypeDescription": "Select the type of heating system in this area. Floor heating requires lower water temperatures for optimal efficiency.",
+    "customOverheadTemp": "Custom Overhead Temperature",
+    "customOverheadTempDescription": "Override default overhead temperature (floor heating: +10°C, radiator: +20°C). Leave empty to use defaults.",
+    "customOverheadTempPlaceholder": "e.g., 8.0",
+    "heatingTypeExplanation": "OpenTherm boiler setpoint = Target temperature + Overhead. Floor heating needs lower overhead (5-10°C) for efficient operation at 30-40°C water temperature. Radiators need higher overhead (20°C) for 50-60°C water temperature."
   },
   "hysteresisHelp": {
     "title": "Understanding Hysteresis",
@@ -717,5 +728,24 @@
     "metric": "Metric",
     "change": "Change",
     "exportComparison": "Export Comparison"
+  },
+  "opentherm": {
+    "title": "OpenTherm Gateway Monitor",
+    "autoRefresh": "Auto-refresh",
+    "logs": "logs",
+    "capabilities": "Gateway Capabilities",
+    "discoverCapabilities": "Discover Capabilities",
+    "noLogs": "No logs available",
+    "table": {
+      "time": "Time",
+      "type": "Type",
+      "message": "Message",
+      "details": "Details"
+    },
+    "error": {
+      "fetchLogs": "Failed to load OpenTherm logs",
+      "discover": "Failed to discover gateway capabilities",
+      "clearLogs": "Failed to clear logs"
+    }
   }
 }

@@ -71,6 +71,7 @@ from .api_handlers import (
     handle_set_area_hysteresis,
     handle_set_area_preset_config,
     handle_set_auto_preset,
+    handle_set_heating_type,
     handle_set_boost_mode,
     handle_set_frost_protection,
     handle_set_global_presence,
@@ -89,6 +90,12 @@ from .api_handlers import (
     handle_update_user,
     handle_update_user_settings,
     handle_validate_config,
+)
+from .api_handlers.opentherm import (
+    handle_get_opentherm_logs,
+    handle_get_opentherm_capabilities,
+    handle_discover_opentherm_capabilities,
+    handle_clear_opentherm_logs,
 )
 from .area_manager import AreaManager
 from .const import DOMAIN
@@ -261,6 +268,12 @@ class SmartHeatingAPIView(HomeAssistantView):
                         self.hass, self.area_manager, comparison_engine, request
                     )
 
+            # OpenTherm endpoints
+            elif endpoint == "opentherm/logs":
+                return await handle_get_opentherm_logs(self.hass, request)
+            elif endpoint == "opentherm/capabilities":
+                return await handle_get_opentherm_capabilities(self.hass)
+
             else:
                 return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)
         except Exception as err:
@@ -338,6 +351,9 @@ class SmartHeatingAPIView(HomeAssistantView):
             elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and endpoint.endswith("/hysteresis"):
                 area_id = endpoint.split("/")[1]
                 return await handle_set_area_hysteresis(self.hass, self.area_manager, area_id, data)
+            elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and endpoint.endswith("/heating_type"):
+                area_id = endpoint.split("/")[1]
+                return await handle_set_heating_type(self.hass, self.area_manager, area_id, data)
             elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and endpoint.endswith("/auto_preset"):
                 area_id = endpoint.split("/")[1]
                 return await handle_set_auto_preset(self.hass, self.area_manager, area_id, data)
@@ -429,6 +445,12 @@ class SmartHeatingAPIView(HomeAssistantView):
             elif endpoint == "comparison/custom":
                 comparison_engine = self.hass.data[DOMAIN]["comparison_engine"]
                 return await handle_get_custom_comparison(self.hass, comparison_engine, request)
+
+            # OpenTherm endpoints
+            elif endpoint == "opentherm/capabilities/discover":
+                return await handle_discover_opentherm_capabilities(self.hass, self.area_manager)
+            elif endpoint == "opentherm/logs/clear":
+                return await handle_clear_opentherm_logs(self.hass)
 
             else:
                 return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)

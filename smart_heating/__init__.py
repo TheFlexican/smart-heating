@@ -4,11 +4,8 @@ import asyncio
 import logging
 from datetime import timedelta
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers import config_validation as cv
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
 
 from .api import setup_api
@@ -17,41 +14,8 @@ from .area_manager import AreaManager
 from .climate_controller import ClimateController
 from .comparison_engine import ComparisonEngine
 from .const import (
-    ATTR_AREA_ID,
-    ATTR_AREA_NAME,
-    ATTR_BOOST_DURATION,
-    ATTR_BOOST_TEMP,
-    ATTR_DAYS,
-    ATTR_DEVICE_ID,
-    ATTR_DEVICE_TYPE,
-    ATTR_ENABLED,
-    ATTR_FROST_PROTECTION_ENABLED,
-    ATTR_FROST_PROTECTION_TEMP,
-    ATTR_HISTORY_RETENTION_DAYS,
-    ATTR_HVAC_MODE,
-    ATTR_HYSTERESIS,
-    ATTR_NIGHT_BOOST_ENABLED,
-    ATTR_NIGHT_BOOST_END_TIME,
-    ATTR_NIGHT_BOOST_OFFSET,
-    ATTR_NIGHT_BOOST_START_TIME,
-    ATTR_OPENTHERM_ENABLED,
-    ATTR_OPENTHERM_GATEWAY,
-    ATTR_PRESET_MODE,
-    ATTR_SCHEDULE_ID,
-    ATTR_TEMPERATURE,
-    ATTR_TIME,
-    ATTR_TRV_HEATING_TEMP,
-    ATTR_TRV_IDLE_TEMP,
-    ATTR_TRV_TEMP_OFFSET,
-    DEVICE_TYPE_OPENTHERM_GATEWAY,
-    DEVICE_TYPE_SWITCH,
-    DEVICE_TYPE_TEMPERATURE_SENSOR,
-    DEVICE_TYPE_THERMOSTAT,
-    DEVICE_TYPE_VALVE,
     DOMAIN,
-    HVAC_MODES,
     PLATFORMS,
-    PRESET_MODES,
     SERVICE_ADD_DEVICE_TO_AREA,
     SERVICE_ADD_PRESENCE_SENSOR,
     SERVICE_ADD_SCHEDULE,
@@ -86,6 +50,7 @@ from .coordinator import SmartHeatingCoordinator
 from .efficiency_calculator import EfficiencyCalculator
 from .history import HistoryTracker
 from .learning_engine import LearningEngine
+from .opentherm_logger import OpenThermLogger
 from .safety_monitor import SafetyMonitor
 from .scheduler import ScheduleExecutor
 from .user_manager import UserManager
@@ -121,7 +86,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.options:
         _LOGGER.debug("Loading config entry options: %s", entry.options)
         if entry.options.get("opentherm_gateway_id"):
-            area_manager.set_opentherm_gateway(
+            await area_manager.set_opentherm_gateway(
                 entry.options["opentherm_gateway_id"],
                 enabled=entry.options.get("opentherm_enabled", True),
             )
@@ -142,6 +107,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     area_logger = AreaLogger(storage_path, hass)
     hass.data[DOMAIN]["area_logger"] = area_logger
     _LOGGER.info("Area logger initialized at %s", storage_path)
+
+    # Create OpenTherm logger for gateway monitoring
+    opentherm_logger = OpenThermLogger(hass)
+    hass.data[DOMAIN]["opentherm_logger"] = opentherm_logger
+    _LOGGER.info("OpenTherm logger initialized")
 
     # Create vacation manager
     vacation_manager = VacationManager(hass, storage_path)
@@ -242,6 +212,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await setup_api(hass, area_manager)
     await setup_websocket(hass)
 
+    # Discover OpenTherm Gateway capabilities if configured
+    if area_manager.opentherm_enabled and area_manager.opentherm_gateway_id:
+
+        async def discover_capabilities():
+            await asyncio.sleep(10)  # Wait for HA to be fully started
+            try:
+                await opentherm_logger.async_discover_mqtt_capabilities(
+                    area_manager.opentherm_gateway_id
+                )
+            except Exception as err:
+                _LOGGER.error("Failed to discover OpenTherm capabilities: %s", err)
+
+        hass.async_create_task(discover_capabilities())
+
     # Register sidebar panel
     await async_register_panel(hass, entry)
 
@@ -287,9 +271,7 @@ async def async_register_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
     _LOGGER.info("Smart Heating panel registered in sidebar")
 
 
-async def async_setup_services(
-    hass: HomeAssistant, coordinator: SmartHeatingCoordinator
-) -> None:
+async def async_setup_services(hass: HomeAssistant, coordinator: SmartHeatingCoordinator) -> None:
     """Set up services for Smart Heating.
 
     Args:
@@ -363,9 +345,7 @@ async def async_setup_services(
     hass.services.async_register(
         DOMAIN,
         SERVICE_ADD_DEVICE_TO_AREA,
-        partial(
-            async_handle_add_device, area_manager=area_manager, coordinator=coordinator
-        ),
+        partial(async_handle_add_device, area_manager=area_manager, coordinator=coordinator),
         schema=ADD_DEVICE_SCHEMA,
     )
     hass.services.async_register(
@@ -391,9 +371,7 @@ async def async_setup_services(
     hass.services.async_register(
         DOMAIN,
         SERVICE_ENABLE_AREA,
-        partial(
-            async_handle_enable_area, area_manager=area_manager, coordinator=coordinator
-        ),
+        partial(async_handle_enable_area, area_manager=area_manager, coordinator=coordinator),
         schema=ZONE_ID_SCHEMA,
     )
     hass.services.async_register(
@@ -674,9 +652,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         try:
             from homeassistant.components.frontend import async_remove_panel
 
-            async_remove_panel(
-                hass, "smart_heating"
-            )  # Not actually async despite the name
+            async_remove_panel(hass, "smart_heating")  # Not actually async despite the name
             _LOGGER.debug("Smart Heating panel removed from sidebar")
         except Exception as err:
             _LOGGER.warning("Failed to remove panel: %s", err)

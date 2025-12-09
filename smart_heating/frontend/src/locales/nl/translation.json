@@ -116,7 +116,8 @@
       "vacation": "Vakantie",
       "safety": "Veiligheid",
       "advanced": "Geavanceerd",
-      "importExport": "Importeren/Exporteren"
+      "importExport": "Importeren/Exporteren",
+      "opentherm": "OpenTherm"
     },
     "saveSuccess": "Instellingen succesvol opgeslagen",
     "presets": {
@@ -452,6 +453,8 @@
     "smartNightBoostDescription": "ML-gebaseerde voorspelling van optimale verwarmingsstarttijd",
     "heatingControlTitle": "Verwarmingsregeling Instellingen",
     "heatingControlDescription": "Configureer temperatuurhysterese en limieten",
+    "heatingTypeTitle": "Verwarmingssysteemtype",
+    "heatingTypeDescription": "Configureer verwarmingssysteemtype voor optimale ketelregeling",
     "historyManagementTitle": "Geschiedenisdatabeheer",
     "historyManagementDescription": "Configureer bewaarperiode en registratie van temperatuurgeschiedenis",
     "switchPumpControlTitle": "Schakelaar/Pomp Besturing",
@@ -540,7 +543,15 @@
     "smartNightBoostNotEnabled": "Slimme nachtboost is niet ingeschakeld",
     "enableSmartNightBoostInfo": "Schakel slimme nachtboost in op het tabblad Instellingen om leergegevens te verzamelen.",
     "adaptiveLearningInfo": "Het adaptieve leersysteem zal automatisch verwarmingscycli volgen en voorspellingen in de loop van de tijd verbeteren.",
-    "noLogsYet": "Nog geen logitems. Logs verschijnen zodra verwarmingsgebeurtenissen plaatsvinden."
+    "noLogsYet": "Nog geen logitems. Logs verschijnen zodra verwarmingsgebeurtenissen plaatsvinden.",
+    "heatingType": "Verwarmingssysteemtype",
+    "heatingTypeRadiator": "Radiatoren",
+    "heatingTypeFloorHeating": "Vloerverwarming",
+    "heatingTypeDescription": "Selecteer het type verwarmingssysteem in dit gebied. Vloerverwarming vereist lagere watertemperaturen voor optimale efficiëntie.",
+    "customOverheadTemp": "Aangepaste Overhead Temperatuur",
+    "customOverheadTempDescription": "Overschrijf standaard overhead temperatuur (vloerverwarming: +10°C, radiatoren: +20°C). Laat leeg voor standaardwaarden.",
+    "customOverheadTempPlaceholder": "bijv., 8.0",
+    "heatingTypeExplanation": "OpenTherm ketel setpoint = Doeltemperatuur + Overhead. Vloerverwarming heeft lagere overhead (5-10°C) nodig voor efficiënte werking bij 30-40°C watertemperatuur. Radiatoren hebben hogere overhead (20°C) nodig voor 50-60°C watertemperatuur."
   },
   "hysteresisHelp": {
     "title": "Hysterese Begrijpen",
@@ -717,5 +728,24 @@
     "metric": "Metriek",
     "change": "Verandering",
     "exportComparison": "Vergelijking Exporteren"
+  },
+  "opentherm": {
+    "title": "OpenTherm Gateway Monitor",
+    "autoRefresh": "Auto-verversen",
+    "logs": "logs",
+    "capabilities": "Gateway Mogelijkheden",
+    "discoverCapabilities": "Ontdek Mogelijkheden",
+    "noLogs": "Geen logs beschikbaar",
+    "table": {
+      "time": "Tijd",
+      "type": "Type",
+      "message": "Bericht",
+      "details": "Details"
+    },
+    "error": {
+      "fetchLogs": "Fout bij laden van OpenTherm logs",
+      "discover": "Fout bij ontdekken van gateway mogelijkheden",
+      "clearLogs": "Fout bij wissen van logs"
+    }
   }
 }

@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### ✨ Features
 
+**Configurable Heating Types for OpenTherm Optimization**
+- **Added per-area heating type configuration**: Optimize boiler setpoint for different heating systems
+  - Support for radiator (default) and floor heating types
+  - Custom overhead temperature override (0-30°C)
+  - Smart setpoint calculation: floor heating +10°C, radiators +20°C
+  - Mixed system support: uses highest overhead for safety
+- **Enhanced OpenTherm logging**: Displays heating type breakdown in logs
+  - Shows number of floor heating vs radiator zones active
+  - Displays overhead temperature used for setpoint calculation
+  - Example: "Boiler ON - Setpoint: 35.0°C | overhead +10°C | 1 floor heating + 0 radiator"
+- **New API endpoint**: `POST /api/smart_heating/areas/{area_id}/heating_type`
+  - Set heating type: "radiator" or "floor_heating"
+  - Configure custom overhead temperature
+  - Input validation for heating type and overhead range
+- **Efficiency improvements for floor heating**:
+  - Lower water temperatures (30-40°C instead of 50-60°C)
+  - Better modulation efficiency (20-30% instead of 40-50%)
+  - Reduced cycling, longer burn times, lower energy consumption
+  - More comfortable and stable floor heating operation
+
 **Mushroom-Style UI Enhancements**
 - **Implemented Mushroom-inspired card design**: Modern, polished interface with smooth transitions
   - Rounded corners (borderRadius: 3) for all cards and components
