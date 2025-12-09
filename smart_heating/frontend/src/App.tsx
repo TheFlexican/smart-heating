@@ -92,6 +92,7 @@ interface ZonesOverviewProps {
   handleDragEnd: (result: DropResult) => void
   handleZonesUpdate: () => void
   setShowHidden: (value: boolean) => void
+  onAreasReorder: (areas: Zone[]) => void
 }
 
 const ZonesOverview = ({
@@ -106,6 +107,7 @@ const ZonesOverview = ({
   handleDragEnd,
   handleZonesUpdate,
   setShowHidden,
+  onAreasReorder,
 }: ZonesOverviewProps) => (
   <DragDropContext onDragEnd={handleDragEnd}>
     <Box sx={{
@@ -148,6 +150,7 @@ const ZonesOverview = ({
             onUpdate={handleZonesUpdate}
             showHidden={showHidden}
             onToggleShowHidden={() => setShowHidden(!showHidden)}
+            onAreasReorder={onAreasReorder}
           />
         </Box>
         {!hideDevicesPanel && (
@@ -186,7 +189,27 @@ function App() {
         getConfig(),
         getSafetySensor().catch(() => null)
       ])
-      setAreas(areasData)
+
+      // Apply saved area order from localStorage
+      const savedOrder = localStorage.getItem('areasOrder')
+      let orderedAreas = areasData
+      if (savedOrder) {
+        try {
+          const orderIds = JSON.parse(savedOrder)
+          const areaMap = new Map(areasData.map(a => [a.id, a]))
+          orderedAreas = orderIds
+            .map((id: string) => areaMap.get(id))
+            .filter((a: Zone | undefined): a is Zone => a !== undefined)
+          // Add any new areas that weren't in the saved order
+          const orderedIds = new Set(orderIds)
+          const newAreas = areasData.filter(a => !orderedIds.has(a.id))
+          orderedAreas = [...orderedAreas, ...newAreas]
+        } catch {
+          // If parsing fails, use default order
+        }
+      }
+
+      setAreas(orderedAreas)
 
       // Check if safety alert is active
       if (safetySensorData?.alert_active) {
@@ -317,6 +340,12 @@ function App() {
               handleDragEnd={handleDragEnd}
               handleZonesUpdate={handleZonesUpdate}
               setShowHidden={setShowHidden}
+              onAreasReorder={(reorderedAreas) => {
+                setAreas(reorderedAreas)
+                // Persist to localStorage
+                const orderIds = reorderedAreas.map(a => a.id)
+                localStorage.setItem('areasOrder', JSON.stringify(orderIds))
+              }}
             />
           } />
           <Route path="/area/:areaId" element={<ZoneDetail />} />

@@ -17,9 +17,10 @@ import {
   MenuItem,
   FormControlLabel,
   Switch,
-  Tooltip
+  Tooltip,
+  alpha
 } from '@mui/material'
-import { Droppable } from 'react-beautiful-dnd'
+import { Droppable, Draggable } from 'react-beautiful-dnd'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import SensorsIcon from '@mui/icons-material/Sensors'
@@ -34,15 +35,17 @@ import VisibilityIcon from '@mui/icons-material/Visibility'
 import PersonIcon from '@mui/icons-material/Person'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import { Zone } from '../types'
 import { setZoneTemperature, removeDeviceFromZone, hideZone, unhideZone, getEntityState, setManualOverride, setBoostMode, cancelBoost } from '../api'
 
 interface ZoneCardProps {
   area: Zone
   onUpdate: () => void
+  index: number
 }
 
-const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
+const ZoneCard = ({ area, onUpdate, index }: ZoneCardProps) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
@@ -294,24 +297,63 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   }
 
   return (
-    <Droppable droppableId={`area-${area.id}`}>
-      {(provided, snapshot) => (
-        <Card
-          ref={provided.innerRef}
-          {...provided.droppableProps}
-          elevation={2}
-          onClick={handleCardClick}
-          sx={{
-            bgcolor: snapshot.isDraggingOver ? 'rgba(3, 169, 244, 0.05)' : 'background.paper',
-            border: snapshot.isDraggingOver ? '2px dashed #03a9f4' : 'none',
-            transition: 'all 0.2s ease',
-            cursor: 'pointer',
-            '&:hover': {
-              bgcolor: snapshot.isDraggingOver ? 'rgba(3, 169, 244, 0.05)' : 'rgba(255, 255, 255, 0.05)',
-            },
-          }}
+    <Draggable draggableId={`area-card-${area.id}`} index={index}>
+      {(dragProvided, dragSnapshot) => (
+        <div
+          ref={dragProvided.innerRef}
+          {...dragProvided.draggableProps}
         >
-      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Droppable droppableId={`area-${area.id}`}>
+            {(provided, snapshot) => (
+              <Card
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                elevation={dragSnapshot.isDragging ? 8 : 2}
+                onClick={handleCardClick}
+                sx={{
+                  bgcolor: snapshot.isDraggingOver
+                    ? alpha('#03a9f4', 0.08)
+                    : dragSnapshot.isDragging
+                    ? alpha('#03a9f4', 0.12)
+                    : 'background.paper',
+                  border: snapshot.isDraggingOver ? '2px dashed #03a9f4' : 'none',
+                  borderRadius: 3,
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  cursor: 'pointer',
+                  transform: dragSnapshot.isDragging ? 'scale(1.02)' : 'scale(1)',
+                  boxShadow: dragSnapshot.isDragging
+                    ? '0 8px 24px rgba(0,0,0,0.4)'
+                    : undefined,
+                  '&:hover': {
+                    bgcolor: snapshot.isDraggingOver ? alpha('#03a9f4', 0.08) : alpha('#ffffff', 0.05),
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  },
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  {/* Drag Handle */}
+                  <Box
+                    {...dragProvided.dragHandleProps}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      left: 8,
+                      cursor: 'grab',
+                      color: 'text.secondary',
+                      opacity: 0.3,
+                      transition: 'opacity 0.2s',
+                      '&:hover': {
+                        opacity: 0.8,
+                      },
+                      '&:active': {
+                        cursor: 'grabbing',
+                      },
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <DragIndicatorIcon fontSize="small" />
+                  </Box>
         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
           <Box flex={1}>
             <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
@@ -553,8 +595,11 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
         </MenuItem>
       </Menu>
     </Card>
+          )}
+        </Droppable>
+      </div>
       )}
-    </Droppable>
+    </Draggable>
   )
 }
 
