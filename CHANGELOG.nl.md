@@ -9,6 +9,53 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 
 ### ✨ Functies
 
+**OpenTherm Ketel Monitoring & Foutmeldingen**
+- **Real-time ketel status dashboard**: Live OpenTherm Gateway sensor monitoring
+  - Toont ketel operatie: CV Actief, Warm Water Actief, Vlam Status, Modulatie Niveau
+  - Toont watertemperaturen: Controle Setpoint, CV Water, Retour Water
+  - Monitort systeemdruk en kamertemperatuur/setpoint
+  - Auto-refresh elke 5 seconden voor live updates
+- **Kritieke foutdetectie & waarschuwingen**: Automatische monitoring van 7 ketel foutstatussen
+  - Storingsindicatie - hoofdfout vlag
+  - Lage waterdruk waarschuwing
+  - Gasstoring detectie
+  - Luchtdrukfout monitoring
+  - Water overtemperatuur alarm
+  - Service vereist melding
+  - Diagnostische indicatie
+- **Multi-kanaal notificaties**: Dubbel notificatiesysteem voor ketel problemen
+  - Push notificaties naar mobiel (notify.mobile_app_iphone) met alarm geluid
+  - Persistente notificaties in Home Assistant UI
+  - Fout details: sensor naam, vriendelijke naam, tijdstempel
+  - Gegroepeerde notificaties per fout type
+- **Veiligheid integratie**: OpenTherm fout sensors kunnen toegevoegd worden aan Globale Instellingen → Veiligheid
+  - Automatische verwarming shutdown wanneer ketel fouten rapporteert
+  - Voorkomt schade door voortgezet gebruik tijdens storingen
+  - Voorbeeld: Voeg `binary_sensor.opentherm_ketel_storingsindicatie` toe aan veiligheid sensors
+
+**Verwarmingstype Configuratie UI**
+- **Zone Instellingen UI toegevoegd voor verwarmingstype selectie**
+  - Kies tussen Radiator of Vloerverwarming per zone
+  - Weergegeven in Zone Details → Instellingen → "Verwarmingstype" kaart
+  - Toont huidig type in badge (Radiator/Vloerverwarming)
+  - Info waarschuwing legt impact op ketel setpoint uit
+- **Visuele feedback**: Radioknop selectie met beschrijvingen
+  - Radiator: Snelle reactie, hogere overhead temperatuur (+20°C standaard)
+  - Vloerverwarming: Langzame reactie, lagere overhead temperatuur (+5°C standaard)
+- **TypeScript integratie**: `heating_type` toegevoegd aan Zone interface
+  - Type-veilige selectie: 'radiator' | 'floor_heating'
+  - Frontend API: `setHeatingType(areaId, heatingType, customOverheadTemp?)`
+
+**Veiligheidssensor Beheer Fixes**
+- **Veiligheidssensor toevoegen/verwijderen API gefixed**: Backend handlers gecorrigeerd
+  - `handle_set_safety_sensor`: Gebruikt nu `add_safety_sensor()` i.p.v. niet-bestaande `clear_safety_sensors()`
+  - `handle_remove_safety_sensor`: Accepteert sensor_id parameter, gebruikt `remove_safety_sensor()`
+  - Juiste parameter afhandeling: sensor_id, attribute, alert_value, enabled
+- **Multi-sensor ondersteuning**: GET API retourneert alle veiligheid sensors
+  - Retourneert `{sensors: [...], alert_active: bool}` i.p.v. enkele sensor
+  - Ondersteunt meerdere veiligheid sensors tegelijk (rookmelders + OpenTherm fouten)
+  - Frontend SafetySensorResponse type al compatibel
+
 **Configureerbare Verwarmingstypes voor OpenTherm Optimalisatie**
 - **Per-zone verwarmingstype configuratie toegevoegd**: Optimaliseer ketel setpoint voor verschillende verwarmingssystemen
   - Ondersteuning voor radiatoren (standaard) en vloerverwarming types

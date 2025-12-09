@@ -9,6 +9,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### ✨ Features
 
+**OpenTherm Boiler Monitoring & Error Notifications**
+- **Real-time boiler status dashboard**: Live OpenTherm Gateway sensor monitoring
+  - Displays boiler operation: CH Active, DHW Active, Flame Status, Modulation Level
+  - Shows water temperatures: Control Setpoint, CH Water, Return Water
+  - Monitors system pressure and room temperature/setpoint
+  - Auto-refresh every 5 seconds for live updates
+- **Critical error detection & alerts**: Automatic monitoring of 7 boiler error states
+  - Fault indicator (storingsindicatie) - main error flag
+  - Low water pressure warning
+  - Gas fault detection
+  - Air pressure fault monitoring
+  - Water overtemperature alarm
+  - Service required notification
+  - Diagnostic indicator
+- **Multi-channel notifications**: Dual notification system for boiler problems
+  - Push notifications to mobile (notify.mobile_app_iphone) with alarm sound
+  - Persistent notifications in Home Assistant UI
+  - Error details: sensor name, friendly name, timestamp
+  - Grouped notifications by error type
+- **Safety integration**: OpenTherm error sensors can be added to Global Settings → Safety
+  - Automatic heating shutdown when boiler reports errors
+  - Prevents damage from continued operation during faults
+  - Example: Add `binary_sensor.opentherm_ketel_storingsindicatie` to safety sensors
+
+**Heating Type Configuration UI**
+- **Added Area Settings UI for heating type selection**
+  - Choose between Radiator or Floor Heating per zone
+  - Displayed in Area Details → Settings → "Heating Type" card
+  - Shows current type in badge (Radiator/Floor Heating)
+  - Info alert explaining impact on boiler setpoint
+- **Visual feedback**: Radio button selection with descriptions
+  - Radiator: Fast response, higher overhead temperature (+20°C default)
+  - Floor Heating: Slow response, lower overhead temperature (+5°C default)
+- **TypeScript integration**: Added `heating_type` to Zone interface
+  - Type-safe selection: 'radiator' | 'floor_heating'
+  - Frontend API: `setHeatingType(areaId, heatingType, customOverheadTemp?)`
+
+**Safety Sensor Management Fixes**
+- **Fixed safety sensor add/remove API**: Corrected backend handlers
+  - `handle_set_safety_sensor`: Now uses `add_safety_sensor()` instead of non-existent `clear_safety_sensors()`
+  - `handle_remove_safety_sensor`: Accepts sensor_id parameter, uses `remove_safety_sensor()`
+  - Proper parameter handling: sensor_id, attribute, alert_value, enabled
+- **Multi-sensor support**: GET API returns all safety sensors
+  - Returns `{sensors: [...], alert_active: bool}` instead of single sensor
+  - Supports multiple safety sensors simultaneously (smoke detectors + OpenTherm errors)
+  - Frontend SafetySensorResponse type already compatible
+
 **Configurable Heating Types for OpenTherm Optimization**
 - **Added per-area heating type configuration**: Optimize boiler setpoint for different heating systems
   - Support for radiator (default) and floor heating types
