@@ -590,32 +590,9 @@ class DeviceControlHandler:
                 )
 
                 # Use OpenTherm Gateway integration service
-                # Extract gateway_id from entity_id
-                # Examples:
-                #   climate.opentherm_gateway_otgw_otgw_thermostat -> gateway_id: otgw
-                #   climate.opentherm_thermostaat -> gateway_id: opentherm
-                gateway_device_id = None
-
-                # Pattern 1: climate.opentherm_gateway_{gateway_id}_otgw_thermostat
-                if "_otgw_" in gateway_id:
-                    # Extract the part between opentherm_gateway_ and _otgw_
-                    parts = gateway_id.replace("climate.opentherm_gateway_", "").split(
-                        "_otgw_"
-                    )
-                    if len(parts) > 0:
-                        gateway_device_id = parts[0]  # e.g., "otgw"
-                # Pattern 2: climate.opentherm_thermostaat -> opentherm
-                elif gateway_id.startswith("climate.opentherm_"):
-                    # Remove "climate." prefix and "_thermostaat" suffix
-                    gateway_device_id = (
-                        gateway_id.replace("climate.", "")
-                        .replace("_thermostaat", "")
-                        .replace("_thermostat", "")
-                    )
-
-                if not gateway_device_id:
-                    # Final fallback: use the full entity ID without domain
-                    gateway_device_id = gateway_id.replace("climate.", "")
+                # The gateway_id is the ID shown in HA UI under Settings -> Devices & Services -> OpenTherm Gateway
+                # For production system: 128937219831729813
+                gateway_device_id = "128937219831729813"
 
                 try:
                     await self.hass.services.async_call(
@@ -660,23 +637,7 @@ class DeviceControlHandler:
                     )
             else:
                 # Turn off boiler by setting setpoint to 0
-                # Extract gateway_id same as above
-                gateway_device_id = None
-                if "_otgw_" in gateway_id:
-                    parts = gateway_id.replace("climate.opentherm_gateway_", "").split(
-                        "_otgw_"
-                    )
-                    if len(parts) > 0:
-                        gateway_device_id = parts[0]
-                elif gateway_id.startswith("climate.opentherm_"):
-                    gateway_device_id = (
-                        gateway_id.replace("climate.", "")
-                        .replace("_thermostaat", "")
-                        .replace("_thermostat", "")
-                    )
-
-                if not gateway_device_id:
-                    gateway_device_id = gateway_id.replace("climate.", "")
+                gateway_device_id = "128937219831729813"
 
                 try:
                     await self.hass.services.async_call(
