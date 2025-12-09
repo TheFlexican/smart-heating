@@ -589,25 +589,45 @@ class DeviceControlHandler:
                     1 for ht in heating_types.values() if ht == "radiator"
                 )
 
-                # Use MQTT to control OpenTherm Gateway
-                # With MQTT Top Topic "OTGW", use topic: OTGW/command/setpoint
+                # Use OpenTherm Gateway integration service
+                # Extract gateway_id from entity_id (e.g., climate.opentherm_gateway_otgw_otgw_thermostat)
+                # The gateway_id is typically the device name configured in the integration
+                # Try common patterns: full device name or just the gateway identifier
+                gateway_device_id = None
+
+                # Try to extract gateway_id from the entity_id
+                # Pattern: climate.opentherm_gateway_{gateway_id}_otgw_thermostat
+                if "_otgw_" in gateway_id:
+                    # Extract the part between opentherm_gateway_ and _otgw_
+                    parts = gateway_id.replace("climate.opentherm_gateway_", "").split(
+                        "_otgw_"
+                    )
+                    if len(parts) > 0:
+                        gateway_device_id = parts[0]  # e.g., "otgw"
+
+                if not gateway_device_id:
+                    # Fallback: use the full entity ID without domain
+                    gateway_device_id = gateway_id.replace("climate.", "")
+
                 try:
                     await self.hass.services.async_call(
-                        "mqtt",
-                        "publish",
+                        "opentherm_gw",
+                        "set_control_setpoint",
                         {
-                            "topic": "OTGW/command/setpoint",
-                            "payload": str(int(boiler_setpoint)),
+                            "gateway_id": gateway_device_id,
+                            "temperature": float(boiler_setpoint),
                         },
                         blocking=False,
                     )
                     _LOGGER.info(
-                        "OpenTherm gateway: Set setpoint via MQTT to OTGW/command/setpoint: %.1f°C",
+                        "OpenTherm gateway: Set setpoint via service (gateway_id=%s): %.1f°C",
+                        gateway_device_id,
                         boiler_setpoint,
                     )
                 except Exception as err:
                     _LOGGER.error(
-                        "Failed to set OpenTherm Gateway setpoint via MQTT: %s",
+                        "Failed to set OpenTherm Gateway setpoint (gateway_id=%s): %s",
+                        gateway_device_id,
                         err,
                     )
 
@@ -632,20 +652,37 @@ class DeviceControlHandler:
                     )
             else:
                 # Turn off boiler by setting setpoint to 0
+                # Extract gateway_id same as above
+                gateway_device_id = None
+                if "_otgw_" in gateway_id:
+                    parts = gateway_id.replace("climate.opentherm_gateway_", "").split(
+                        "_otgw_"
+                    )
+                    if len(parts) > 0:
+                        gateway_device_id = parts[0]
+
+                if not gateway_device_id:
+                    gateway_device_id = gateway_id.replace("climate.", "")
+
                 try:
                     await self.hass.services.async_call(
-                        "mqtt",
-                        "publish",
+                        "opentherm_gw",
+                        "set_control_setpoint",
                         {
-                            "topic": "OTGW/command/setpoint",
-                            "payload": "0",
+                            "gateway_id": gateway_device_id,
+                            "temperature": 0.0,
                         },
                         blocking=False,
                     )
-                    _LOGGER.info("OpenTherm gateway: Boiler OFF (setpoint=0 via MQTT)")
+                    _LOGGER.info(
+                        "OpenTherm gateway: Boiler OFF (setpoint=0 via service, gateway_id=%s)",
+                        gateway_device_id,
+                    )
                 except Exception as err:
                     _LOGGER.error(
-                        "Failed to turn off OpenTherm Gateway via MQTT: %s", err
+                        "Failed to turn off OpenTherm Gateway (gateway_id=%s): %s",
+                        gateway_device_id,
+                        err,
                     )
 
                 # Log boiler control
