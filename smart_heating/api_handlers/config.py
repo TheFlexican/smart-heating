@@ -393,23 +393,13 @@ async def handle_get_safety_sensor(area_manager: AreaManager) -> web.Response:
         area_manager: Area manager instance
 
     Returns:
-        JSON response with safety sensor data
+        JSON response with safety sensor data (list of sensors)
     """
     sensors = area_manager.get_safety_sensors()
 
-    # Return first sensor if exists, otherwise empty config
-    if sensors:
-        return web.json_response(
-            {
-                "sensor_id": sensors[0].get("sensor_id"),
-                "enabled": sensors[0].get("enabled", True),
-                "alert_active": area_manager.is_safety_alert_active(),
-            }
-        )
-    else:
-        return web.json_response(
-            {"sensor_id": None, "enabled": False, "alert_active": False}
-        )
+    return web.json_response(
+        {"sensors": sensors, "alert_active": area_manager.is_safety_alert_active()}
+    )
 
 
 async def handle_set_safety_sensor(
