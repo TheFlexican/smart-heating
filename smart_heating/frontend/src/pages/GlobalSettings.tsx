@@ -17,6 +17,9 @@ import {
   Switch,
   TextField,
   FormControlLabel,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
@@ -28,6 +31,7 @@ import TuneIcon from '@mui/icons-material/Tune'
 import SecurityIcon from '@mui/icons-material/Security'
 import BackupIcon from '@mui/icons-material/Backup'
 import FireplaceIcon from '@mui/icons-material/Fireplace'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis, getSafetySensor, setSafetySensor, removeSafetySensor, setHideDevicesPanel, getConfig, setOpenthermGateway, type SafetySensorResponse } from '../api'
@@ -774,47 +778,51 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
 
         {/* OpenTherm Tab */}
         <TabPanel value={activeTab} index={6}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              {t('globalSettings.opentherm.title', 'OpenTherm Gateway Configuration')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              {t('globalSettings.opentherm.description', 'Configure the OpenTherm Gateway device ID for boiler control. Find the ID in Settings → Devices & Services → OpenTherm Gateway → Configure → ID field.')}
-            </Typography>
+          <Accordion defaultExpanded={false}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="h6">
+                {t('globalSettings.opentherm.title', 'OpenTherm Gateway Configuration')}
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                {t('globalSettings.opentherm.description', 'Configure the OpenTherm Gateway device ID for boiler control. Find the ID in Settings → Devices & Services → OpenTherm Gateway → Configure → ID field.')}
+              </Typography>
 
-            <Stack spacing={3} sx={{ mt: 3 }}>
-              <TextField
-                label={t('globalSettings.opentherm.gatewayId', 'Gateway Device ID')}
-                value={openthermGatewayId}
-                onChange={(e) => setOpenthermGatewayId(e.target.value)}
-                placeholder="128937219831729813"
-                helperText={t('globalSettings.opentherm.gatewayIdHelp', 'Numeric ID from OpenTherm Gateway integration configuration')}
-                fullWidth
-              />
+              <Stack spacing={3}>
+                <TextField
+                  label={t('globalSettings.opentherm.gatewayId', 'Gateway Device ID')}
+                  value={openthermGatewayId}
+                  onChange={(e) => setOpenthermGatewayId(e.target.value)}
+                  placeholder=""
+                  helperText={t('globalSettings.opentherm.gatewayIdHelp', 'Numeric ID from OpenTherm Gateway integration configuration')}
+                  fullWidth
+                />
 
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={openthermEnabled}
-                    onChange={(e) => setOpenthermEnabled(e.target.checked)}
-                  />
-                }
-                label={t('globalSettings.opentherm.enabled', 'Enable OpenTherm Control')}
-              />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={openthermEnabled}
+                      onChange={(e) => setOpenthermEnabled(e.target.checked)}
+                    />
+                  }
+                  label={t('globalSettings.opentherm.enabled', 'Enable OpenTherm Control')}
+                />
 
-              <Button
-                variant="contained"
-                onClick={handleSaveOpenthermConfig}
-                disabled={openthermSaving || !openthermGatewayId.trim()}
-              >
-                {openthermSaving ? (
-                  <CircularProgress size={24} />
-                ) : (
-                  t('globalSettings.opentherm.save', 'Save Configuration')
-                )}
-              </Button>
-            </Stack>
-          </Paper>
+                <Button
+                  variant="contained"
+                  onClick={handleSaveOpenthermConfig}
+                  disabled={openthermSaving || !openthermGatewayId.trim()}
+                >
+                  {openthermSaving ? (
+                    <CircularProgress size={24} />
+                  ) : (
+                    t('globalSettings.opentherm.save', 'Save Configuration')
+                  )}
+                </Button>
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
 
           <OpenThermLogger />
         </TabPanel>
