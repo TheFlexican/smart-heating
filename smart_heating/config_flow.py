@@ -92,6 +92,9 @@ class SmartHeatingOptionsFlowHandler(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage the options.
 
+        All configuration is now done via Global Settings in the Smart Heating UI.
+        This options flow is kept minimal to avoid configuration conflicts.
+
         Args:
             user_input: User input data
 
@@ -99,94 +102,14 @@ class SmartHeatingOptionsFlowHandler(config_entries.OptionsFlow):
             FlowResult: Result of the flow step
         """
         if user_input is not None:
-            _LOGGER.debug("Updating options: %s", user_input)
+            return self.async_create_entry(title="", data={})
 
-            # Update the area manager with the OpenTherm gateway selection
-            if DOMAIN in self.hass.data:
-                for _entry_id, data in self.hass.data[DOMAIN].items():
-                    if isinstance(data, dict) and "area_manager" in data:
-                        area_manager = data["area_manager"]
-
-                        # Set or clear the OpenTherm gateway
-                        if user_input.get("opentherm_gateway_id"):
-                            area_manager.set_opentherm_gateway(
-                                user_input["opentherm_gateway_id"],
-                                enabled=user_input.get("opentherm_enabled", True),
-                            )
-                            _LOGGER.info(
-                                "OpenTherm gateway configured: %s (enabled: %s)",
-                                user_input["opentherm_gateway_id"],
-                                user_input.get("opentherm_enabled", True),
-                            )
-                        else:
-                            area_manager.set_opentherm_gateway(None, enabled=False)
-                            _LOGGER.info("OpenTherm gateway disabled")
-
-                        break
-
-            return self.async_create_entry(title="", data=user_input)
-
-        # Get all climate entities for the dropdown, filtering for OpenTherm-compatible devices
-        climate_entities = []
-
-        for entity_id in self.hass.states.async_entity_ids("climate"):
-            state = self.hass.states.get(entity_id)
-            if state:
-                # Filter for OpenTherm gateways
-                # Check if entity_id or friendly name contains "opentherm" or "otgw"
-                entity_lower = entity_id.lower()
-                friendly_name = state.attributes.get("friendly_name", entity_id)
-                friendly_lower = friendly_name.lower()
-
-                # Also check for known OpenTherm integration patterns
-                is_opentherm = (
-                    "opentherm" in entity_lower
-                    or "opentherm" in friendly_lower
-                    or "otgw" in entity_lower
-                    or "otgw" in friendly_lower
-                    or
-                    # Check for OpenTherm-specific attributes
-                    "control_setpoint" in state.attributes
-                    or "ch_water_temp" in state.attributes
-                )
-
-                if is_opentherm:
-                    climate_entities.append(
-                        (entity_id, f"{friendly_name} ({entity_id})")
-                    )
-
-        # Sort by friendly name
-        climate_entities.sort(key=lambda x: x[1])
-
-        # Get current options
-        current_gateway = self.config_entry.options.get("opentherm_gateway_id", "")
-        current_enabled = self.config_entry.options.get("opentherm_enabled", True)
-
-        # Create options with "None" option
-        options_dict = {"": "None (Disabled)"}
-        options_dict.update(dict(climate_entities))
-
-        # Show options form
-        _LOGGER.debug(
-            "Showing options form with %d climate entities", len(climate_entities)
-        )
+        # No configuration options - everything is managed via Global Settings
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(
-                        "opentherm_gateway_id",
-                        description={"suggested_value": current_gateway},
-                        default="",
-                    ): vol.In(options_dict),
-                    vol.Optional(
-                        "opentherm_enabled",
-                        description={"suggested_value": current_enabled},
-                        default=True,
-                    ): bool,
-                }
-            ),
+            data_schema=vol.Schema({}),
             description_placeholders={
-                "info": "Configure the global OpenTherm gateway that will be used for boiler control across all areas."
+                "info": "All Smart Heating configuration is managed via Global Settings in the Smart Heating panel. "
+                "Click the gear icon in the Smart Heating UI to access Global Settings."
             },
         )
