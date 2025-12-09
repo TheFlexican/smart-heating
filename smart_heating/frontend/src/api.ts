@@ -689,21 +689,22 @@ export const getOpenThermSensorStates = async (): Promise<{
   control_setpoint?: number
   modulation_level?: number
   ch_water_temp?: number
-  flow_temp?: number
+  return_water_temp?: number
   room_temp?: number
   room_setpoint?: number
-  boiler_status?: string
   flame_on?: boolean
+  ch_pressure?: number
 }> => {
   // Get multiple sensor states in parallel
   const sensorIds = [
-    'sensor.opentherm_ketel_regel_instelpunt_1',
-    'sensor.opentherm_ketel_modulatie_niveau',
-    'sensor.opentherm_ketel_cv_watertemperatuur',
-    'sensor.opentherm_ketel_aanvoertemperatuur',
-    'sensor.opentherm_thermostaat_kamertemperatuur',
-    'sensor.opentherm_thermostaat_kamer_instelpunt',
-    'binary_sensor.opentherm_ketel_vlam_status',
+    'sensor.opentherm_ketel_regel_instelpunt_1',  // Control setpoint
+    'sensor.opentherm_ketel_relatief_modulatieniveau',  // Modulation level
+    'sensor.opentherm_ketel_centrale_verwarming_1_watertemperatuur',  // CH water temp
+    'sensor.opentherm_ketel_temperatuur_retourwater',  // Return water temp
+    'sensor.opentherm_thermostaat_kamertemperatuur',  // Room temperature
+    'sensor.opentherm_thermostaat_room_setpoint_1',  // Room setpoint
+    'binary_sensor.opentherm_ketel_vlam',  // Flame status
+    'sensor.opentherm_ketel_waterdruk_centrale_verwarming',  // CH pressure
   ]
 
   const results = await Promise.allSettled(
@@ -712,28 +713,31 @@ export const getOpenThermSensorStates = async (): Promise<{
 
   const states: any = {}
 
-  results.forEach((result, index) => {
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i]
     if (result.status === 'fulfilled' && result.value) {
-      const sensorId = sensorIds[index]
+      const sensorId = sensorIds[i]
       const value = result.value.state
 
-      if (sensorId.includes('regel_instelpunt')) {
-        states.control_setpoint = parseFloat(value)
-      } else if (sensorId.includes('modulatie')) {
-        states.modulation_level = parseFloat(value)
-      } else if (sensorId.includes('cv_water')) {
-        states.ch_water_temp = parseFloat(value)
-      } else if (sensorId.includes('aanvoer')) {
-        states.flow_temp = parseFloat(value)
+      if (sensorId.includes('regel_instelpunt_1')) {
+        states.control_setpoint = Number.parseFloat(value)
+      } else if (sensorId.includes('relatief_modulatieniveau')) {
+        states.modulation_level = Number.parseFloat(value)
+      } else if (sensorId.includes('centrale_verwarming_1_watertemperatuur')) {
+        states.ch_water_temp = Number.parseFloat(value)
+      } else if (sensorId.includes('temperatuur_retourwater')) {
+        states.return_water_temp = Number.parseFloat(value)
       } else if (sensorId.includes('kamertemperatuur')) {
-        states.room_temp = parseFloat(value)
-      } else if (sensorId.includes('kamer_instelpunt')) {
-        states.room_setpoint = parseFloat(value)
+        states.room_temp = Number.parseFloat(value)
+      } else if (sensorId.includes('room_setpoint_1')) {
+        states.room_setpoint = Number.parseFloat(value)
       } else if (sensorId.includes('vlam')) {
         states.flame_on = value === 'on'
+      } else if (sensorId.includes('waterdruk')) {
+        states.ch_pressure = Number.parseFloat(value)
       }
     }
-  })
+  }
 
   return states
 }

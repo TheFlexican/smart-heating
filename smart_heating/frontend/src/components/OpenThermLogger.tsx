@@ -330,8 +330,8 @@ export default function OpenThermLogger() {
               </Grid>
             )}
 
-            {/* Flow Temperature */}
-            {sensorStates.flow_temp !== undefined && (
+            {/* Return Water Temperature */}
+            {sensorStates.return_water_temp !== undefined && (
               <Grid item xs={12} sm={6} md={4}>
                 <Card variant="outlined">
                   <CardContent>
@@ -339,10 +339,31 @@ export default function OpenThermLogger() {
                       <OpacityIcon color="primary" />
                       <Box>
                         <Typography variant="caption" color="text.secondary">
-                          {t('opentherm.flowTemp', 'Flow Temperature')}
+                          {t('opentherm.returnWaterTemp', 'Return Water Temp')}
                         </Typography>
                         <Typography variant="h6">
-                          {sensorStates.flow_temp.toFixed(1)}°C
+                          {sensorStates.return_water_temp.toFixed(1)}°C
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
+            {/* CH Pressure */}
+            {sensorStates.ch_pressure !== undefined && (
+              <Grid item xs={12} sm={6} md={4}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <SpeedIcon color="secondary" />
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          {t('opentherm.chPressure', 'CH Pressure')}
+                        </Typography>
+                        <Typography variant="h6">
+                          {sensorStates.ch_pressure.toFixed(2)} bar
                         </Typography>
                       </Box>
                     </Stack>
