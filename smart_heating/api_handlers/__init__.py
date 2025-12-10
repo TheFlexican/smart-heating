@@ -73,6 +73,7 @@ from .opentherm import (
     handle_clear_opentherm_logs,
     handle_discover_opentherm_capabilities,
     handle_get_opentherm_logs,
+    handle_get_opentherm_gateways,
 )
 from .schedules import (
     handle_add_schedule,
@@ -183,6 +184,7 @@ __all__ = [
     "handle_get_opentherm_logs",
     "handle_discover_opentherm_capabilities",
     "handle_clear_opentherm_logs",
+    "handle_get_opentherm_gateways",
     # System
     "handle_get_status",
     "handle_get_entity_state",

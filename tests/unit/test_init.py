@@ -118,7 +118,7 @@ class TestIntegrationSetup:
             entry_id="test_entry_id",
             title="Smart Heating",
             options={
-                "opentherm_gateway_id": "climate.opentherm",
+                "opentherm_gateway_id": "gateway1",
                 "opentherm_enabled": True,
             },
         )
@@ -170,8 +170,73 @@ class TestIntegrationSetup:
 
             # Verify OpenTherm gateway was set
             mock_area_manager.set_opentherm_gateway.assert_called_once_with(
-                "climate.opentherm", enabled=True
+                "gateway1", enabled=True
             )
+
+    async def test_async_setup_entry_skip_override_if_numeric_saved(self, hass: HomeAssistant):
+        """If a numeric ID is present in storage, the options entity id should not override it."""
+        from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+        # Simulate existing numeric gateway in saved AreaManager storage
+        mock_config_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={"name": "Smart Heating"},
+            entry_id="test_entry_id",
+            title="Smart Heating",
+            options={
+                "opentherm_gateway_id": "gateway1",
+                "opentherm_enabled": True,
+            },
+        )
+        mock_config_entry.add_to_hass(hass)
+
+        with (
+            patch("smart_heating.AreaManager") as mock_area_manager_class,
+            patch("smart_heating.HistoryTracker") as mock_history_class,
+            patch("smart_heating.AreaLogger"),
+            patch("smart_heating.VacationManager") as mock_vacation_class,
+            patch("smart_heating.SafetyMonitor") as mock_safety_class,
+            patch("smart_heating.LearningEngine"),
+            patch("smart_heating.SmartHeatingCoordinator") as mock_coordinator_class,
+            patch("smart_heating.ClimateController"),
+            patch("smart_heating.ScheduleExecutor") as mock_schedule_class,
+            patch("smart_heating.setup_api"),
+            patch("smart_heating.setup_websocket"),
+            patch("smart_heating.async_register_panel"),
+            patch("smart_heating.async_setup_services"),
+            patch.object(hass.config_entries, "async_forward_entry_setups", new=AsyncMock()),
+        ):
+            # Setup all async mocks properly
+            mock_area_manager = MagicMock()
+            mock_area_manager.async_load = AsyncMock()
+            # Pretend async_load loads a numeric Gateway ID
+            mock_area_manager.opentherm_gateway_id = "128937219831729813"
+            mock_area_manager.set_opentherm_gateway = MagicMock()
+            mock_area_manager_class.return_value = mock_area_manager
+
+            mock_history = MagicMock()
+            mock_history.async_load = AsyncMock()
+            mock_history_class.return_value = mock_history
+
+            mock_vacation = MagicMock()
+            mock_vacation.async_load = AsyncMock()
+            mock_vacation_class.return_value = mock_vacation
+
+            mock_safety = MagicMock()
+            mock_safety.async_setup = AsyncMock()
+            mock_safety_class.return_value = mock_safety
+
+            mock_schedule = MagicMock()
+            mock_schedule.async_start = AsyncMock()
+            mock_schedule_class.return_value = mock_schedule
+
+            mock_coordinator = MagicMock()
+            mock_coordinator.async_setup = AsyncMock()
+            mock_coordinator_class.return_value = mock_coordinator  # Run setup
+            await async_setup_entry(hass, mock_config_entry)
+
+            # Verify that set_opentherm_gateway was not called to override the numeric ID
+            mock_area_manager.set_opentherm_gateway.assert_not_called()
 
     async def test_async_unload_entry_success(self, hass: HomeAssistant, mock_config_entry):
         """Test successful integration unload."""

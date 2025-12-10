@@ -141,6 +141,7 @@ Device:
 - **valve** - TRVs with position or temperature control
   - Dynamic capability detection at runtime
 - **opentherm_gateway** - Global boiler control (shared across areas)
+  - Configuration in HA: The integration has its own id (slug) and can be used by Smart Heating as a global gateway for boiler control.
 
 **Key Methods:**
 - `get_effective_target_temperature()` - Calculates target with schedules + night boost
@@ -149,6 +150,8 @@ Device:
 - `get_switches()` - Get switch devices in area (NEW)
 - `get_valves()` - Get valve devices in area (NEW)
 - `set_opentherm_gateway()` - Configure global OpenTherm gateway (NEW)
+  - `set_opentherm_gateway()` - Configure global OpenTherm gateway (NEW). The value should be the integration's ID/slug (e.g., "gateway1").
+  - The frontend presents a dropdown in Settings → OpenTherm which lists all configured OpenTherm Gateway integration entries from Home Assistant. Select one to enable global boiler control.
 - `set_trv_temperatures()` - Set TRV heating/idle temperatures (NEW)
 
 ### 2. Coordinator (`coordinator.py`)
@@ -244,7 +247,7 @@ Automated heating control engine with multi-device support.
    - Example: Google Nest thermostat heating to 19.2°C while area target is 19.2°C → switch stays ON until hvac_action changes to "idle"
 
 3. **_async_control_valves()** - Intelligent valve control with dynamic capability detection
-   
+
    **Capability Detection** (`_get_valve_capability()`):
    - **100% runtime detection** - NO hardcoded device models
    - Queries entity attributes and domain to determine control mode
@@ -255,7 +258,7 @@ Automated heating control engine with multi-device support.
      - `supports_temperature`: Boolean for temperature control capability
      - `position_min/max`: Min/max values for position entities
      - `entity_domain`: Entity type (number, climate, etc.)
-   
+
    **Control Modes**:
    - **Position mode** (`number.*` entities or `climate.*` with position attribute):
      - Queries `min`/`max` attributes from entity
@@ -851,7 +854,7 @@ CreateZoneDialog collects input
 Auto Mode (default):
     - primary_temperature_sensor = null
     - Averages ALL temperature sensors + thermostats in area
-    
+
 Primary Sensor Mode:
     - primary_temperature_sensor = "sensor.xyz" or "climate.abc"
     - Uses ONLY the selected device for temperature

@@ -601,6 +601,8 @@ class DeviceControlHandler:
                     return
 
                 try:
+                    # Use the OpenTherm integration service directly and expect the
+                    # configured gateway_id (slug) to be provided by options.
                     await self.hass.services.async_call(
                         "opentherm_gw",
                         "set_control_setpoint",
@@ -611,7 +613,7 @@ class DeviceControlHandler:
                         blocking=False,
                     )
                     _LOGGER.info(
-                        "OpenTherm gateway: Set setpoint via service (gateway_id=%s): %.1f°C",
+                        "OpenTherm gateway: Set setpoint via gateway service (gateway_id=%s): %.1f°C",
                         gateway_device_id,
                         boiler_setpoint,
                     )

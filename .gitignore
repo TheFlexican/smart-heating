@@ -73,8 +73,6 @@ coverage_html/
 
 # Other files
 .ha_token
-deploy_production.sh
-create_backup.sh
 copilot-instructions.md
 .ruff_cache
 venv

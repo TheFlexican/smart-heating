@@ -595,7 +595,7 @@ class TestOpenThermControl:
     ):
         """Test OpenTherm control when heating is required."""
         mock_area_manager.opentherm_enabled = True
-        mock_area_manager.opentherm_gateway_id = "climate.opentherm"
+        mock_area_manager.opentherm_gateway_id = "gateway1"
 
         await climate_controller._async_control_opentherm_gateway(True, 45.0)
 
@@ -605,9 +605,9 @@ class TestOpenThermControl:
         # async_call(domain, service, service_data, blocking)
         # args[0] = positional args tuple (domain, service, service_data, blocking)
         # args[1] = kwargs dict
-        assert call_args.args[0] == "climate"
-        assert call_args.args[1] == "set_temperature"
-        assert call_args.args[2]["entity_id"] == "climate.opentherm"
+        assert call_args.args[0] == "opentherm_gw"
+        assert call_args.args[1] == "set_control_setpoint"
+        assert call_args.args[2]["gateway_id"] == "gateway1"
         assert call_args.args[2]["temperature"] == 65.0  # 45 + 20
 
     @pytest.mark.asyncio
@@ -616,7 +616,7 @@ class TestOpenThermControl:
     ):
         """Test OpenTherm control when no heating is required."""
         mock_area_manager.opentherm_enabled = True
-        mock_area_manager.opentherm_gateway_id = "climate.opentherm"
+        mock_area_manager.opentherm_gateway_id = "gateway1"
 
         await climate_controller._async_control_opentherm_gateway(False, 0.0)
 
@@ -624,9 +624,10 @@ class TestOpenThermControl:
         mock_hass.services.async_call.assert_called_once()
         call_args = mock_hass.services.async_call.call_args
         # async_call(domain, service, service_data, blocking)
-        assert call_args.args[0] == "climate"
-        assert call_args.args[1] == "turn_off"
-        assert call_args.args[2]["entity_id"] == "climate.opentherm"
+        assert call_args.args[0] == "opentherm_gw"
+        assert call_args.args[1] == "set_control_setpoint"
+        assert call_args.args[2]["gateway_id"] == "gateway1"
+        assert call_args.args[2]["temperature"] == 0.0
 
 
 class TestValveCapabilities:

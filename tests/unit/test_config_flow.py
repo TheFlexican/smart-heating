@@ -62,6 +62,25 @@ class TestConfigFlow:
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
 
+    async def test_options_flow_lists_gateways(self, hass: HomeAssistant, mock_config_entry):
+        """Options flow should list configured OpenTherm gateway entries."""
+        mock_config_entry.add_to_hass(hass)
+
+        # Create an OpenTherm gateway config entry
+        from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+        ot_entry = MockConfigEntry(domain="opentherm_gw", data={"id": "gateway1"}, title="GW1")
+        ot_entry.add_to_hass(hass)
+
+        flow = SmartHeatingOptionsFlowHandler()
+        flow.hass = hass
+        flow.handler = mock_config_entry.entry_id
+
+        result = await flow.async_step_init(user_input=None)
+        assert result["type"] == FlowResultType.FORM
+        # Ensure the schema includes our field name, implying the flow supports gateway selection
+        assert "opentherm_gateway_id" in str(result["data_schema"])
+
 
 class TestImportFlow:
     """Test the import flow."""

@@ -108,6 +108,7 @@ Navigate to: `http://your-home-assistant:8123/api/smart_heating/`
 - **Frost Protection** - Minimum temperature (default: 7°C)
 - **Hysteresis** - Temperature buffer to prevent rapid cycling (0.1-2.0°C)
 - **Safety Sensors** - Smoke/CO detectors for emergency shutdown
+ - **OpenTherm Gateway** - Select the OpenTherm Gateway integration entry from HA (by its `id`/slug). Add the OpenTherm Gateway integration in HA first via Settings → Integrations if it's not present.
 
 ### Zone Settings
 - **Target Temperature** - Base temperature for the zone

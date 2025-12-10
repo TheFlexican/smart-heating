@@ -149,6 +149,8 @@ Device:
 - `get_switches()` - Haal schakelaar apparaten in zone op (NIEUW)
 - `get_valves()` - Haal klep apparaten in zone op (NIEUW)
 - `set_opentherm_gateway()` - Configureer globale OpenTherm gateway (NIEUW)
+  - `set_opentherm_gateway()` - Configureer globale OpenTherm gateway (NIEUW). De waarde moet de integratie-ID/slug zijn (bijv. 'gateway1').
+  - De frontend toont in Instellingen → OpenTherm een dropdown met alle geconfigureerde OpenTherm Gateway integratie entries van Home Assistant. Kies er een om globale ketelbesturing in te schakelen.
 - `set_trv_temperatures()` - Stel TRV verwarmings-/inactieve temperaturen in (NIEUW)
 
 ### 2. Coordinator (`coordinator.py`)
@@ -244,7 +246,7 @@ Geautomatiseerde verwarmings controle engine met multi-apparaat ondersteuning.
    - Voorbeeld: Google Nest thermostaat verwarmt naar 19.2°C terwijl zone doel 19.2°C is → schakelaar blijft AAN tot hvac_action verandert naar "idle"
 
 3. **_async_control_valves()** - Intelligente klep controle met dynamische capability detectie
-   
+
    **Capability Detectie** (`_get_valve_capability()`):
    - **100% runtime detectie** - GEEN hardcoded apparaat modellen
    - Bevraagt entiteit attributen en domein om controle modus te bepalen
@@ -255,7 +257,7 @@ Geautomatiseerde verwarmings controle engine met multi-apparaat ondersteuning.
      - `supports_temperature`: Boolean voor temperatuur controle capability
      - `position_min/max`: Min/max waarden voor positie entiteiten
      - `entity_domain`: Entiteit type (number, climate, etc.)
-   
+
    **Controle Modi**:
    - **Positie modus** (`number.*` entiteiten of `climate.*` met positie attribuut):
      - Bevraagt `min`/`max` attributen van entiteit
@@ -863,7 +865,7 @@ CreateZoneDialog verzamelt invoer
 Auto Modus (standaard):
     - primary_temperature_sensor = null
     - Middelt ALLE temperatuursensoren + thermostaten in zone
-    
+
 Primaire Sensor Modus:
     - primary_temperature_sensor = "sensor.xyz" of "climate.abc"
     - Gebruikt ALLEEN het geselecteerde apparaat voor temperatuur

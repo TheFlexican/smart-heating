@@ -187,6 +187,19 @@
       "description": "Customize the user interface to your preferences.",
       "hideDevicesPanel": "Hide Available Devices Panel",
       "hideDevicesPanelDescription": "Hide the sidebar with available devices when you're done setting up zones. You can always enable it again later if needed."
+    },
+    "opentherm": {
+      "title": "OpenTherm Gateway Configuration",
+      "importantNote": "Important: Select an OpenTherm Gateway",
+      "description": "Select the integration 'ID' (slug) for your OpenTherm Gateway from the list below. Do not use the climate entity ID.",
+      "findId": "Find the gateway integration entry in: Settings → Devices & Services → OpenTherm Gateway → Click \"Configure\" and view the ID field.",
+      "gatewayId": "Gateway Integration ID (slug)",
+      "gatewayIdHelp": "Select the gateway integration ID from the configured OpenTherm gateways.",
+      "enabled": "Enable OpenTherm Control",
+      "save": "Save Configuration"
+    ,
+    "noGateways": "No OpenTherm gateways found. Please add the OpenTherm Gateway integration in Home Assistant.",
+    "openIntegrations": "Open Integrations"
     }
   },
   "presetDescriptions": {

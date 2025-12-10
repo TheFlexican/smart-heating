@@ -146,7 +146,7 @@ async def handle_set_opentherm_gateway(
     Returns:
         JSON response
     """
-    gateway_id = data.get("gateway_id")
+    gateway_id = data.get("gateway_id") or None
     enabled = data.get("enabled", True)
 
     await area_manager.set_opentherm_gateway(gateway_id, enabled)
@@ -154,6 +154,26 @@ async def handle_set_opentherm_gateway(
     # Refresh coordinator to update state
     if coordinator:
         await coordinator.async_request_refresh()
+
+    # Sync to HA ConfigEntry options if a coordinator is available (integration case)
+    try:
+        if coordinator and getattr(coordinator, "config_entry", None):
+            entry = coordinator.config_entry
+            hass = coordinator.hass
+            # Build new options preserving existing ones
+            new_options = dict(entry.options or {})
+            new_options["opentherm_gateway_id"] = gateway_id or ""
+            new_options["opentherm_enabled"] = bool(enabled)
+            await hass.config_entries.async_update_entry(entry, options=new_options)
+            _LOGGER.debug(
+                "HA ConfigEntry options updated with OpenTherm gateway: %s (enabled: %s)",
+                gateway_id,
+                enabled,
+            )
+    except Exception as err:
+        _LOGGER.error(
+            "Failed to update HA ConfigEntry options for OpenTherm gateway: %s", err
+        )
 
     _LOGGER.info(
         "OpenTherm Gateway configured: gateway_id=%s, enabled=%s", gateway_id, enabled

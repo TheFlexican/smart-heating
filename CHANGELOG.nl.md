@@ -29,6 +29,9 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
   - Fout details: sensor naam, vriendelijke naam, tijdstempel
   - Gegroepeerde notificaties per fout type
 - **Veiligheid integratie**: OpenTherm fout sensors kunnen toegevoegd worden aan Globale Instellingen → Veiligheid
+  **OpenTherm Gateway Selectie**
+  - Frontend: De OpenTherm tab in Globale Instellingen toont nu een dropdown met geconfigureerde OpenTherm Gateway integratie entries (op basis van `id`/slug). Kies hier de gateway die gebruikt wordt voor globale ketelbesturing om te voorkomen dat er climate entiteit IDs worden ingevoerd.
+
   - Automatische verwarming shutdown wanneer ketel fouten rapporteert
   - Voorkomt schade door voortgezet gebruik tijdens storingen
   - Voorbeeld: Voeg `binary_sensor.opentherm_ketel_storingsindicatie` toe aan veiligheid sensors

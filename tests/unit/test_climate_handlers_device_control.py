@@ -631,17 +631,14 @@ class TestAsyncControlOpenthermGateway:
     async def test_turn_on_gateway_when_heating(self, device_handler, mock_area_manager):
         """Test turning on OpenTherm gateway when heating required."""
         mock_area_manager.opentherm_enabled = True
-        mock_area_manager.opentherm_gateway_id = "climate.opentherm_gw"
+        mock_area_manager.opentherm_gateway_id = "gateway1"
 
         await device_handler.async_control_opentherm_gateway(True, 22.0)
 
         device_handler.hass.services.async_call.assert_called_once_with(
-            "climate",
-            "set_temperature",
-            {
-                "entity_id": "climate.opentherm_gw",
-                "temperature": 42.0,  # 22 + 20
-            },
+            "opentherm_gw",
+            "set_control_setpoint",
+            {"gateway_id": "gateway1", "temperature": 42.0},
             blocking=False,
         )
 
@@ -649,14 +646,14 @@ class TestAsyncControlOpenthermGateway:
     async def test_turn_off_gateway_when_idle(self, device_handler, mock_area_manager):
         """Test turning off OpenTherm gateway when no heating required."""
         mock_area_manager.opentherm_enabled = True
-        mock_area_manager.opentherm_gateway_id = "climate.opentherm_gw"
+        mock_area_manager.opentherm_gateway_id = "gateway1"
 
         await device_handler.async_control_opentherm_gateway(False, 0.0)
 
         device_handler.hass.services.async_call.assert_called_once_with(
-            "climate",
-            "turn_off",
-            {"entity_id": "climate.opentherm_gw"},
+            "opentherm_gw",
+            "set_control_setpoint",
+            {"gateway_id": "gateway1", "temperature": 0.0},
             blocking=False,
         )
 
@@ -664,7 +661,7 @@ class TestAsyncControlOpenthermGateway:
     async def test_error_handling(self, device_handler, mock_area_manager):
         """Test error handling for failed gateway control."""
         mock_area_manager.opentherm_enabled = True
-        mock_area_manager.opentherm_gateway_id = "climate.broken_gw"
+        mock_area_manager.opentherm_gateway_id = "broken_gateway"
 
         device_handler.hass.services.async_call.side_effect = Exception("Connection error")
 

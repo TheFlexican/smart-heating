@@ -15,7 +15,11 @@ import {
   Tabs,
   Tab,
   Switch,
-  TextField,
+  // TextField no longer used in this file
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
   FormControlLabel,
   Accordion,
   AccordionSummary,
@@ -34,7 +38,7 @@ import FireplaceIcon from '@mui/icons-material/Fireplace'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis, getSafetySensor, setSafetySensor, removeSafetySensor, setHideDevicesPanel, getConfig, setOpenthermGateway, type SafetySensorResponse } from '../api'
+import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis, getSafetySensor, setSafetySensor, removeSafetySensor, setHideDevicesPanel, getConfig, setOpenthermGateway, getOpenthermGateways, type SafetySensorResponse } from '../api'
 import { PresenceSensorConfig, WindowSensorConfig, SafetySensorConfig } from '../types'
 import SensorConfigDialog from '../components/SensorConfigDialog'
 import SafetySensorConfigDialog from '../components/SafetySensorConfigDialog'
@@ -114,6 +118,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
   const [openthermGatewayId, setOpenthermGatewayId] = useState<string>('')
   const [openthermEnabled, setOpenthermEnabled] = useState<boolean>(false)
   const [openthermSaving, setOpenthermSaving] = useState(false)
+  const [openthermGateways, setOpenthermGateways] = useState<Array<{gateway_id: string, title: string}>>([])
 
   useEffect(() => {
     loadPresets()
@@ -121,6 +126,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
     loadPresenceSensors()
     loadSafetySensor()
     loadConfig()
+    loadOpenthermGateways()
   }, [])
 
   const loadConfig = async () => {
@@ -133,6 +139,15 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
       setOpenthermEnabled(config.opentherm_enabled || false)
     } catch (err) {
       console.error('Error loading config:', err)
+    }
+  }
+
+  const loadOpenthermGateways = async () => {
+    try {
+      const gateways = await getOpenthermGateways()
+      setOpenthermGateways(gateways)
+    } catch (err) {
+      console.error('Error loading OpenTherm gateways:', err)
     }
   }
 
@@ -787,19 +802,46 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               </Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                {t('globalSettings.opentherm.description', 'Configure the OpenTherm Gateway device ID for boiler control. Find the ID in Settings → Devices & Services → OpenTherm Gateway → Configure → ID field.')}
-              </Typography>
+              <Box sx={{ mb: 3, p: 2, bgcolor: 'info.main', color: 'info.contrastText', borderRadius: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  ⚠️ {t('globalSettings.opentherm.importantNote', 'Important: Use Numeric ID Only')}
+                </Typography>
+                <Typography variant="body2">
+                  {t('globalSettings.opentherm.description', 'Enter the numeric integration ID (e.g., 128937219831729813), NOT the entity ID (e.g., climate.opentherm_thermostaat).')}
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  {t('globalSettings.opentherm.findId', 'Find this ID in: Settings → Devices & Services → OpenTherm Gateway → Click "Configure" → Look for "ID" field (numeric value).')}
+                </Typography>
+              </Box>
 
               <Stack spacing={3}>
-                <TextField
-                  label={t('globalSettings.opentherm.gatewayId', 'Gateway Device ID')}
-                  value={openthermGatewayId}
-                  onChange={(e) => setOpenthermGatewayId(e.target.value)}
-                  placeholder=""
-                  helperText={t('globalSettings.opentherm.gatewayIdHelp', 'Numeric ID from OpenTherm Gateway integration configuration')}
-                  fullWidth
-                />
+                {openthermGateways.length === 0 && (
+                  <Alert severity="warning">
+                    {t(
+                      'globalSettings.opentherm.noGateways',
+                      'No OpenTherm gateways found. Please add the OpenTherm Gateway integration in Home Assistant and configure its gateway ID.'
+                    )}{' '}
+                    <a href="/config/integrations" target="_blank" rel="noreferrer">
+                      {t('globalSettings.openIntegrations', 'Open Integrations')}
+                    </a>
+                  </Alert>
+                )}
+                <FormControl fullWidth>
+                  <InputLabel id="opentherm-gateway-select-label">{t('globalSettings.opentherm.gatewayId', 'Gateway Integration ID (ID or slug)')}</InputLabel>
+                  <Select
+                    labelId="opentherm-gateway-select-label"
+                    value={openthermGatewayId}
+                    label={t('globalSettings.opentherm.gatewayId', 'Gateway Integration ID (ID or slug)')}
+                    onChange={(e) => setOpenthermGatewayId(e.target.value as string)}
+                  >
+                    <MenuItem value="">None (Disabled)</MenuItem>
+                    {openthermGateways.map((g) => (
+                      <MenuItem key={g.gateway_id} value={g.gateway_id}>
+                        {g.title}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
                 <FormControlLabel
                   control={
@@ -814,7 +856,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                 <Button
                   variant="contained"
                   onClick={handleSaveOpenthermConfig}
-                  disabled={openthermSaving || !openthermGatewayId.trim()}
+                  disabled={openthermSaving || (openthermEnabled && !openthermGatewayId)}
                 >
                   {openthermSaving ? (
                     <CircularProgress size={24} />

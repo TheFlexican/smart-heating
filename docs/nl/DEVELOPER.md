@@ -108,6 +108,8 @@ npm test -- --debug         # Voer uit in debug mode
 
 **Test Bestanden:**
 - `navigation.spec.ts` - Navigatie en UI tests
+Voor OpenTherm Gateway gerelateerde tests, zie ook `docs/nl/OPENTHERM.md`.
+
 - `temperature-control.spec.ts` - Temperatuur aanpassing tests
 - `boost-mode.spec.ts` - Boost mode functionaliteit
 - `manual-override.spec.ts` - Handmatige override detectie (5 tests)
@@ -208,7 +210,7 @@ npm run type-check
 3. **Gebruik in Component**:
    ```typescript
    import { useTranslation } from 'react-i18next'
-   
+
    const MyComponent = () => {
      const { t } = useTranslation()
      return <div>{t('common.myNewKey')}</div>
@@ -261,25 +263,25 @@ Deze functie demonstreert de volledige stack voor het toevoegen van een nieuw AP
        """Stel primaire temperatuursensor in voor zone."""
        data = await request.json()
        sensor_id = data.get("sensor_id")
-       
+
        # Valideer zone bestaat
        area = await area_manager.get_area(area_id)
        if not area:
            return web.json_response({"error": "Zone niet gevonden"}, status=404)
-       
+
        # Valideer sensor (kan null zijn voor auto modus)
        if sensor_id:
            devices = area.get_all_devices()
            if sensor_id not in devices:
                return web.json_response(
-                   {"error": "Sensor niet gevonden in zone"}, 
+                   {"error": "Sensor niet gevonden in zone"},
                    status=400
                )
-       
+
        # Werk zone bij
        area.primary_temperature_sensor = sensor_id
        await area_manager.update_area(area)
-       
+
        return web.json_response({"success": True, "sensor_id": sensor_id})
    ```
 
@@ -307,7 +309,7 @@ Deze functie demonstreert de volledige stack voor het toevoegen van een nieuw AP
 4. **React Component** (`AreaDetail.tsx`):
    ```typescript
    import { setPrimaryTemperatureSensor } from '../api'
-   
+
    const handlePrimarySensorChange = async (event: SelectChangeEvent) => {
      const value = event.target.value === 'auto' ? null : event.target.value
      await setPrimaryTemperatureSensor(area.id, value)
@@ -323,14 +325,14 @@ Deze functie demonstreert de volledige stack voor het toevoegen van een nieuw AP
        area: Area
    ) -> dict[str, float]:
        """Verzamel temperaturen, prioriteer primaire sensor indien ingesteld."""
-       
+
        # Als primaire sensor geconfigureerd, gebruik deze exclusief
        if area.primary_temperature_sensor:
            state = hass.states.get(area.primary_temperature_sensor)
            if state and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
                temp = float(state.state)
                return {area.primary_temperature_sensor: temp}
-       
+
        # Val terug naar middelen van alle sensoren
        temps = {}
        for sensor_id in area.temperature_sensors:
@@ -368,7 +370,7 @@ Deze functie demonstreert de volledige stack voor het toevoegen van een nieuw AP
 4. **Gebruik in component**:
    ```typescript
    import { myEndpoint } from '../api'
-   
+
    const handleAction = async () => {
      await myEndpoint({ param: 'value' })
    }
@@ -452,7 +454,7 @@ wsRef.current?.close()
 1. **Engels** (`CHANGELOG.md`):
    ```markdown
    ## [0.x.0] - 2025-XX-XX
-   
+
    ### Added
    - New feature description
    ```
@@ -460,7 +462,7 @@ wsRef.current?.close()
 2. **Nederlands** (`CHANGELOG.nl.md`):
    ```markdown
    ## [0.x.0] - 2025-XX-XX
-   
+
    ### Toegevoegd
    - Nieuwe functie omschrijving
    ```
@@ -571,7 +573,7 @@ De test omgeving (setup.sh) bevat twee veiligheids sensoren voor testen:
    mosquitto_pub -h localhost -p 1883 \
      -t zigbee2mqtt/smoke_detector \
      -m '{"smoke": false, "battery": 100, "linkquality": 120}'
-   
+
    # Schakel zones handmatig weer in via UI of API
    curl -X POST \
      -H "Authorization: Bearer YOUR_TOKEN" \

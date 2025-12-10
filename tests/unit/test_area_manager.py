@@ -60,7 +60,7 @@ class TestAreaManagerLoading:
         """Test loading with existing data."""
         storage_data = {
             "opentherm_enabled": True,
-            "opentherm_gateway_id": "climate.opentherm",
+            "opentherm_gateway_id": "gateway1",
             "global_eco_temp": 18.0,
             "global_comfort_temp": 21.0,
             "areas": [mock_area_data],  # List, not dict
@@ -69,7 +69,7 @@ class TestAreaManagerLoading:
         with patch.object(area_manager._store, "async_load", return_value=storage_data):
             await area_manager.async_load()
             assert area_manager.opentherm_enabled is True
-            assert area_manager.opentherm_gateway_id == "climate.opentherm"
+            assert area_manager.opentherm_gateway_id == "gateway1"
             assert area_manager.global_eco_temp == 18.0
             assert TEST_AREA_ID in area_manager.areas
 
@@ -278,14 +278,14 @@ class TestGlobalSettings:
 
     def test_set_opentherm_gateway(self, area_manager: AreaManager):
         """Test setting OpenTherm gateway."""
-        area_manager.set_opentherm_gateway("climate.opentherm", enabled=True)
-        assert area_manager.opentherm_gateway_id == "climate.opentherm"
+        area_manager.set_opentherm_gateway("gateway1", enabled=True)
+        assert area_manager.opentherm_gateway_id == "gateway1"
         assert area_manager.opentherm_enabled is True
 
     def test_set_opentherm_gateway_disabled(self, area_manager: AreaManager):
         """Test setting OpenTherm gateway disabled."""
-        area_manager.set_opentherm_gateway("climate.opentherm", enabled=False)
-        assert area_manager.opentherm_gateway_id == "climate.opentherm"
+        area_manager.set_opentherm_gateway("gateway1", enabled=False)
+        assert area_manager.opentherm_gateway_id == "gateway1"
         assert area_manager.opentherm_enabled is False
 
     def test_global_preset_temperatures(self, area_manager: AreaManager):

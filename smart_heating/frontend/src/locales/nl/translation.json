@@ -187,6 +187,19 @@
       "description": "Pas de gebruikersinterface aan naar uw voorkeuren.",
       "hideDevicesPanel": "Verberg Beschikbare Apparaten Paneel",
       "hideDevicesPanelDescription": "Verberg de sidebar met beschikbare apparaten wanneer u klaar bent met het instellen van zones. U kunt deze later altijd weer inschakelen indien nodig."
+    },
+    "opentherm": {
+      "title": "OpenTherm Gateway Configuratie",
+      "importantNote": "Belangrijk: Selecteer een OpenTherm Gateway",
+      "description": "Selecteer het integratie-ID (slug) voor uw OpenTherm Gateway uit de lijst hieronder. Gebruik geen climate-entiteit-ID.",
+      "findId": "Vind de gateway-integratie in: Instellingen → Apparaten & Diensten → OpenTherm Gateway → Klik \"Configureren\" en bekijk het ID-veld.",
+      "gatewayId": "Gateway Integratie-ID (slug)",
+      "gatewayIdHelp": "Selecteer het gateway-integratie-ID uit de geconfigureerde OpenTherm gateways.",
+      "enabled": "OpenTherm Besturing Inschakelen",
+      "save": "Configuratie Opslaan"
+    ,
+    "noGateways": "Geen OpenTherm gateways gevonden. Voeg eerst de OpenTherm Gateway-integratie toe in Home Assistant.",
+    "openIntegrations": "Open Integraties"
     }
   },
   "presetDescriptions": {

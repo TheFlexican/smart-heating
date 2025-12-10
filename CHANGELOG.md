@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - Error details: sensor name, friendly name, timestamp
   - Grouped notifications by error type
 - **Safety integration**: OpenTherm error sensors can be added to Global Settings → Safety
+  **OpenTherm Gateway Selection**
+  - Frontend: The Global Settings OpenTherm tab now lists configured OpenTherm Gateway integration entries (by `id`/slug) and allows selecting the gateway used for global boiler control. This prevents users from entering climate entity IDs and ensures correct usage of the OTGW service calls.
+
   - Automatic heating shutdown when boiler reports errors
   - Prevents damage from continued operation during faults
   - Example: Add `binary_sensor.opentherm_ketel_storingsindicatie` to safety sensors

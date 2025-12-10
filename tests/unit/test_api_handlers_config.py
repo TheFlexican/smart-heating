@@ -1,9 +1,12 @@
-"""Tests for configuration API handlers."""
+"""Unit tests for config API handlers."""
+
+from __future__ import annotations
 
 import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from homeassistant.core import HomeAssistant
 from smart_heating.api_handlers.config import (
     handle_disable_vacation_mode,
     handle_enable_vacation_mode,
@@ -19,9 +22,16 @@ from smart_heating.api_handlers.config import (
     handle_set_global_presets,
     handle_set_hvac_mode,
     handle_set_hysteresis_value,
+    handle_set_opentherm_gateway,
     handle_set_safety_sensor,
 )
+from smart_heating.area_manager import AreaManager
 from smart_heating.const import DOMAIN
+
+## The handler test moved down below fixtures to comply with import order linting
+
+
+"""Tests for configuration API handlers."""
 
 
 @pytest.fixture
@@ -75,6 +85,34 @@ def mock_coordinator():
     return coordinator
 
 
+@pytest.mark.asyncio
+async def test_handle_set_opentherm_gateway_updates_config_entry(hass: HomeAssistant):
+    """Verify API handler updates the HA config entry options when a coordinator exists."""
+    # Prepare area manager and coordinator
+    area_manager = MagicMock(spec=AreaManager)
+    area_manager.set_opentherm_gateway = AsyncMock()
+    area_manager.async_save = AsyncMock()
+
+    coordinator = MagicMock()
+    # Mock coordinator.config_entry and coordinator.hass
+    coordinator.config_entry = MagicMock()
+    coordinator.config_entry.options = {}
+    coordinator.hass = hass
+
+    # Mock hass.config_entries.async_update_entry
+    hass.config_entries.async_update_entry = AsyncMock()
+
+    await handle_set_opentherm_gateway(
+        area_manager, coordinator, {"gateway_id": "gateway1", "enabled": True}
+    )
+
+    # Verify area_manager.set_opentherm_gateway was called
+    area_manager.set_opentherm_gateway.assert_called_once_with("gateway1", True)
+
+    # Verify HA config_entry async_update_entry was called
+    hass.config_entries.async_update_entry.assert_called()
+
+
 class TestConfigHandlers:
     """Test configuration API handlers."""
 
@@ -87,7 +125,7 @@ class TestConfigHandlers:
         body = json.loads(response.body.decode())
         assert body["opentherm_gateway_id"] == "climate.gateway"
         assert body["opentherm_enabled"] is True
-        assert body["trv_heating_temp"] == 22.0
+        assert body["trv_heating_temp"] == pytest.approx(22.0)
         assert body["safety_alert_active"] is False
         assert body["hide_devices_panel"] is False
 
@@ -98,12 +136,12 @@ class TestConfigHandlers:
 
         assert response.status == 200
         body = json.loads(response.body.decode())
-        assert body["away_temp"] == 15.0
-        assert body["eco_temp"] == 18.0
-        assert body["comfort_temp"] == 22.0
-        assert body["home_temp"] == 20.0
-        assert body["sleep_temp"] == 17.0
-        assert body["activity_temp"] == 21.0
+        assert body["away_temp"] == pytest.approx(15.0)
+        assert body["eco_temp"] == pytest.approx(18.0)
+        assert body["comfort_temp"] == pytest.approx(22.0)
+        assert body["home_temp"] == pytest.approx(20.0)
+        assert body["sleep_temp"] == pytest.approx(17.0)
+        assert body["activity_temp"] == pytest.approx(21.0)
 
     @pytest.mark.asyncio
     async def test_handle_set_global_presets_all(self, mock_area_manager):
@@ -123,12 +161,12 @@ class TestConfigHandlers:
         body = json.loads(response.body.decode())
         assert body["success"] is True
 
-        assert mock_area_manager.global_away_temp == 14.0
-        assert mock_area_manager.global_eco_temp == 17.0
-        assert mock_area_manager.global_comfort_temp == 23.0
-        assert mock_area_manager.global_home_temp == 19.0
-        assert mock_area_manager.global_sleep_temp == 16.0
-        assert mock_area_manager.global_activity_temp == 22.0
+        assert mock_area_manager.global_away_temp == pytest.approx(14.0)
+        assert mock_area_manager.global_eco_temp == pytest.approx(17.0)
+        assert mock_area_manager.global_comfort_temp == pytest.approx(23.0)
+        assert mock_area_manager.global_home_temp == pytest.approx(19.0)
+        assert mock_area_manager.global_sleep_temp == pytest.approx(16.0)
+        assert mock_area_manager.global_activity_temp == pytest.approx(22.0)
         mock_area_manager.async_save.assert_called_once()
 
     @pytest.mark.asyncio
@@ -139,10 +177,10 @@ class TestConfigHandlers:
         response = await handle_set_global_presets(mock_area_manager, data)
 
         assert response.status == 200
-        assert mock_area_manager.global_eco_temp == 17.5
-        assert mock_area_manager.global_comfort_temp == 21.5
+        assert mock_area_manager.global_eco_temp == pytest.approx(17.5)
+        assert mock_area_manager.global_comfort_temp == pytest.approx(21.5)
         # Others should remain unchanged
-        assert mock_area_manager.global_away_temp == 15.0
+        assert mock_area_manager.global_away_temp == pytest.approx(15.0)
 
     @pytest.mark.asyncio
     async def test_handle_get_hysteresis(self, mock_area_manager):
@@ -151,7 +189,7 @@ class TestConfigHandlers:
 
         assert response.status == 200
         body = json.loads(response.body.decode())
-        assert body["hysteresis"] == 0.5
+        assert body["hysteresis"] == pytest.approx(0.5)
 
     @pytest.mark.asyncio
     async def test_handle_set_hysteresis_value_success(
@@ -168,7 +206,7 @@ class TestConfigHandlers:
         body = json.loads(response.body.decode())
         assert body["success"] is True
 
-        assert mock_area_manager.hysteresis == 0.8
+        assert mock_area_manager.hysteresis == pytest.approx(0.8)
         mock_area_manager.async_save.assert_called_once()
         mock_coordinator.async_request_refresh.assert_called_once()
 
@@ -297,10 +335,10 @@ class TestConfigHandlers:
         body = json.loads(response.body.decode())
         assert body["success"] is True
         assert body["enabled"] is True
-        assert body["temperature"] == 7.0
+        assert body["temperature"] == pytest.approx(7.0)
 
         assert mock_area_manager.frost_protection_enabled is True
-        assert mock_area_manager.frost_protection_temp == 7.0
+        assert mock_area_manager.frost_protection_temp == pytest.approx(7.0)
         mock_area_manager.async_save.assert_called_once()
 
     @pytest.mark.asyncio

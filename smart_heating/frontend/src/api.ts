@@ -790,3 +790,8 @@ export const getOpenThermSensorStates = async (): Promise<{
 
   return states
 }
+
+export const getOpenthermGateways = async (): Promise<Array<{gateway_id: string, title: string}>> => {
+  const response = await axios.get(`${API_BASE}/opentherm/gateways`)
+  return response.data.gateways
+}

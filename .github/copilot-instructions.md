@@ -275,7 +275,7 @@ Real-time updates via `smart_heating/subscribe` event type
 
 ### Debugging
 - Browser: Check Network/Console tabs
-- Backend: `docker logs -f homeassistant-test`
+- Backend: `docker logs homeassistant-test`
 - Common fixes:
   - 500 errors → Check learning_engine exclusions
   - Stale UI → Check WebSocket subscription

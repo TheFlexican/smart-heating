@@ -62,7 +62,36 @@ async def handle_get_opentherm_capabilities(hass: HomeAssistant) -> web.Response
         return web.json_response({"error": str(err)}, status=500)
 
 
-async def handle_discover_opentherm_capabilities(hass: HomeAssistant, area_manager) -> web.Response:
+async def handle_get_opentherm_gateways(hass: HomeAssistant) -> web.Response:
+    """Return a list of configured OpenTherm Gateway integration entries.
+
+    Args:
+        hass: Home Assistant instance
+
+    Returns:
+        JSON response with list of gateways containing id and title
+    """
+    try:
+        entries = hass.config_entries.async_entries("opentherm_gw")
+        gateways = []
+        for entry in entries:
+            gw_id = (
+                entry.data.get("id")
+                or entry.data.get("gateway_id")
+                or entry.options.get("id")
+                or entry.options.get("gateway_id")
+                or entry.entry_id
+            )
+            gateways.append({"gateway_id": gw_id, "title": entry.title})
+        return web.json_response({"gateways": gateways})
+    except Exception as err:
+        _LOGGER.error("Error listing OpenTherm gateways: %s", err)
+        return web.json_response({"error": str(err)}, status=500)
+
+
+async def handle_discover_opentherm_capabilities(
+    hass: HomeAssistant, area_manager
+) -> web.Response:
     """Discover OpenTherm Gateway capabilities via MQTT.
 
     Args:
@@ -75,13 +104,19 @@ async def handle_discover_opentherm_capabilities(hass: HomeAssistant, area_manag
     try:
         opentherm_logger = hass.data[DOMAIN].get("opentherm_logger")
         if not opentherm_logger:
-            return web.json_response({"error": "OpenTherm logger not available"}, status=503)
+            return web.json_response(
+                {"error": "OpenTherm logger not available"}, status=503
+            )
 
         gateway_id = area_manager.opentherm_gateway_id
         if not gateway_id:
-            return web.json_response({"error": "No OpenTherm Gateway configured"}, status=400)
+            return web.json_response(
+                {"error": "No OpenTherm Gateway configured"}, status=400
+            )
 
-        capabilities = await opentherm_logger.async_discover_mqtt_capabilities(gateway_id)
+        capabilities = await opentherm_logger.async_discover_mqtt_capabilities(
+            gateway_id
+        )
 
         return web.json_response(capabilities)
 
@@ -102,7 +137,9 @@ async def handle_clear_opentherm_logs(hass: HomeAssistant) -> web.Response:
     try:
         opentherm_logger = hass.data[DOMAIN].get("opentherm_logger")
         if not opentherm_logger:
-            return web.json_response({"error": "OpenTherm logger not available"}, status=503)
+            return web.json_response(
+                {"error": "OpenTherm logger not available"}, status=503
+            )
 
         opentherm_logger.clear_logs()
 

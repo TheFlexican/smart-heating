@@ -105,14 +105,14 @@ class TestConfigHandlers:
         """Test setting OpenTherm gateway successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
-            "gateway_id": "climate.gateway",
+            "gateway_id": "gateway1",
             "enabled": True,
         }
 
         await async_handle_set_opentherm_gateway(call, mock_area_manager, mock_coordinator)
 
         # Verify gateway was set
-        mock_area_manager.set_opentherm_gateway.assert_called_once_with("climate.gateway", True)
+        mock_area_manager.set_opentherm_gateway.assert_called_once_with("gateway1", True)
         # Verify data was saved
         mock_area_manager.async_save.assert_called_once()
 
@@ -122,12 +122,12 @@ class TestConfigHandlers:
     ):
         """Test setting OpenTherm gateway with default enabled=True."""
         call = MagicMock(spec=ServiceCall)
-        call.data = {"gateway_id": "climate.gateway"}
+        call.data = {"gateway_id": "gateway1"}
 
         await async_handle_set_opentherm_gateway(call, mock_area_manager, mock_coordinator)
 
         # Verify gateway was set with default enabled=True
-        mock_area_manager.set_opentherm_gateway.assert_called_once_with("climate.gateway", True)
+        mock_area_manager.set_opentherm_gateway.assert_called_once_with("gateway1", True)
 
     @pytest.mark.asyncio
     async def test_async_handle_set_opentherm_gateway_error(
@@ -135,7 +135,7 @@ class TestConfigHandlers:
     ):
         """Test setting OpenTherm gateway when error occurs."""
         call = MagicMock(spec=ServiceCall)
-        call.data = {"gateway_id": "climate.gateway"}
+        call.data = {"gateway_id": "gateway1"}
 
         # Make set_opentherm_gateway raise ValueError
         mock_area_manager.set_opentherm_gateway.side_effect = ValueError("Invalid gateway")

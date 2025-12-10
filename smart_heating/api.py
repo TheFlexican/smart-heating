@@ -97,6 +97,7 @@ from .api_handlers.opentherm import (
     handle_get_opentherm_capabilities,
     handle_discover_opentherm_capabilities,
     handle_clear_opentherm_logs,
+    handle_get_opentherm_gateways,
 )
 from .area_manager import AreaManager
 from .const import DOMAIN
@@ -284,6 +285,8 @@ class SmartHeatingAPIView(HomeAssistantView):
                 return await handle_get_opentherm_logs(self.hass, request)
             elif endpoint == "opentherm/capabilities":
                 return await handle_get_opentherm_capabilities(self.hass)
+            elif endpoint == "opentherm/gateways":
+                return await handle_get_opentherm_gateways(self.hass)
 
             else:
                 return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)

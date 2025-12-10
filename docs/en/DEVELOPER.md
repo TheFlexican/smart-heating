@@ -94,6 +94,8 @@ npm test -- --debug         # Run in debug mode
 
 **Test Files:**
 - `navigation.spec.ts` - Navigation and UI tests
+For OpenTherm Gateway specific testing guidelines, see [OpenTherm Integration](OPENTHERM.md).
+
 - `temperature-control.spec.ts` - Temperature adjustment tests
 - `boost-mode.spec.ts` - Boost mode functionality
 - `manual-override.spec.ts` - Manual override detection (5 tests)
@@ -111,7 +113,7 @@ npm test -- --debug         # Run in debug mode
 
 Use helper functions for common operations:
 ```typescript
-import { navigateToSmartHeating, navigateToArea, switchToTab, 
+import { navigateToSmartHeating, navigateToArea, switchToTab,
          expandSettingsCard, dismissSnackbar } from './helpers'
 
 test('my test', async ({ page }) => {
@@ -215,25 +217,25 @@ This feature demonstrates the full stack for adding a new API endpoint.
        """Set primary temperature sensor for area."""
        data = await request.json()
        sensor_id = data.get("sensor_id")
-       
+
        # Validate area exists
        area = await area_manager.get_area(area_id)
        if not area:
            return web.json_response({"error": "Area not found"}, status=404)
-       
+
        # Validate sensor (can be null for auto mode)
        if sensor_id:
            devices = area.get_all_devices()
            if sensor_id not in devices:
                return web.json_response(
-                   {"error": "Sensor not found in area"}, 
+                   {"error": "Sensor not found in area"},
                    status=400
                )
-       
+
        # Update area
        area.primary_temperature_sensor = sensor_id
        await area_manager.update_area(area)
-       
+
        return web.json_response({"success": True, "sensor_id": sensor_id})
    ```
 
@@ -261,7 +263,7 @@ This feature demonstrates the full stack for adding a new API endpoint.
 4. **React Component** (`AreaDetail.tsx`):
    ```typescript
    import { setPrimaryTemperatureSensor } from '../api'
-   
+
    const handlePrimarySensorChange = async (event: SelectChangeEvent) => {
      const value = event.target.value === 'auto' ? null : event.target.value
      await setPrimaryTemperatureSensor(area.id, value)
@@ -277,14 +279,14 @@ This feature demonstrates the full stack for adding a new API endpoint.
        area: Area
    ) -> dict[str, float]:
        """Collect temperatures, prioritizing primary sensor if set."""
-       
+
        # If primary sensor configured, use it exclusively
        if area.primary_temperature_sensor:
            state = hass.states.get(area.primary_temperature_sensor)
            if state and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
                temp = float(state.state)
                return {area.primary_temperature_sensor: temp}
-       
+
        # Fall back to averaging all sensors
        temps = {}
        for sensor_id in area.temperature_sensors:
@@ -322,7 +324,7 @@ This feature demonstrates the full stack for adding a new API endpoint.
 4. **Use in component**:
    ```typescript
    import { myEndpoint } from '../api'
-   
+
    const handleAction = async () => {
      await myEndpoint({ param: 'value' })
    }
@@ -333,11 +335,11 @@ This feature demonstrates the full stack for adding a new API endpoint.
 1. **Create file** in `frontend/src/components/MyComponent.tsx`:
    ```typescript
    import { Box, Typography } from '@mui/material'
-   
+
    interface MyComponentProps {
      data: string
    }
-   
+
    const MyComponent = ({ data }: MyComponentProps) => {
      return (
        <Box>
@@ -345,14 +347,14 @@ This feature demonstrates the full stack for adding a new API endpoint.
        </Box>
      )
    }
-   
+
    export default MyComponent
    ```
 
 2. **Import and use**:
    ```typescript
    import MyComponent from './components/MyComponent'
-   
+
    <MyComponent data="Hello" />
    ```
 
@@ -365,10 +367,10 @@ This feature demonstrates the full stack for adding a new API endpoint.
        area = self.get_area(area_id)
        if not area:
            return False
-       
+
        # Do something
        area.custom_property = param
-       
+
        await self.async_save()
        return True
    ```
@@ -389,7 +391,7 @@ class Area:
     target_temperature: float
     enabled: bool
     devices: List[Device]
-    
+
     def add_device(device: Device) -> None
     def remove_device(device_id: str) -> bool
     def get_state() -> ZoneState
@@ -408,7 +410,7 @@ class Schedule:
     temperature: float
     days: List[str]  # ["mon", "tue"] (legacy)
     enabled: bool
-    
+
     # Note: __init__ accepts both formats and converts between them
     # to_dict() returns new format (day, start_time, end_time)
     # from_dict() accepts both formats
@@ -420,10 +422,10 @@ class Schedule:
 class ZoneManager:
     async def async_load() -> None
     async def async_save() -> None
-    
+
     def get_area(area_id: str) -> Optional[Area]
     def get_all_areas() -> List[Area]
-    
+
     async def async_add_device_to_area(...) -> bool
     async def async_remove_device_from_area(...) -> bool
     async def async_set_area_temperature(...) -> bool
@@ -436,30 +438,30 @@ class ZoneManager:
 ```python
 class HistoryTracker:
     """Track temperature history for areas."""
-    
+
     async def async_load() -> None  # Load from storage
     async def async_save() -> None  # Save to storage
     async def async_unload() -> None  # Cleanup on shutdown
-    
+
     async def async_record_temperature(
         area_id: str,
         current_temp: float,
         target_temp: float,
         state: str
     ) -> None
-    
+
     def get_history(
         area_id: str,
         hours: int | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None
     ) -> list[dict[str, Any]]
-    
+
     def get_all_history() -> dict[str, list[dict[str, Any]]]
-    
+
     def set_retention_days(days: int) -> None
     def get_retention_days() -> int
-    
+
     # Internal methods
     async def _async_cleanup_old_entries() -> None
     async def _async_periodic_cleanup(now=None) -> None
@@ -487,9 +489,9 @@ class HistoryTracker:
 ```python
 class ZoneHeaterManagerCoordinator(DataUpdateCoordinator):
     area_manager: ZoneManager
-    
+
     async def _async_update_data() -> Dict[str, Any]
-    
+
     # Manual Override System (v0.4.0+)
     async def async_setup() -> None
     async def _handle_state_change(event: Event) -> None
@@ -527,11 +529,11 @@ MANUAL_TEMP_CHANGE_DEBOUNCE = 2.0  # seconds
        if self._ignore_next_state_change.get(area_id):
            self._ignore_next_state_change[area_id] = False
            return
-       
+
        # Cancel previous pending update
        if area_id in self._pending_manual_updates:
            self._pending_manual_updates[area_id].cancel()
-       
+
        # Schedule debounced update (2 seconds)
        handle = self.hass.async_create_task(
            self._delayed_manual_update(area_id, new_temp)
@@ -546,14 +548,14 @@ MANUAL_TEMP_CHANGE_DEBOUNCE = 2.0  # seconds
        area = self.area_manager.areas.get(area_id)
        if not area:
            return
-       
+
        # Enter manual mode
        area.manual_override = True
        area.target_temperature = new_temp
-       
+
        # Persist to storage (v0.4.1+ includes manual_override)
        await self.area_manager.async_save()
-       
+
        # Force UI update
        await self.async_refresh()
    ```
@@ -757,11 +759,11 @@ Follow PEP 8:
 ```python
 async def my_function(param: str, option: bool = False) -> Optional[str]:
     """Brief description.
-    
+
     Args:
         param: Parameter description
         option: Option description
-        
+
     Returns:
         Return value description
     """
@@ -784,11 +786,11 @@ interface MyProps {
 
 const MyComponent = ({ data, optional = 0 }: MyProps) => {
   const [state, setState] = useState(0)
-  
+
   const handleClick = () => {
     // Handler logic
   }
-  
+
   return <Box>...</Box>
 }
 ```
@@ -860,7 +862,7 @@ const MyComponent = ({ data, optional = 0 }: MyProps) => {
    ```python
    # Get last 24 hours
    history = history_tracker.get_history(area_id, hours=24)
-   
+
    # Get custom range
    from datetime import datetime
    start = datetime.fromisoformat("2025-12-01T00:00:00")
@@ -899,7 +901,7 @@ const custom = await getHistory(areaId, {
 # Always use async for I/O
 async def my_async_function():
     await some_io_operation()
-    
+
 # Use async_add_executor_job for sync code in async context
 result = await hass.async_add_executor_job(sync_function)
 ```
@@ -938,7 +940,7 @@ useEffect(() => {
 
 ```typescript
 // sx prop for inline styles
-<Box sx={{ 
+<Box sx={{
   p: 2,              // padding: theme.spacing(2)
   mt: 1,             // marginTop: theme.spacing(1)
   bgcolor: 'primary.main',
@@ -1017,12 +1019,12 @@ class MyManager:
     def __init__(self, hass: HomeAssistant, storage_path: str):
         self.hass = hass
         self._storage_file = Path(storage_path) / "my_data.json"
-    
+
     async def async_save(self):
         def _write():
             with open(self._storage_file, 'w') as f:
                 json.dump(self._data, f, indent=2)
-        
+
         await self.hass.async_add_executor_job(_write)
 ```
 
@@ -1105,7 +1107,7 @@ The test environment (setup.sh) includes two safety sensors for testing:
    mosquitto_pub -h localhost -p 1883 \
      -t zigbee2mqtt/smoke_detector \
      -m '{"smoke": false, "battery": 100, "linkquality": 120}'
-   
+
    # Manually re-enable areas via UI or API
    curl -X POST \
      -H "Authorization: Bearer YOUR_TOKEN" \
@@ -1146,7 +1148,7 @@ For each new feature:
 ## Getting Help
 
 - Check existing issues on GitHub
-- Read the documentation  
+- Read the documentation
 - Read v0.6.0 architecture docs (V0.6.0_ARCHITECTURE.md)
 - Enable debug logging
 - Ask in GitHub Discussions
