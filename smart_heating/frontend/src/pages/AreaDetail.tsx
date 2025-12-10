@@ -76,6 +76,7 @@ import {
   setPrimaryTemperatureSensor,
   getWeatherEntities,
   setHeatingType,
+  setAreaHeatingCurve,
 } from '../api'
 import ScheduleEditor from '../components/ScheduleEditor'
 import HistoryChart from '../components/HistoryChart'
@@ -131,6 +132,8 @@ const ZoneDetail = () => {
   const [logFilter, setLogFilter] = useState<string>('all')
   const [weatherEntities, setWeatherEntities] = useState<HassEntity[]>([])
   const [weatherEntitiesLoading, setWeatherEntitiesLoading] = useState(false)
+  const [areaHeatingCurveCoefficient, setAreaHeatingCurveCoefficient] = useState<number | null>(null)
+  const [useGlobalHeatingCurve, setUseGlobalHeatingCurve] = useState<boolean>(true)
 
   // WebSocket for real-time updates
   useWebSocket({
@@ -187,6 +190,15 @@ const ZoneDetail = () => {
         setGlobalPresets(presets)
       } catch (error) {
         console.error('Failed to load global presets:', error)
+      }
+
+      // Set area heating curve coefficient state if present
+      if (currentZone.heating_curve_coefficient !== undefined && currentZone.heating_curve_coefficient !== null) {
+        setAreaHeatingCurveCoefficient(currentZone.heating_curve_coefficient)
+        setUseGlobalHeatingCurve(false)
+      } else {
+        setAreaHeatingCurveCoefficient(null)
+        setUseGlobalHeatingCurve(true)
       }
 
       // Load entity states for presence/window sensors
@@ -729,6 +741,38 @@ const ZoneDetail = () => {
             <Alert severity="info" sx={{ mt: 2 }}>
               {t('settingsCards.heatingTypeInfo', 'Heating type affects the boiler setpoint temperature. Radiators use higher temperature for faster heating, floor heating uses lower temperature for gradual heating.')}
             </Alert>
+
+            {/* Per-area heating curve coefficient */}
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle1">{t('settingsCards.heatingCurveTitle', 'Heating Curve Coefficient')}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {t('settingsCards.heatingCurveDescription', 'Optional per-area coefficient used in heating curve calculations. Leave blank to use the global coefficient.')}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <FormControlLabel
+                  control={<Switch checked={!useGlobalHeatingCurve} onChange={(e) => setUseGlobalHeatingCurve(!e.target.checked)} />}
+                  label={t('settingsCards.heatingCurveUseArea', 'Use area-specific coefficient')}
+                />
+                <TextField
+                  label="Coefficient"
+                  type="number"
+                  value={areaHeatingCurveCoefficient ?? ''}
+                  onChange={(e) => setAreaHeatingCurveCoefficient(e.target.value ? Number(e.target.value) : null)}
+                  disabled={useGlobalHeatingCurve}
+                  inputProps={{ step: 0.1, min: 0.1, max: 10 }}
+                />
+                <Button variant="contained" onClick={async () => {
+                  try {
+                    await setAreaHeatingCurve(area.id, useGlobalHeatingCurve, areaHeatingCurveCoefficient ?? undefined)
+                    await loadData()
+                  } catch (err) {
+                    console.error('Failed to save heating curve coefficient', err)
+                  }
+                }}>
+                  {t('common.save', 'Save')}
+                </Button>
+              </Box>
+            </Box>
           </Box>
         )
       },

@@ -38,7 +38,7 @@ import FireplaceIcon from '@mui/icons-material/Fireplace'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis, getSafetySensor, setSafetySensor, removeSafetySensor, setHideDevicesPanel, getConfig, setOpenthermGateway, getOpenthermGateways, type SafetySensorResponse } from '../api'
+import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis, getSafetySensor, setSafetySensor, removeSafetySensor, setHideDevicesPanel, getConfig, setOpenthermGateway, getOpenthermGateways, getAdvancedControlConfig, setAdvancedControlConfig, calibrateOpentherm, type SafetySensorResponse } from '../api'
 import { PresenceSensorConfig, WindowSensorConfig, SafetySensorConfig } from '../types'
 import SensorConfigDialog from '../components/SensorConfigDialog'
 import SafetySensorConfigDialog from '../components/SafetySensorConfigDialog'
@@ -46,6 +46,7 @@ import { VacationModeSettings } from '../components/VacationModeSettings'
 import HysteresisHelpModal from '../components/HysteresisHelpModal'
 import ImportExport from '../components/ImportExport'
 import OpenThermLogger from '../components/OpenThermLogger'
+import { getAdvancedControlConfig, setAdvancedControlConfig } from '../api'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -113,6 +114,13 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
   const [safetySensor, setSafetySensorState] = useState<SafetySensorResponse | null>(null)
   const [safetySensorDialogOpen, setSafetySensorDialogOpen] = useState(false)
   const [hideDevicesPanel, setHideDevicesPanelState] = useState(false)
+  // Advanced control state
+  const [advancedControlEnabled, setAdvancedControlEnabled] = useState(false)
+  const [heatingCurveEnabled, setHeatingCurveEnabled] = useState(false)
+  const [pwmEnabled, setPwmEnabled] = useState(false)
+  const [pidEnabled, setPidEnabled] = useState(false)
+  const [overshootProtectionEnabled, setOvershootProtectionEnabled] = useState(false)
+  const [defaultCoefficient, setDefaultCoefficient] = useState<number>(1.0)
 
   // OpenTherm Gateway Configuration
   const [openthermGatewayId, setOpenthermGatewayId] = useState<string>('')
@@ -126,6 +134,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
     loadSafetySensor()
     loadConfig()
     loadOpenthermGateways()
+    loadAdvancedControlConfig()
   }, [])
 
   const loadConfig = async () => {
@@ -135,8 +144,24 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
 
       // Load OpenTherm configuration
       setOpenthermGatewayId(config.opentherm_gateway_id || '')
+      setHideDevicesPanelState(config.hide_devices_panel || false)
     } catch (err) {
       console.error('Error loading config:', err)
+    }
+  }
+
+  const loadAdvancedControlConfig = async () => {
+    try {
+      const cfg = await getAdvancedControlConfig()
+      // cfg is a config block; it includes advanced control keys
+      setAdvancedControlEnabled(!!cfg.advanced_control_enabled)
+      setHeatingCurveEnabled(!!cfg.heating_curve_enabled)
+      setPwmEnabled(!!cfg.pwm_enabled)
+      setPidEnabled(!!cfg.pid_enabled)
+      setOvershootProtectionEnabled(!!cfg.overshoot_protection_enabled)
+      setDefaultCoefficient(Number(cfg.default_heating_curve_coefficient || 1.0))
+    } catch (err) {
+      console.error('Error loading advanced control config', err)
     }
   }
 
@@ -269,6 +294,60 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
     }
   }
 
+  const handleToggleAdvancedControl = async (field: string, value: boolean | number) => {
+    const payload: any = {}
+    payload[field] = value
+    try {
+      await setAdvancedControlConfig(payload)
+      // Push local state update
+      switch (field) {
+        case 'advanced_control_enabled':
+          setAdvancedControlEnabled(Boolean(value))
+          break
+        case 'heating_curve_enabled':
+          setHeatingCurveEnabled(Boolean(value))
+          break
+        case 'pwm_enabled':
+          setPwmEnabled(Boolean(value))
+          break
+        case 'pid_enabled':
+          setPidEnabled(Boolean(value))
+          break
+        case 'overshoot_protection_enabled':
+          setOvershootProtectionEnabled(Boolean(value))
+          break
+        case 'default_heating_curve_coefficient':
+          setDefaultCoefficient(Number(value))
+          break
+      }
+    } catch (err) {
+      setError('Failed to save advanced control setting')
+      console.error('Error saving advanced control setting:', err)
+    }
+  }
+
+  const handleResetAdvancedControl = async () => {
+    try {
+      setSaving(true)
+      // Reset to sensible defaults
+      await setAdvancedControlConfig({
+        advanced_control_enabled: false,
+        heating_curve_enabled: false,
+        pwm_enabled: false,
+        pid_enabled: false,
+        overshoot_protection_enabled: false,
+        default_heating_curve_coefficient: 1.0,
+      })
+      // reload values immediately
+      await loadAdvancedControlConfig()
+    } catch (err) {
+      setError('Failed to reset advanced control settings')
+      console.error('Error resetting advanced control:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleSaveOpenthermConfig = async () => {
     try {
       setOpenthermSaving(true)
@@ -283,6 +362,23 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
       console.error('Error saving OpenTherm config:', err)
     } finally {
       setOpenthermSaving(false)
+    }
+  }
+  const [calibrating, setCalibrating] = useState(false)
+  const [calibrationResult, setCalibrationResult] = useState<number | null>(null)
+
+  const handleRunCalibration = async () => {
+    setCalibrating(true)
+    try {
+      const res = await calibrateOpentherm()
+      if (res && res.opv) {
+        setCalibrationResult(res.opv)
+      }
+    } catch (err) {
+      setError('Calibration failed')
+      console.error('Calibration error:', err)
+    } finally {
+      setCalibrating(false)
     }
   }
 
@@ -376,6 +472,11 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
           onChange={(_, newValue) => setActiveTab(newValue)}
           aria-label="global settings tabs"
         >
+          <Tab
+            icon={<FireplaceIcon />}
+            iconPosition="start"
+            label={t('globalSettings.tabs.advanced', 'Advanced Control')}
+          />
           <Tab
             icon={<ThermostatIcon />}
             iconPosition="start"
@@ -780,6 +881,56 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               </Box>
             </Stack>
           </Paper>
+          {/* Advanced Control Accordion */}
+          <Accordion sx={{ mt: 3 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="h6">{t('globalSettings.advanced.title', 'Advanced Boiler & Control')}</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                {t('globalSettings.advanced.description', 'Advanced features for optimizing setpoints, boiler cycling and energy efficiency. These are disabled by default. Enable to use advanced control algorithms (heating curves, PWM for on/off boilers, PID auto-gains, and calibration routines).')}
+              </Typography>
+              <Stack spacing={2}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography>{t('globalSettings.advanced.enableAll', 'Enable advanced control')}</Typography>
+                  <Switch checked={advancedControlEnabled} onChange={(e) => handleToggleAdvancedControl('advanced_control_enabled', e.target.checked)} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography>{t('globalSettings.advanced.heatingCurve', 'Heating curve')}</Typography>
+                  <Switch checked={heatingCurveEnabled} onChange={(e) => handleToggleAdvancedControl('heating_curve_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography>{t('globalSettings.advanced.pwm', 'PWM for on/off boilers')}</Typography>
+                  <Switch checked={pwmEnabled} onChange={(e) => handleToggleAdvancedControl('pwm_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography>{t('globalSettings.advanced.pid', 'PID Automatic Gains')}</Typography>
+                  <Switch checked={pidEnabled} onChange={(e) => handleToggleAdvancedControl('pid_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography>{t('globalSettings.advanced.overshoot', 'Overshoot Protection (OPV) calibration')}</Typography>
+                  <Switch checked={overshootProtectionEnabled} onChange={(e) => handleToggleAdvancedControl('overshoot_protection_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Typography>{t('globalSettings.advanced.defaultCoefficient', 'Default heating curve coefficient')}</Typography>
+                  <input type='number' value={defaultCoefficient as any} onChange={(e) => handleToggleAdvancedControl('default_heating_curve_coefficient', Number(e.target.value))} step={0.1} disabled={!advancedControlEnabled} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+                  <Button variant='contained' onClick={handleRunCalibration} disabled={!advancedControlEnabled || calibrating}>
+                    {calibrating ? <CircularProgress size={20} /> : t('globalSettings.advanced.runCalibration', 'Run OPV calibration')}
+                  </Button>
+                  <Button variant='outlined' onClick={handleResetAdvancedControl} disabled={saving}>
+                    {t('globalSettings.advanced.resetDefaults', 'Reset to defaults')}
+                  </Button>
+                  {calibrationResult !== null && (
+                    <Typography variant='body2' sx={{ ml: 2 }}>
+                      {t('globalSettings.advanced.calibrationResult', 'OPV: {{value}} °C', { value: calibrationResult })}
+                    </Typography>
+                  )}
+                </Box>
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
         </TabPanel>
 
         {/* Import/Export Tab */}

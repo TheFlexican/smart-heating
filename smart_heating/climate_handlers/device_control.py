@@ -18,6 +18,10 @@ from homeassistant.core import HomeAssistant
 
 from ..area_manager import AreaManager
 from ..models import Area
+from ..heating_curve import HeatingCurve
+from ..pid import PID, Error
+from ..pwm import PWM
+from ..minimum_setpoint import MinimumSetpoint
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,6 +40,11 @@ class DeviceControlHandler:
         self.area_manager = area_manager
         self._device_capabilities = {}  # Cache for device capabilities
         self._last_set_temperatures = {}  # Cache last set temperature per thermostat
+        # Advanced controllers per area
+        self._heating_curves: dict[str, HeatingCurve] = {}
+        self._pids: dict[str, PID] = {}
+        self._pwms: dict[str, PWM] = {}
+        self._min_setpoints: dict[str, MinimumSetpoint] = {}
 
     def is_any_thermostat_actively_heating(self, area: Area) -> bool:
         """Check if any thermostat in the area is actively heating.
@@ -576,10 +585,138 @@ class DeviceControlHandler:
 
             # Control boiler
             if any_heating:
-                # Calculate overhead based on heating types
-                # Use the highest overhead for safety (fastest heating requirement)
+                # Calculate basic overhead
                 overhead = max(overhead_temps.values()) if overhead_temps else 20.0
-                boiler_setpoint = max_target_temp + overhead
+
+                # Advanced control: compute heating curve / PID / PWM setpoints if enabled
+                advanced_enabled = self.area_manager.advanced_control_enabled
+                heating_curve_enabled = self.area_manager.heating_curve_enabled
+                pid_enabled = self.area_manager.pid_enabled
+
+                # Collect candidates per area
+                setpoint_candidates = []
+                for aid in heating_area_ids:
+                    area = self.area_manager.get_area(aid)
+                    if not area:
+                        continue
+
+                    # Determine outside temperature if available on area
+                    outside_temp = None
+                    if area.weather_entity_id:
+                        ws = self.hass.states.get(area.weather_entity_id)
+                        try:
+                            outside_temp = (
+                                float(ws.state)
+                                if ws and ws.state not in ("unknown", "unavailable")
+                                else None
+                            )
+                        except Exception:
+                            outside_temp = None
+
+                    # Default candidate: max target + overhead
+                    candidate = area.target_temperature + overhead
+
+                    # Heating curve
+                    if advanced_enabled and heating_curve_enabled:
+                        coefficient = (
+                            area.heating_curve_coefficient
+                            or self.area_manager.default_heating_curve_coefficient
+                        )
+                        hc = self._heating_curves.get(aid) or HeatingCurve(
+                            heating_system=(
+                                "underfloor"
+                                if area.heating_type == "floor_heating"
+                                else "radiator"
+                            ),
+                            coefficient=coefficient,
+                        )
+                        self._heating_curves[aid] = hc
+                        if outside_temp is not None:
+                            hc.update(area.target_temperature, outside_temp)
+                            if hc.value is not None:
+                                candidate = hc.value
+
+                    # PID adjustment
+                    if (
+                        advanced_enabled
+                        and pid_enabled
+                        and area.current_temperature is not None
+                    ):
+                        pid = self._pids.get(aid)
+                        if not pid:
+                            pid = PID(
+                                heating_system=area.heating_type,
+                                automatic_gain_value=1.0,
+                                heating_curve_coefficient=(
+                                    area.heating_curve_coefficient
+                                    or self.area_manager.default_heating_curve_coefficient
+                                ),
+                                automatic_gains=True,
+                            )
+                            self._pids[aid] = pid
+                        err = area.target_temperature - (
+                            area.current_temperature or 0.0
+                        )
+                        # Use heating curve value if available as heating_curve_value
+                        hc_local = self._heating_curves.get(aid)
+                        hv = (
+                            hc_local.value
+                            if hc_local and hc_local.value is not None
+                            else None
+                        )
+                        pid_out = pid.update(Error(err), hv)
+                        candidate = candidate + pid_out
+
+                    setpoint_candidates.append(candidate)
+
+                # Choose the highest candidate setpoint
+                boiler_setpoint = (
+                    max(setpoint_candidates)
+                    if setpoint_candidates
+                    else (max_target_temp + overhead)
+                )
+
+                # Minimum setpoint calculation
+                # Get configured gateway id once
+                gateway_device_id = self.area_manager.opentherm_gateway_id
+                for aid in heating_area_ids:
+                    area = self.area_manager.get_area(aid)
+                    if not area:
+                        continue
+                    # Create or get existing MinimumSetpoint controller
+                    minsp = self._min_setpoints.get(aid)
+                    if not minsp:
+                        minsp = MinimumSetpoint(
+                            configured_minimum_setpoint=30.0, adjustment_factor=1.0
+                        )
+                        self._min_setpoints[aid] = minsp
+
+                    # construct a minimal boiler_state object using gateway values
+                    gateway_state = self.hass.states.get(gateway_device_id)
+                    if gateway_state:
+                        boiler_state = type("_b", (), {})()
+                        boiler_state.return_temperature = gateway_state.attributes.get(
+                            "return_water_temp"
+                        ) or gateway_state.attributes.get("boiler_water_temp")
+                        boiler_state.flow_temperature = gateway_state.attributes.get(
+                            "ch_water_temp"
+                        )
+                        boiler_state.flame_active = gateway_state.attributes.get(
+                            "flame_on"
+                        )
+                        boiler_state.setpoint = boiler_setpoint
+                        minsp.calculate(boiler_state)
+                        # Respect minimum setpoint
+                        if (
+                            minsp.current_minimum_setpoint is not None
+                            and boiler_setpoint < minsp.current_minimum_setpoint
+                        ):
+                            _LOGGER.debug(
+                                "Enforcing minimum setpoint: %.1f°C (was %.1f°C)",
+                                minsp.current_minimum_setpoint,
+                                boiler_setpoint,
+                            )
+                            boiler_setpoint = minsp.current_minimum_setpoint
 
                 # Determine heating type breakdown for logging
                 floor_heating_count = sum(
@@ -603,6 +740,50 @@ class DeviceControlHandler:
                 try:
                     # Use the OpenTherm integration service directly and expect the
                     # configured gateway_id (slug) to be provided by options.
+                    # If PWM is enabled and gateway does not support modulation, approximate duty using PWM
+                    gateway_state = self.hass.states.get(gateway_device_id)
+                    if (
+                        self.area_manager.pwm_enabled
+                        and gateway_state
+                        and not gateway_state.attributes.get("relative_mod_level")
+                    ):
+                        # Very rough PWM approximation: set to setpoint if duty > 0.5, else 0.0
+                        boiler_temp = gateway_state.attributes.get(
+                            "boiler_water_temp"
+                        ) or gateway_state.attributes.get("ch_water_temp")
+                        try:
+                            boiler_temp = float(boiler_temp)
+                        except Exception:
+                            boiler_temp = None
+
+                        if boiler_temp is not None:
+                            base_offset = (
+                                20.0
+                                if any(
+                                    ht == "floor_heating"
+                                    for ht in heating_types.values()
+                                )
+                                else 27.2
+                            )
+                            duty = (
+                                (boiler_setpoint - base_offset)
+                                / (boiler_temp - base_offset)
+                                if (boiler_temp - base_offset) != 0
+                                else 1.0
+                            )
+                            duty = min(max(duty, 0.0), 1.0)
+                            if duty < 0.5:
+                                _LOGGER.debug(
+                                    "PWM approximation: duty=%.2f -> setpoint=0.0", duty
+                                )
+                                boiler_setpoint = 0.0
+                            else:
+                                _LOGGER.debug(
+                                    "PWM approximation: duty=%.2f -> setpoint=%.1f",
+                                    duty,
+                                    boiler_setpoint,
+                                )
+
                     await self.hass.services.async_call(
                         "opentherm_gw",
                         "set_control_setpoint",

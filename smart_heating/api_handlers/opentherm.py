@@ -6,6 +6,7 @@ from aiohttp import web
 from homeassistant.core import HomeAssistant
 
 from ..const import DOMAIN
+from ..overshoot_protection import OvershootProtection
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -147,4 +148,41 @@ async def handle_clear_opentherm_logs(hass: HomeAssistant) -> web.Response:
 
     except Exception as err:
         _LOGGER.error("Error clearing OpenTherm logs: %s", err)
+        return web.json_response({"error": str(err)}, status=500)
+
+
+async def handle_calibrate_opentherm(
+    hass: HomeAssistant, area_manager, coordinator
+) -> web.Response:
+    """Calibrate the OpenTherm gateway overshoot protection value (OPV) and store it in AreaManager.
+
+    Args:
+        hass: Home Assistant instance
+        area_manager: Area manager instance
+        coordinator: Coordinator with control functions
+
+    Returns:
+        JSON response containing OPV value or error
+    """
+    try:
+        if not area_manager.opentherm_gateway_id:
+            return web.json_response(
+                {"error": "No OpenTherm Gateway configured"}, status=400
+            )
+
+        _LOGGER.info("Starting OPV calibration (approx. 2 minutes)")
+        op = OvershootProtection(coordinator, "radiator")
+        value = await op.calculate()
+        if value is None:
+            return web.json_response(
+                {"error": "Calibration failed or timed out"}, status=500
+            )
+
+        # Save to area manager
+        area_manager.default_opv = value
+        await area_manager.async_save()
+
+        return web.json_response({"opv": value})
+    except Exception as err:
+        _LOGGER.error("Error during OPV calibration: %s", err)
         return web.json_response({"error": str(err)}, status=500)

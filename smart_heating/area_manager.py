@@ -58,6 +58,15 @@ class AreaManager:
         # UI Settings
         self.hide_devices_panel: bool = False
 
+        # Advanced control features (disabled by default)
+        self.advanced_control_enabled: bool = False
+        self.heating_curve_enabled: bool = False
+        self.pwm_enabled: bool = False
+        self.pid_enabled: bool = False
+        self.overshoot_protection_enabled: bool = False
+        # Default heating curve coefficient (can be overridden per area)
+        self.default_heating_curve_coefficient: float = 1.0
+
         # Global Preset Temperatures
         self.global_away_temp: float = DEFAULT_AWAY_TEMP
         self.global_eco_temp: float = DEFAULT_ECO_TEMP
@@ -65,6 +74,13 @@ class AreaManager:
         self.global_home_temp: float = DEFAULT_HOME_TEMP
         self.global_sleep_temp: float = DEFAULT_SLEEP_TEMP
         self.global_activity_temp: float = DEFAULT_ACTIVITY_TEMP
+
+        # Optional consumption/power defaults used for derived sensors
+        self.default_min_consumption: float = 0.0  # m³/h
+        self.default_max_consumption: float = 0.0  # m³/h
+        self.default_boiler_capacity: float = 0.0  # kW (if known)
+        # Default overshoot protection value (OPV) in °C
+        self.default_opv: float | None = None
 
         # Global Presence Sensors
         self.global_presence_sensors: list[dict] = []
@@ -100,6 +116,16 @@ class AreaManager:
             )
             self.hysteresis = data.get("hysteresis", 0.5)
             self.hide_devices_panel = data.get("hide_devices_panel", False)
+            self.advanced_control_enabled = data.get("advanced_control_enabled", False)
+            self.heating_curve_enabled = data.get("heating_curve_enabled", False)
+            self.pwm_enabled = data.get("pwm_enabled", False)
+            self.pid_enabled = data.get("pid_enabled", False)
+            self.overshoot_protection_enabled = data.get(
+                "overshoot_protection_enabled", False
+            )
+            self.default_heating_curve_coefficient = data.get(
+                "default_heating_curve_coefficient", 1.0
+            )
 
             # Load global preset temperatures
             self.global_away_temp = data.get("global_away_temp", DEFAULT_AWAY_TEMP)
@@ -112,6 +138,10 @@ class AreaManager:
             self.global_activity_temp = data.get(
                 "global_activity_temp", DEFAULT_ACTIVITY_TEMP
             )
+            self.default_min_consumption = data.get("default_min_consumption", 0.0)
+            self.default_max_consumption = data.get("default_max_consumption", 0.0)
+            self.default_boiler_capacity = data.get("default_boiler_capacity", 0.0)
+            self.default_opv = data.get("default_opv")
 
             # Load global presence sensors
             self.global_presence_sensors = data.get("global_presence_sensors", [])
@@ -169,7 +199,17 @@ class AreaManager:
             "global_presence_sensors": self.global_presence_sensors,
             "safety_sensors": self.safety_sensors,
             "safety_alert_active": self._safety_alert_active,
+            "advanced_control_enabled": self.advanced_control_enabled,
+            "heating_curve_enabled": self.heating_curve_enabled,
+            "pwm_enabled": self.pwm_enabled,
+            "pid_enabled": self.pid_enabled,
+            "overshoot_protection_enabled": self.overshoot_protection_enabled,
+            "default_heating_curve_coefficient": self.default_heating_curve_coefficient,
             "areas": [area.to_dict() for area in self.areas.values()],
+            "default_min_consumption": self.default_min_consumption,
+            "default_max_consumption": self.default_max_consumption,
+            "default_boiler_capacity": self.default_boiler_capacity,
+            "default_opv": self.default_opv,
         }
         await self._store.async_save(data)
         _LOGGER.info("Saved %d areas and global config to storage", len(self.areas))

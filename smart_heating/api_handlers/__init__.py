@@ -10,6 +10,7 @@ from .areas import (
     handle_set_area_preset_config,
     handle_set_auto_preset,
     handle_set_heating_type,
+    handle_set_area_heating_curve,
     handle_set_manual_override,
     handle_set_primary_temperature_sensor,
     handle_set_switch_shutdown,
@@ -34,6 +35,7 @@ from .config import (
     handle_set_hysteresis_value,
     handle_set_opentherm_gateway,
     handle_set_safety_sensor,
+    handle_set_advanced_control_config,
 )
 from .comparison import (
     handle_get_comparison,
@@ -74,6 +76,7 @@ from .opentherm import (
     handle_discover_opentherm_capabilities,
     handle_get_opentherm_logs,
     handle_get_opentherm_gateways,
+    handle_calibrate_opentherm,
 )
 from .schedules import (
     handle_add_schedule,
@@ -121,6 +124,7 @@ __all__ = [
     "handle_set_auto_preset",
     "handle_set_area_preset_config",
     "handle_set_manual_override",
+    "handle_set_area_heating_curve",
     # Devices
     "handle_get_devices",
     "handle_refresh_devices",
@@ -160,6 +164,7 @@ __all__ = [
     "handle_set_safety_sensor",
     "handle_remove_safety_sensor",
     "handle_set_hvac_mode",
+    "handle_set_advanced_control_config",
     # Comparison
     "handle_get_comparison",
     "handle_get_custom_comparison",
@@ -185,6 +190,7 @@ __all__ = [
     "handle_discover_opentherm_capabilities",
     "handle_clear_opentherm_logs",
     "handle_get_opentherm_gateways",
+    "handle_calibrate_opentherm",
     # System
     "handle_get_status",
     "handle_get_entity_state",

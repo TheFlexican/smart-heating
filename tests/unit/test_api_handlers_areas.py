@@ -10,6 +10,7 @@ from smart_heating.api_handlers.areas import (
     handle_get_area,
     handle_get_areas,
     handle_hide_area,
+    handle_set_area_heating_curve,
     handle_set_area_hysteresis,
     handle_set_area_preset_config,
     handle_set_auto_preset,
@@ -561,6 +562,40 @@ class TestAreaHandlers:
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "error" in body
+
+    @pytest.mark.asyncio
+    async def test_handle_set_area_heating_curve_use_global(self, mock_hass, mock_area_manager):
+        """Test toggling use_global flag clears area coefficient and saves."""
+        data = {"use_global": True}
+        # set initial coefficient
+        mock_area_manager.get_area.return_value.heating_curve_coefficient = 1.5
+
+        response = await handle_set_area_heating_curve(
+            mock_hass, mock_area_manager, "living_room", data
+        )
+
+        assert response.status == 200
+        body = json.loads(response.body.decode())
+        assert body["success"]
+        assert mock_area_manager.get_area.return_value.heating_curve_coefficient is None
+        mock_area_manager.async_save.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_handle_set_area_heating_curve_set_coefficient(
+        self, mock_hass, mock_area_manager
+    ):
+        """Test setting area coefficient preserves the value and saves."""
+        data = {"use_global": False, "coefficient": 1.8}
+
+        response = await handle_set_area_heating_curve(
+            mock_hass, mock_area_manager, "living_room", data
+        )
+
+        assert response.status == 200
+        body = json.loads(response.body.decode())
+        assert body["success"]
+        assert mock_area_manager.get_area.return_value.heating_curve_coefficient == 1.8
+        mock_area_manager.async_save.assert_called()
 
     @pytest.mark.asyncio
     async def test_handle_set_area_hysteresis_out_of_range(self, mock_hass, mock_area_manager):

@@ -70,6 +70,11 @@ export const getConfig = async (): Promise<any> => {
   return response.data
 }
 
+export const getAdvancedControlConfig = async (): Promise<any> => {
+  const response = await axios.get(`${API_BASE}/config/advanced_control`)
+  return response.data
+}
+
 export const getEntityState = async (entityId: string): Promise<any> => {
   const response = await axios.get(`${API_BASE}/entity_state/${entityId}`)
   return response.data
@@ -352,6 +357,15 @@ export const setHideDevicesPanel = async (hide: boolean): Promise<void> => {
   await axios.post(`${API_BASE}/hide_devices_panel`, { hide_devices_panel: hide })
 }
 
+export const setAdvancedControlConfig = async (config: any): Promise<void> => {
+  await axios.post(`${API_BASE}/config/advanced_control`, config)
+}
+
+export const calibrateOpentherm = async (): Promise<any> => {
+  const response = await axios.post(`${API_BASE}/opentherm/calibrate`, {})
+  return response.data
+}
+
 export const setAreaPresetConfig = async (
   areaId: string,
   config: Partial<{
@@ -370,6 +384,14 @@ export const setAreaPresetConfig = async (
   }>
 ): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/preset_config`, config)
+}
+
+export const setAreaHeatingCurve = async (areaId: string, useGlobal: boolean, coefficient?: number): Promise<void> => {
+  const data: any = { use_global: useGlobal }
+  if (coefficient !== undefined) {
+    data.coefficient = coefficient
+  }
+  await axios.post(`${API_BASE}/areas/${areaId}/heating_curve`, data)
 }
 
 export const setManualOverride = async (

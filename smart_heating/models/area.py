@@ -158,6 +158,8 @@ class Area:
         self.custom_overhead_temp: float | None = (
             None  # Custom overhead (overrides defaults)
         )
+        # Area-specific heating curve coefficient (optional, if None use global default)
+        self.heating_curve_coefficient: float | None = None
 
     def add_device(
         self, device_id: str, device_type: str, mqtt_topic: str | None = None

@@ -17,6 +17,7 @@ from smart_heating.api_handlers.config import (
     handle_get_safety_sensor,
     handle_get_vacation_mode,
     handle_remove_safety_sensor,
+    handle_set_advanced_control_config,
     handle_set_frost_protection,
     handle_set_global_presence,
     handle_set_global_presets,
@@ -298,6 +299,35 @@ class TestConfigHandlers:
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "error" in body
+
+    @pytest.mark.asyncio
+    async def test_handle_set_advanced_control_config(self, mock_area_manager):
+        data = {
+            "advanced_control_enabled": True,
+            "heating_curve_enabled": True,
+            "pwm_enabled": True,
+            "pid_enabled": True,
+            "overshoot_protection_enabled": True,
+            "default_heating_curve_coefficient": 1.25,
+        }
+
+        response = await handle_set_advanced_control_config(mock_area_manager, data)
+        assert response.status == 200
+        body = json.loads(response.body.decode())
+        assert body["success"] is True
+        assert mock_area_manager.advanced_control_enabled
+        assert mock_area_manager.heating_curve_enabled
+        assert mock_area_manager.pwm_enabled
+        assert mock_area_manager.pid_enabled
+        assert mock_area_manager.overshoot_protection_enabled
+        assert mock_area_manager.default_heating_curve_coefficient == pytest.approx(1.25)
+        mock_area_manager.async_save.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_handle_set_advanced_control_config_invalid_coefficient(self, mock_area_manager):
+        data = {"default_heating_curve_coefficient": "not-a-number"}
+        response = await handle_set_advanced_control_config(mock_area_manager, data)
+        assert response.status == 400
 
     @pytest.mark.asyncio
     async def test_handle_get_global_presence(self, mock_area_manager):

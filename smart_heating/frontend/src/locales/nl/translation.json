@@ -201,6 +201,21 @@
     "openIntegrations": "Open Integraties"
     }
   },
+  "advanced": {
+    "title": "Geavanceerde Besturing",
+    "description": "Geavanceerde functies voor het optimaliseren van setpunten, ketelcycli en energie-efficiëntie.",
+    "enableAll": "Geavanceerde besturing inschakelen",
+    "heatingCurve": "Verwarmingscurve",
+    "pwm": "PWM voor aan/uit-ketels",
+    "pid": "PID automatische gain",
+    "overshoot": "Overshoot Bescherming (OPV)",
+    "defaultCoefficient": "Standaard verwarmingscurve coëfficiënt",
+    "runCalibration": "Start OPV kalibratie",
+    "calibrationResult": "OPV: {{value}} °C"
+    ,
+    "resetDefaults": "Terug naar standaardinstellingen"
+  }
+  },
   "presetDescriptions": {
     "away": "Gebruikt wanneer niemand thuis is",
     "eco": "Energiebesparende temperatuur",
@@ -565,6 +580,9 @@
     "radiatorDescription": "Snelle reactie, hogere overhead temperatuur (standaard: +20°C)",
     "floorHeatingDescription": "Langzame reactie, lagere overhead temperatuur (standaard: +5°C)",
     "heatingTypeInfo": "Verwarmingstype beïnvloedt de ketel setpoint temperatuur. Radiatoren gebruiken hogere temperatuur voor snellere verwarming, vloerverwarming gebruikt lagere temperatuur voor geleidelijke verwarming.",
+    "heatingCurveTitle": "Verwarmingscurve Coëfficiënt",
+    "heatingCurveDescription": "Optionele per-zone coëfficiënt gebruikt in verwarmingscurve-berekeningen. Laat leeg om de globale coëfficiënt te gebruiken.",
+    "heatingCurveUseArea": "Gebruik zonespecifieke coëfficiënt",
     "customOverheadTemp": "Aangepaste Overhead Temperatuur",
     "customOverheadTempDescription": "Overschrijf standaard overhead temperatuur (vloerverwarming: +10°C, radiatoren: +20°C). Laat leeg voor standaardwaarden.",
     "customOverheadTempPlaceholder": "bijv., 8.0",

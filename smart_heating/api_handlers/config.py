@@ -32,6 +32,12 @@ async def handle_get_config(
         "safety_sensors": area_manager.get_safety_sensors(),
         "safety_alert_active": area_manager.is_safety_alert_active(),
         "hide_devices_panel": area_manager.hide_devices_panel,
+        "advanced_control_enabled": area_manager.advanced_control_enabled,
+        "heating_curve_enabled": area_manager.heating_curve_enabled,
+        "pwm_enabled": area_manager.pwm_enabled,
+        "pid_enabled": area_manager.pid_enabled,
+        "overshoot_protection_enabled": area_manager.overshoot_protection_enabled,
+        "default_heating_curve_coefficient": area_manager.default_heating_curve_coefficient,
     }
 
     return web.json_response(config)
@@ -198,6 +204,51 @@ async def handle_set_hide_devices_panel(
         return web.json_response({"success": True})
 
     return web.json_response({"error": "Missing hide_devices_panel value"}, status=400)
+
+
+async def handle_set_advanced_control_config(
+    area_manager: AreaManager, data: dict
+) -> web.Response:
+    """Set the advanced control configuration toggle and related options.
+
+    Args:
+        area_manager: Area manager
+        data: Dict with advanced control keys
+
+    Returns: web.Response
+    """
+    _LOGGER.info("API: SET ADVANCED CONTROL: %s", data)
+    updated = False
+    if "advanced_control_enabled" in data:
+        area_manager.advanced_control_enabled = bool(data["advanced_control_enabled"])
+        updated = True
+    if "heating_curve_enabled" in data:
+        area_manager.heating_curve_enabled = bool(data["heating_curve_enabled"])
+        updated = True
+    if "pwm_enabled" in data:
+        area_manager.pwm_enabled = bool(data["pwm_enabled"])
+        updated = True
+    if "pid_enabled" in data:
+        area_manager.pid_enabled = bool(data["pid_enabled"])
+        updated = True
+    if "overshoot_protection_enabled" in data:
+        area_manager.overshoot_protection_enabled = bool(
+            data["overshoot_protection_enabled"]
+        )
+        updated = True
+    if "default_heating_curve_coefficient" in data:
+        try:
+            area_manager.default_heating_curve_coefficient = float(
+                data["default_heating_curve_coefficient"]
+            )
+        except Exception:
+            return web.json_response({"error": "Invalid coefficient"}, status=400)
+        updated = True
+
+    if updated:
+        await area_manager.async_save()
+        return web.json_response({"success": True})
+    return web.json_response({"error": "No recognized fields provided"}, status=400)
 
 
 async def handle_get_opentherm_config(area_manager: AreaManager) -> web.Response:

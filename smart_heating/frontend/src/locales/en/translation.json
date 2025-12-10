@@ -201,6 +201,21 @@
     "openIntegrations": "Open Integrations"
     }
   },
+  "advanced": {
+    "title": "Advanced Controls",
+    "description": "Advanced features for optimizing setpoints, boiler cycling, and energy efficiency.",
+    "enableAll": "Enable advanced control",
+    "heatingCurve": "Heating curve",
+    "pwm": "PWM for on/off boilers",
+    "pid": "PID Automatic Gains",
+    "overshoot": "Overshoot Protection (OPV)",
+    "defaultCoefficient": "Default heating curve coefficient",
+    "runCalibration": "Run OPV calibration",
+    "calibrationResult": "OPV: {{value}} °C"
+    ,
+    "resetDefaults": "Reset to defaults"
+  }
+  },
   "presetDescriptions": {
     "away": "Used when nobody is home",
     "eco": "Energy-saving temperature",
@@ -565,6 +580,9 @@
     "radiatorDescription": "Fast response, higher overhead temperature (default: +20°C)",
     "floorHeatingDescription": "Slow response, lower overhead temperature (default: +5°C)",
     "heatingTypeInfo": "Heating type affects the boiler setpoint temperature. Radiators use higher temperature for faster heating, floor heating uses lower temperature for gradual heating.",
+      "heatingCurveTitle": "Heating Curve Coefficient",
+      "heatingCurveDescription": "Optional per-area coefficient used in heating curve calculations. Leave blank to use the global coefficient.",
+      "heatingCurveUseArea": "Use area-specific coefficient",
     "customOverheadTemp": "Custom Overhead Temperature",
     "customOverheadTempDescription": "Override default overhead temperature (floor heating: +10°C, radiator: +20°C). Leave empty to use defaults.",
     "customOverheadTempPlaceholder": "e.g., 8.0",

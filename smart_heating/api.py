@@ -70,6 +70,7 @@ from .api_handlers import (
     handle_restore_backup,
     handle_set_area_hysteresis,
     handle_set_area_preset_config,
+    handle_set_area_heating_curve,
     handle_set_auto_preset,
     handle_set_heating_type,
     handle_set_boost_mode,
@@ -98,9 +99,11 @@ from .api_handlers.opentherm import (
     handle_discover_opentherm_capabilities,
     handle_clear_opentherm_logs,
     handle_get_opentherm_gateways,
+    handle_calibrate_opentherm,
 )
 from .area_manager import AreaManager
 from .const import DOMAIN
+from .coordinator import SmartHeatingCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -125,6 +128,14 @@ class SmartHeatingAPIView(HomeAssistantView):
         """
         self.hass = hass
         self.area_manager = area_manager
+
+    def _get_coordinator(self) -> SmartHeatingCoordinator | None:
+        """Return first SmartHeatingCoordinator instance stored in hass.data for this domain."""
+        domain_data = self.hass.data.get(DOMAIN, {})
+        for v in domain_data.values():
+            if isinstance(v, SmartHeatingCoordinator):
+                return v
+        return None
 
     async def get(self, request: web.Request, endpoint: str) -> web.Response:
         """Handle GET requests.
@@ -195,6 +206,11 @@ class SmartHeatingAPIView(HomeAssistantView):
                 return await handle_get_vacation_mode(self.hass)
             elif endpoint == "safety_sensor":
                 return await handle_get_safety_sensor(self.area_manager)
+            elif endpoint == "config/advanced_control":
+                # Expose advanced control config (read only)
+                # Return the same config block as 'config' or the advanced subset
+                conf = await handle_get_config(self.hass, self.area_manager)
+                return conf
             elif endpoint == "history/config":
                 return await handle_get_history_config(self.hass)
             elif endpoint == "history/storage/info":
@@ -287,6 +303,12 @@ class SmartHeatingAPIView(HomeAssistantView):
                 return await handle_get_opentherm_capabilities(self.hass)
             elif endpoint == "opentherm/gateways":
                 return await handle_get_opentherm_gateways(self.hass)
+            elif endpoint == "opentherm/calibrate":
+                # Trigger OPV calibration (overshoot protection) - prefer POST
+                return await handle_calibrate_opentherm(
+                    self.hass, self.area_manager, self._get_coordinator()
+                )
+            # 'config/advanced_control' GET handled earlier in config endpoints
 
             else:
                 return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)
@@ -393,6 +415,13 @@ class SmartHeatingAPIView(HomeAssistantView):
             ):
                 area_id = endpoint.split("/")[1]
                 return await handle_set_hvac_mode(
+                    self.hass, self.area_manager, area_id, data
+                )
+            elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and endpoint.endswith(
+                "/heating_curve"
+            ):
+                area_id = endpoint.split("/")[1]
+                return await handle_set_area_heating_curve(
                     self.hass, self.area_manager, area_id, data
                 )
             elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and endpoint.endswith(
