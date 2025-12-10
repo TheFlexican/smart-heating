@@ -181,7 +181,11 @@ class ClimateController:
         """Handle disabled area (delegates to handler)."""
         if self.protection_handler:
             await self.protection_handler.async_handle_disabled_area(
-                area_id, area, history_tracker, should_record_history
+                area_id,
+                area,
+                self.device_handler,
+                history_tracker,
+                should_record_history,
             )
 
     async def async_update_area_temperatures(self) -> None:

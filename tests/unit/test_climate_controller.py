@@ -33,7 +33,6 @@ def mock_area_manager(mock_hass):
     manager.async_save = AsyncMock()
     manager.frost_protection_enabled = True
     manager.frost_protection_temp = DEFAULT_FROST_PROTECTION_TEMP
-    manager.opentherm_enabled = False
     manager.opentherm_gateway_id = None
     return manager
 
@@ -582,7 +581,7 @@ class TestOpenThermControl:
         self, climate_controller, mock_area_manager, mock_hass
     ):
         """Test OpenTherm control when disabled."""
-        mock_area_manager.opentherm_enabled = False
+        mock_area_manager.opentherm_gateway_id = None
 
         await climate_controller._async_control_opentherm_gateway(True, 50.0)
 
@@ -594,7 +593,7 @@ class TestOpenThermControl:
         self, climate_controller, mock_area_manager, mock_hass
     ):
         """Test OpenTherm control when heating is required."""
-        mock_area_manager.opentherm_enabled = True
+        mock_area_manager.opentherm_gateway_id = "gateway1"
         mock_area_manager.opentherm_gateway_id = "gateway1"
 
         await climate_controller._async_control_opentherm_gateway(True, 45.0)
@@ -615,7 +614,7 @@ class TestOpenThermControl:
         self, climate_controller, mock_area_manager, mock_hass
     ):
         """Test OpenTherm control when no heating is required."""
-        mock_area_manager.opentherm_enabled = True
+        mock_area_manager.opentherm_gateway_id = "gateway1"
         mock_area_manager.opentherm_gateway_id = "gateway1"
 
         await climate_controller._async_control_opentherm_gateway(False, 0.0)
@@ -769,11 +768,11 @@ class TestThermostatControl:
 
         await climate_controller._async_control_thermostats(mock_area, True, 21.0)
 
-        # Should set temperature
-        mock_hass.services.async_call.assert_called_once()
-        call_args = mock_hass.services.async_call.call_args
-        assert call_args.args[1] == "set_temperature"
-        assert call_args.args[2]["temperature"] == 21.0
+        # Expected service calls: ensure switch on, set_hvac_mode, set_temperature
+        assert mock_hass.services.async_call.call_count == 3
+        last_call = mock_hass.services.async_call.call_args_list[-1]
+        assert last_call[0][1] == "set_temperature"
+        assert last_call[0][2]["temperature"] == 21.0
 
     @pytest.mark.asyncio
     async def test_control_thermostats_skip_duplicate_temperature(
@@ -782,15 +781,21 @@ class TestThermostatControl:
         """Test that thermostat updates are skipped for duplicate temperatures."""
         mock_area.get_thermostats = MagicMock(return_value=["climate.thermostat1"])
 
-        # Set temperature first time
+        # Set temperature first time => 3 service calls
         await climate_controller._async_control_thermostats(mock_area, True, 21.0)
-        assert mock_hass.services.async_call.call_count == 1
+        assert mock_hass.services.async_call.call_count == 3
 
         # Try to set same temperature again
         await climate_controller._async_control_thermostats(mock_area, True, 21.0)
 
         # Should still be only 1 call (skipped second one)
-        assert mock_hass.services.async_call.call_count == 1
+        # Ensure one climate.set_temperature call was made (ignore other service invocations)
+        set_temp_calls = [
+            c
+            for c in mock_hass.services.async_call.call_args_list
+            if c.args[0] == "climate" and c.args[1] == "set_temperature"
+        ]
+        assert len(set_temp_calls) == 1
 
     @pytest.mark.asyncio
     async def test_control_thermostats_update_when_temperature_changes(
@@ -801,13 +806,16 @@ class TestThermostatControl:
 
         # Set temperature first time
         await climate_controller._async_control_thermostats(mock_area, True, 21.0)
-        assert mock_hass.services.async_call.call_count == 1
+        set_temp_calls = [
+            c
+            for c in mock_hass.services.async_call.call_args_list
+            if c.args[0] == "climate" and c.args[1] == "set_temperature"
+        ]
+        assert len(set_temp_calls) == 1
 
-        # Change temperature by more than 0.1°C
+        # Change temperature by more than 0.1°C: expect 3 more calls
         await climate_controller._async_control_thermostats(mock_area, True, 21.5)
-
-        # Should make second call
-        assert mock_hass.services.async_call.call_count == 2
+        assert mock_hass.services.async_call.call_count == 6
 
     @pytest.mark.asyncio
     async def test_control_thermostats_turn_off_unsupported(

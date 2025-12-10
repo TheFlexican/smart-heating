@@ -52,7 +52,12 @@ def mock_history_tracker():
 def mock_area_manager():
     """Create mock area manager."""
     manager = MagicMock()
-    manager.set_opentherm_gateway = MagicMock()
+
+    async def _set_gateway_side_effect(gateway_id):
+        # Mimic behavior of real method by saving after setting
+        await manager.async_save()
+
+    manager.set_opentherm_gateway = AsyncMock(side_effect=_set_gateway_side_effect)
     manager.set_trv_temperatures = MagicMock()
     manager.add_safety_sensor = MagicMock()
     manager.remove_safety_sensor = MagicMock()
@@ -112,7 +117,7 @@ class TestConfigHandlers:
         await async_handle_set_opentherm_gateway(call, mock_area_manager, mock_coordinator)
 
         # Verify gateway was set
-        mock_area_manager.set_opentherm_gateway.assert_called_once_with("gateway1", True)
+        mock_area_manager.set_opentherm_gateway.assert_called_once_with("gateway1")
         # Verify data was saved
         mock_area_manager.async_save.assert_called_once()
 
@@ -127,7 +132,7 @@ class TestConfigHandlers:
         await async_handle_set_opentherm_gateway(call, mock_area_manager, mock_coordinator)
 
         # Verify gateway was set with default enabled=True
-        mock_area_manager.set_opentherm_gateway.assert_called_once_with("gateway1", True)
+        mock_area_manager.set_opentherm_gateway.assert_called_once_with("gateway1")
 
     @pytest.mark.asyncio
     async def test_async_handle_set_opentherm_gateway_error(

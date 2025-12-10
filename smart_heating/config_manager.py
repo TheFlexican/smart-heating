@@ -70,7 +70,6 @@ class ConfigManager:
                 "temp_offset": self.area_manager.trv_temp_offset,
             },
             "opentherm": {
-                "enabled": self.area_manager.opentherm_enabled,
                 "gateway_id": self.area_manager.opentherm_gateway_id,
             },
             "safety_sensors": self.area_manager.get_safety_sensors(),
@@ -238,7 +237,7 @@ class ConfigManager:
         # OpenTherm
         if "opentherm" in settings:
             ot = settings["opentherm"]
-            self.area_manager.opentherm_enabled = ot.get("enabled", False)
+            # Enablement is determined automatically by whether a gateway ID is present
             self.area_manager.opentherm_gateway_id = ot.get("gateway_id")
 
         # Safety sensors

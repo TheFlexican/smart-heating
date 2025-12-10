@@ -13,6 +13,7 @@ class MockHomeAssistant:
     def __init__(self):
         """Initialize mock."""
         self.states = MagicMock()
+        self.data = {}
 
 
 @pytest.fixture

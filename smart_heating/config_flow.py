@@ -104,10 +104,19 @@ class SmartHeatingOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data={})
 
-        # No configuration options - everything is managed via Global Settings
+        # Offer an option to select an OpenTherm Gateway if present in Home Assistant
+        gw_entries = self.hass.config_entries.async_entries(domain="opentherm_gw")
+        if gw_entries:
+            gateway_ids = [
+                entry.data.get("id") for entry in gw_entries if entry.data.get("id")
+            ]
+            schema = vol.Schema({"opentherm_gateway_id": vol.In([""] + gateway_ids)})
+        else:
+            schema = vol.Schema({})
+
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema({}),
+            data_schema=schema,
             description_placeholders={
                 "info": "All Smart Heating configuration is managed via Global Settings in the Smart Heating panel. "
                 "Click the gear icon in the Smart Heating UI to access Global Settings."

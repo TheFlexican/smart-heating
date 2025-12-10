@@ -76,7 +76,7 @@ async def _discover_devices(
     for entry in all_entities:
         # Determine device type from domain
         if entry.domain == "climate":
-            device_type = "thermostat"  # Climate entities are thermostats/AC units
+            device_type = "climate"  # Use 'climate' type for climate entities
         elif entry.domain == "switch":
             device_type = "switch"
         else:  # sensor with temperature device_class

@@ -103,7 +103,9 @@ class TestHandleSetHeatingType:
         response = await handle_set_heating_type(mock_hass, mock_area_manager, "test_area", data)
 
         assert response.status == 400
-        body = await response.json()
+        import json as _json
+
+        body = _json.loads(response.body.decode())
         assert "error" in body
         assert "radiator" in body["error"] or "floor_heating" in body["error"]
 
@@ -116,7 +118,9 @@ class TestHandleSetHeatingType:
         response = await handle_set_heating_type(mock_hass, mock_area_manager, "test_area", data)
 
         assert response.status == 400
-        body = await response.json()
+        import json as _json
+
+        body = _json.loads(response.body.decode())
         assert "error" in body
         assert "30" in body["error"]
 
@@ -129,7 +133,9 @@ class TestHandleSetHeatingType:
         response = await handle_set_heating_type(mock_hass, mock_area_manager, "test_area", data)
 
         assert response.status == 400
-        body = await response.json()
+        import json as _json
+
+        body = _json.loads(response.body.decode())
         assert "error" in body
 
     @pytest.mark.asyncio
@@ -141,7 +147,9 @@ class TestHandleSetHeatingType:
         response = await handle_set_heating_type(mock_hass, mock_area_manager, "nonexistent", data)
 
         assert response.status == 404
-        body = await response.json()
+        import json as _json
+
+        body = _json.loads(response.body.decode())
         assert "error" in body
         assert "not found" in body["error"].lower()
 

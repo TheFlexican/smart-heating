@@ -13,7 +13,7 @@ class Schedule:
     def __init__(
         self,
         schedule_id: str,
-        time: str,
+        time: str = "",
         temperature: float | None = None,
         days: list[str] | None = None,
         enabled: bool = True,

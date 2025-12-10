@@ -190,4 +190,13 @@ def mock_learning_data() -> dict[str, Any]:
 @pytest.fixture
 def mock_hass() -> MagicMock:
     """Return a mocked HomeAssistant instance."""
-    return MagicMock(spec=HomeAssistant)
+    hass = MagicMock(spec=HomeAssistant)
+    # Provide a minimal .data dict used across tests and event bus default
+    default_coordinator = MagicMock(spec=DataUpdateCoordinator)
+    default_coordinator.data = {"areas": {}}
+    default_coordinator.async_request_refresh = AsyncMock()
+    hass.data = {DOMAIN: {"test_entry_id": default_coordinator}}
+    hass.bus = MagicMock()
+    hass.config = MagicMock()
+    hass.config.components = set()
+    return hass

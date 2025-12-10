@@ -19,7 +19,7 @@ def mock_hass():
     hass = MagicMock()
     hass.data = {
         "smart_heating": {
-            "entry_id_123": MagicMock(async_request_refresh=AsyncMock()),
+            "entry_id_123": MagicMock(data={}, async_request_refresh=AsyncMock()),
             "history": MagicMock(),
             "climate_controller": MagicMock(),
             "schedule_executor": MagicMock(),

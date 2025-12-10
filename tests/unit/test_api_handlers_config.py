@@ -49,7 +49,6 @@ def mock_area_manager():
     """Create mock area manager."""
     manager = MagicMock()
     manager.opentherm_gateway_id = "climate.gateway"
-    manager.opentherm_enabled = True
     manager.trv_heating_temp = 22.0
     manager.trv_idle_temp = 18.0
     manager.trv_temp_offset = 1.0
@@ -102,12 +101,10 @@ async def test_handle_set_opentherm_gateway_updates_config_entry(hass: HomeAssis
     # Mock hass.config_entries.async_update_entry
     hass.config_entries.async_update_entry = AsyncMock()
 
-    await handle_set_opentherm_gateway(
-        area_manager, coordinator, {"gateway_id": "gateway1", "enabled": True}
-    )
+    await handle_set_opentherm_gateway(area_manager, coordinator, {"gateway_id": "gateway1"})
 
     # Verify area_manager.set_opentherm_gateway was called
-    area_manager.set_opentherm_gateway.assert_called_once_with("gateway1", True)
+    area_manager.set_opentherm_gateway.assert_called_once_with("gateway1")
 
     # Verify HA config_entry async_update_entry was called
     hass.config_entries.async_update_entry.assert_called()
@@ -124,7 +121,8 @@ class TestConfigHandlers:
         assert response.status == 200
         body = json.loads(response.body.decode())
         assert body["opentherm_gateway_id"] == "climate.gateway"
-        assert body["opentherm_enabled"] is True
+        # Enablement is determined by gateway presence - ensure id present
+        assert body["opentherm_gateway_id"] == "climate.gateway"
         assert body["trv_heating_temp"] == pytest.approx(22.0)
         assert body["safety_alert_active"] is False
         assert body["hide_devices_panel"] is False
@@ -523,7 +521,7 @@ class TestConfigHandlers:
         mock_safety.async_reconfigure = AsyncMock()
         mock_hass.data[DOMAIN]["safety_monitor"] = mock_safety
 
-        data = {"sensor_id": "binary_sensor.smoke"}
+        data = {"sensor_id": "binary_sensor.smoke", "alert_value": "on"}
         response = await handle_set_safety_sensor(mock_hass, mock_area_manager, data)
 
         assert response.status == 200
@@ -532,7 +530,12 @@ class TestConfigHandlers:
         assert body["sensor_id"] == "binary_sensor.smoke"
 
         mock_area_manager.clear_safety_sensors.assert_called_once()
-        mock_area_manager.add_safety_sensor.assert_called_once_with("binary_sensor.smoke")
+        mock_area_manager.add_safety_sensor.assert_called_once_with(
+            sensor_id="binary_sensor.smoke",
+            attribute="state",
+            alert_value="on",
+            enabled=True,
+        )
         mock_area_manager.async_save.assert_called_once()
         mock_safety.async_reconfigure.assert_called_once()
         mock_hass.bus.async_fire.assert_called_once()
@@ -568,7 +571,9 @@ class TestConfigHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_hvac_mode_success(self, mock_hass, mock_area_manager):
         """Test setting HVAC mode."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         data = {"hvac_mode": "cool"}

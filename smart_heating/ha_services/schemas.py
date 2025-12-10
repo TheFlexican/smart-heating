@@ -115,7 +115,6 @@ HYSTERESIS_SCHEMA = vol.Schema(
 OPENTHERM_GATEWAY_SCHEMA = vol.Schema(
     {
         vol.Optional("gateway_id"): cv.string,
-        vol.Optional("enabled", default=True): cv.boolean,
     }
 )
 

@@ -20,7 +20,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  FormControlLabel,
+  // FormControlLabel removed - no enable toggle for OpenTherm
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -116,7 +116,6 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
 
   // OpenTherm Gateway Configuration
   const [openthermGatewayId, setOpenthermGatewayId] = useState<string>('')
-  const [openthermEnabled, setOpenthermEnabled] = useState<boolean>(false)
   const [openthermSaving, setOpenthermSaving] = useState(false)
   const [openthermGateways, setOpenthermGateways] = useState<Array<{gateway_id: string, title: string}>>([])
 
@@ -136,7 +135,6 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
 
       // Load OpenTherm configuration
       setOpenthermGatewayId(config.opentherm_gateway_id || '')
-      setOpenthermEnabled(config.opentherm_enabled || false)
     } catch (err) {
       console.error('Error loading config:', err)
     }
@@ -274,7 +272,8 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
   const handleSaveOpenthermConfig = async () => {
     try {
       setOpenthermSaving(true)
-      await setOpenthermGateway(openthermGatewayId, openthermEnabled)
+      // Only send gateway id; control is automatic when a gateway is configured
+      await setOpenthermGateway(openthermGatewayId)
       // Reload config to confirm saved values
       await loadConfig()
       setSaveSuccess(true)
@@ -843,20 +842,13 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                   </Select>
                 </FormControl>
 
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={openthermEnabled}
-                      onChange={(e) => setOpenthermEnabled(e.target.checked)}
-                    />
-                  }
-                  label={t('globalSettings.opentherm.enabled', 'Enable OpenTherm Control')}
-                />
+                {/* Removed manual enable toggle - control is automatic when a gateway id is configured */}
 
                 <Button
                   variant="contained"
                   onClick={handleSaveOpenthermConfig}
-                  disabled={openthermSaving || (openthermEnabled && !openthermGatewayId)}
+                  // Disable when saving or there are no available gateways at all
+                  disabled={openthermSaving || openthermGateways.length === 0}
                 >
                   {openthermSaving ? (
                     <CircularProgress size={24} />

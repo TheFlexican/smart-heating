@@ -42,7 +42,6 @@ class AreaManager:
         self.opentherm_gateway_id: str | None = (
             None  # Gateway device ID for service calls
         )
-        self.opentherm_enabled: bool = False
 
         # Global TRV configuration
         self.trv_heating_temp: float = DEFAULT_TRV_HEATING_TEMP
@@ -90,7 +89,6 @@ class AreaManager:
         if data is not None:
             # Load global configuration
             self.opentherm_gateway_id = data.get("opentherm_gateway_id")
-            self.opentherm_enabled = data.get("opentherm_enabled", False)
             self.trv_heating_temp = data.get(
                 "trv_heating_temp", DEFAULT_TRV_HEATING_TEMP
             )
@@ -154,7 +152,7 @@ class AreaManager:
         _LOGGER.debug("Saving areas to storage")
         data = {
             "opentherm_gateway_id": self.opentherm_gateway_id,
-            "opentherm_enabled": self.opentherm_enabled,
+            # opentherm_enabled removed: whether control is active is determined by gateway existence
             "trv_heating_temp": self.trv_heating_temp,
             "trv_idle_temp": self.trv_idle_temp,
             "trv_temp_offset": self.trv_temp_offset,
@@ -357,22 +355,15 @@ class AreaManager:
         area.remove_schedule(schedule_id)
         _LOGGER.info("Removed schedule %s from area %s", schedule_id, area_id)
 
-    async def set_opentherm_gateway(
-        self, gateway_id: str | None, enabled: bool = True
-    ) -> None:
+    async def set_opentherm_gateway(self, gateway_id: str | None) -> None:
         """Set the global OpenTherm gateway device ID.
 
         Args:
             gateway_id: Device ID of the OpenTherm gateway (from integration configuration ID field)
-            enabled: Whether to enable OpenTherm control
         """
         self.opentherm_gateway_id = gateway_id
-        self.opentherm_enabled = enabled and gateway_id is not None
-        _LOGGER.info(
-            "OpenTherm gateway set to %s (enabled: %s)",
-            gateway_id,
-            self.opentherm_enabled,
-        )
+        # When a gateway id is configured, the integration will control it automatically.
+        _LOGGER.info("OpenTherm gateway set to %s", gateway_id)
         await self.async_save()
 
     def add_safety_sensor(
@@ -444,6 +435,12 @@ class AreaManager:
             List of safety sensor configurations
         """
         return self.safety_sensors.copy()
+
+    def clear_safety_sensors(self) -> None:
+        """Clear all configured safety sensors."""
+        self.safety_sensors = []
+        self._safety_alert_active = False
+        _LOGGER.info("Cleared all safety sensors")
 
     def check_safety_sensor_status(self) -> tuple[bool, str | None]:
         """Check if any safety sensor is in alert state.

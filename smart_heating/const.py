@@ -129,7 +129,6 @@ ATTR_DEVICES: Final = "devices"
 
 # Global OpenTherm Gateway
 ATTR_OPENTHERM_GATEWAY: Final = "opentherm_gateway"
-ATTR_OPENTHERM_ENABLED: Final = "opentherm_enabled"
 
 # TRV Configuration
 ATTR_TRV_HEATING_TEMP: Final = "trv_heating_temp"

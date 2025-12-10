@@ -62,7 +62,9 @@ async def handle_add_schedule(
                 area.area_manager = area_manager
                 area_manager.areas[area_id] = area
             else:
-                return web.json_response({"error": f"Area {area_id} not found"}, status=404)
+                return web.json_response(
+                    {"error": f"Area {area_id} not found"}, status=404
+                )
 
         # Create schedule from frontend data
         # Validate required fields - accept either 'time' (legacy) or 'start_time' (new)
@@ -194,7 +196,9 @@ async def handle_set_preset_mode(
         # Refresh coordinator
         coordinator = get_coordinator(hass)
         if coordinator:
-            await coordinator.async_request_refresh()
+            from ..utils.coordinator_helpers import call_maybe_async
+
+            await call_maybe_async(coordinator.async_request_refresh)
 
         return web.json_response({"success": True, "preset_mode": preset_mode})
     except ValueError as err:
@@ -229,7 +233,9 @@ async def handle_set_boost_mode(
         # Refresh coordinator
         coordinator = get_coordinator(hass)
         if coordinator:
-            await coordinator.async_request_refresh()
+            from ..utils.coordinator_helpers import call_maybe_async
+
+            await call_maybe_async(coordinator.async_request_refresh)
 
         return web.json_response(
             {
@@ -267,7 +273,9 @@ async def handle_cancel_boost(
         # Refresh coordinator
         coordinator = get_coordinator(hass)
         if coordinator:
-            await coordinator.async_request_refresh()
+            from ..utils.coordinator_helpers import call_maybe_async
+
+            await call_maybe_async(coordinator.async_request_refresh)
 
         return web.json_response({"success": True, "boost_active": False})
     except ValueError as err:

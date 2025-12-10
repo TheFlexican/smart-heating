@@ -15,6 +15,9 @@ def mock_hass():
     hass.states = MagicMock()
     hass.services = MagicMock()
     hass.services.async_call = AsyncMock()
+    from smart_heating.const import DOMAIN
+
+    hass.data = {DOMAIN: {}}
     return hass
 
 

@@ -195,7 +195,6 @@
       "findId": "Find the gateway integration entry in: Settings → Devices & Services → OpenTherm Gateway → Click \"Configure\" and view the ID field.",
       "gatewayId": "Gateway Integration ID (slug)",
       "gatewayIdHelp": "Select the gateway integration ID from the configured OpenTherm gateways.",
-      "enabled": "Enable OpenTherm Control",
       "save": "Save Configuration"
     ,
     "noGateways": "No OpenTherm gateways found. Please add the OpenTherm Gateway integration in Home Assistant.",

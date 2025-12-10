@@ -56,9 +56,7 @@ class TestConfigFlow:
         result = await flow.async_step_init(user_input=None)
 
         # Then submit with data
-        result = await flow.async_step_init(
-            user_input={"opentherm_gateway_id": "", "opentherm_enabled": True}
-        )
+        result = await flow.async_step_init(user_input={"opentherm_gateway_id": ""})
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
 

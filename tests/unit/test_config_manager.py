@@ -13,18 +13,7 @@ def mock_hass():
     """Create mock Home Assistant instance."""
     hass = MagicMock()
     hass.config.config_dir = "/config"
-    hass.data = {
-        DOMAIN: {
-            "vacation_manager": MagicMock(
-                enabled=False,
-                start_date=None,
-                end_date=None,
-                preset_mode="eco",
-                frost_protection_override=False,
-                min_temperature=15.0,
-            )
-        }
-    }
+    hass.data = {DOMAIN: {}}
     return hass
 
 
@@ -53,7 +42,6 @@ def mock_area_manager():
     manager.trv_heating_temp = 25.0
     manager.trv_idle_temp = 5.0
     manager.trv_temp_offset = 0.0
-    manager.opentherm_enabled = False
     manager.opentherm_gateway_id = None
     manager.get_safety_sensors.return_value = []
     manager.async_save = AsyncMock()

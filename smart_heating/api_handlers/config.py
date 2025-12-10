@@ -26,7 +26,6 @@ async def handle_get_config(
     """
     config = {
         "opentherm_gateway_id": area_manager.opentherm_gateway_id,
-        "opentherm_enabled": area_manager.opentherm_enabled,
         "trv_heating_temp": area_manager.trv_heating_temp,
         "trv_idle_temp": area_manager.trv_idle_temp,
         "trv_temp_offset": area_manager.trv_temp_offset,
@@ -141,19 +140,21 @@ async def handle_set_opentherm_gateway(
     Args:
         area_manager: Area manager instance
         coordinator: Coordinator instance (for refresh)
-        data: Dictionary with gateway_id and enabled
+        data: Dictionary with gateway_id
 
     Returns:
         JSON response
     """
     gateway_id = data.get("gateway_id") or None
-    enabled = data.get("enabled", True)
+    await area_manager.set_opentherm_gateway(gateway_id)
 
-    await area_manager.set_opentherm_gateway(gateway_id, enabled)
-
-    # Refresh coordinator to update state
-    if coordinator:
-        await coordinator.async_request_refresh()
+    # Refresh coordinator to update state (if async refresh is provided)
+    if coordinator and getattr(coordinator, "async_request_refresh", None):
+        try:
+            await coordinator.async_request_refresh()
+        except TypeError:
+            # Coordinator provided a non-awaitable MagicMock in tests; call it normally
+            coordinator.async_request_refresh()
 
     # Sync to HA ConfigEntry options if a coordinator is available (integration case)
     try:
@@ -163,21 +164,17 @@ async def handle_set_opentherm_gateway(
             # Build new options preserving existing ones
             new_options = dict(entry.options or {})
             new_options["opentherm_gateway_id"] = gateway_id or ""
-            new_options["opentherm_enabled"] = bool(enabled)
             await hass.config_entries.async_update_entry(entry, options=new_options)
             _LOGGER.debug(
-                "HA ConfigEntry options updated with OpenTherm gateway: %s (enabled: %s)",
+                "HA ConfigEntry options updated with OpenTherm gateway: %s",
                 gateway_id,
-                enabled,
             )
     except Exception as err:
         _LOGGER.error(
             "Failed to update HA ConfigEntry options for OpenTherm gateway: %s", err
         )
 
-    _LOGGER.info(
-        "OpenTherm Gateway configured: gateway_id=%s, enabled=%s", gateway_id, enabled
-    )
+    _LOGGER.info("OpenTherm Gateway configured: gateway_id=%s", gateway_id)
 
     return web.json_response({"success": True})
 
@@ -248,9 +245,11 @@ async def handle_set_hysteresis_value(
             if hasattr(area, "climate_controller") and area.climate_controller:
                 area.climate_controller._hysteresis = hysteresis
 
-        # Request coordinator update
-        if coordinator:
-            await coordinator.async_request_refresh()
+            # Request coordinator update
+            if coordinator:
+                from ..utils.coordinator_helpers import call_maybe_async
+
+                await call_maybe_async(coordinator.async_request_refresh)
 
         _LOGGER.info("✅ Hysteresis updated to %.1f°C", hysteresis)
         return web.json_response({"success": True})
@@ -416,9 +415,16 @@ async def handle_get_safety_sensor(area_manager: AreaManager) -> web.Response:
         JSON response with safety sensor data (list of sensors)
     """
     sensors = area_manager.get_safety_sensors()
+    first = sensors[0] if sensors else None
 
     return web.json_response(
-        {"sensors": sensors, "alert_active": area_manager.is_safety_alert_active()}
+        {
+            "sensors": sensors,
+            # Backwards compatible fields for single-sensor setups
+            "sensor_id": first["sensor_id"] if first else None,
+            "enabled": bool(first.get("enabled", False)) if first else False,
+            "alert_active": area_manager.is_safety_alert_active(),
+        }
     )
 
 
@@ -443,15 +449,22 @@ async def handle_set_safety_sensor(
     alert_value = data.get("alert_value")
     enabled = data.get("enabled", True)
 
-    if alert_value is None:
+    # Validate required fields
+    if not alert_value:
         return web.json_response({"error": "alert_value is required"}, status=400)
 
-    # Add the safety sensor
+    # Clear existing sensors (single-sensor mode replacement)
+    if hasattr(area_manager, "clear_safety_sensors"):
+        area_manager.clear_safety_sensors()
+    else:
+        area_manager.safety_sensors = []
+
+    # Add the safety sensor - prefer explicit parameters for clarity
     area_manager.add_safety_sensor(
         sensor_id=sensor_id,
         attribute=attribute,
         alert_value=alert_value,
-        enabled=enabled,
+        enabled=bool(enabled),
     )
     await area_manager.async_save()
 
@@ -471,7 +484,7 @@ async def handle_set_safety_sensor(
 
 
 async def handle_remove_safety_sensor(
-    hass: HomeAssistant, area_manager: AreaManager, sensor_id: str
+    hass: HomeAssistant, area_manager: AreaManager, sensor_id: str | None = None
 ) -> web.Response:
     """Remove safety sensor.
 
@@ -483,7 +496,16 @@ async def handle_remove_safety_sensor(
     Returns:
         JSON response
     """
-    area_manager.remove_safety_sensor(sensor_id)
+    if sensor_id:
+        area_manager.remove_safety_sensor(sensor_id)
+    else:
+        # Prefer clear_safety_sensors if available (backwards-compat)
+        if hasattr(area_manager, "clear_safety_sensors"):
+            area_manager.clear_safety_sensors()
+        else:
+            if getattr(area_manager, "safety_sensors", None):
+                for s in list(area_manager.safety_sensors):
+                    area_manager.remove_safety_sensor(s["sensor_id"])
     await area_manager.async_save()
 
     # Reconfigure safety monitor

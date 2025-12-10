@@ -25,6 +25,7 @@ from smart_heating.const import DOMAIN
 def mock_hass():
     """Create mock Home Assistant instance."""
     hass = MagicMock()
+    hass.data = {}
     hass.data = {DOMAIN: {"test_coordinator": MagicMock()}}
     hass.states = MagicMock()
     return hass
@@ -167,7 +168,9 @@ class TestAreaHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_temperature_success(self, mock_hass, mock_area_manager):
         """Test setting area temperature."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         mock_climate = AsyncMock()
@@ -253,7 +256,9 @@ class TestAreaHandlers:
         """Test that setting temperature clears manual override."""
         mock_area_manager.get_area.return_value.manual_override = True
 
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
         mock_climate = AsyncMock()
         mock_hass.data[DOMAIN]["climate_controller"] = mock_climate
@@ -274,7 +279,9 @@ class TestAreaHandlers:
     @pytest.mark.asyncio
     async def test_handle_enable_area_success(self, mock_hass, mock_area_manager):
         """Test enabling an area."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
         mock_climate = AsyncMock()
         mock_hass.data[DOMAIN]["climate_controller"] = mock_climate
@@ -296,7 +303,9 @@ class TestAreaHandlers:
         mock_safety = MagicMock()
         mock_hass.data[DOMAIN]["safety_monitor"] = mock_safety
 
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
         mock_climate = AsyncMock()
         mock_hass.data[DOMAIN]["climate_controller"] = mock_climate
@@ -320,7 +329,9 @@ class TestAreaHandlers:
     @pytest.mark.asyncio
     async def test_handle_disable_area_success(self, mock_hass, mock_area_manager):
         """Test disabling an area."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
         mock_climate = AsyncMock()
         mock_hass.data[DOMAIN]["climate_controller"] = mock_climate
@@ -349,7 +360,9 @@ class TestAreaHandlers:
     @pytest.mark.asyncio
     async def test_handle_hide_area_existing(self, mock_hass, mock_area_manager):
         """Test hiding an existing area."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         response = await handle_hide_area(mock_hass, mock_area_manager, "living_room")
@@ -369,7 +382,9 @@ class TestAreaHandlers:
         area_manager.areas = {}
         area_manager.async_save = AsyncMock()
 
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         with (
@@ -406,7 +421,9 @@ class TestAreaHandlers:
         """Test unhiding an existing area."""
         mock_area_manager.get_area.return_value.hidden = True
 
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         response = await handle_unhide_area(mock_hass, mock_area_manager, "living_room")
@@ -426,7 +443,9 @@ class TestAreaHandlers:
         area_manager.areas = {}
         area_manager.async_save = AsyncMock()
 
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         with (
@@ -444,7 +463,9 @@ class TestAreaHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_switch_shutdown_success(self, mock_hass, mock_area_manager):
         """Test setting switch shutdown setting."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         data = {"shutdown": False}
@@ -462,7 +483,9 @@ class TestAreaHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_switch_shutdown_default(self, mock_hass, mock_area_manager):
         """Test setting switch shutdown with default value."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         data = {}  # No shutdown key
@@ -490,7 +513,9 @@ class TestAreaHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_area_hysteresis_use_global(self, mock_hass, mock_area_manager):
         """Test setting area to use global hysteresis."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         data = {"use_global": True}
@@ -508,7 +533,9 @@ class TestAreaHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_area_hysteresis_custom(self, mock_hass, mock_area_manager):
         """Test setting custom area hysteresis."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         data = {"use_global": False, "hysteresis": 0.5}
@@ -563,7 +590,9 @@ class TestAreaHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_auto_preset_success(self, mock_hass, mock_area_manager):
         """Test setting auto preset configuration."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         data = {"auto_preset_enabled": True}
@@ -592,7 +621,9 @@ class TestAreaHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_area_preset_config_success(self, mock_hass, mock_area_manager):
         """Test setting area preset configuration."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         data = {"use_global_away": False, "use_global_eco": True, "use_global_comfort": False}
@@ -613,7 +644,9 @@ class TestAreaHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_area_preset_config_all_flags(self, mock_hass, mock_area_manager):
         """Test setting all preset config flags."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         data = {
@@ -749,6 +782,7 @@ class TestHandleSetPrimaryTemperatureSensor:
         # Mock coordinator with AsyncMock for refresh
         coordinator = MagicMock()
         coordinator.async_request_refresh = AsyncMock()
+        coordinator.data = {"areas": {}}
 
         mock_hass.data = {
             "smart_heating": {
@@ -790,6 +824,7 @@ class TestHandleSetPrimaryTemperatureSensor:
         # Mock coordinator with AsyncMock for refresh
         coordinator = MagicMock()
         coordinator.async_request_refresh = AsyncMock()
+        coordinator.data = {"areas": {}}
 
         mock_hass.data = {
             "smart_heating": {

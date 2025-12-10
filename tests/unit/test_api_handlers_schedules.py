@@ -4,6 +4,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from homeassistant.core import HomeAssistant
 from smart_heating.api_handlers.schedules import (
     handle_add_schedule,
     handle_cancel_boost,
@@ -17,7 +18,7 @@ from smart_heating.const import DOMAIN
 @pytest.fixture
 def mock_hass():
     """Create mock Home Assistant instance."""
-    hass = MagicMock()
+    hass = MagicMock(spec=HomeAssistant)
     hass.data = {DOMAIN: {}}
     return hass
 
@@ -335,7 +336,9 @@ class TestScheduleHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_preset_mode_success(self, mock_hass, mock_area_manager):
         """Test setting preset mode."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
         mock_climate = AsyncMock()
         mock_hass.data[DOMAIN]["climate_controller"] = mock_climate
@@ -359,7 +362,9 @@ class TestScheduleHandlers:
         """Test setting preset mode clears manual override."""
         mock_area_manager.get_area.return_value.manual_override = True
 
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
         mock_climate = AsyncMock()
         mock_hass.data[DOMAIN]["climate_controller"] = mock_climate
@@ -395,7 +400,9 @@ class TestScheduleHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_boost_mode_success(self, mock_hass, mock_area_manager):
         """Test setting boost mode."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         data = {"duration": 120, "temperature": 25.0}
@@ -413,7 +420,9 @@ class TestScheduleHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_boost_mode_default_duration(self, mock_hass, mock_area_manager):
         """Test setting boost mode with default duration."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         data = {}  # No duration specified
@@ -438,7 +447,9 @@ class TestScheduleHandlers:
     @pytest.mark.asyncio
     async def test_handle_cancel_boost_success(self, mock_hass, mock_area_manager):
         """Test canceling boost mode."""
-        mock_coordinator = AsyncMock()
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}
+        mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         response = await handle_cancel_boost(mock_hass, mock_area_manager, "living_room")

@@ -691,10 +691,9 @@ export const clearOpenThermLogs = async (): Promise<{ success: boolean, message:
   return response.data
 }
 
-export const setOpenthermGateway = async (gatewayId: string, enabled: boolean): Promise<void> => {
+export const setOpenthermGateway = async (gatewayId: string): Promise<void> => {
   await axios.post(`${API_BASE}/opentherm_gateway`, {
     gateway_id: gatewayId,
-    enabled: enabled
   })
 }
 

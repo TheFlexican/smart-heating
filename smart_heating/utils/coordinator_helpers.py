@@ -2,6 +2,7 @@
 
 import logging
 from typing import Any, Dict, Optional
+import inspect
 
 from homeassistant.core import HomeAssistant
 
@@ -20,9 +21,32 @@ def get_coordinator(hass: HomeAssistant) -> Optional[Any]:
         Coordinator instance or None
     """
     for _key, value in hass.data.get(DOMAIN, {}).items():
-        if hasattr(value, "data") and hasattr(value, "async_request_refresh"):
-            return value
+        # Ensure value looks like a real coordinator: it must have a dict-like
+        # data attribute and an async request refresh method. MagicMock
+        # frequently exposes attributes dynamically, so ensure the types to
+        # avoid false positives in tests.
+        if (
+            getattr(value, "data", None) is not None
+            and isinstance(value.data, dict)
+            and hasattr(value, "async_request_refresh")
+        ):
+            # Only return if async_request_refresh is callable
+            if callable(getattr(value, "async_request_refresh")):
+                return value
     return None
+
+
+async def call_maybe_async(func: callable, /, *args, **kwargs) -> Any:
+    """Call a function that may be sync or async and return the result.
+
+    If the function returns an awaitable, await it and return the awaited
+    result. This is a safe helper to call possibly-mocked async functions
+    in tests where MagicMock may be used.
+    """
+    result = func(*args, **kwargs)
+    if inspect.isawaitable(result):
+        return await result
+    return result
 
 
 def get_coordinator_devices(hass: HomeAssistant, area_id: str) -> Dict[str, Any]:

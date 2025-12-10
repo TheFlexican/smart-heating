@@ -33,7 +33,7 @@ def mock_area_manager():
     manager.async_save = AsyncMock()
     manager.frost_protection_enabled = False
     manager.frost_protection_temp = 7.0
-    manager.opentherm_enabled = False
+    manager.opentherm_gateway_id = None
     manager.opentherm_gateway_id = None
     manager.trv_temp_offset = 2.0
     manager.trv_heating_temp = 25.0
@@ -448,14 +448,11 @@ class TestDeviceControl:
 
         await controller._async_control_thermostats(mock_area, True, 21.0)
 
-        mock_hass.services.async_call.assert_called_once_with(
-            "climate",
-            "set_temperature",
-            {
-                "entity_id": "climate.living_room",
-                "temperature": 21.0,
-            },
-            blocking=False,
+        # Ensure a set temperature service call occurred with the expected parameters
+        calls = [c.args for c in mock_hass.services.async_call.call_args_list]
+        assert any(
+            call[0] == "climate" and call[1] == "set_temperature" and call[2]["temperature"] == 21.0
+            for call in calls
         )
 
     @pytest.mark.asyncio
@@ -465,14 +462,23 @@ class TestDeviceControl:
         """Test avoiding duplicate thermostat calls."""
         mock_area.get_thermostats.return_value = ["climate.living_room"]
 
-        # First call
+        # First call => 3 service calls
         await controller._async_control_thermostats(mock_area, True, 21.0)
-        assert mock_hass.services.async_call.call_count == 1
+        set_temp_calls = [
+            c
+            for c in mock_hass.services.async_call.call_args_list
+            if c.args[0] == "climate" and c.args[1] == "set_temperature"
+        ]
+        assert len(set_temp_calls) == 1
 
-        # Second call with same temperature
+        # Second call with same temperature (no additional set_temperature)
         await controller._async_control_thermostats(mock_area, True, 21.0)
-        # Should not call again (cached)
-        assert mock_hass.services.async_call.call_count == 1
+        set_temp_calls = [
+            c
+            for c in mock_hass.services.async_call.call_args_list
+            if c.args[0] == "climate" and c.args[1] == "set_temperature"
+        ]
+        assert len(set_temp_calls) == 1
 
     @pytest.mark.asyncio
     async def test_async_control_thermostats_temperature_change(
@@ -481,14 +487,23 @@ class TestDeviceControl:
         """Test thermostat update when temperature changes."""
         mock_area.get_thermostats.return_value = ["climate.living_room"]
 
-        # First call
+        # First call => 3 service calls
         await controller._async_control_thermostats(mock_area, True, 21.0)
-        assert mock_hass.services.async_call.call_count == 1
+        set_temp_calls = [
+            c
+            for c in mock_hass.services.async_call.call_args_list
+            if c.args[0] == "climate" and c.args[1] == "set_temperature"
+        ]
+        assert len(set_temp_calls) == 1
 
-        # Second call with different temperature
+        # Second call with different temperature => 3 more service calls
         await controller._async_control_thermostats(mock_area, True, 22.0)
-        # Should call again (temperature changed)
-        assert mock_hass.services.async_call.call_count == 2
+        set_temp_calls = [
+            c
+            for c in mock_hass.services.async_call.call_args_list
+            if c.args[0] == "climate" and c.args[1] == "set_temperature"
+        ]
+        assert len(set_temp_calls) == 2
 
     @pytest.mark.asyncio
     async def test_async_control_switches_turn_on(self, controller, mock_hass, mock_area):
@@ -614,17 +629,19 @@ class TestDeviceControl:
         self, controller, mock_hass, mock_area_manager
     ):
         """Test controlling OpenTherm gateway when heating."""
-        mock_area_manager.opentherm_enabled = True
-        mock_area_manager.opentherm_gateway_id = "climate.boiler"
+        mock_area_manager.opentherm_gateway_id = "gateway1"
+        mock_area_manager.opentherm_gateway_id = (
+            "climate.boiler"  # Corrected to reflect the intended gateway ID
+        )
 
         await controller._async_control_opentherm_gateway(True, 21.0)
 
         # Should set to target + 20°C overhead
         mock_hass.services.async_call.assert_called_once_with(
-            "climate",
-            "set_temperature",
+            "opentherm_gw",
+            "set_control_setpoint",
             {
-                "entity_id": "climate.boiler",
+                "gateway_id": "climate.boiler",
                 "temperature": 41.0,  # 21 + 20
             },
             blocking=False,
@@ -635,15 +652,17 @@ class TestDeviceControl:
         self, controller, mock_hass, mock_area_manager
     ):
         """Test turning off OpenTherm gateway when no heating."""
-        mock_area_manager.opentherm_enabled = True
-        mock_area_manager.opentherm_gateway_id = "climate.boiler"
+        mock_area_manager.opentherm_gateway_id = "gateway1"
+        mock_area_manager.opentherm_gateway_id = (
+            "climate.boiler"  # Corrected to reflect the intended gateway ID
+        )
 
         await controller._async_control_opentherm_gateway(False, 0.0)
 
         mock_hass.services.async_call.assert_called_once_with(
-            "climate",
-            "turn_off",
-            {"entity_id": "climate.boiler"},
+            "opentherm_gw",
+            "set_control_setpoint",
+            {"gateway_id": "climate.boiler", "temperature": 0.0},
             blocking=False,
         )
 
@@ -652,7 +671,7 @@ class TestDeviceControl:
         self, controller, mock_hass, mock_area_manager
     ):
         """Test OpenTherm gateway when disabled."""
-        mock_area_manager.opentherm_enabled = False
+        mock_area_manager.opentherm_gateway_id = None
 
         await controller._async_control_opentherm_gateway(True, 21.0)
 

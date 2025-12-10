@@ -3,7 +3,8 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from custom_components.smart_heating.api_handlers.config import (
+from homeassistant.core import HomeAssistant
+from smart_heating.api_handlers.config import (
     handle_get_safety_sensor,
     handle_remove_safety_sensor,
     handle_set_safety_sensor,
@@ -13,8 +14,12 @@ from custom_components.smart_heating.api_handlers.config import (
 @pytest.fixture
 def mock_hass():
     """Create a mock Home Assistant instance."""
-    hass = MagicMock()
-    hass.data = {"smart_heating": {"safety_monitor": AsyncMock()}}
+    hass = MagicMock(spec=HomeAssistant)
+    from smart_heating.const import DOMAIN
+
+    safety_mock = MagicMock()
+    safety_mock.async_reconfigure = AsyncMock()
+    hass.data = {DOMAIN: {"safety_monitor": safety_mock}}
     hass.bus = MagicMock()
     hass.bus.async_fire = MagicMock()
     return hass

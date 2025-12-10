@@ -13,6 +13,9 @@ from smart_heating.history import CLEANUP_INTERVAL, HistoryTracker
 def mock_hass():
     """Create mock Home Assistant instance."""
     hass = MagicMock()
+    from smart_heating.const import DOMAIN
+
+    hass.data = {DOMAIN: {}}
     return hass
 
 

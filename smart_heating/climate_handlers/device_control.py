@@ -532,10 +532,10 @@ class DeviceControlHandler:
         self, any_heating: bool, max_target_temp: float
     ) -> None:
         """Control the global OpenTherm gateway based on aggregated demands."""
-        if not self.area_manager.opentherm_enabled:
-            return
-
+        # Only attempt control when a gateway ID is configured
         gateway_id = self.area_manager.opentherm_gateway_id
+        if not gateway_id:
+            return
         if not gateway_id:
             return
 

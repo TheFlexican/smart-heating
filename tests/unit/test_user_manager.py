@@ -13,6 +13,9 @@ from smart_heating.user_manager import UserManager
 def mock_hass():
     """Create a mock Home Assistant instance."""
     hass = MagicMock(spec=HomeAssistant)
+    from smart_heating.const import DOMAIN
+
+    hass.data = {DOMAIN: {}}
     hass.async_add_executor_job = AsyncMock(side_effect=lambda func, *args: func(*args))
     hass.states = MagicMock()
     hass.bus = MagicMock()

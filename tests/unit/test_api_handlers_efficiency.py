@@ -89,7 +89,6 @@ async def test_handle_get_efficiency_report_single_area(
     request = make_mocked_request(
         "GET",
         "/api/smart_heating/efficiency/all_areas?area_id=test_area&period=week",
-        query_string="area_id=test_area&period=week",
     )
 
     response = await handle_get_efficiency_report(
@@ -97,7 +96,7 @@ async def test_handle_get_efficiency_report_single_area(
     )
 
     assert response.status == 200
-    data = response.body._value
+    data = response.body
 
     # Verify response structure matches TypeScript interface
     assert b"area_id" in data
@@ -120,7 +119,6 @@ async def test_handle_get_efficiency_report_all_areas(
     request = make_mocked_request(
         "GET",
         "/api/smart_heating/efficiency/all_areas?period=week",
-        query_string="period=week",
     )
 
     response = await handle_get_efficiency_report(
@@ -128,7 +126,7 @@ async def test_handle_get_efficiency_report_all_areas(
     )
 
     assert response.status == 200
-    data = response.body._value
+    data = response.body
 
     # Verify response structure
     assert b"period" in data
@@ -150,7 +148,6 @@ async def test_handle_get_efficiency_report_default_period(
     request = make_mocked_request(
         "GET",
         "/api/smart_heating/efficiency/all_areas",
-        query_string="",
     )
 
     response = await handle_get_efficiency_report(
@@ -173,7 +170,6 @@ async def test_handle_get_efficiency_report_response_structure(
     request = make_mocked_request(
         "GET",
         "/api/smart_heating/efficiency/all_areas?period=week",
-        query_string="period=week",
     )
 
     response = await handle_get_efficiency_report(
@@ -182,7 +178,7 @@ async def test_handle_get_efficiency_report_response_structure(
 
     import json
 
-    data = json.loads(response.body._value)
+    data = json.loads(response.body.decode())
 
     # Verify top-level structure
     assert "period" in data
@@ -221,7 +217,6 @@ async def test_handle_get_efficiency_report_error_handling(
     request = make_mocked_request(
         "GET",
         "/api/smart_heating/efficiency/all_areas?period=week",
-        query_string="period=week",
     )
 
     response = await handle_get_efficiency_report(
@@ -229,7 +224,7 @@ async def test_handle_get_efficiency_report_error_handling(
     )
 
     assert response.status == 500
-    data = response.body._value
+    data = response.body
     assert b"error" in data
 
 
@@ -255,7 +250,6 @@ async def test_handle_get_area_efficiency_history(mock_hass, mock_efficiency_cal
     request = make_mocked_request(
         "GET",
         "/api/smart_heating/efficiency/history/test_area?periods=7&period_type=day",
-        query_string="periods=7&period_type=day",
     )
 
     response = await handle_get_area_efficiency_history(
@@ -263,7 +257,7 @@ async def test_handle_get_area_efficiency_history(mock_hass, mock_efficiency_cal
     )
 
     assert response.status == 200
-    data = response.body._value
+    data = response.body
     assert b"history" in data
 
     # Should call calculate_area_efficiency for each period (7 times)
@@ -290,7 +284,6 @@ async def test_handle_get_area_efficiency_history_default_params(
     request = make_mocked_request(
         "GET",
         "/api/smart_heating/efficiency/history/test_area",
-        query_string="",
     )
 
     response = await handle_get_area_efficiency_history(

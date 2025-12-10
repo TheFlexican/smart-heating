@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from aiohttp import web
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from smart_heating.api_handlers.opentherm import handle_get_opentherm_gateways
 
@@ -18,6 +19,8 @@ class DummyEntry:
         self.title = title
         self.data = data or {}
         self.options = options or {}
+        # Default to NOT_LOADED so the hass fixture teardown won't attempt unloading
+        self.state = ConfigEntryState.NOT_LOADED
 
 
 @pytest.mark.asyncio
@@ -31,7 +34,9 @@ async def test_get_opentherm_gateways(hass: HomeAssistant):
 
     resp = await handle_get_opentherm_gateways(hass)
     assert isinstance(resp, web.Response)
-    data = resp.json()
+    import json
+
+    data = json.loads(resp.body.decode())
     assert "gateways" in data
     assert any(g["gateway_id"] == "gateway1" for g in data["gateways"])
     assert any(g["gateway_id"] == "gateway2" for g in data["gateways"])

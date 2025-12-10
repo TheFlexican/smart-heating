@@ -86,14 +86,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.options:
         _LOGGER.debug("Loading config entry options: %s", entry.options)
         if entry.options.get("opentherm_gateway_id"):
-            await area_manager.set_opentherm_gateway(
-                entry.options["opentherm_gateway_id"],
-                enabled=entry.options.get("opentherm_enabled", True),
-            )
+            # Only override saved numeric gateway IDs if options explicitly provide
+            # a string gateway id and there's no numeric stored value. If a
+            # numeric gateway ID is stored (legacy style), prefer the stored value.
+            existing_id = getattr(area_manager, "opentherm_gateway_id", None)
+            if existing_id and isinstance(existing_id, str) and existing_id.isnumeric():
+                _LOGGER.debug(
+                    "Skipping options override for OpenTherm gateway: numeric value present"
+                )
+            else:
+                await area_manager.set_opentherm_gateway(
+                    entry.options["opentherm_gateway_id"]
+                )
             _LOGGER.info(
-                "Applied OpenTherm config from options: %s (enabled: %s)",
+                "Applied OpenTherm config from options: %s",
                 entry.options["opentherm_gateway_id"],
-                entry.options.get("opentherm_enabled", True),
             )
 
     # Create history tracker
@@ -213,7 +220,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await setup_websocket(hass)
 
     # Discover OpenTherm Gateway capabilities if configured
-    if area_manager.opentherm_enabled and area_manager.opentherm_gateway_id:
+    if area_manager.opentherm_gateway_id:
 
         async def discover_capabilities():
             await asyncio.sleep(10)  # Wait for HA to be fully started
@@ -271,7 +278,9 @@ async def async_register_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
     _LOGGER.info("Smart Heating panel registered in sidebar")
 
 
-async def async_setup_services(hass: HomeAssistant, coordinator: SmartHeatingCoordinator) -> None:
+async def async_setup_services(
+    hass: HomeAssistant, coordinator: SmartHeatingCoordinator
+) -> None:
     """Set up services for Smart Heating.
 
     Args:
@@ -345,7 +354,9 @@ async def async_setup_services(hass: HomeAssistant, coordinator: SmartHeatingCoo
     hass.services.async_register(
         DOMAIN,
         SERVICE_ADD_DEVICE_TO_AREA,
-        partial(async_handle_add_device, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_add_device, area_manager=area_manager, coordinator=coordinator
+        ),
         schema=ADD_DEVICE_SCHEMA,
     )
     hass.services.async_register(
@@ -371,7 +382,9 @@ async def async_setup_services(hass: HomeAssistant, coordinator: SmartHeatingCoo
     hass.services.async_register(
         DOMAIN,
         SERVICE_ENABLE_AREA,
-        partial(async_handle_enable_area, area_manager=area_manager, coordinator=coordinator),
+        partial(
+            async_handle_enable_area, area_manager=area_manager, coordinator=coordinator
+        ),
         schema=ZONE_ID_SCHEMA,
     )
     hass.services.async_register(
@@ -652,7 +665,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         try:
             from homeassistant.components.frontend import async_remove_panel
 
-            async_remove_panel(hass, "smart_heating")  # Not actually async despite the name
+            async_remove_panel(
+                hass, "smart_heating"
+            )  # Not actually async despite the name
             _LOGGER.debug("Smart Heating panel removed from sidebar")
         except Exception as err:
             _LOGGER.warning("Failed to remove panel: %s", err)

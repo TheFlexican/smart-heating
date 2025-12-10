@@ -15,6 +15,9 @@ from smart_heating.learning_engine import MIN_LEARNING_EVENTS, HeatingEvent, Lea
 def mock_hass():
     """Create a mock Home Assistant instance."""
     hass = MagicMock()
+    from smart_heating.const import DOMAIN
+
+    hass.data = {DOMAIN: {}}
     hass.states = MagicMock()
     hass.states.async_entity_ids = MagicMock(return_value=[])
     hass.states.get = MagicMock(return_value=None)

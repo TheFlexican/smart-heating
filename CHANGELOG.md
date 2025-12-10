@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   **OpenTherm Gateway Selection**
   - Frontend: The Global Settings OpenTherm tab now lists configured OpenTherm Gateway integration entries (by `id`/slug) and allows selecting the gateway used for global boiler control. This prevents users from entering climate entity IDs and ensures correct usage of the OTGW service calls.
 
+  - Removed the manual "Enable OpenTherm Control" toggle. The integration will now automatically control the configured OpenTherm gateway when a gateway ID is set. The Save Configuration button is disabled when no OpenTherm gateways are detected.
+
   - Automatic heating shutdown when boiler reports errors
   - Prevents damage from continued operation during faults
   - Example: Add `binary_sensor.opentherm_ketel_storingsindicatie` to safety sensors

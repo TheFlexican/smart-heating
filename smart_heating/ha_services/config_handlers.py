@@ -53,21 +53,12 @@ async def async_handle_set_opentherm_gateway(
         coordinator: Data coordinator instance
     """
     gateway_id = call.data.get("gateway_id")
-    enabled = call.data.get("enabled", True)
 
-    _LOGGER.debug(
-        "Setting OpenTherm gateway device ID to %s (enabled: %s)",
-        gateway_id,
-        enabled,
-    )
+    _LOGGER.debug("Setting OpenTherm gateway device ID to %s", gateway_id)
 
     try:
-        await area_manager.set_opentherm_gateway(gateway_id, enabled)
-        _LOGGER.info(
-            "Set OpenTherm gateway device ID to %s (enabled: %s)",
-            gateway_id,
-            enabled,
-        )
+        await area_manager.set_opentherm_gateway(gateway_id)
+        _LOGGER.info("Set OpenTherm gateway device ID to %s", gateway_id)
     except ValueError as err:
         _LOGGER.error("Failed to set OpenTherm gateway: %s", err)
 

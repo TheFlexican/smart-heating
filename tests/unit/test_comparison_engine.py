@@ -268,8 +268,10 @@ async def test_compare_custom_periods(comparison_engine, mock_efficiency_calcula
 async def test_compare_all_areas(comparison_engine, mock_efficiency_calculator):
     """Test comparing all areas."""
     mock_area_manager = Mock()
-    mock_area_manager.get_area_ids.return_value = ["living_room", "bedroom"]
-    mock_area_manager.get_area.side_effect = lambda area_id: {"enabled": True}
+    mock_area_manager.get_all_areas.return_value = {
+        "living_room": Mock(enabled=True),
+        "bedroom": Mock(enabled=True),
+    }
 
     mock_efficiency_calculator.calculate_area_efficiency.return_value = {
         "heating_time_percentage": 60.0,
@@ -290,8 +292,10 @@ async def test_compare_all_areas(comparison_engine, mock_efficiency_calculator):
 async def test_compare_all_areas_skips_disabled(comparison_engine, mock_efficiency_calculator):
     """Test that disabled areas are skipped in comparison."""
     mock_area_manager = Mock()
-    mock_area_manager.get_area_ids.return_value = ["living_room", "bedroom"]
-    mock_area_manager.get_area.side_effect = lambda area_id: {"enabled": area_id == "living_room"}
+    mock_area_manager.get_all_areas.return_value = {
+        "living_room": Mock(enabled=True),
+        "bedroom": Mock(enabled=False),
+    }
 
     mock_efficiency_calculator.calculate_area_efficiency.return_value = {
         "heating_time_percentage": 60.0,
@@ -311,8 +315,10 @@ async def test_compare_all_areas_sorted_by_improvement(
 ):
     """Test that results are sorted by energy score improvement."""
     mock_area_manager = Mock()
-    mock_area_manager.get_area_ids.return_value = ["living_room", "bedroom"]
-    mock_area_manager.get_area.side_effect = lambda area_id: {"enabled": True}
+    mock_area_manager.get_all_areas.return_value = {
+        "living_room": Mock(enabled=True),
+        "bedroom": Mock(enabled=True),
+    }
 
     # Mock different improvements for each area
     call_count = 0

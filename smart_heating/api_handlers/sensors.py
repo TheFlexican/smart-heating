@@ -44,7 +44,9 @@ async def handle_add_window_sensor(
         # Refresh coordinator
         coordinator = get_coordinator(hass)
         if coordinator:
-            await coordinator.async_request_refresh()
+            from ..utils.coordinator_helpers import call_maybe_async
+
+            await call_maybe_async(coordinator.async_request_refresh)
 
         return web.json_response({"success": True, "entity_id": entity_id})
     except ValueError as err:
@@ -76,7 +78,9 @@ async def handle_remove_window_sensor(
         # Refresh coordinator
         coordinator = get_coordinator(hass)
         if coordinator:
-            await coordinator.async_request_refresh()
+            from ..utils.coordinator_helpers import call_maybe_async
+
+            await call_maybe_async(coordinator.async_request_refresh)
 
         return web.json_response({"success": True})
     except ValueError as err:
@@ -116,7 +120,9 @@ async def handle_add_presence_sensor(
         # Refresh coordinator
         coordinator = get_coordinator(hass)
         if coordinator:
-            await coordinator.async_request_refresh()
+            from ..utils.coordinator_helpers import call_maybe_async
+
+            await call_maybe_async(coordinator.async_request_refresh)
 
         return web.json_response({"success": True, "entity_id": entity_id})
     except ValueError as err:
@@ -178,7 +184,9 @@ async def handle_get_binary_sensor_entities(hass: HomeAssistant) -> web.Response
                     "entity_id": entity_id,
                     "state": state.state,
                     "attributes": {
-                        "friendly_name": state.attributes.get("friendly_name", entity_id),
+                        "friendly_name": state.attributes.get(
+                            "friendly_name", entity_id
+                        ),
                         "device_class": state.attributes.get("device_class"),
                     },
                 }
@@ -193,7 +201,9 @@ async def handle_get_binary_sensor_entities(hass: HomeAssistant) -> web.Response
                     "entity_id": entity_id,
                     "state": state.state,
                     "attributes": {
-                        "friendly_name": state.attributes.get("friendly_name", entity_id),
+                        "friendly_name": state.attributes.get(
+                            "friendly_name", entity_id
+                        ),
                         "device_class": "presence",  # Virtual device class for filtering
                     },
                 }
@@ -208,7 +218,9 @@ async def handle_get_binary_sensor_entities(hass: HomeAssistant) -> web.Response
                     "entity_id": entity_id,
                     "state": state.state,
                     "attributes": {
-                        "friendly_name": state.attributes.get("friendly_name", entity_id),
+                        "friendly_name": state.attributes.get(
+                            "friendly_name", entity_id
+                        ),
                         "device_class": "presence",  # Virtual device class for filtering
                     },
                 }
@@ -238,7 +250,9 @@ async def handle_get_weather_entities(hass: HomeAssistant) -> web.Response:
                     "entity_id": entity_id,
                     "state": state.state,
                     "attributes": {
-                        "friendly_name": state.attributes.get("friendly_name", entity_id),
+                        "friendly_name": state.attributes.get(
+                            "friendly_name", entity_id
+                        ),
                     },
                 }
             )

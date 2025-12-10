@@ -35,7 +35,6 @@ class TestAreaManagerInitialization:
         assert area_manager.areas == {}
         assert isinstance(area_manager._store, Store)
         assert area_manager.opentherm_gateway_id is None
-        assert area_manager.opentherm_enabled is False
         assert area_manager.global_eco_temp == DEFAULT_ECO_TEMP
         assert area_manager.global_comfort_temp == DEFAULT_COMFORT_TEMP
         assert area_manager.global_away_temp == DEFAULT_AWAY_TEMP
@@ -59,7 +58,6 @@ class TestAreaManagerLoading:
     async def test_async_load_with_data(self, area_manager: AreaManager, mock_area_data):
         """Test loading with existing data."""
         storage_data = {
-            "opentherm_enabled": True,
             "opentherm_gateway_id": "gateway1",
             "global_eco_temp": 18.0,
             "global_comfort_temp": 21.0,
@@ -68,7 +66,7 @@ class TestAreaManagerLoading:
 
         with patch.object(area_manager._store, "async_load", return_value=storage_data):
             await area_manager.async_load()
-            assert area_manager.opentherm_enabled is True
+            assert area_manager.opentherm_gateway_id == "gateway1"
             assert area_manager.opentherm_gateway_id == "gateway1"
             assert area_manager.global_eco_temp == 18.0
             assert TEST_AREA_ID in area_manager.areas
@@ -144,7 +142,8 @@ class TestAreaManagerSaving:
             assert "areas" in saved_data
             assert isinstance(saved_data["areas"], list)
             assert len(saved_data["areas"]) == 1
-            assert "opentherm_enabled" in saved_data
+            # The 'opentherm_enabled' flag was removed; presence of gateway_id implies control enabled
+            assert "opentherm_gateway_id" in saved_data
             assert "global_eco_temp" in saved_data
 
     async def test_async_save_empty_areas(self, area_manager: AreaManager):
@@ -276,17 +275,16 @@ class TestAreaOperations:
 class TestGlobalSettings:
     """Test global settings management."""
 
-    def test_set_opentherm_gateway(self, area_manager: AreaManager):
+    async def test_set_opentherm_gateway(self, area_manager: AreaManager):
         """Test setting OpenTherm gateway."""
-        area_manager.set_opentherm_gateway("gateway1", enabled=True)
+        await area_manager.set_opentherm_gateway("gateway1")
         assert area_manager.opentherm_gateway_id == "gateway1"
-        assert area_manager.opentherm_enabled is True
 
-    def test_set_opentherm_gateway_disabled(self, area_manager: AreaManager):
+    async def test_set_opentherm_gateway_disabled(self, area_manager: AreaManager):
         """Test setting OpenTherm gateway disabled."""
-        area_manager.set_opentherm_gateway("gateway1", enabled=False)
+        # Setting gateway id to a value enables control; control is determined by gateway presence
+        await area_manager.set_opentherm_gateway("gateway1")
         assert area_manager.opentherm_gateway_id == "gateway1"
-        assert area_manager.opentherm_enabled is False
 
     def test_global_preset_temperatures(self, area_manager: AreaManager):
         """Test global preset temperature defaults."""
