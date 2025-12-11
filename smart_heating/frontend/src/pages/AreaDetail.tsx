@@ -176,7 +176,7 @@ const ZoneDetail = () => {
         return
       }
 
-      console.log('AreaDetail loadData - weather_entity_id:', currentZone.weather_entity_id)
+      // Removed noisy debug log to reduce console spam in production
       setArea(currentZone)
       // If preset is active, show effective temperature, otherwise base target
       const displayTemp = (currentZone.preset_mode && currentZone.preset_mode !== 'none' && currentZone.effective_target_temperature != null)

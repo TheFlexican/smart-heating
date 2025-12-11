@@ -55,6 +55,19 @@ class TestAreaModel:
         assert area_dict["target_temperature"] == TEST_TEMPERATURE
         assert area_dict["enabled"] is True
 
+    def test_from_dict_legacy_switch_shutdown(self):
+        """Test loading area from legacy data with switch_shutdown_enabled key."""
+        data = {
+            "area_id": TEST_AREA_ID,
+            "area_name": TEST_AREA_NAME,
+            "target_temperature": TEST_TEMPERATURE,
+            "enabled": True,
+            "switch_shutdown_enabled": False,
+        }
+
+        area = Area.from_dict(data)
+        assert area.shutdown_switches_when_idle is False
+
     def test_area_device_management(self):
         """Test adding and removing devices."""
         area = Area(

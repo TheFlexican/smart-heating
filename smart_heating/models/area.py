@@ -862,7 +862,10 @@ class Area:
         area.devices = data.get(ATTR_DEVICES, {})
         area.hidden = data.get("hidden", False)
         area.manual_override = data.get("manual_override", False)
-        area.shutdown_switches_when_idle = data.get("shutdown_switches_when_idle", True)
+        # Accept legacy key `switch_shutdown_enabled` when loading stored area data
+        area.shutdown_switches_when_idle = data.get(
+            "shutdown_switches_when_idle", data.get("switch_shutdown_enabled", True)
+        )
 
         # Night boost settings
         area.night_boost_enabled = data.get("night_boost_enabled", True)

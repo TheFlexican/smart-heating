@@ -13,6 +13,7 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 - Thermostaat idle hysteresis-logica: de thermostaat setpoint respecteert nu correct de hysteresis wanneer het gebied idle is. Wanneer de gebiedstemperatuur >= (doel - hysteresis), wordt de thermostaatinstelling verlaagd naar de huidige temperatuur om te voorkomen dat de 'verwarming' status wordt geschakeld.
 - Voorkom dubbele calls naar `climate.set_temperature` door de laatst ingestelde setpoint per thermostaat in de cache op te slaan.
 - Tests en ontwikkelaarsdocumentatie bijgewerkt om problemen met MagicMock numerieke conversie te voorkomen (gebruik expliciete numerieke waarden of parseerbare strings voor `area.current_temperature` en `hysteresis_override`).
+ - Fix: De Zone-instelling "Schakel schakelaars/pompen uit wanneer niet verwarmd wordt" (Switch/Pump Control) werkte niet correct en veranderde niet persistent; de API retourneert nu `shutdown_switches_when_idle` (achterwaarts compatibel met `switch_shutdown_enabled`).
 
 
 **OpenTherm Ketel Monitoring & Foutmeldingen**

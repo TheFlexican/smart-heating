@@ -124,8 +124,8 @@ class TestBuildAreaResponse:
         area.auto_preset_enabled = False
         area.auto_preset_home = "home"
         area.auto_preset_away = "away"
-        area.switch_shutdown_enabled = False
-        area.switch_shutdown_entities = []
+        area.shutdown_switches_when_idle = False
+        area.shutdown_switch_entities = []
 
         result = build_area_response(area)
 
@@ -180,8 +180,8 @@ class TestBuildAreaResponse:
         area.auto_preset_enabled = False
         area.auto_preset_home = "home"
         area.auto_preset_away = "away"
-        area.switch_shutdown_enabled = False
-        area.switch_shutdown_entities = []
+        area.shutdown_switches_when_idle = False
+        area.shutdown_switch_entities = []
 
         devices = [{"id": "device1", "name": "Device 1"}, {"id": "device2", "name": "Device 2"}]
 
@@ -243,10 +243,48 @@ class TestBuildAreaResponse:
         area.auto_preset_enabled = False
         area.auto_preset_home = "home"
         area.auto_preset_away = "away"
-        area.switch_shutdown_enabled = False
+        area.shutdown_switches_when_idle = False
         area.switch_shutdown_entities = []
 
         result = build_area_response(area)
 
         assert len(result["schedules"]) == 1
         assert result["schedules"][0]["id"] == "schedule1"
+
+    def test_build_area_response_shutdown_field_from_new_attribute(self):
+        """Ensure shutdown_switches_when_idle is present when using new attribute."""
+        area = MagicMock()
+        area.area_id = "living_room"
+        area.name = "Living Room"
+        area.enabled = True
+        area.hidden = False
+        area.state = "heating"
+        area.target_temperature = 21.0
+        area.get_effective_target_temperature.return_value = 21.0
+        area.current_temperature = 20.5
+        area.schedules = {}
+        # set the new attribute
+        area.shutdown_switches_when_idle = True
+
+        result = build_area_response(area)
+
+        assert result["shutdown_switches_when_idle"] is True
+
+    def test_build_area_response_shutdown_field_from_legacy_attribute(self):
+        """Ensure shutdown_switches_when_idle falls back to legacy attribute."""
+        area = MagicMock()
+        area.area_id = "living_room"
+        area.name = "Living Room"
+        area.enabled = True
+        area.hidden = False
+        area.state = "heating"
+        area.target_temperature = 21.0
+        area.get_effective_target_temperature.return_value = 21.0
+        area.current_temperature = 20.5
+        area.schedules = {}
+        # set only the legacy attribute
+        area.switch_shutdown_enabled = False
+
+        result = build_area_response(area)
+
+        assert result["shutdown_switches_when_idle"] is False
