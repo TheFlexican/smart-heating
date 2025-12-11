@@ -402,6 +402,19 @@ class AreaManager:
             gateway_id: Device ID of the OpenTherm gateway (from integration configuration ID field)
         """
         self.opentherm_gateway_id = gateway_id
+
+        # Auto-enable heating curve when OpenTherm gateway is configured
+        # This provides SAT-like optimal heating out of the box
+        if gateway_id:
+            if not self.advanced_control_enabled:
+                self.advanced_control_enabled = True
+                _LOGGER.info(
+                    "Auto-enabled advanced control (OpenTherm gateway configured)"
+                )
+            if not self.heating_curve_enabled:
+                self.heating_curve_enabled = True
+                _LOGGER.info("Auto-enabled heating curve for optimal energy efficiency")
+
         # When a gateway id is configured, the integration will control it automatically.
         _LOGGER.info("OpenTherm gateway set to %s", gateway_id)
         await self.async_save()

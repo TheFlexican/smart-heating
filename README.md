@@ -10,6 +10,13 @@ A Home Assistant custom integration for intelligent multi-zone heating control w
 
 ## Features
 
+### ⚡ SAT-Inspired Optimal Heating
+- **Intelligent heating curve** - Auto-enabled with OpenTherm Gateway for 10-20% energy savings
+- **Boiler optimization** - Modeled after Smart Autotune Thermostat (SAT) algorithms
+- **Per-zone heating types** - Configure floor heating (30-40°C) vs radiators (50-60°C) for optimal efficiency
+- **PWM control** - Approximates modulation on non-modulating boilers
+- **PID controller** - Optional fine-tuning with auto-gains for precise temperature control
+
 ### 🏠 Smart Zone Control
 - **Multi-zone heating management** - Create and manage unlimited heating zones
 - **Universal device support** - Works with ANY Home Assistant climate integration (Nest, Ecobee, Zigbee2MQTT, etc.)
@@ -149,6 +156,7 @@ Navigate to: `http://your-home-assistant:8123/api/smart_heating/`
 
 ### User Guides
 - 📖 [Full Documentation](docs/en/) - Complete feature guide
+- 🚀 **[SAT Optimization Guide](docs/en/SAT_OPTIMIZATION_GUIDE.md)** - Quick start for optimal heating
 - 🏗️ [Architecture](docs/en/ARCHITECTURE.md) - Technical design and components
 - 💻 [Developer Guide](DEVELOPER.md) - Development setup and workflow
 - 📝 [Changelog](CHANGELOG.md) - Version history and release notes
@@ -156,6 +164,7 @@ Navigate to: `http://your-home-assistant:8123/api/smart_heating/`
 ### Quick References
 - ⚡ [Testing Guide](TESTING_QUICKSTART.md) - Run tests and verify coverage
 - 🔧 [API Reference](docs/en/ARCHITECTURE.md#api-endpoints) - REST API endpoints
+- 🔥 [Advanced Control](docs/en/ADVANCED_CONTROL.md) - Heating curve, PWM, PID, OPV
 - 🐛 [Troubleshooting](docs/en/#troubleshooting) - Common issues and solutions
 
 ## REST API

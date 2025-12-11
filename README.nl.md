@@ -10,6 +10,13 @@ Een Home Assistant custom integratie voor intelligente multi-zone verwarmingsreg
 
 ## Functies
 
+### ⚡ SAT-Geïnspireerde Optimale Verwarming
+- **Intelligente stooklijn** - Auto-ingeschakeld met OpenTherm Gateway voor 10-20% energiebesparing
+- **Ketel optimalisatie** - Gemodelleerd naar Smart Autotune Thermostat (SAT) algoritmes
+- **Verwarmingstype per zone** - Configureer vloerverwarming (30-40°C) vs radiatoren (50-60°C) voor optimale efficiëntie
+- **PWM besturing** - Benadert modulatie op niet-modulerende ketels
+- **PID regelaar** - Optionele fine-tuning met auto-gains voor precieze temperatuurregeling
+
 ### 🏠 Slimme Zone Controle
 - **Multi-zone verwarmingsbeheer** - Creëer en beheer onbeperkte verwarmingszones
 - **Universele apparaatondersteuning** - Werkt met ELKE Home Assistant climate integratie (Nest, Ecobee, Zigbee2MQTT, etc.)
@@ -148,6 +155,7 @@ Navigeer naar: `http://your-home-assistant:8123/api/smart_heating/`
 
 ### Gebruikershandleidingen
 - 📖 [Volledige Documentatie](docs/nl/) - Complete functie handleiding
+- 🚀 **[SAT Optimalisatie Gids](docs/nl/SAT_OPTIMIZATION_GUIDE.md)** - Snelstart voor optimale verwarming
 - 🏗️ [Architectuur](docs/nl/ARCHITECTURE.md) - Technisch ontwerp en componenten
 - 💻 [Ontwikkelaars Handleiding](DEVELOPER.md) - Development setup en workflow
 - 📝 [Changelog](CHANGELOG.nl.md) - Versie geschiedenis en release notes
@@ -155,6 +163,7 @@ Navigeer naar: `http://your-home-assistant:8123/api/smart_heating/`
 ### Snelle Referenties
 - ⚡ [Test Handleiding](TESTING_QUICKSTART.md) - Run tests en verifieer coverage
 - 🔧 [API Referentie](docs/nl/ARCHITECTURE.md#api-endpoints) - REST API endpoints
+- 🔥 [Geavanceerde Besturing](docs/nl/ADVANCED_CONTROL.md) - Stooklijn, PWM, PID, OPV
 - 🐛 [Probleemoplossing](docs/nl/#probleemoplossing) - Veelvoorkomende problemen en oplossingen
 
 ## REST API
