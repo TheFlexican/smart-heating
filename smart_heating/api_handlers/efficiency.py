@@ -69,9 +69,15 @@ async def handle_get_efficiency_report(
             # Transform each area report to match frontend structure
             area_reports = []
             for raw_report in area_reports_raw:
+                # Get area name from area_manager
+                area_id = raw_report.get("area_id")
+                area = area_manager.get_area(area_id) if area_id else None
+                area_name = area.name if area else area_id
+
                 area_reports.append(
                     {
-                        "area_id": raw_report.get("area_id"),
+                        "area_id": area_id,
+                        "area_name": area_name,
                         "period": raw_report.get("period"),
                         "start_date": raw_report.get("start_time", ""),
                         "end_date": raw_report.get("end_time", ""),
