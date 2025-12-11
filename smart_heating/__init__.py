@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
 
 from .api import setup_api
+from .advanced_metrics_collector import AdvancedMetricsCollector
 from .area_logger import AreaLogger
 from .area_manager import AreaManager
 from .climate_controller import ClimateController
@@ -141,6 +142,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     comparison_engine = ComparisonEngine(hass, efficiency_calculator)
     hass.data[DOMAIN]["comparison_engine"] = comparison_engine
     _LOGGER.info("Comparison engine initialized")
+
+    # Create advanced metrics collector
+    advanced_metrics_collector = AdvancedMetricsCollector(hass)
+    hass.data[DOMAIN]["advanced_metrics_collector"] = advanced_metrics_collector
+    # Setup will run async, logs if database not available
+    hass.async_create_task(advanced_metrics_collector.async_setup())
+    _LOGGER.info("Advanced metrics collector initialized")
 
     # Create safety monitor
     safety_monitor = SafetyMonitor(hass, area_manager)

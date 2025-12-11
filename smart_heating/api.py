@@ -311,6 +311,37 @@ class SmartHeatingAPIView(HomeAssistantView):
                 )
             # 'config/advanced_control' GET handled earlier in config endpoints
 
+            # Advanced metrics endpoints
+            elif endpoint == "metrics/advanced":
+                advanced_metrics = self.hass.data[DOMAIN].get(
+                    "advanced_metrics_collector"
+                )
+                if not advanced_metrics:
+                    return web.json_response(
+                        {"error": "Advanced metrics collector not available"},
+                        status=503,
+                    )
+
+                # Get query parameters
+                days = int(request.query.get("days", "7"))
+                area_id = request.query.get("area_id")
+
+                # Validate days parameter
+                if days not in [1, 3, 7, 30]:
+                    return web.json_response(
+                        {"error": "days must be 1, 3, 7, or 30"}, status=400
+                    )
+
+                metrics = await advanced_metrics.async_get_metrics(days, area_id)
+                return web.json_response(
+                    {
+                        "success": True,
+                        "days": days,
+                        "area_id": area_id,
+                        "metrics": metrics,
+                    }
+                )
+
             else:
                 return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)
         except Exception as err:
