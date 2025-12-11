@@ -419,35 +419,52 @@ class DeviceControlHandler:
         if thermostat_id in self._last_set_temperatures:
             del self._last_set_temperatures[thermostat_id]
 
-        try:
-            await self.hass.services.async_call(
-                CLIMATE_DOMAIN,
-                SERVICE_TURN_OFF,
-                {"entity_id": thermostat_id},
-                blocking=False,
-            )
-            _LOGGER.debug("Turned off thermostat %s", thermostat_id)
+        # Check if device supports turn_off service
+        state = self.hass.states.get(thermostat_id)
+        supports_turn_off = False
 
-            # Also turn off associated power switch if it exists
-            await self._async_turn_off_climate_power(thermostat_id)
+        if state:
+            # Check supported features - SUPPORT_TURN_OFF is feature flag 128
+            supported_features = state.attributes.get("supported_features", 0)
+            supports_turn_off = (supported_features & 128) != 0
 
-        except Exception:
-            # Fall back to minimum temperature if turn_off not supported
-            min_temp = 5.0
-            if self.area_manager.frost_protection_enabled:
-                min_temp = self.area_manager.frost_protection_temp
+        if supports_turn_off:
+            try:
+                await self.hass.services.async_call(
+                    CLIMATE_DOMAIN,
+                    SERVICE_TURN_OFF,
+                    {"entity_id": thermostat_id},
+                    blocking=False,
+                )
+                _LOGGER.debug("Turned off thermostat %s", thermostat_id)
 
-            await self.hass.services.async_call(
-                CLIMATE_DOMAIN,
-                SERVICE_SET_TEMPERATURE,
-                {"entity_id": thermostat_id, ATTR_TEMPERATURE: min_temp},
-                blocking=False,
-            )
-            _LOGGER.debug(
-                "Thermostat %s doesn't support turn_off, set to %.1f°C",
-                thermostat_id,
-                min_temp,
-            )
+                # Also turn off associated power switch if it exists
+                await self._async_turn_off_climate_power(thermostat_id)
+                return
+
+            except Exception as err:
+                _LOGGER.debug(
+                    "Failed to turn off thermostat %s: %s, falling back to min temp",
+                    thermostat_id,
+                    err,
+                )
+
+        # Fall back to minimum temperature if turn_off not supported
+        min_temp = 5.0
+        if self.area_manager.frost_protection_enabled:
+            min_temp = self.area_manager.frost_protection_temp
+
+        await self.hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_TEMPERATURE,
+            {"entity_id": thermostat_id, ATTR_TEMPERATURE: min_temp},
+            blocking=False,
+        )
+        _LOGGER.debug(
+            "Thermostat %s doesn't support turn_off, set to %.1f°C instead",
+            thermostat_id,
+            min_temp,
+        )
 
     async def _async_set_climate_temperature(
         self, entity_id: str, temperature: float
