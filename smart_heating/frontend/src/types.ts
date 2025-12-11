@@ -273,3 +273,31 @@ export interface ComparisonResult {
     }
   }[]
 }
+
+// Advanced metrics types
+export interface AdvancedMetricPoint {
+  timestamp: string
+  outdoor_temp: number | null
+  boiler_flow_temp: number | null
+  boiler_return_temp: number | null
+  boiler_setpoint: number | null
+  modulation_level: number | null
+  flame_on: boolean | null
+  area_metrics?: {
+    [areaId: string]: {
+      current_temp: number | null
+      target_temp: number | null
+      state: string
+      heating_type: string
+      heating_curve_coefficient: number | null
+      hysteresis_override: number | null
+    }
+  }
+}
+
+export interface AdvancedMetricsResponse {
+  success: boolean
+  days: number
+  area_id?: string
+  metrics: AdvancedMetricPoint[]
+}

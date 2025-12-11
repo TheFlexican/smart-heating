@@ -36,6 +36,7 @@ import SecurityIcon from '@mui/icons-material/Security'
 import BackupIcon from '@mui/icons-material/Backup'
 import FireplaceIcon from '@mui/icons-material/Fireplace'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import AssessmentIcon from '@mui/icons-material/Assessment'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis, getSafetySensor, setSafetySensor, removeSafetySensor, setHideDevicesPanel, getConfig, setOpenthermGateway, getOpenthermGateways, getAdvancedControlConfig, setAdvancedControlConfig, calibrateOpentherm, type SafetySensorResponse } from '../api'
@@ -1006,6 +1007,18 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               </Stack>
             </AccordionDetails>
           </Accordion>
+
+          {/* Advanced Metrics Dashboard Link */}
+          <Box sx={{ mt: 2, mb: 2 }}>
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={() => navigate('/opentherm/metrics')}
+              startIcon={<AssessmentIcon />}
+            >
+              {t('globalSettings.opentherm.advancedMetrics', 'View Advanced Metrics & Performance Dashboard')}
+            </Button>
+          </Box>
 
           <OpenThermLogger />
         </TabPanel>

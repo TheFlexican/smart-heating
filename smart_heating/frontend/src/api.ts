@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Area, Device, DeviceAdd, ScheduleEntry, LearningStats, HassEntity, WindowSensorConfig, PresenceSensorConfig, VacationMode, UserProfile, UserData, PresenceState, MultiUserSettings, EfficiencyReport, ComparisonResult } from './types'
+import { Area, Device, DeviceAdd, ScheduleEntry, LearningStats, HassEntity, WindowSensorConfig, PresenceSensorConfig, VacationMode, UserProfile, UserData, PresenceState, MultiUserSettings, EfficiencyReport, ComparisonResult, AdvancedMetricsResponse } from './types'
 
 const API_BASE = '/api/smart_heating'
 
@@ -680,6 +680,19 @@ export const getCustomComparison = async (
     start_b: startB,
     end_b: endB
   })
+  return response.data
+}
+
+// Advanced metrics API
+export const getAdvancedMetrics = async (
+  days: 1 | 3 | 7 | 30,
+  areaId?: string
+): Promise<AdvancedMetricsResponse> => {
+  const params = new URLSearchParams({ days: days.toString() })
+  if (areaId) {
+    params.append('area_id', areaId)
+  }
+  const response = await axios.get(`${API_BASE}/metrics/advanced?${params.toString()}`)
   return response.data
 }
 

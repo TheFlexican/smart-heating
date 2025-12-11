@@ -18,6 +18,7 @@ import GlobalSettings from './pages/GlobalSettings'
 import { UserManagement } from './components/UserManagement'
 import EfficiencyReports from './components/EfficiencyReports'
 import HistoricalComparisons from './components/HistoricalComparisons'
+import AdvancedMetricsDashboard from './components/AdvancedMetricsDashboard'
 import { Zone, Device } from './types'
 import { getZones, getDevices, addDeviceToZone, getConfig, getSafetySensor } from './api'
 import { useWebSocket } from './hooks/useWebSocket'
@@ -373,6 +374,7 @@ function App() {
           <Route path="/settings/users" element={<UserManagement />} />
           <Route path="/analytics/efficiency" element={<EfficiencyReports />} />
           <Route path="/analytics/comparison" element={<HistoricalComparisons />} />
+          <Route path="/opentherm/metrics" element={<AdvancedMetricsDashboard />} />
         </Routes>
       </Router>
 
