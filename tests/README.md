@@ -252,7 +252,7 @@ def your_fixture():
 
 class TestYourClassInitialization:
     """Test class initialization."""
-    
+
     def test_init(self, your_fixture):
         """Test initialization."""
         assert your_fixture is not None
@@ -287,11 +287,11 @@ Group related tests in classes:
 ```python
 class TestAreaCreation:
     """Test area creation functionality."""
-    
+
     async def test_create_area_success(self):
         """Test successful area creation."""
         pass
-    
+
     async def test_create_area_duplicate(self):
         """Test creating duplicate area."""
         pass
@@ -338,6 +338,40 @@ pytest tests/unit -s
 ```bash
 pytest tests/unit --lf
 ```
+
+## Hysteresis and Thermostat Testing Notes
+
+- When writing tests for thermostat control and hysteresis logic, be explicit about numeric values. Avoid relying on MagicMock's default numeric behavior (MagicMock may respond to numeric operations), which can produce unintended results.
+- Ensure fixtures set area-level fields like `current_temperature` and `hysteresis_override` to actual numeric values, either ints, floats, or string numbers. Example:
+
+```python
+mock_area.current_temperature = 21.0
+mock_area.hysteresis_override = 0.5
+```
+
+- When asserting service calls to `climate.set_temperature`, prefer `pytest.approx(...)` for float comparisons and check calls via `mock_hass.services.async_call.call_args_list` to inspect parameters.
+
+- Example test pattern for hysteresis:
+
+```python
+@pytest.mark.asyncio
+async def test_idle_hysteresis_behavior(device_handler, mock_area):
+  # Setup
+  mock_area.get_thermostats.return_value = ['climate.thermo1']
+  mock_area.current_temperature = 21.0
+  mock_area.hysteresis_override = 0.5
+
+  # Call function under test
+  await device_handler.async_control_thermostats(mock_area, False, 22.0)
+
+  # Validate the expected set point (22.0 or 21.0 depending on hysteresis)
+  calls = device_handler.hass.services.async_call.call_args_list
+  set_temp_calls = [c for c in calls if c.args[0] == 'climate' and c.args[1] == 'set_temperature']
+  assert len(set_temp_calls) == 1
+  last_call = set_temp_calls[-1]
+  assert last_call.args[2]['temperature'] == pytest.approx(22.0)
+```
+
 
 ### Run with pdb debugger:
 ```bash

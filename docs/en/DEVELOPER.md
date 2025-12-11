@@ -96,6 +96,13 @@ npm test -- --debug         # Run in debug mode
 - `navigation.spec.ts` - Navigation and UI tests
 For OpenTherm Gateway specific testing guidelines, see [OpenTherm Integration](OPENTHERM.md).
 
+### Hysteresis and Thermostat Testing (Developer Note)
+
+- When adding or modifying thermostat behavior, remember that numeric values coming from test fixtures may be MagicMock instances. MagicMock responds to numeric operations unexpectedly; prefer setting explicit numeric values for `area.current_temperature` and `area.hysteresis_override` in tests.
+- The device control logic will set the thermostat setpoint to the current area temperature when the area current temperature >= (target - hysteresis). This prevents the thermostat from reporting `heating` while the area is close to target.
+- Tests should assert `climate.set_temperature` invocation and check the passed `temperature` parameter precisely (use `pytest.approx` for floats). Additionally, check call count and cached last-set setpoint behavior to ensure duplicate calls are not made.
+
+
 - `temperature-control.spec.ts` - Temperature adjustment tests
 - `boost-mode.spec.ts` - Boost mode functionality
 - `manual-override.spec.ts` - Manual override detection (5 tests)

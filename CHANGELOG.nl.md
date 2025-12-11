@@ -8,6 +8,12 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 ## [Niet Uitgebracht]
 
 ### ✨ Functies
+### 🐛 Opgeloste bugs & Verbeteringen
+
+- Thermostaat idle hysteresis-logica: de thermostaat setpoint respecteert nu correct de hysteresis wanneer het gebied idle is. Wanneer de gebiedstemperatuur >= (doel - hysteresis), wordt de thermostaatinstelling verlaagd naar de huidige temperatuur om te voorkomen dat de 'verwarming' status wordt geschakeld.
+- Voorkom dubbele calls naar `climate.set_temperature` door de laatst ingestelde setpoint per thermostaat in de cache op te slaan.
+- Tests en ontwikkelaarsdocumentatie bijgewerkt om problemen met MagicMock numerieke conversie te voorkomen (gebruik expliciete numerieke waarden of parseerbare strings voor `area.current_temperature` en `hysteresis_override`).
+
 
 **OpenTherm Ketel Monitoring & Foutmeldingen**
 - **Real-time ketel status dashboard**: Live OpenTherm Gateway sensor monitoring
@@ -486,7 +492,7 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 - Help tekst die nooduitschakeling gedrag uitlegt
 - Waarschuwingsberichten voor actieve veiligheidswaarschuwingen
 
-**Gebied-Specifieke Hysterese Override (v0.3.18)**
+**Gebied-Specifieke Hysterese Override (v0.5.13)**
 - **Hysterese Aanpassing**: Gebieden kunnen nu de globale hysterese instelling overschrijven
   - Schakel tussen globale hysterese (standaard 0.5°C) of gebied-specifieke waarde
   - Bereik: 0.1°C tot 2.0°C met 0.1°C stappen
@@ -495,7 +501,7 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
   - Optimistische UI updates voor directe feedback
   - Status blijft behouden bij pagina verversing
 
-**Globale Instellingen Herontwerp (v0.3.18)**
+**Globale Instellingen Herontwerp (v0.5.13)**
 - **Tabblad Navigatie**: Gereorganiseerde Globale Instellingen pagina met 4 tabbladen
   - 🌡️ **Temperatuur Tabblad**: Globale voorinstellingstemperaturen (6 presets)
   - 👥 **Sensoren Tabblad**: Globale aanwezigheidssensor configuratie

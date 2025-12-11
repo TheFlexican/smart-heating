@@ -276,6 +276,46 @@ class TestAsyncControlThermostats:
         )
 
     @pytest.mark.asyncio
+    async def test_update_target_when_not_heating_within_hysteresis(
+        self, device_handler, mock_area
+    ):
+        """Test sets thermostat to current temp when within hysteresis band."""
+        mock_area.get_thermostats.return_value = ["climate.thermo1"]
+        mock_area.current_temperature = 20.0
+
+        # Ensure area manager has default hysteresis 0.5 as in fixture
+        await device_handler.async_control_thermostats(mock_area, False, 20.0)
+
+        device_handler.hass.services.async_call.assert_called_once_with(
+            "climate",
+            "set_temperature",
+            {
+                "entity_id": "climate.thermo1",
+                "temperature": 20.0,
+            },
+            blocking=False,
+        )
+
+    @pytest.mark.asyncio
+    async def test_update_target_when_not_heating_below_hysteresis(self, device_handler, mock_area):
+        """Test keeps thermostat target when current_temp is below target - hysteresis."""
+        mock_area.get_thermostats.return_value = ["climate.thermo1"]
+        mock_area.current_temperature = 21.0
+
+        # Target is 22.0; hysteresis=0.5; current(21.0) < 22-0.5=21.5 so not within band
+        await device_handler.async_control_thermostats(mock_area, False, 22.0)
+
+        device_handler.hass.services.async_call.assert_called_once_with(
+            "climate",
+            "set_temperature",
+            {
+                "entity_id": "climate.thermo1",
+                "temperature": 22.0,
+            },
+            blocking=False,
+        )
+
+    @pytest.mark.asyncio
     async def test_turn_off_thermostat(self, device_handler, mock_area):
         """Test turning off thermostat."""
         mock_area.get_thermostats.return_value = ["climate.thermo1"]
@@ -300,9 +340,9 @@ class TestAsyncControlThermostats:
         mock_area.get_thermostats.return_value = ["climate.old_thermo"]
 
         # Make turn_off fail
-        async def async_call_side_effect(domain, service, *args, **kwargs):
+        def async_call_side_effect(domain, service, *args, **kwargs):
             if service == "turn_off":
-                raise Exception("Service not supported")
+                raise RuntimeError("Service not supported")
 
         device_handler.hass.services.async_call.side_effect = async_call_side_effect
 
@@ -318,7 +358,7 @@ class TestAsyncControlThermostats:
         # Second call should be set_temperature with 5.0°C
         last_call = device_handler.hass.services.async_call.call_args_list[1]
         assert last_call[0][1] == "set_temperature"
-        assert last_call[0][2]["temperature"] == 5.0
+        assert last_call[0][2]["temperature"] == pytest.approx(5.0)
 
     @pytest.mark.asyncio
     async def test_turn_off_fallback_uses_frost_protection_temp(
@@ -340,7 +380,7 @@ class TestAsyncControlThermostats:
 
         # Second call should use frost protection temperature
         last_call = device_handler.hass.services.async_call.call_args_list[1]
-        assert last_call[0][2]["temperature"] == 7.5
+        assert last_call[0][2]["temperature"] == pytest.approx(7.5)
 
     @pytest.mark.asyncio
     async def test_error_handling(self, device_handler, mock_area):

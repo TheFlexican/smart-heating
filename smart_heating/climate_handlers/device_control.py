@@ -252,117 +252,311 @@ class DeviceControlHandler:
             target_temp: Target temperature
             hvac_mode: HVAC mode ("heat" or "cool")
         """
-        from ..const import HVAC_MODE_COOL, HVAC_MODE_HEAT
 
         thermostats = area.get_thermostats()
 
         for thermostat_id in thermostats:
             try:
+                _LOGGER.debug(
+                    "Processing thermostat %s (heating=%s target_temp=%s)",
+                    thermostat_id,
+                    heating,
+                    target_temp,
+                )
                 if heating and target_temp is not None:
-                    # First, check for and turn on associated power switch
-                    # Some AC units have a separate power switch (e.g., switch.xxx_power)
-                    await self._async_ensure_climate_power_on(thermostat_id)
-
-                    # Set HVAC mode first
-                    ha_hvac_mode = (
-                        HVAC_MODE_HEAT if hvac_mode == "heat" else HVAC_MODE_COOL
+                    await self._handle_thermostat_heating(
+                        thermostat_id, target_temp, hvac_mode
                     )
-                    await self.hass.services.async_call(
-                        CLIMATE_DOMAIN,
-                        "set_hvac_mode",
-                        {
-                            "entity_id": thermostat_id,
-                            "hvac_mode": ha_hvac_mode,
-                        },
-                        blocking=False,
-                    )
-                    _LOGGER.debug(
-                        "Set thermostat %s to %s mode", thermostat_id, hvac_mode
-                    )
-
-                    # Only set temperature if it has changed (avoid API rate limiting)
-                    last_temp = self._last_set_temperatures.get(thermostat_id)
-                    if last_temp is None or abs(last_temp - target_temp) >= 0.1:
-                        await self.hass.services.async_call(
-                            CLIMATE_DOMAIN,
-                            SERVICE_SET_TEMPERATURE,
-                            {
-                                "entity_id": thermostat_id,
-                                ATTR_TEMPERATURE: target_temp,
-                            },
-                            blocking=False,
-                        )
-                        self._last_set_temperatures[thermostat_id] = target_temp
-                        _LOGGER.debug(
-                            "Set thermostat %s to %.1f°C (%s mode)",
-                            thermostat_id,
-                            target_temp,
-                            hvac_mode,
-                        )
-                    else:
-                        _LOGGER.debug(
-                            "Skipping thermostat %s update - already at %.1f°C",
-                            thermostat_id,
-                            target_temp,
-                        )
                 elif target_temp is not None:
-                    # Update target temperature even when not heating/cooling
-                    last_temp = self._last_set_temperatures.get(thermostat_id)
-                    if last_temp is None or abs(last_temp - target_temp) >= 0.1:
-                        await self.hass.services.async_call(
-                            CLIMATE_DOMAIN,
-                            SERVICE_SET_TEMPERATURE,
-                            {
-                                "entity_id": thermostat_id,
-                                ATTR_TEMPERATURE: target_temp,
-                            },
-                            blocking=False,
-                        )
-                        self._last_set_temperatures[thermostat_id] = target_temp
-                        _LOGGER.debug(
-                            "Updated thermostat %s target to %.1f°C (idle)",
-                            thermostat_id,
-                            target_temp,
-                        )
+                    await self._handle_thermostat_idle(area, thermostat_id, target_temp)
                 else:
-                    # Turn off heating/cooling completely
-                    if thermostat_id in self._last_set_temperatures:
-                        del self._last_set_temperatures[thermostat_id]
-
-                    try:
-                        await self.hass.services.async_call(
-                            CLIMATE_DOMAIN,
-                            SERVICE_TURN_OFF,
-                            {"entity_id": thermostat_id},
-                            blocking=False,
-                        )
-                        _LOGGER.debug("Turned off thermostat %s", thermostat_id)
-
-                        # Also turn off associated power switch if it exists
-                        await self._async_turn_off_climate_power(thermostat_id)
-
-                    except Exception:
-                        # Fall back to minimum temperature if turn_off not supported
-                        min_temp = 5.0
-                        if self.area_manager.frost_protection_enabled:
-                            min_temp = self.area_manager.frost_protection_temp
-
-                        await self.hass.services.async_call(
-                            CLIMATE_DOMAIN,
-                            SERVICE_SET_TEMPERATURE,
-                            {
-                                "entity_id": thermostat_id,
-                                ATTR_TEMPERATURE: min_temp,
-                            },
-                            blocking=False,
-                        )
-                        _LOGGER.debug(
-                            "Thermostat %s doesn't support turn_off, set to %.1f°C",
-                            thermostat_id,
-                            min_temp,
-                        )
+                    await self._handle_thermostat_turn_off(thermostat_id)
             except Exception as err:
                 _LOGGER.error("Failed to control thermostat %s: %s", thermostat_id, err)
+
+    async def _handle_thermostat_heating(
+        self, thermostat_id: str, target_temp: float, hvac_mode: str
+    ) -> None:
+        """Handle thermostat updates when heating/cooling is active.
+
+        This method ensures the power switch is on, sets HVAC mode and
+        updates the temperature only when it actually changed.
+        """
+        from ..const import HVAC_MODE_COOL, HVAC_MODE_HEAT
+
+        # First, ensure any associated power switch is on
+        await self._async_ensure_climate_power_on(thermostat_id)
+
+        # Set HVAC mode first
+        ha_hvac_mode = HVAC_MODE_HEAT if hvac_mode == "heat" else HVAC_MODE_COOL
+        await self.hass.services.async_call(
+            CLIMATE_DOMAIN,
+            "set_hvac_mode",
+            {"entity_id": thermostat_id, "hvac_mode": ha_hvac_mode},
+            blocking=False,
+        )
+        _LOGGER.debug("Set thermostat %s to %s mode", thermostat_id, hvac_mode)
+
+        # Only set temperature when it differs sufficiently from cached value
+        last_temp = self._last_set_temperatures.get(thermostat_id)
+        if last_temp is None or abs(last_temp - target_temp) >= 0.1:
+            await self.hass.services.async_call(
+                CLIMATE_DOMAIN,
+                SERVICE_SET_TEMPERATURE,
+                {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp},
+                blocking=False,
+            )
+            self._last_set_temperatures[thermostat_id] = target_temp
+            _LOGGER.debug(
+                "Set thermostat %s to %.1f°C (%s mode)",
+                thermostat_id,
+                target_temp,
+                hvac_mode,
+            )
+        else:
+            _LOGGER.debug(
+                "Skipping thermostat %s update - already at %.1f°C",
+                thermostat_id,
+                target_temp,
+            )
+
+    async def _handle_thermostat_idle(
+        self, area: Area, thermostat_id: str, target_temp: float
+    ) -> None:
+        """Handle thermostat updates when area is idle (not actively heating/cooling).
+
+        Implements hysteresis-aware behavior: if the area temperature is within
+        (target - hysteresis), we set the thermostat to current area temperature
+        so the thermostat doesn't report `heating` while system is within band.
+        """
+        hysteresis = self._parse_hysteresis(area)
+
+        current_temp_raw = getattr(area, "current_temperature", None)
+        try:
+            current_temp = (
+                float(current_temp_raw) if current_temp_raw is not None else None
+            )
+        except Exception:
+            current_temp = None
+
+        desired_setpoint = target_temp
+        try:
+            rhs = float(target_temp) - float(hysteresis)
+        except Exception:
+            rhs = None
+
+        # If current temp is at or above (target - hysteresis) prefer current temp
+        if current_temp is not None and rhs is not None and current_temp >= rhs:
+            desired_setpoint = current_temp
+
+        last_temp = self._last_set_temperatures.get(thermostat_id)
+        _LOGGER.debug(
+            "Thermostat %s idle update: last_temp=%s target_temp=%s desired_setpoint=%s",
+            thermostat_id,
+            last_temp,
+            target_temp,
+            desired_setpoint,
+        )
+
+        _LOGGER.debug(
+            "Computed values: current_temp_raw=%s current_temp=%s hysteresis=%s rhs=%s desired_setpoint=%s last_temp=%s",
+            current_temp_raw,
+            current_temp,
+            hysteresis,
+            rhs,
+            desired_setpoint,
+            last_temp,
+        )
+
+        if last_temp is None or abs(last_temp - desired_setpoint) >= 0.1:
+            await self.hass.services.async_call(
+                CLIMATE_DOMAIN,
+                SERVICE_SET_TEMPERATURE,
+                {"entity_id": thermostat_id, ATTR_TEMPERATURE: desired_setpoint},
+                blocking=False,
+            )
+            self._last_set_temperatures[thermostat_id] = desired_setpoint
+            _LOGGER.debug(
+                "Updated thermostat %s target to %.1f°C (idle)",
+                thermostat_id,
+                desired_setpoint,
+            )
+
+    def _parse_hysteresis(self, area: Area) -> float:
+        """Return a safe hysteresis value for the area (override or default).
+
+        This avoids accidental numeric conversion of MagicMock objects used in tests.
+        """
+        val = getattr(area, "hysteresis_override", None)
+        if isinstance(val, (int, float)):
+            try:
+                return float(val)
+            except Exception:
+                pass
+        if isinstance(val, str):
+            try:
+                return float(val)
+            except Exception:
+                pass
+
+        am_hyst = getattr(self.area_manager, "hysteresis", None)
+        if isinstance(am_hyst, (int, float)):
+            try:
+                return float(am_hyst)
+            except Exception:
+                pass
+        if isinstance(am_hyst, str):
+            try:
+                return float(am_hyst)
+            except Exception:
+                pass
+
+        # Fallback default
+        return 0.5
+
+    async def _handle_thermostat_turn_off(self, thermostat_id: str) -> None:
+        """Turn off thermostat or fall back to minimum setpoint if turn_off not supported."""
+        if thermostat_id in self._last_set_temperatures:
+            del self._last_set_temperatures[thermostat_id]
+
+        try:
+            await self.hass.services.async_call(
+                CLIMATE_DOMAIN,
+                SERVICE_TURN_OFF,
+                {"entity_id": thermostat_id},
+                blocking=False,
+            )
+            _LOGGER.debug("Turned off thermostat %s", thermostat_id)
+
+            # Also turn off associated power switch if it exists
+            await self._async_turn_off_climate_power(thermostat_id)
+
+        except Exception:
+            # Fall back to minimum temperature if turn_off not supported
+            min_temp = 5.0
+            if self.area_manager.frost_protection_enabled:
+                min_temp = self.area_manager.frost_protection_temp
+
+            await self.hass.services.async_call(
+                CLIMATE_DOMAIN,
+                SERVICE_SET_TEMPERATURE,
+                {"entity_id": thermostat_id, ATTR_TEMPERATURE: min_temp},
+                blocking=False,
+            )
+            _LOGGER.debug(
+                "Thermostat %s doesn't support turn_off, set to %.1f°C",
+                thermostat_id,
+                min_temp,
+            )
+
+    async def _async_set_climate_temperature(
+        self, entity_id: str, temperature: float
+    ) -> None:
+        """Helper to set climate temperature on an entity (non-blocking service call)."""
+        await self.hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_TEMPERATURE,
+            {"entity_id": entity_id, ATTR_TEMPERATURE: temperature},
+            blocking=False,
+        )
+
+    def _compute_area_candidate(
+        self,
+        area_id: str,
+        overhead: float,
+        advanced_enabled: bool,
+        heating_curve_enabled: bool,
+        pid_enabled: bool,
+    ) -> Optional[float]:
+        """Compute boiler setpoint candidate for a single area.
+
+        Encapsulates heating curve and PID adjustments so the main gateway
+        control function stays more readable.
+        """
+        area = self.area_manager.get_area(area_id)
+        if not area:
+            return None
+
+        # Determine outside temperature if available on area
+        outside_temp = None
+        if area.weather_entity_id:
+            ws = self.hass.states.get(area.weather_entity_id)
+            try:
+                outside_temp = (
+                    float(ws.state)
+                    if ws and ws.state not in ("unknown", "unavailable")
+                    else None
+                )
+            except Exception:
+                outside_temp = None
+
+        # Default candidate: max target + overhead
+        candidate = area.target_temperature + overhead
+
+        # Heating curve
+        candidate = self._apply_heating_curve(
+            area_id, candidate, outside_temp, advanced_enabled, heating_curve_enabled
+        )
+
+        candidate = self._apply_pid_adjustment(
+            area_id, candidate, pid_enabled, advanced_enabled
+        )
+
+        return candidate
+
+    def _apply_heating_curve(
+        self,
+        area_id: str,
+        candidate: float,
+        outside_temp: Optional[float],
+        advanced_enabled: bool,
+        heating_curve_enabled: bool,
+    ) -> float:
+        if not (advanced_enabled and heating_curve_enabled):
+            return candidate
+        area = self.area_manager.get_area(area_id)
+        coefficient = (
+            area.heating_curve_coefficient
+            or self.area_manager.default_heating_curve_coefficient
+        )
+        hc = self._heating_curves.get(area_id) or HeatingCurve(
+            heating_system=(
+                "underfloor" if area.heating_type == "floor_heating" else "radiator"
+            ),
+            coefficient=coefficient,
+        )
+        self._heating_curves[area_id] = hc
+        if outside_temp is not None:
+            hc.update(area.target_temperature, outside_temp)
+            if hc.value is not None:
+                return hc.value
+        return candidate
+
+    def _apply_pid_adjustment(
+        self, area_id: str, candidate: float, pid_enabled: bool, advanced_enabled: bool
+    ) -> float:
+        if not (pid_enabled and advanced_enabled):
+            return candidate
+        area = self.area_manager.get_area(area_id)
+        if area.current_temperature is None:
+            return candidate
+        pid = self._pids.get(area_id)
+        if not pid:
+            pid = PID(
+                heating_system=area.heating_type,
+                automatic_gain_value=1.0,
+                heating_curve_coefficient=(
+                    area.heating_curve_coefficient
+                    or self.area_manager.default_heating_curve_coefficient
+                ),
+                automatic_gains=True,
+            )
+            self._pids[area_id] = pid
+        err = area.target_temperature - (area.current_temperature or 0.0)
+        hc_local = self._heating_curves.get(area_id)
+        hv = hc_local.value if hc_local and hc_local.value is not None else None
+        pid_out = pid.update(Error(err), hv)
+        return candidate + pid_out
 
     async def async_control_switches(self, area: Area, heating: bool) -> None:
         """Control switches (pumps, relays) in an area."""
@@ -428,14 +622,8 @@ class DeviceControlHandler:
                     if domain == "number":
                         # Direct position control via number entity
                         if heating:
-                            await self.hass.services.async_call(
-                                "number",
-                                "set_value",
-                                {
-                                    "entity_id": valve_id,
-                                    "value": capabilities["position_max"],
-                                },
-                                blocking=False,
+                            await self._set_valve_number_position(
+                                valve_id, capabilities["position_max"]
                             )
                             _LOGGER.debug(
                                 "Opened valve %s to %.0f%%",
@@ -443,14 +631,8 @@ class DeviceControlHandler:
                                 capabilities["position_max"],
                             )
                         else:
-                            await self.hass.services.async_call(
-                                "number",
-                                "set_value",
-                                {
-                                    "entity_id": valve_id,
-                                    "value": capabilities["position_min"],
-                                },
-                                blocking=False,
+                            await self._set_valve_number_position(
+                                valve_id, capabilities["position_min"]
                             )
                             _LOGGER.debug(
                                 "Closed valve %s to %.0f%%",
@@ -468,15 +650,7 @@ class DeviceControlHandler:
                             else capabilities["position_min"]
                         )
                         try:
-                            await self.hass.services.async_call(
-                                CLIMATE_DOMAIN,
-                                "set_position",
-                                {
-                                    "entity_id": valve_id,
-                                    "position": position,
-                                },
-                                blocking=False,
-                            )
+                            await self._set_valve_climate_position(valve_id, position)
                             _LOGGER.debug(
                                 "Set valve %s position to %.0f%%", valve_id, position
                             )
@@ -498,29 +672,13 @@ class DeviceControlHandler:
                         heating_temp = max(
                             target_temp + offset, self.area_manager.trv_heating_temp
                         )
-                        await self.hass.services.async_call(
-                            CLIMATE_DOMAIN,
-                            SERVICE_SET_TEMPERATURE,
-                            {
-                                "entity_id": valve_id,
-                                ATTR_TEMPERATURE: heating_temp,
-                            },
-                            blocking=False,
-                        )
+                        await self._set_valve_temperature(valve_id, heating_temp)
                         _LOGGER.debug(
                             "Set TRV %s to heating temp %.1f°C", valve_id, heating_temp
                         )
                     else:
                         idle_temp = self.area_manager.trv_idle_temp
-                        await self.hass.services.async_call(
-                            CLIMATE_DOMAIN,
-                            SERVICE_SET_TEMPERATURE,
-                            {
-                                "entity_id": valve_id,
-                                ATTR_TEMPERATURE: idle_temp,
-                            },
-                            blocking=False,
-                        )
+                        await self._set_valve_temperature(valve_id, idle_temp)
                         _LOGGER.debug(
                             "Set TRV %s to idle temp %.1f°C", valve_id, idle_temp
                         )
@@ -536,6 +694,108 @@ class DeviceControlHandler:
 
             except Exception as err:
                 _LOGGER.error("Failed to control valve %s: %s", valve_id, err)
+
+    async def _set_valve_number_position(self, valve_id: str, position: float) -> None:
+        await self.hass.services.async_call(
+            "number",
+            "set_value",
+            {"entity_id": valve_id, "value": position},
+            blocking=False,
+        )
+
+    async def _set_valve_climate_position(self, valve_id: str, position: float) -> None:
+        await self.hass.services.async_call(
+            CLIMATE_DOMAIN,
+            "set_position",
+            {"entity_id": valve_id, "position": position},
+            blocking=False,
+        )
+
+    async def _set_valve_temperature(self, valve_id: str, temperature: float) -> None:
+        await self._async_set_climate_temperature(valve_id, temperature)
+
+    def _collect_heating_areas(self, opentherm_logger):
+        heating_area_ids: list[str] = []
+        heating_types: dict[str, str] = {}
+        overhead_temps: dict[str, float] = {}
+
+        for area_id, area in self.area_manager.get_all_areas().items():
+            if area.state == "heating":
+                heating_area_ids.append(area_id)
+                heating_types[area_id] = area.heating_type
+
+                if area.custom_overhead_temp is not None:
+                    overhead_temps[area_id] = area.custom_overhead_temp
+                elif area.heating_type == "floor_heating":
+                    overhead_temps[area_id] = 10.0
+                else:
+                    overhead_temps[area_id] = 20.0
+
+                if opentherm_logger and area.current_temperature is not None:
+                    opentherm_logger.log_zone_demand(
+                        area_id=area_id,
+                        area_name=area.name,
+                        heating=True,
+                        current_temp=area.current_temperature,
+                        target_temp=area.target_temperature,
+                    )
+
+        return heating_area_ids, heating_types, overhead_temps
+
+    def _calculate_boiler_setpoint(
+        self, setpoint_candidates: list[float], max_target_temp: float, overhead: float
+    ) -> float:
+        if setpoint_candidates:
+            return max(setpoint_candidates)
+        return max_target_temp + overhead
+
+    def _enforce_minimum_setpoints(
+        self,
+        heating_area_ids: list[str],
+        boiler_setpoint: float,
+        gateway_device_id: str,
+    ) -> float:
+        """Ensure boiler_setpoint respects minimum per-area constraints.
+
+        Returns potentially adjusted boiler_setpoint.
+        """
+        for aid in heating_area_ids:
+            area = self.area_manager.get_area(aid)
+            if not area:
+                continue
+
+            minsp = self._min_setpoints.get(aid)
+            if not minsp:
+                default_min = 40.0 if area.heating_type == "floor_heating" else 55.0
+                minsp = MinimumSetpoint(
+                    configured_minimum_setpoint=default_min, adjustment_factor=1.0
+                )
+                self._min_setpoints[aid] = minsp
+
+            gateway_state = self.hass.states.get(gateway_device_id)
+            if gateway_state:
+                boiler_state = type("_b", (), {})()
+                boiler_state.return_temperature = gateway_state.attributes.get(
+                    "return_water_temp"
+                ) or gateway_state.attributes.get("boiler_water_temp")
+                boiler_state.flow_temperature = gateway_state.attributes.get(
+                    "ch_water_temp"
+                )
+                boiler_state.flame_active = gateway_state.attributes.get("flame_on")
+                boiler_state.setpoint = boiler_setpoint
+                minsp.calculate(boiler_state)
+                if (
+                    minsp.current_minimum_setpoint is not None
+                    and boiler_setpoint < minsp.current_minimum_setpoint
+                ):
+                    _LOGGER.debug(
+                        "Enforcing minimum setpoint: %.1f°C (was %.1f°C)",
+                        minsp.current_minimum_setpoint,
+                        boiler_setpoint,
+                    )
+                    boiler_setpoint = minsp.current_minimum_setpoint
+
+        return boiler_setpoint
 
     async def async_control_opentherm_gateway(
         self, any_heating: bool, max_target_temp: float
@@ -560,30 +820,13 @@ class DeviceControlHandler:
             overhead_temps = {}  # area_id -> overhead_temp
 
             if any_heating:
-                for area_id, area in self.area_manager.get_all_areas().items():
-                    if area.state == "heating":
-                        heating_area_ids.append(area_id)
-                        heating_types[area_id] = area.heating_type
+                (
+                    heating_area_ids,
+                    heating_types,
+                    overhead_temps,
+                ) = self._collect_heating_areas(opentherm_logger)
 
-                        # Calculate overhead for this area
-                        if area.custom_overhead_temp is not None:
-                            overhead_temps[area_id] = area.custom_overhead_temp
-                        elif area.heating_type == "floor_heating":
-                            overhead_temps[area_id] = 10.0  # Default for floor heating
-                        else:  # radiator
-                            overhead_temps[area_id] = 20.0  # Default for radiator
-
-                        # Log individual zone demand
-                        if opentherm_logger and area.current_temperature is not None:
-                            opentherm_logger.log_zone_demand(
-                                area_id=area_id,
-                                area_name=area.name,
-                                heating=True,
-                                current_temp=area.current_temperature,
-                                target_temp=area.target_temperature,
-                            )
-
-            # Control boiler
+                # Control boiler
             if any_heating:
                 # Calculate basic overhead
                 overhead = max(overhead_temps.values()) if overhead_temps else 20.0
@@ -594,137 +837,35 @@ class DeviceControlHandler:
                 pid_enabled = self.area_manager.pid_enabled
 
                 # Collect candidates per area
-                setpoint_candidates = []
-                for aid in heating_area_ids:
-                    area = self.area_manager.get_area(aid)
-                    if not area:
-                        continue
-
-                    # Determine outside temperature if available on area
-                    outside_temp = None
-                    if area.weather_entity_id:
-                        ws = self.hass.states.get(area.weather_entity_id)
-                        try:
-                            outside_temp = (
-                                float(ws.state)
-                                if ws and ws.state not in ("unknown", "unavailable")
-                                else None
-                            )
-                        except Exception:
-                            outside_temp = None
-
-                    # Default candidate: max target + overhead
-                    candidate = area.target_temperature + overhead
-
-                    # Heating curve
-                    if advanced_enabled and heating_curve_enabled:
-                        coefficient = (
-                            area.heating_curve_coefficient
-                            or self.area_manager.default_heating_curve_coefficient
+                setpoint_candidates = [
+                    c
+                    for c in (
+                        self._compute_area_candidate(
+                            aid,
+                            overhead,
+                            advanced_enabled,
+                            heating_curve_enabled,
+                            pid_enabled,
                         )
-                        hc = self._heating_curves.get(aid) or HeatingCurve(
-                            heating_system=(
-                                "underfloor"
-                                if area.heating_type == "floor_heating"
-                                else "radiator"
-                            ),
-                            coefficient=coefficient,
-                        )
-                        self._heating_curves[aid] = hc
-                        if outside_temp is not None:
-                            hc.update(area.target_temperature, outside_temp)
-                            if hc.value is not None:
-                                candidate = hc.value
+                        for aid in heating_area_ids
+                    )
+                    if c is not None
+                ]
 
-                    # PID adjustment
-                    if (
-                        advanced_enabled
-                        and pid_enabled
-                        and area.current_temperature is not None
-                    ):
-                        pid = self._pids.get(aid)
-                        if not pid:
-                            pid = PID(
-                                heating_system=area.heating_type,
-                                automatic_gain_value=1.0,
-                                heating_curve_coefficient=(
-                                    area.heating_curve_coefficient
-                                    or self.area_manager.default_heating_curve_coefficient
-                                ),
-                                automatic_gains=True,
-                            )
-                            self._pids[aid] = pid
-                        err = area.target_temperature - (
-                            area.current_temperature or 0.0
-                        )
-                        # Use heating curve value if available as heating_curve_value
-                        hc_local = self._heating_curves.get(aid)
-                        hv = (
-                            hc_local.value
-                            if hc_local and hc_local.value is not None
-                            else None
-                        )
-                        pid_out = pid.update(Error(err), hv)
-                        candidate = candidate + pid_out
-
-                    setpoint_candidates.append(candidate)
+                # compute candidate helper moved above in class
 
                 # Choose the highest candidate setpoint
-                boiler_setpoint = (
-                    max(setpoint_candidates)
-                    if setpoint_candidates
-                    else (max_target_temp + overhead)
+                boiler_setpoint = self._calculate_boiler_setpoint(
+                    setpoint_candidates, max_target_temp, overhead
                 )
 
                 # Minimum setpoint calculation
                 # Get configured gateway id once
                 gateway_device_id = self.area_manager.opentherm_gateway_id
-                for aid in heating_area_ids:
-                    area = self.area_manager.get_area(aid)
-                    if not area:
-                        continue
-                    # Create or get existing MinimumSetpoint controller
-                    minsp = self._min_setpoints.get(aid)
-                    if not minsp:
-                        # Use different minimum setpoint default depending on heating
-                        # system type. Underfloor systems typically need higher flow
-                        # temperatures than the old defaults; use conservative
-                        # defaults that should result in faster heat-up times.
-                        default_min = (
-                            40.0 if area.heating_type == "floor_heating" else 55.0
-                        )
-                        minsp = MinimumSetpoint(
-                            configured_minimum_setpoint=default_min,
-                            adjustment_factor=1.0,
-                        )
-                        self._min_setpoints[aid] = minsp
-
-                    # construct a minimal boiler_state object using gateway values
-                    gateway_state = self.hass.states.get(gateway_device_id)
-                    if gateway_state:
-                        boiler_state = type("_b", (), {})()
-                        boiler_state.return_temperature = gateway_state.attributes.get(
-                            "return_water_temp"
-                        ) or gateway_state.attributes.get("boiler_water_temp")
-                        boiler_state.flow_temperature = gateway_state.attributes.get(
-                            "ch_water_temp"
-                        )
-                        boiler_state.flame_active = gateway_state.attributes.get(
-                            "flame_on"
-                        )
-                        boiler_state.setpoint = boiler_setpoint
-                        minsp.calculate(boiler_state)
-                        # Respect minimum setpoint
-                        if (
-                            minsp.current_minimum_setpoint is not None
-                            and boiler_setpoint < minsp.current_minimum_setpoint
-                        ):
-                            _LOGGER.debug(
-                                "Enforcing minimum setpoint: %.1f°C (was %.1f°C)",
-                                minsp.current_minimum_setpoint,
-                                boiler_setpoint,
-                            )
-                            boiler_setpoint = minsp.current_minimum_setpoint
+                # Enforce minimum setpoints by area and adjust boiler_setpoint if necessary
+                boiler_setpoint = self._enforce_minimum_setpoints(
+                    heating_area_ids, boiler_setpoint, gateway_device_id
+                )
 
                 # Determine heating type breakdown for logging
                 floor_heating_count = sum(

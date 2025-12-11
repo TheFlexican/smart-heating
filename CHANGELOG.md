@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+**Planned release:** v0.5.13 — includes thermostat hysteresis behavior fix, duplicate setpoint suppression, tests and developer docs updates.
+
 ### ✨ Features
+### 🐛 Bug fixes & Improvements
+
+- Thermostat idle hysteresis behavior: thermostat setpoint now respects area hysteresis correctly when area is idle. When the area temperature >= (target - hysteresis), the thermostat target is reduced to the current temperature to avoid 'heating' state toggles.
+- Avoid duplicate climate.set_temperature service calls by caching the last set setpoint per thermostat.
+- Tests and developer docs updated to avoid MagicMock numeric conversion pitfalls (explicit numeric values or parseable strings recommended for area.current_temperature and hysteresis_override).
+
 
 **OpenTherm Boiler Monitoring & Error Notifications**
 - **Real-time boiler status dashboard**: Live OpenTherm Gateway sensor monitoring

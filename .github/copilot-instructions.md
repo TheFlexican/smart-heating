@@ -99,6 +99,37 @@ curl -s "http://homeassistant.local:8123/api/states" \
 - If a test is complex, take the time to implement it properly with mocks and fixtures
 - Token budget is 1,000,000 - don't stop until the work is complete or you hit actual limits
 
+**NOTE FOR TEST AUTHORS**
+- When writing tests for numeric values (e.g., hysteresis thresholds and temperatures), avoid relying on MagicMock objects in a way that causes accidental numeric conversions. MagicMock values may respond to arithmetic operators and can create unexpected behavior. Prefer explicitly typed numbers or parseable strings when required by the code under test.
+- If an area-level configuration value (like `hysteresis_override`) may be present in tests as a MagicMock, explicitly cast or validate numeric types in tests or in code. E.g.:
+
+```python
+val = getattr(area, 'hysteresis_override', None)
+if isinstance(val, (int, float)):
+  val = float(val)
+else:
+  # choose default
+  val = 0.5
+```
+
+This ensures tests don't assume MagicMock numeric behavior and makes results deterministic.
+
+**FINDINGS FROM RECENT CHANGE:**
+- The thermostat idle logic has been updated to use a hysteresis-aware setpoint for idle devices. If the current area temperature >= (target - hysteresis) then we set the thermostat to the current temperature; otherwise keep the target temperature. Duplicate `climate.set_temperature` calls are avoided by caching the last set setpoint per thermostat.
+- To test the new code, prefer to create fixtures that set `area.current_temperature` and `area.hysteresis_override` to numeric values (int/float or numeric-string). Avoid MagicMock for these values so comparisons are safe.
+- Example test pattern for idle thermostat behavior:
+
+```python
+@pytest.mark.asyncio
+async def test_idle_hysteresis_behavior(device_handler, mock_area):
+  mock_area.get_thermostats.return_value = ['climate.thermo1']
+  mock_area.current_temperature = 21.0
+  await device_handler.async_control_thermostats(mock_area, False, 22.0)
+  # Expect climate.set_temperature called to 22.0 or 21.0 depending on hysteresis
+```
+
+Following this pattern will avoid unexpected comparisons and make tests deterministic.
+
 **RULE #7: API Testing After Deployment**
 - **ALWAYS test API endpoints after deploying features/fixes** using curl commands
 - Test all new/modified endpoints with valid and invalid inputs

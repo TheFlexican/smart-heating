@@ -119,6 +119,13 @@ Voor OpenTherm Gateway gerelateerde tests, zie ook `docs/nl/OPENTHERM.md`.
 - `backend-logging.spec.ts` - Backend logging verificatie
 - `vacation-mode.spec.ts` - Vakantiemodus tests (9 tests, v0.6.0)
 
+### Hysteresis en Thermostaat Testnotities (Ontwikkelaar)
+
+- Bij het toevoegen of wijzigen van thermostaatgedrag moeten numerieke waarden in tests expliciet zijn. Vermijd afhankelijkheid van MagicMock's numerieke gedrag (MagicMock kan numerieke operaties ondersteunen), waardoor onverwacht gedrag kan optreden; geef expliciete numerieke waarden door aan `area.current_temperature` en `area.hysteresis_override`.
+- De device control-logica stelt de thermostaat setpoint in op de huidige gebiedstemperatuur wanneer de huidige temperatuur >= (target - hysteresis). Dit voorkomt dat de thermostaat onnodig de status `heating` blijft rapporteren.
+- Tests moeten de `climate.set_temperature` service aanroep valideren (controleer parameters en gebruik `pytest.approx` voor floats) en bevestigen dat duplicate-aanroepen worden onderdrukt via de `last_set_temperatures` cache.
+
+
 **Test Dekking:**
 - 109 totale tests
 - 105 geslaagde tests
