@@ -229,6 +229,70 @@ async def test_handle_get_efficiency_report_error_handling(
 
 
 @pytest.mark.asyncio
+async def test_handle_get_efficiency_report_low_efficiency(
+    mock_hass, mock_area_manager, mock_efficiency_calculator
+):
+    """Test summary recommendations when efficiency is low and heating time high."""
+    # Prepare a low efficiency response
+    mock_efficiency_calculator.calculate_all_areas_efficiency = AsyncMock(
+        return_value=[
+            {
+                "area_id": "area_low",
+                "period": "week",
+                "start_time": "2025-12-02T00:00:00",
+                "end_time": "2025-12-09T00:00:00",
+                "energy_score": 30.0,
+                "heating_time_percentage": 70.0,
+                "heating_cycles": 10,
+                "average_temperature_delta": 3.0,
+                "recommendations": ["Low efficiency."],
+            }
+        ]
+    )
+
+    request = make_mocked_request(
+        "GET",
+        "/api/smart_heating/efficiency/all_areas?period=week",
+    )
+
+    response = await handle_get_efficiency_report(
+        mock_hass, mock_area_manager, mock_efficiency_calculator, request
+    )
+
+    assert response.status == 200
+    import json
+
+    data = json.loads(response.body.decode())
+    assert "Overall efficiency is low" in " ".join(data["recommendations"]) or any(
+        "heating time is high" in s for s in data["recommendations"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_handle_get_efficiency_report_no_areas(
+    mock_hass, mock_area_manager, mock_efficiency_calculator
+):
+    """Test all-areas report with no data returns default summary and recommendations."""
+    mock_efficiency_calculator.calculate_all_areas_efficiency = AsyncMock(return_value=[])
+
+    request = make_mocked_request(
+        "GET",
+        "/api/smart_heating/efficiency/all_areas?period=week",
+    )
+
+    response = await handle_get_efficiency_report(
+        mock_hass, mock_area_manager, mock_efficiency_calculator, request
+    )
+
+    assert response.status == 200
+    import json
+
+    data = json.loads(response.body.decode())
+    assert data["summary_metrics"]["energy_score"] == 0
+    assert data["recommendations"] == ["No area data available."]
+
+
+@pytest.mark.asyncio
 async def test_handle_get_area_efficiency_history(mock_hass, mock_efficiency_calculator):
     """Test getting efficiency history for an area."""
     mock_efficiency_calculator.calculate_area_efficiency = AsyncMock(

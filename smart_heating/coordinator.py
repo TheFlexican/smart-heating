@@ -42,9 +42,8 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         self.area_manager = area_manager
         self._unsub_state_listener = None
         self._debounce_tasks = {}  # Track debounce tasks per entity
-        self._startup_grace_period = (
-            True  # Skip manual override detection during startup
-        )
+        # Default to False; will be enabled during async_setup to handle startup race conditions
+        self._startup_grace_period = False
         _LOGGER.debug("Smart Heating coordinator initialized")
 
     async def async_setup(self) -> None:
@@ -73,6 +72,9 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
 
         # Do initial update
         await self.async_refresh()
+
+        # Enable startup grace period now that we're performing setup
+        self._startup_grace_period = True
 
         # End startup grace period after 10 seconds
         # This prevents false manual override triggers from stale thermostat states

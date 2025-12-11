@@ -72,7 +72,9 @@ async def handle_get_efficiency_report(
                 # Get area name from area_manager
                 area_id = raw_report.get("area_id")
                 area = area_manager.get_area(area_id) if area_id else None
-                area_name = area.name if area else area_id
+                # Ensure area_name is a string so JSON serialization works
+                raw_area_name = getattr(area, "name", None) if area else None
+                area_name = raw_area_name if isinstance(raw_area_name, str) else area_id
 
                 area_reports.append(
                     {
