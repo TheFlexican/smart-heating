@@ -50,11 +50,13 @@ export default function AdvancedMetricsDashboard() {
   const [timeRange, setTimeRange] = useState<1 | 3 | 7 | 30>(7)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  const [mounted, setMounted] = useState(true)
 
   // WebSocket for real-time updates
   useWebSocket({
     onZonesUpdate: () => {
-      if (autoRefresh) {
+      // Only reload if component is still mounted and auto-refresh is enabled
+      if (mounted && autoRefresh) {
         loadData()
       }
     },
@@ -67,30 +69,45 @@ export default function AdvancedMetricsDashboard() {
         getAdvancedMetrics(timeRange),
         getZones(),
       ])
-      setMetrics(metricsData.metrics)
-      setAreas(areasData)
-      setLastUpdate(new Date())
+
+      // Only update state if component is still mounted
+      if (mounted) {
+        setMetrics(metricsData.metrics)
+        setAreas(areasData)
+        setLastUpdate(new Date())
+      }
     } catch (err) {
       console.error('Failed to load advanced metrics:', err)
-      setError('Failed to load metrics data')
+      if (mounted) {
+        setError('Failed to load metrics data')
+      }
     } finally {
-      setLoading(false)
+      if (mounted) {
+        setLoading(false)
+      }
     }
   }
 
   useEffect(() => {
+    setMounted(true)
     loadData()
+
+    return () => {
+      setMounted(false)
+    }
   }, [timeRange])
 
   useEffect(() => {
-    if (!autoRefresh) return
+    if (!autoRefresh || !mounted) return
 
     const interval = setInterval(() => {
-      loadData()
+      if (mounted) {
+        loadData()
+      }
     }, 30000) // 30 seconds
 
     return () => clearInterval(interval)
-  }, [autoRefresh, timeRange])
+  }, [autoRefresh, timeRange, mounted])
 
   // Transform metrics for charts
   const heatingCurveData = metrics.map((m) => ({
@@ -164,7 +181,7 @@ export default function AdvancedMetricsDashboard() {
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center" gap={2}>
-          <IconButton onClick={() => navigate('/opentherm')} size="large" color="primary">
+          <IconButton onClick={() => navigate('/settings/global')} size="large" color="primary">
             <ArrowBackIcon />
           </IconButton>
           <Box>
