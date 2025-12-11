@@ -529,6 +529,14 @@ class DeviceControlHandler:
         if outside_temp is not None:
             hc.update(area.target_temperature, outside_temp)
             if hc.value is not None:
+                _LOGGER.debug(
+                    "Heating curve applied for %s: %.1f°C (outdoor: %.1f°C, target: %.1f°C, coefficient: %.2f)",
+                    area_id,
+                    hc.value,
+                    outside_temp,
+                    area.target_temperature,
+                    coefficient,
+                )
                 return hc.value
         return candidate
 
@@ -954,13 +962,22 @@ class DeviceControlHandler:
                         err,
                     )
 
-                _LOGGER.info(
-                    "OpenTherm gateway: Boiler ON, setpoint=%.1f°C (overhead=%.1f°C, %d floor heating, %d radiator)",
-                    boiler_setpoint,
-                    overhead,
-                    floor_heating_count,
-                    radiator_count,
-                )
+                # Log with appropriate context based on whether heating curve is active
+                if advanced_enabled and heating_curve_enabled:
+                    _LOGGER.info(
+                        "OpenTherm gateway: Boiler ON, setpoint=%.1f°C (heating curve, %d floor heating, %d radiator)",
+                        boiler_setpoint,
+                        floor_heating_count,
+                        radiator_count,
+                    )
+                else:
+                    _LOGGER.info(
+                        "OpenTherm gateway: Boiler ON, setpoint=%.1f°C (overhead=%.1f°C, %d floor heating, %d radiator)",
+                        boiler_setpoint,
+                        overhead,
+                        floor_heating_count,
+                        radiator_count,
+                    )
 
                 # Log boiler control with heating type context
                 if opentherm_logger:
