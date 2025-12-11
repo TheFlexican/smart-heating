@@ -244,7 +244,7 @@ class TestBuildAreaResponse:
         area.auto_preset_home = "home"
         area.auto_preset_away = "away"
         area.shutdown_switches_when_idle = False
-        area.switch_shutdown_entities = []
+        area.shutdown_switch_entities = []
 
         result = build_area_response(area)
 
@@ -271,7 +271,7 @@ class TestBuildAreaResponse:
         assert result["shutdown_switches_when_idle"] is True
 
     def test_build_area_response_shutdown_field_from_legacy_attribute(self):
-        """Ensure shutdown_switches_when_idle falls back to legacy attribute."""
+        """Ensure legacy attribute is ignored and default applies when not set."""
         area = MagicMock()
         area.area_id = "living_room"
         area.name = "Living Room"
@@ -282,9 +282,10 @@ class TestBuildAreaResponse:
         area.get_effective_target_temperature.return_value = 21.0
         area.current_temperature = 20.5
         area.schedules = {}
-        # set only the legacy attribute
+        # set only the legacy attribute (should be ignored)
         area.switch_shutdown_enabled = False
 
         result = build_area_response(area)
 
-        assert result["shutdown_switches_when_idle"] is False
+        # Legacy attribute is ignored; default is True
+        assert result["shutdown_switches_when_idle"] is True

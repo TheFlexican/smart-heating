@@ -117,26 +117,10 @@ def build_area_response(
         "auto_preset_home": getattr(area, "auto_preset_home", "home"),
         "auto_preset_away": getattr(area, "auto_preset_away", "away"),
         # Switch shutdown (use consistent naming)
-        # Expose `shutdown_switches_when_idle` (preferred) and `shutdown_switch_entities`.
-        # Legacy stored data may use `switch_shutdown_enabled`; that is handled when
-        # loading area data in `Area.from_dict`.
-        # Prefer the explicit `shutdown_switches_when_idle` attribute if present;
-        # fallback to the legacy in-memory attribute `switch_shutdown_enabled` if
-        # the newer attribute is not set (this keeps compatibility with older
-        # callers that may still set the legacy attribute on the object).
-        # `MagicMock` objects return a MagicMock for any attribute access, which
-        # evaluates truthy, so explicitly prefer a boolean attribute when present
-        # and otherwise fallback to the legacy attribute.
-        "shutdown_switches_when_idle": (
-            getattr(area, "shutdown_switches_when_idle")
-            if isinstance(getattr(area, "shutdown_switches_when_idle", None), bool)
-            else bool(getattr(area, "switch_shutdown_enabled", False))
+        "shutdown_switches_when_idle": bool(
+            getattr(area, "shutdown_switches_when_idle", True)
         ),
-        "shutdown_switch_entities": getattr(
-            area,
-            "switch_shutdown_entities",
-            getattr(area, "shutdown_switch_entities", []),
-        ),
+        "shutdown_switch_entities": getattr(area, "shutdown_switch_entities", []),
         # Primary temperature sensor
         "primary_temperature_sensor": getattr(area, "primary_temperature_sensor", None),
         # Heating type configuration

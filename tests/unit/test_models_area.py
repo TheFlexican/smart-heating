@@ -56,7 +56,7 @@ class TestAreaModel:
         assert area_dict["enabled"] is True
 
     def test_from_dict_legacy_switch_shutdown(self):
-        """Test loading area from legacy data with switch_shutdown_enabled key."""
+        """Test that legacy `switch_shutdown_enabled` key is ignored when loading area data."""
         data = {
             "area_id": TEST_AREA_ID,
             "area_name": TEST_AREA_NAME,
@@ -66,7 +66,8 @@ class TestAreaModel:
         }
 
         area = Area.from_dict(data)
-        assert area.shutdown_switches_when_idle is False
+        # Legacy key should be ignored; default remains True
+        assert area.shutdown_switches_when_idle is True
 
     def test_area_device_management(self):
         """Test adding and removing devices."""
