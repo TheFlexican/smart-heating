@@ -26,8 +26,12 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Install dependencies
+      - name: Prepare system dependencies and install Python requirements
         run: |
+          sudo apt-get update
+          # Install system libraries needed by some packages (pycares, Home Assistant deps)
+          sudo apt-get install -y libc-ares-dev build-essential libssl-dev libffi-dev
+          python -m pip install -U pip setuptools wheel
           pip install -r tests/requirements_test.txt
 
       - name: Run tests with coverage
