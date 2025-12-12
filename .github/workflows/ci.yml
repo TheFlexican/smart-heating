@@ -8,19 +8,34 @@ on:
 
 jobs:
   build:
-    name: Build Frontend
+    name: Build and Test
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for SonarCloud
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
       
+      - name: Setup Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      
       - name: Install dependencies
+        run: |
+          pip install pytest pytest-cov
+      
+      - name: Run tests with coverage
+        run: |
+          pytest tests/unit --cov=smart_heating --cov-report=xml --cov-report=html
+        continue-on-error: true
+
+      - name: Install node dependencies
         run: |
           cd smart_heating/frontend
           rm -rf node_modules package-lock.json
@@ -37,6 +52,13 @@ jobs:
           name: frontend-dist
           path: smart_heating/frontend/dist/
           retention-days: 7
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # Note: sonar-project.properties is automatically detected and used
 
   lint:
     name: Lint Python Code
