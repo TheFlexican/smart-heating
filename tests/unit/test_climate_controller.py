@@ -195,7 +195,7 @@ class TestClimateControllerInit:
         assert controller.hass == mock_hass
         assert controller.area_manager == mock_area_manager
         assert controller.learning_engine == mock_learning_engine
-        assert controller._hysteresis == 0.5  # Default hysteresis
+        assert controller._hysteresis == pytest.approx(0.5)  # Default hysteresis
 
     def test_init_sets_default_hysteresis(self, mock_hass, mock_area_manager, mock_learning_engine):
         """Test initialization sets default hysteresis."""
@@ -205,7 +205,7 @@ class TestClimateControllerInit:
             learning_engine=mock_learning_engine,
         )
 
-        assert controller._hysteresis == 0.5
+        assert controller._hysteresis == pytest.approx(0.5)
 
 
 class TestTemperatureConversion:
@@ -241,7 +241,7 @@ class TestTemperatureSensorReading:
 
         temp = climate_controller._get_temperature_from_sensor("sensor.living_room_temp")
 
-        assert temp == 21.5
+        assert temp == pytest.approx(21.5)
 
     def test_get_temperature_from_sensor_fahrenheit(self, climate_controller, mock_hass):
         """Test reading temperature from sensor in Fahrenheit."""
@@ -284,7 +284,7 @@ class TestTemperatureSensorReading:
 
         temp = climate_controller._get_temperature_from_thermostat("climate.living_room")
 
-        assert temp == 22.0
+        assert temp == pytest.approx(22.0)
 
     def test_get_temperature_from_thermostat_fahrenheit(self, climate_controller, mock_hass):
         """Test reading current temperature from thermostat in Fahrenheit."""
@@ -350,7 +350,7 @@ class TestAreaTemperatureCollection:
         temps = climate_controller._collect_area_temperatures(mock_area)
 
         assert len(temps) == 1
-        assert temps[0] == 20.5
+        assert temps[0] == pytest.approx(20.5)
 
     def test_collect_area_temperatures_mixed_sources(
         self, climate_controller, mock_area, mock_hass
@@ -405,7 +405,7 @@ class TestAsyncUpdateAreaTemperatures:
         await climate_controller.async_update_area_temperatures()
 
         # Average of 20.0 and 22.0 should be 21.0
-        assert mock_area.current_temperature == 21.0
+        assert mock_area.current_temperature == pytest.approx(21.0)
 
     @pytest.mark.asyncio
     async def test_update_multiple_areas(self, climate_controller, mock_area_manager, mock_hass):
@@ -437,8 +437,8 @@ class TestAsyncUpdateAreaTemperatures:
 
         await climate_controller.async_update_area_temperatures()
 
-        assert area1.current_temperature == 21.0
-        assert area2.current_temperature == 19.0
+        assert area1.current_temperature == pytest.approx(21.0)
+        assert area2.current_temperature == pytest.approx(19.0)
 
     @pytest.mark.asyncio
     async def test_skip_area_without_sensors(
@@ -468,7 +468,7 @@ class TestFrostProtection:
         # Try to set temperature below frost protection
         result = climate_controller._apply_frost_protection("living_room", 5.0)
 
-        assert result == 7.0
+        assert result == pytest.approx(7.0)
 
     def test_apply_frost_protection_enabled_above_threshold(
         self, climate_controller, mock_area_manager
@@ -480,7 +480,7 @@ class TestFrostProtection:
         # Temperature above frost protection
         result = climate_controller._apply_frost_protection("living_room", 20.0)
 
-        assert result == 20.0
+        assert result == pytest.approx(20.0)
 
     def test_apply_frost_protection_disabled(self, climate_controller, mock_area_manager):
         """Test frost protection when disabled."""
@@ -489,7 +489,7 @@ class TestFrostProtection:
         # Should not apply frost protection even if temp is low
         result = climate_controller._apply_frost_protection("living_room", 5.0)
 
-        assert result == 5.0
+        assert result == pytest.approx(5.0)
 
 
 class TestVacationMode:
@@ -622,7 +622,7 @@ class TestOutdoorTemperature:
 
         temp = await climate_controller._async_get_outdoor_temperature(mock_area)
 
-        assert temp == 15.5
+        assert temp == pytest.approx(15.5)
 
     @pytest.mark.asyncio
     async def test_get_outdoor_temperature_fahrenheit(
@@ -690,7 +690,7 @@ class TestOpenThermControl:
         assert call_args.args[0] == "opentherm_gw"
         assert call_args.args[1] == "set_control_setpoint"
         assert call_args.args[2]["gateway_id"] == "gateway1"
-        assert call_args.args[2]["temperature"] == 65.0  # 45 + 20
+        assert call_args.args[2]["temperature"] == pytest.approx(65.0)  # 45 + 20
 
     @pytest.mark.asyncio
     async def test_control_opentherm_no_heating_required(
@@ -709,7 +709,7 @@ class TestOpenThermControl:
         assert call_args.args[0] == "opentherm_gw"
         assert call_args.args[1] == "set_control_setpoint"
         assert call_args.args[2]["gateway_id"] == "gateway1"
-        assert call_args.args[2]["temperature"] == 0.0
+        assert call_args.args[2]["temperature"] == pytest.approx(0.0)
 
 
 class TestValveCapabilities:
@@ -836,7 +836,7 @@ class TestValveControl:
         assert call_args.args[0] == "climate"
         assert call_args.args[1] == "set_temperature"
         # Should be max of (22 + 3) or 25 = 25
-        assert call_args.args[2]["temperature"] == 25.0
+        assert call_args.args[2]["temperature"] == pytest.approx(25.0)
 
 
 class TestThermostatControl:
@@ -855,7 +855,7 @@ class TestThermostatControl:
         assert mock_hass.services.async_call.call_count == 3
         last_call = mock_hass.services.async_call.call_args_list[-1]
         assert last_call[0][1] == "set_temperature"
-        assert last_call[0][2]["temperature"] == 21.0
+        assert last_call[0][2]["temperature"] == pytest.approx(21.0)
 
     @pytest.mark.asyncio
     async def test_control_thermostats_skip_duplicate_temperature(
@@ -1053,7 +1053,7 @@ class TestTemperatureCollection:
 
         result = climate_controller._get_temperature_from_sensor("sensor.temp1")
 
-        assert result == 21.5
+        assert result == pytest.approx(21.5)
 
     def test_get_temperature_from_sensor_invalid(self, climate_controller, mock_hass):
         """Test getting temperature from sensor with invalid value."""
@@ -1073,7 +1073,7 @@ class TestTemperatureCollection:
 
         result = climate_controller._get_temperature_from_thermostat("climate.thermo1")
 
-        assert result == 22.0
+        assert result == pytest.approx(22.0)
 
     def test_collect_area_temperatures(self, climate_controller, mock_hass, mock_area):
         """Test collecting temperatures from all sources in an area."""
@@ -1109,7 +1109,7 @@ class TestFrostProtectionAdvanced:
 
         result = climate_controller._apply_frost_protection("living_room", 3.0)
 
-        assert result == 5.0
+        assert result == pytest.approx(5.0)
 
     def test_apply_frost_protection_above_minimum(self, climate_controller, mock_area_manager):
         """Test frost protection leaves target unchanged when above minimum."""
@@ -1118,7 +1118,7 @@ class TestFrostProtectionAdvanced:
 
         result = climate_controller._apply_frost_protection("living_room", 20.0)
 
-        assert result == 20.0
+        assert result == pytest.approx(20.0)
 
     def test_apply_frost_protection_disabled(self, climate_controller, mock_area_manager):
         """Test frost protection does nothing when disabled."""
@@ -1126,7 +1126,7 @@ class TestFrostProtectionAdvanced:
 
         result = climate_controller._apply_frost_protection("living_room", 3.0)
 
-        assert result == 3.0
+        assert result == pytest.approx(3.0)
 
 
 class TestManualOverride:
