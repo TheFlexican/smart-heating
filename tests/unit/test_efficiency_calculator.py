@@ -70,7 +70,7 @@ async def test_calculate_heating_time_half_heating(efficiency_calculator):
 async def test_calculate_heating_time_no_states(efficiency_calculator):
     """Test heating time calculation with no states."""
     result = efficiency_calculator._calculate_heating_time([])
-    assert result == 0.0
+    assert result == pytest.approx(0.0)
 
 
 @pytest.mark.asyncio
@@ -92,7 +92,7 @@ async def test_calculate_avg_temp_delta(efficiency_calculator):
 async def test_calculate_avg_temp_delta_no_states(efficiency_calculator):
     """Test avg temp delta with no states."""
     result = efficiency_calculator._calculate_avg_temp_delta([])
-    assert result == 0.0
+    assert result == pytest.approx(0.0)
 
 
 @pytest.mark.asyncio
@@ -142,7 +142,7 @@ async def test_calculate_temp_stability(efficiency_calculator):
     result = efficiency_calculator._calculate_temp_stability(history_data)
 
     # Std dev of [20, 20, 20] = 0
-    assert result == 0.0
+    assert result == pytest.approx(0.0)
 
 
 @pytest.mark.asyncio

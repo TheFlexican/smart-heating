@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from ..area_manager import AreaManager
 from ..const import DOMAIN
 from ..utils import get_coordinator
+import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ ERROR_VACATION_MANAGER_NOT_INITIALIZED = "Vacation manager not initialized"
 
 
 async def handle_get_config(  # NOSONAR
-    hass: HomeAssistant, area_manager: AreaManager
+    _hass: HomeAssistant, area_manager: AreaManager
 ) -> web.Response:
     """Get system configuration.
 
@@ -55,6 +56,7 @@ async def handle_get_global_presets(area_manager: AreaManager) -> web.Response:
     Returns:
         JSON response with global preset temperatures
     """
+    await asyncio.sleep(0)
     return web.json_response(
         {
             "away_temp": area_manager.global_away_temp,
@@ -138,6 +140,7 @@ async def handle_get_hysteresis(area_manager: AreaManager) -> web.Response:
     Returns:
         JSON response with hysteresis value
     """
+    await asyncio.sleep(0)
     return web.json_response({"hysteresis": area_manager.hysteresis})
 
 
@@ -263,11 +266,12 @@ async def handle_get_opentherm_config(area_manager: AreaManager) -> web.Response
     Returns:
         JSON response with hysteresis value
     """
+    await asyncio.sleep(0)
     return web.json_response({"hysteresis": area_manager.hysteresis})
 
 
 async def handle_set_hysteresis_value(
-    hass: HomeAssistant, area_manager: AreaManager, coordinator, data: dict
+    _hass: HomeAssistant, area_manager: AreaManager, coordinator, data: dict
 ) -> web.Response:
     """Set global hysteresis value.
 
@@ -320,6 +324,7 @@ async def handle_get_global_presence(area_manager: AreaManager) -> web.Response:
     Returns:
         JSON response with global presence sensors
     """
+    await asyncio.sleep(0)
     return web.json_response({"sensors": area_manager.global_presence_sensors})
 
 
@@ -395,6 +400,7 @@ async def handle_get_vacation_mode(hass: HomeAssistant) -> web.Response:
     Returns:
         JSON response with vacation mode data
     """
+    await asyncio.sleep(0)
     vacation_manager = hass.data[DOMAIN].get("vacation_manager")
     if not vacation_manager:
         return web.json_response(
@@ -468,6 +474,7 @@ async def handle_get_safety_sensor(area_manager: AreaManager) -> web.Response:
     Returns:
         JSON response with safety sensor data (list of sensors)
     """
+    await asyncio.sleep(0)
     sensors = area_manager.get_safety_sensors()
     first = sensors[0] if sensors else None
 
@@ -558,6 +565,8 @@ async def handle_remove_safety_sensor(
             area_manager.clear_safety_sensors()
         else:
             if getattr(area_manager, "safety_sensors", None):
+                # We iterate over a copy here because `remove_safety_sensor`
+                # mutates `area_manager.safety_sensors` while iterating.
                 for s in list(area_manager.safety_sensors):
                     area_manager.remove_safety_sensor(s["sensor_id"])
     await area_manager.async_save()

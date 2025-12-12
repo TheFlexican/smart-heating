@@ -12,7 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def handle_export_config(
-    hass: HomeAssistant, config_manager: ConfigManager
+    _hass: HomeAssistant, config_manager: ConfigManager
 ) -> web.Response:
     """Export configuration as JSON file.
 
@@ -51,7 +51,7 @@ async def handle_export_config(
 
 
 async def handle_import_config(
-    hass: HomeAssistant, config_manager: ConfigManager, data: dict
+    _hass: HomeAssistant, config_manager: ConfigManager, data: dict
 ) -> web.Response:
     """Import configuration from JSON data.
 
@@ -93,7 +93,7 @@ async def handle_import_config(
 
 
 async def handle_validate_config(
-    hass: HomeAssistant, config_manager: ConfigManager, data: dict
+    _hass: HomeAssistant, config_manager: ConfigManager, data: dict
 ) -> web.Response:
     """Validate configuration without importing.
 
@@ -138,7 +138,7 @@ async def handle_validate_config(
 
 
 async def handle_list_backups(
-    hass: HomeAssistant, config_manager: ConfigManager
+    _hass: HomeAssistant, config_manager: ConfigManager
 ) -> web.Response:
     """List available backup files.
 
@@ -176,7 +176,7 @@ async def handle_list_backups(
 
 
 async def handle_restore_backup(
-    hass: HomeAssistant, config_manager: ConfigManager, backup_filename: str
+    _hass: HomeAssistant, config_manager: ConfigManager, backup_filename: str
 ) -> web.Response:
     """Restore from a specific backup file.
 

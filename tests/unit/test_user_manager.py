@@ -1,5 +1,6 @@
 """Tests for user_manager module."""
 
+import asyncio
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock
@@ -58,8 +59,8 @@ async def test_async_load_creates_file_if_not_exists(mock_hass, temp_storage_pat
     assert manager._storage_file.exists()
 
     # Verify file contents
-    with open(manager._storage_file, "r") as f:
-        data = json.load(f)
+    content = await asyncio.to_thread(manager._storage_file.read_text)
+    data = json.loads(content)
 
     assert "users" in data
     assert "presence_state" in data
@@ -86,8 +87,7 @@ async def test_async_load_reads_existing_file(mock_hass, temp_storage_path):
         "settings": {"multi_user_strategy": "priority", "enabled": True},
     }
 
-    with open(storage_file, "w") as f:
-        json.dump(test_data, f)
+    await asyncio.to_thread(storage_file.write_text, json.dumps(test_data))
 
     manager = UserManager(mock_hass, temp_storage_path)
     await manager.async_load()
@@ -110,7 +110,7 @@ async def test_create_user_profile(user_manager):
 
     assert user["user_id"] == "person.john"
     assert user["name"] == "John Doe"
-    assert user["preset_preferences"]["home"] == 21.0
+    assert user["preset_preferences"]["home"] == pytest.approx(21.0)
     assert user["priority"] == 8
     assert user["areas"] == ["living_room"]
 
@@ -170,7 +170,7 @@ async def test_update_user_profile(user_manager):
 
     assert updated["name"] == "John Smith"
     assert updated["priority"] == 8
-    assert updated["preset_preferences"]["home"] == 21.0  # Unchanged
+    assert updated["preset_preferences"]["home"] == pytest.approx(21.0)
 
 
 @pytest.mark.asyncio
@@ -312,8 +312,8 @@ async def test_get_active_user_preferences(user_manager, mock_hass):
     prefs = user_manager.get_active_user_preferences()
 
     assert prefs is not None
-    assert prefs["home"] == 21.0
-    assert prefs["away"] == 16.0
+    assert prefs["home"] == pytest.approx(21.0)
+    assert prefs["away"] == pytest.approx(16.0)
 
 
 @pytest.mark.asyncio
@@ -357,7 +357,7 @@ async def test_get_combined_preferences_priority_strategy(user_manager):
     prefs = user_manager.get_combined_preferences()
 
     # Should use user2's preferences (higher priority)
-    assert prefs["home"] == 22.0
+    assert prefs["home"] == pytest.approx(22.0)
 
 
 @pytest.mark.asyncio
@@ -384,8 +384,8 @@ async def test_get_combined_preferences_average_strategy(user_manager):
     prefs = user_manager.get_combined_preferences()
 
     # Should average: (20+22)/2 = 21, (16+18)/2 = 17
-    assert prefs["home"] == 21.0
-    assert prefs["away"] == 17.0
+    assert prefs["home"] == pytest.approx(21.0)
+    assert prefs["away"] == pytest.approx(17.0)
 
 
 @pytest.mark.asyncio
@@ -406,7 +406,7 @@ async def test_area_filtering_in_preferences(user_manager):
     # Should return preferences for living room
     prefs = user_manager.get_active_user_preferences("living_room")
     assert prefs is not None
-    assert prefs["home"] == 21.0
+    assert prefs["home"] == pytest.approx(21.0)
 
     # Should return None for bedroom
     prefs = user_manager.get_active_user_preferences("bedroom")

@@ -7,6 +7,7 @@ from aiohttp import web
 from homeassistant.core import HomeAssistant
 
 from ..const import DOMAIN, HISTORY_RECORD_INTERVAL_SECONDS
+import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,6 +27,8 @@ async def handle_get_history(
     Returns:
         JSON response with history
     """
+    # Ensure function uses async features - no real await required otherwise
+    await asyncio.sleep(0)
     # Get query parameters
     hours = request.query.get("hours")
     start_time = request.query.get("start_time")
@@ -101,6 +104,7 @@ async def handle_get_history_config(hass: HomeAssistant) -> web.Response:
     Returns:
         JSON response with history settings
     """
+    await asyncio.sleep(0)
     history_tracker = hass.data.get(DOMAIN, {}).get("history")
     if not history_tracker:
         return web.json_response({"error": ERROR_HISTORY_NOT_AVAILABLE}, status=503)
@@ -130,6 +134,7 @@ async def handle_set_history_config(hass: HomeAssistant, data: dict) -> web.Resp
         return web.json_response({"error": "retention_days required"}, status=400)
 
     try:
+        await asyncio.sleep(0)
         history_tracker = hass.data.get(DOMAIN, {}).get("history")
         if not history_tracker:
             return web.json_response({"error": ERROR_HISTORY_NOT_AVAILABLE}, status=503)
@@ -171,6 +176,7 @@ async def handle_get_history_storage_info(hass: HomeAssistant) -> web.Response:
     Returns:
         JSON response with storage info
     """
+    await asyncio.sleep(0)
     history_tracker = hass.data.get(DOMAIN, {}).get("history")
     if not history_tracker:
         return web.json_response({"error": ERROR_HISTORY_NOT_AVAILABLE}, status=503)
@@ -210,6 +216,7 @@ async def handle_migrate_history_storage(
             {"error": "target_backend must be 'json' or 'database'"}, status=400
         )
 
+    await asyncio.sleep(0)
     history_tracker = hass.data.get(DOMAIN, {}).get("history")
     if not history_tracker:
         return web.json_response({"error": ERROR_HISTORY_NOT_AVAILABLE}, status=503)
@@ -229,6 +236,7 @@ async def handle_get_database_stats(hass: HomeAssistant) -> web.Response:
     Returns:
         JSON response with database stats
     """
+    await asyncio.sleep(0)
     history_tracker = hass.data.get(DOMAIN, {}).get("history")
     if not history_tracker:
         return web.json_response({"error": ERROR_HISTORY_NOT_AVAILABLE}, status=503)

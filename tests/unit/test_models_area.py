@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from unittest.mock import Mock
 
+import pytest
 from smart_heating.models.area import Area
 from smart_heating.models.schedule import Schedule
 
@@ -122,7 +123,7 @@ class TestAreaModel:
         assert len(area.window_sensors) == 1
         assert area.window_sensors[0]["entity_id"] == "binary_sensor.window"
         assert area.window_sensors[0]["action_when_open"] == "reduce_temperature"
-        assert area.window_sensors[0]["temp_drop"] == 2.0
+        assert area.window_sensors[0]["temp_drop"] == pytest.approx(2.0)
 
         # Remove window sensor
         area.remove_window_sensor("binary_sensor.window")
@@ -183,7 +184,7 @@ class TestAreaModel:
 
         assert area.boost_mode_active is True
         assert area.boost_duration == 60
-        assert area.boost_temp == 25.0
+        assert area.boost_temp == pytest.approx(25.0)
         assert area.boost_end_time is not None
         assert area.preset_mode == "boost"
 
@@ -217,10 +218,10 @@ class TestAreaModel:
 
         # Set via property
         area.current_temperature = TEST_CURRENT_TEMP
-        assert area.current_temperature == TEST_CURRENT_TEMP
+        assert area.current_temperature == pytest.approx(TEST_CURRENT_TEMP)
 
         area.current_temperature = 19.5
-        assert area.current_temperature == 19.5
+        assert area.current_temperature == pytest.approx(19.5)
 
     def test_area_get_preset_temperature(self):
         """Test getting preset temperature."""
@@ -329,7 +330,7 @@ class TestAreaWindowSensors:
         assert len(area.window_sensors) == 1
         assert area.window_sensors[0]["entity_id"] == "binary_sensor.window1"
         assert area.window_sensors[0]["action_when_open"] == "reduce_temperature"
-        assert area.window_sensors[0]["temp_drop"] == 2.5
+        assert area.window_sensors[0]["temp_drop"] == pytest.approx(2.5)
 
     def test_add_window_sensor_with_turn_off(self):
         """Test adding window sensor with turn_off action."""
@@ -387,7 +388,7 @@ class TestAreaPresetTemperatures:
 
         # Should use global temperatures
         temp = area.get_preset_temperature()
-        assert temp == 20.0
+        assert temp == pytest.approx(20.0)
 
     def test_get_preset_temperature_without_area_manager(self):
         """Test getting preset temperature without area manager."""
@@ -398,7 +399,7 @@ class TestAreaPresetTemperatures:
 
         # Should use area-specific temperatures
         temp = area.get_preset_temperature()
-        assert temp == 20.0
+        assert temp == pytest.approx(20.0)
 
     def test_get_active_schedule_temperature(self):
         """Test getting temperature from active schedule."""
@@ -417,7 +418,7 @@ class TestAreaPresetTemperatures:
         current_time = datetime(2024, 1, 1, 8, 30)  # Monday
 
         temp = area.get_active_schedule_temperature(current_time)
-        assert temp == 21.0
+        assert temp == pytest.approx(21.0)
 
     def test_get_active_schedule_temperature_no_schedule(self):
         """Test getting temperature when no schedule active."""
@@ -438,7 +439,7 @@ class TestAreaPresetTemperatures:
         area.window_is_open = True
 
         temp = area._get_window_open_temperature()
-        assert temp == 5.0  # Frost protection
+        assert temp == pytest.approx(5.0)  # Frost protection
 
     def test_get_window_open_temperature_reduce(self):
         """Test getting temperature when window open with reduce action."""
@@ -449,7 +450,7 @@ class TestAreaPresetTemperatures:
         area.window_is_open = True
 
         temp = area._get_window_open_temperature()
-        assert temp == 17.0  # 20.0 - 3.0
+        assert temp == pytest.approx(17.0)  # 20.0 - 3.0
 
     def test_get_window_open_temperature_no_action(self):
         """Test getting temperature when window closed."""
@@ -490,7 +491,7 @@ class TestAreaNightBoost:
 
         # Should log to area logger
         target = area._apply_night_boost(20.0, current_time)
-        assert target == 22.0
+        assert target == pytest.approx(22.0)
 
     def test_night_boost_active_during_period(self):
         """Test night boost applies offset during configured period."""
@@ -503,7 +504,7 @@ class TestAreaNightBoost:
         # Test during boost period
         current_time = datetime(2024, 1, 1, 5, 30)  # 5:30 AM
         target = area._apply_night_boost(18.5, current_time)
-        assert target == 19.0  # 18.5 + 0.5
+        assert target == pytest.approx(19.0)  # 18.5 + 0.5
 
     def test_night_boost_inactive_outside_period(self):
         """Test night boost doesn't apply outside configured period."""
@@ -516,7 +517,7 @@ class TestAreaNightBoost:
         # Test outside boost period
         current_time = datetime(2024, 1, 1, 10, 0)  # 10 AM
         target = area._apply_night_boost(18.5, current_time)
-        assert target == 18.5  # No change
+        assert target == pytest.approx(18.5)  # No change
 
     def test_night_boost_works_with_schedule(self):
         """Test night boost works additively on top of active schedule."""
@@ -544,7 +545,7 @@ class TestAreaNightBoost:
         # Night boost should work on top of sleep temperature
         # Sleep schedule gives 18.5°C, night boost adds 0.2°C = 18.7°C
         target = area._apply_night_boost(18.5, current_time)
-        assert target == 18.7
+        assert target == pytest.approx(18.7)
 
     def test_night_boost_disabled(self):
         """Test night boost doesn't apply when disabled."""
@@ -557,7 +558,7 @@ class TestAreaNightBoost:
         # Test during what would be boost period
         current_time = datetime(2024, 1, 1, 5, 0)
         target = area._apply_night_boost(20.0, current_time)
-        assert target == 20.0  # No change when disabled
+        assert target == pytest.approx(20.0)  # No change when disabled
 
     def test_night_boost_crosses_midnight(self):
         """Test night boost works correctly when period crosses midnight."""
@@ -570,12 +571,12 @@ class TestAreaNightBoost:
         # Test late night (before midnight)
         current_time = datetime(2024, 1, 1, 23, 30)  # 11:30 PM
         target = area._apply_night_boost(18.0, current_time)
-        assert target == 18.3
+        assert target == pytest.approx(18.3)
 
         # Test early morning (after midnight)
         current_time = datetime(2024, 1, 2, 4, 0)  # 4 AM
         target = area._apply_night_boost(18.0, current_time)
-        assert target == 18.3
+        assert target == pytest.approx(18.3)
 
 
 class TestAreaState:
@@ -642,7 +643,7 @@ class TestAreaFromDict:
 
         area = Area.from_dict(data)
 
-        assert area.hysteresis_override == 1.5
+        assert area.hysteresis_override == pytest.approx(1.5)
 
     def test_from_dict_legacy_window_sensors(self):
         """Test loading area with legacy window sensor format."""
@@ -659,7 +660,7 @@ class TestAreaFromDict:
         assert len(area.window_sensors) == 2
         assert area.window_sensors[0]["entity_id"] == "binary_sensor.window1"
         assert area.window_sensors[0]["action_when_open"] == "reduce_temperature"
-        assert area.window_sensors[0]["temp_drop"] == 2.5
+        assert area.window_sensors[0]["temp_drop"] == pytest.approx(2.5)
 
     def test_from_dict_legacy_presence_sensors(self):
         """Test loading area with legacy presence sensor format."""
@@ -675,7 +676,7 @@ class TestAreaFromDict:
 
         assert len(area.presence_sensors) == 2
         assert area.presence_sensors[0]["entity_id"] == "binary_sensor.motion1"
-        assert area.presence_sensors[0]["temp_boost_when_home"] == 1.5
+        assert area.presence_sensors[0]["temp_boost_when_home"] == pytest.approx(1.5)
 
     def test_from_dict_with_auto_preset(self):
         """Test loading area with auto preset settings."""

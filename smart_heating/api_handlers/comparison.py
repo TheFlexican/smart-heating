@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def handle_get_comparison(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     area_manager: AreaManager,
     comparison_engine: ComparisonEngine,
     request: web.Request,
@@ -54,7 +54,7 @@ async def handle_get_comparison(
 
 
 async def handle_get_custom_comparison(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     comparison_engine: ComparisonEngine,
     request: web.Request,
 ) -> web.Response:

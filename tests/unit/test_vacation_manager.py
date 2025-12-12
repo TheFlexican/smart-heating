@@ -4,6 +4,7 @@ Tests vacation mode enable/disable, expiration, person entity tracking,
 and storage functionality.
 """
 
+import asyncio
 import json
 from datetime import date, timedelta
 from unittest.mock import MagicMock, patch
@@ -29,7 +30,7 @@ class TestInitialization:
         assert vacation_manager._data["enabled"] is False
         assert vacation_manager._data["preset_mode"] == "away"
         assert vacation_manager._data["frost_protection_override"] is True
-        assert vacation_manager._data["min_temperature"] == 10.0
+        assert vacation_manager._data["min_temperature"] == pytest.approx(10.0)
         assert vacation_manager._data["auto_disable"] is True
         assert vacation_manager._data["person_entities"] == []
 
@@ -44,8 +45,8 @@ class TestStorage:
 
         assert vacation_manager._storage_file.exists()
 
-        with open(vacation_manager._storage_file, "r") as f:
-            data = json.load(f)
+        content = await asyncio.to_thread(vacation_manager._storage_file.read_text)
+        data = json.loads(content)
 
         assert data["enabled"] is False
         assert data["preset_mode"] == "away"
@@ -81,8 +82,7 @@ class TestStorage:
         """Test loading corrupted file handles error gracefully."""
         # Write corrupted JSON
         vacation_manager._storage_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(vacation_manager._storage_file, "w") as f:
-            f.write("invalid json{")
+        await asyncio.to_thread(vacation_manager._storage_file.write_text, "invalid json{")
 
         # Should handle error gracefully
         await vacation_manager.async_load()
@@ -124,7 +124,7 @@ class TestEnable:
         )
 
         assert result["frost_protection_override"] is True
-        assert result["min_temperature"] == 12.0
+        assert result["min_temperature"] == pytest.approx(12.0)
 
     @pytest.mark.asyncio
     async def test_enable_default_start_date(self, vacation_manager: VacationManager):
@@ -303,7 +303,7 @@ class TestGetters:
         vacation_manager._data["frost_protection_override"] = True
         vacation_manager._data["min_temperature"] = 12.0
 
-        assert vacation_manager.get_min_temperature() == 12.0
+        assert vacation_manager.get_min_temperature() == pytest.approx(12.0)
 
     def test_get_min_temperature_inactive(self, vacation_manager: VacationManager):
         """Test getting min temperature when inactive."""

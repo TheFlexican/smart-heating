@@ -12,7 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def handle_get_efficiency_report(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     area_manager: AreaManager,
     efficiency_calculator: EfficiencyCalculator,
     request: web.Request,
@@ -156,7 +156,7 @@ async def handle_get_efficiency_report(
 
 
 async def handle_get_area_efficiency_history(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     efficiency_calculator: EfficiencyCalculator,
     request: web.Request,
     area_id: str,

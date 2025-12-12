@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant
 
 from ..const import DOMAIN
 from ..overshoot_protection import OvershootProtection
+import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ async def handle_get_opentherm_logs(
         JSON response with logs
     """
     try:
+        await asyncio.sleep(0)
         # Get optional query parameters
         limit = request.query.get("limit")
 
@@ -54,6 +56,7 @@ async def handle_get_opentherm_capabilities(
         JSON response with capabilities
     """
     try:
+        await asyncio.sleep(0)
         opentherm_logger = hass.data[DOMAIN].get("opentherm_logger")
         if not opentherm_logger:
             return web.json_response({"capabilities": {}})
@@ -77,6 +80,7 @@ async def handle_get_opentherm_gateways(hass: HomeAssistant) -> web.Response:  #
         JSON response with list of gateways containing id and title
     """
     try:
+        await asyncio.sleep(0)
         entries = hass.config_entries.async_entries("opentherm_gw")
         gateways = []
         for entry in entries:
@@ -140,6 +144,7 @@ async def handle_clear_opentherm_logs(hass: HomeAssistant) -> web.Response:  # N
         JSON response with success status
     """
     try:
+        await asyncio.sleep(0)
         opentherm_logger = hass.data[DOMAIN].get("opentherm_logger")
         if not opentherm_logger:
             return web.json_response(

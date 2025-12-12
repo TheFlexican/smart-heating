@@ -249,7 +249,7 @@ class TestGetPresetTemperature:
     def test_get_preset_temperature_area_specific(self, scheduler, mock_area):
         """Test getting preset temperature from area-specific settings."""
         temp = scheduler._get_preset_temperature(mock_area, PRESET_COMFORT)
-        assert temp == 22.0
+        assert temp == pytest.approx(22.0)
 
     def test_get_preset_temperature_global(self, scheduler, mock_area, mock_area_manager):
         """Test getting preset temperature from global settings."""
@@ -259,21 +259,21 @@ class TestGetPresetTemperature:
 
         temp = scheduler._get_preset_temperature(mock_area, PRESET_COMFORT)
         # Should use global temp
-        assert temp == 21.5
+        assert temp == pytest.approx(21.5)
 
     def test_get_preset_temperature_all_presets(self, scheduler, mock_area):
         """Test getting all preset temperatures."""
-        assert scheduler._get_preset_temperature(mock_area, PRESET_AWAY) == 16.0
-        assert scheduler._get_preset_temperature(mock_area, PRESET_ECO) == 18.0
-        assert scheduler._get_preset_temperature(mock_area, PRESET_COMFORT) == 22.0
-        assert scheduler._get_preset_temperature(mock_area, PRESET_HOME) == 20.0
-        assert scheduler._get_preset_temperature(mock_area, PRESET_SLEEP) == 17.0
-        assert scheduler._get_preset_temperature(mock_area, "activity") == 23.0
+        assert scheduler._get_preset_temperature(mock_area, PRESET_AWAY) == pytest.approx(16.0)
+        assert scheduler._get_preset_temperature(mock_area, PRESET_ECO) == pytest.approx(18.0)
+        assert scheduler._get_preset_temperature(mock_area, PRESET_COMFORT) == pytest.approx(22.0)
+        assert scheduler._get_preset_temperature(mock_area, PRESET_HOME) == pytest.approx(20.0)
+        assert scheduler._get_preset_temperature(mock_area, PRESET_SLEEP) == pytest.approx(17.0)
+        assert scheduler._get_preset_temperature(mock_area, "activity") == pytest.approx(23.0)
 
     def test_get_preset_temperature_unknown_preset(self, scheduler, mock_area):
         """Test getting temperature for unknown preset falls back to target."""
         temp = scheduler._get_preset_temperature(mock_area, "unknown_preset")
-        assert temp == mock_area.target_temperature
+        assert temp == pytest.approx(mock_area.target_temperature)
 
 
 class TestOutdoorTemperature:
@@ -294,7 +294,7 @@ class TestOutdoorTemperature:
         hass.states.async_set("weather.home", "12.5", {"unit_of_measurement": "°C"})
 
         temp = scheduler._get_outdoor_temperature(mock_area)
-        assert temp == 12.5
+        assert temp == pytest.approx(12.5)
 
     async def test_get_outdoor_temperature_fahrenheit(self, scheduler, mock_area, hass):
         """Test getting outdoor temperature in Fahrenheit."""
@@ -364,7 +364,7 @@ class TestApplyScheduleMethods:
         # Should set preset mode
         assert mock_area.preset_mode == PRESET_COMFORT
         # Should update target temperature to match preset
-        assert mock_area.target_temperature == 22.0
+        assert mock_area.target_temperature == pytest.approx(22.0)
         # Should save
         mock_area_manager.async_save.assert_called_once()
         # Allow any background tasks to complete

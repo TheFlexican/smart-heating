@@ -33,7 +33,7 @@ async def test_get_outdoor_temperature_and_predict_heating_time():
     state.attributes = {"temperature": "12.0"}
     hass.states.get.return_value = state
     t = await le._async_get_outdoor_temperature()
-    assert abs(t - 12.0) < 1e-6
+    assert t == pytest.approx(12.0)
 
     # Test predict heating time with insufficient data
     le._async_get_recent_heating_rates = AsyncMock(return_value=[0.5] * 5)
@@ -337,7 +337,7 @@ class TestOutdoorTemperature:
         mock_hass.states.get.return_value = state
 
         temp = await learning_engine._async_get_outdoor_temperature()
-        assert temp == 12.5
+        assert temp == pytest.approx(12.5)
 
     @pytest.mark.asyncio
     async def test_get_outdoor_temperature_invalid(self, learning_engine, mock_hass):
@@ -355,25 +355,25 @@ class TestOutdoorTemperature:
     async def test_calculate_outdoor_adjustment_warm(self, learning_engine):
         """Test outdoor adjustment when warm outside."""
         adjustment = await learning_engine._async_calculate_outdoor_adjustment(18.0)
-        assert adjustment == 1.1
+        assert adjustment == pytest.approx(1.1)
 
     @pytest.mark.asyncio
     async def test_calculate_outdoor_adjustment_moderate(self, learning_engine):
         """Test outdoor adjustment when moderate temperature."""
         adjustment = await learning_engine._async_calculate_outdoor_adjustment(10.0)
-        assert adjustment == 1.0
+        assert adjustment == pytest.approx(1.0)
 
     @pytest.mark.asyncio
     async def test_calculate_outdoor_adjustment_cold(self, learning_engine):
         """Test outdoor adjustment when cold outside."""
         adjustment = await learning_engine._async_calculate_outdoor_adjustment(2.0)
-        assert adjustment == 0.9
+        assert adjustment == pytest.approx(0.9)
 
     @pytest.mark.asyncio
     async def test_calculate_outdoor_adjustment_very_cold(self, learning_engine):
         """Test outdoor adjustment when very cold outside."""
         adjustment = await learning_engine._async_calculate_outdoor_adjustment(-5.0)
-        assert adjustment == 0.8
+        assert adjustment == pytest.approx(0.8)
 
 
 class TestPredictions:
@@ -479,8 +479,8 @@ class TestLearningStats:
 
         assert stats["data_points"] == 20
         assert stats["avg_heating_rate"] == pytest.approx(0.10, abs=0.01)
-        assert stats["min_heating_rate"] == 0.08
-        assert stats["max_heating_rate"] == 0.12
+        assert stats["min_heating_rate"] == pytest.approx(0.08)
+        assert stats["max_heating_rate"] == pytest.approx(0.12)
         assert stats["ready_for_predictions"] is True
         assert stats["outdoor_temp_available"] is True
 
