@@ -1,5 +1,6 @@
 """Sensor API handlers for Smart Heating."""
 
+import asyncio
 import logging
 
 from aiohttp import web
@@ -239,6 +240,7 @@ async def handle_get_weather_entities(hass: HomeAssistant) -> web.Response:
     Returns:
         JSON response with list of weather entities
     """
+    await asyncio.sleep(0)  # Minimal async operation to satisfy async requirement
     entities = []
 
     # Get weather entities
