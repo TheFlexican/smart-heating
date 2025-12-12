@@ -32,6 +32,8 @@ jobs:
           # Install system libraries needed by some packages (pycares, Home Assistant deps)
           sudo apt-get install -y libc-ares-dev build-essential libssl-dev libffi-dev
           python -m pip install -U pip setuptools wheel
+          # Force rebuild pycares from source to ensure compatibility with system c-ares
+          pip install --no-binary pycares pycares==5.1.0
           pip install -r tests/requirements_test.txt
 
       - name: Debug Python package versions (safe imports)
