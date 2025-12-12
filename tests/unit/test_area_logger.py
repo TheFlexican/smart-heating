@@ -3,6 +3,7 @@
 Tests logging functionality, file operations, log rotation, and querying.
 """
 
+import asyncio
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -80,8 +81,8 @@ class TestLogging:
         assert log_file.exists()
 
         # Verify content
-        with open(log_file, "r") as f:
-            logged_entry = json.loads(f.readline())
+        content = await asyncio.to_thread(log_file.read_text)
+        logged_entry = json.loads(content.splitlines()[0])
 
         assert logged_entry["message"] == "Test message"
 
@@ -110,15 +111,14 @@ class TestRotation:
         log_file = area_logger._get_log_file_path(TEST_AREA_ID, "temperature")
 
         # Write a few entries
-        with open(log_file, "w") as f:
-            for i in range(10):
-                f.write(json.dumps({"entry": i}) + "\n")
+        content = "".join(json.dumps({"entry": i}) + "\n" for i in range(10))
+        await asyncio.to_thread(log_file.write_text, content)
 
         await area_logger._async_rotate_if_needed(log_file)
 
         # Should still have 10 lines
-        with open(log_file, "r") as f:
-            lines = f.readlines()
+        content = await asyncio.to_thread(log_file.read_text)
+        lines = content.splitlines()
         assert len(lines) == 10
 
     @pytest.mark.asyncio
@@ -128,15 +128,14 @@ class TestRotation:
 
         # Write more than MAX_LOG_ENTRIES_PER_FILE entries
         num_entries = MAX_LOG_ENTRIES_PER_FILE + 100
-        with open(log_file, "w") as f:
-            for i in range(num_entries):
-                f.write(json.dumps({"entry": i}) + "\n")
+        content = "".join(json.dumps({"entry": i}) + "\n" for i in range(num_entries))
+        await asyncio.to_thread(log_file.write_text, content)
 
         await area_logger._async_rotate_if_needed(log_file)
 
         # Should be trimmed to MAX_LOG_ENTRIES_PER_FILE
-        with open(log_file, "r") as f:
-            lines = f.readlines()
+        content = await asyncio.to_thread(log_file.read_text)
+        lines = content.splitlines()
         assert len(lines) == MAX_LOG_ENTRIES_PER_FILE
 
     @pytest.mark.asyncio
@@ -159,9 +158,13 @@ class TestReading:
         """Test getting logs for single event type."""
         # Write some logs
         log_file = area_logger._get_log_file_path(TEST_AREA_ID, "temperature")
-        with open(log_file, "w") as f:
-            f.write(json.dumps({"timestamp": "2024-01-01T12:00:00", "message": "Entry 1"}) + "\n")
-            f.write(json.dumps({"timestamp": "2024-01-01T12:01:00", "message": "Entry 2"}) + "\n")
+        content = (
+            json.dumps({"timestamp": "2024-01-01T12:00:00", "message": "Entry 1"})
+            + "\n"
+            + json.dumps({"timestamp": "2024-01-01T12:01:00", "message": "Entry 2"})
+            + "\n"
+        )
+        await asyncio.to_thread(log_file.write_text, content)
 
         logs = await area_logger.async_get_logs(TEST_AREA_ID, event_type="temperature")
 
@@ -174,12 +177,16 @@ class TestReading:
         """Test getting logs from all event types."""
         # Write logs to multiple files
         temp_file = area_logger._get_log_file_path(TEST_AREA_ID, "temperature")
-        with open(temp_file, "w") as f:
-            f.write(json.dumps({"timestamp": "2024-01-01T12:00:00", "message": "Temp 1"}) + "\n")
+        await asyncio.to_thread(
+            temp_file.write_text,
+            json.dumps({"timestamp": "2024-01-01T12:00:00", "message": "Temp 1"}) + "\n",
+        )
 
         heating_file = area_logger._get_log_file_path(TEST_AREA_ID, "heating")
-        with open(heating_file, "w") as f:
-            f.write(json.dumps({"timestamp": "2024-01-01T12:01:00", "message": "Heat 1"}) + "\n")
+        await asyncio.to_thread(
+            heating_file.write_text,
+            json.dumps({"timestamp": "2024-01-01T12:01:00", "message": "Heat 1"}) + "\n",
+        )
 
         logs = await area_logger.async_get_logs(TEST_AREA_ID)
 
@@ -192,12 +199,11 @@ class TestReading:
         """Test getting logs with limit."""
         # Write 5 logs
         log_file = area_logger._get_log_file_path(TEST_AREA_ID, "temperature")
-        with open(log_file, "w") as f:
-            for i in range(5):
-                f.write(
-                    json.dumps({"timestamp": f"2024-01-01T12:0{i}:00", "message": f"Entry {i}"})
-                    + "\n"
-                )
+        content = "".join(
+            json.dumps({"timestamp": f"2024-01-01T12:0{i}:00", "message": f"Entry {i}"}) + "\n"
+            for i in range(5)
+        )
+        await asyncio.to_thread(log_file.write_text, content)
 
         logs = await area_logger.async_get_logs(TEST_AREA_ID, limit=2)
 
@@ -214,9 +220,10 @@ class TestReading:
     async def test_async_read_log_file(self, area_logger: AreaLogger):
         """Test reading individual log file."""
         log_file = area_logger._get_log_file_path(TEST_AREA_ID, "temperature")
-        with open(log_file, "w") as f:
-            f.write(json.dumps({"message": "Entry 1"}) + "\n")
-            f.write(json.dumps({"message": "Entry 2"}) + "\n")
+        await asyncio.to_thread(
+            log_file.write_text,
+            json.dumps({"message": "Entry 1"}) + "\n" + json.dumps({"message": "Entry 2"}) + "\n",
+        )
 
         logs = await area_logger._async_read_log_file(log_file)
 
@@ -226,10 +233,15 @@ class TestReading:
     async def test_async_read_log_file_corrupted(self, area_logger: AreaLogger):
         """Test reading file with corrupted JSON."""
         log_file = area_logger._get_log_file_path(TEST_AREA_ID, "temperature")
-        with open(log_file, "w") as f:
-            f.write(json.dumps({"message": "Entry 1"}) + "\n")
-            f.write("invalid json{" + "\n")
-            f.write(json.dumps({"message": "Entry 2"}) + "\n")
+        content = (
+            json.dumps({"message": "Entry 1"})
+            + "\n"
+            + "invalid json{"
+            + "\n"
+            + json.dumps({"message": "Entry 2"})
+            + "\n"
+        )
+        await asyncio.to_thread(log_file.write_text, content)
 
         logs = await area_logger._async_read_log_file(log_file)
 

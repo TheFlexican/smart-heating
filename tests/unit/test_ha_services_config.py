@@ -91,7 +91,7 @@ class TestConfigHandlers:
         await async_handle_set_hysteresis(call, mock_hass, mock_coordinator)
 
         # Verify hysteresis was set
-        assert mock_climate_controller._hysteresis == 0.8
+        assert mock_climate_controller._hysteresis == pytest.approx(0.8)
 
     @pytest.mark.asyncio
     async def test_async_handle_set_hysteresis_no_controller(self, mock_hass, mock_coordinator):
@@ -215,7 +215,7 @@ class TestConfigHandlers:
 
         # Verify frost protection was set
         assert mock_area_manager.frost_protection_enabled is True
-        assert mock_area_manager.frost_protection_temp == 5.0
+        assert mock_area_manager.frost_protection_temp == pytest.approx(5.0)
         # Verify data was saved
         mock_area_manager.async_save.assert_called_once()
         # Verify coordinator refresh

@@ -133,7 +133,7 @@ class TestAreaHandlers:
             assert len(body["areas"]) == 1
             # Should have default values
             assert body["areas"][0]["enabled"]
-            assert body["areas"][0]["target_temperature"] == 20.0
+            assert body["areas"][0]["target_temperature"] == pytest.approx(20.0)
 
     @pytest.mark.asyncio
     async def test_handle_get_area_success(self, mock_hass, mock_area_manager):
@@ -594,7 +594,9 @@ class TestAreaHandlers:
         assert response.status == 200
         body = json.loads(response.body.decode())
         assert body["success"]
-        assert mock_area_manager.get_area.return_value.heating_curve_coefficient == 1.8
+        assert mock_area_manager.get_area.return_value.heating_curve_coefficient == pytest.approx(
+            1.8
+        )
         mock_area_manager.async_save.assert_called()
 
     @pytest.mark.asyncio
@@ -764,7 +766,7 @@ class TestAreaHandlers:
 
         assert response.status == 200
         assert not mock_area.manual_override
-        assert mock_area.target_temperature == 18.0  # Updated to preset temp
+        assert mock_area.target_temperature == pytest.approx(18.0)  # Updated to preset temp
 
     @pytest.mark.asyncio
     async def test_handle_set_manual_override_missing_enabled(self, mock_hass, mock_area_manager):

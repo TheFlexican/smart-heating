@@ -57,12 +57,16 @@ async def test_async_discover_mqtt_capabilities():
     assert caps == {}
 
     # Case: found entity with attributes
-    class State:
+    class MockState:
         def __init__(self):
-            self.state = "on"
+            self._state = "on"
             self.attributes = {"boiler_water_temp": 60.0, "modulation_level": 45.0}
 
-    hass.states.get = MagicMock(return_value=State())
+        @property
+        def state(self):
+            return self._state
+
+    hass.states.get = MagicMock(return_value=MockState())
     caps = await ot_logger.async_discover_mqtt_capabilities("gateway.present")
     assert "attributes" in caps
     assert "boiler_water_temp" in caps["attributes"]

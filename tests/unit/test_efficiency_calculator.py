@@ -51,7 +51,7 @@ async def test_calculate_heating_time_all_heating(efficiency_calculator):
 
     result = efficiency_calculator._calculate_heating_time(history_data)
 
-    assert result == 100.0
+    assert result == pytest.approx(100.0)
 
 
 @pytest.mark.asyncio
@@ -63,7 +63,7 @@ async def test_calculate_heating_time_half_heating(efficiency_calculator):
 
     result = efficiency_calculator._calculate_heating_time(history_data)
 
-    assert result == 50.0
+    assert result == pytest.approx(50.0)
 
 
 @pytest.mark.asyncio
@@ -85,7 +85,7 @@ async def test_calculate_avg_temp_delta(efficiency_calculator):
     result = efficiency_calculator._calculate_avg_temp_delta(history_data)
 
     # Average of absolute deltas: (2.0 + 1.0 + 0.0) / 3 = 1.0
-    assert result == 1.0
+    assert result == pytest.approx(1.0)
 
 
 @pytest.mark.asyncio
@@ -171,7 +171,7 @@ async def test_calculate_energy_score_perfect(efficiency_calculator):
         data_points=240,  # 2 hours of data
     )
 
-    assert score == 100.0
+    assert score == pytest.approx(100.0)
 
 
 @pytest.mark.asyncio
@@ -186,7 +186,7 @@ async def test_calculate_energy_score_high_heating_time(efficiency_calculator):
     )
 
     # Should be penalized: 100 - (80-50)*0.5 = 85
-    assert score == 85.0
+    assert score == pytest.approx(85.0)
 
 
 @pytest.mark.asyncio
@@ -201,7 +201,7 @@ async def test_calculate_energy_score_high_temp_delta(efficiency_calculator):
     )
 
     # Should be penalized: 100 - (3-1)*10 = 80
-    assert score == 80.0
+    assert score == pytest.approx(80.0)
 
 
 @pytest.mark.asyncio
@@ -215,7 +215,7 @@ async def test_calculate_energy_score_clamped_to_zero(efficiency_calculator):
         data_points=120,
     )
 
-    assert score == 0.0
+    assert score == pytest.approx(0.0)
 
 
 @pytest.mark.asyncio

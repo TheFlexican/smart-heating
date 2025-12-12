@@ -106,15 +106,15 @@ class TestClimateEntityProperties:
 
     def test_min_temp(self, climate_entity: AreaClimate):
         """Test minimum temperature."""
-        assert climate_entity.min_temp == 5.0
+        assert climate_entity.min_temp == pytest.approx(5.0)
 
     def test_max_temp(self, climate_entity: AreaClimate):
         """Test maximum temperature."""
-        assert climate_entity.max_temp == 30.0
+        assert climate_entity.max_temp == pytest.approx(30.0)
 
     def test_target_temperature_step(self, climate_entity: AreaClimate):
         """Test temperature step."""
-        assert climate_entity.target_temperature_step == 0.5
+        assert climate_entity.target_temperature_step == pytest.approx(0.5)
 
 
 class TestClimateEntityState:
@@ -123,12 +123,12 @@ class TestClimateEntityState:
     def test_current_temperature(self, climate_entity: AreaClimate):
         """Test current temperature property."""
         # AreaClimate reads from self._area.current_temperature
-        assert climate_entity.current_temperature == 20.0
+        assert climate_entity.current_temperature == pytest.approx(20.0)
 
     def test_target_temperature(self, climate_entity: AreaClimate):
         """Test target temperature property."""
         # AreaClimate reads from self._area.target_temperature
-        assert climate_entity.target_temperature == 21.0
+        assert climate_entity.target_temperature == pytest.approx(21.0)
 
     def test_hvac_mode_enabled(self, climate_entity: AreaClimate):
         """Test HVAC mode when enabled."""

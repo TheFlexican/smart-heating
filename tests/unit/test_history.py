@@ -221,8 +221,8 @@ class TestHistoryTrackerRecord:
         assert len(history_tracker._history["living_room"]) == 1
 
         entry = history_tracker._history["living_room"][0]
-        assert entry["current_temperature"] == 20.0
-        assert entry["target_temperature"] == 21.0
+        assert entry["current_temperature"] == pytest.approx(20.0)
+        assert entry["target_temperature"] == pytest.approx(21.0)
         assert entry["state"] == "heating"
         assert "timestamp" in entry
 
@@ -243,7 +243,9 @@ class TestHistoryTrackerRecord:
 
         # Should append new entry
         assert len(history_tracker._history["living_room"]) == 2
-        assert history_tracker._history["living_room"][1]["current_temperature"] == 20.5
+        assert history_tracker._history["living_room"][1]["current_temperature"] == pytest.approx(
+            20.5
+        )
 
     @pytest.mark.asyncio
     async def test_record_temperature_limit(self, history_tracker):

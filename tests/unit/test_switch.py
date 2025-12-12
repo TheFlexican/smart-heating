@@ -150,8 +150,8 @@ class TestSwitchEntityAttributes:
         assert attrs["area_id"] == TEST_AREA_ID
         assert attrs["area_name"] == TEST_AREA_NAME
         assert attrs["area_state"] == "heat"
-        assert attrs["target_temperature"] == 21.5
-        assert attrs["current_temperature"] == 20.0
+        assert attrs["target_temperature"] == pytest.approx(21.5)
+        assert attrs["current_temperature"] == pytest.approx(20.0)
         assert attrs["device_count"] == 2
 
     def test_available_true(self, switch_entity: AreaSwitch, mock_coordinator):

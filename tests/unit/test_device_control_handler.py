@@ -175,8 +175,6 @@ def test_compute_area_candidate_with_heating_curve_and_pid():
     assert abs(cand2 - (21.0 + 1.5)) < 1e-6
 
 
-import pytest
-
 
 @pytest.mark.asyncio
 async def test_get_valve_capability_missing_entity():
@@ -191,20 +189,20 @@ async def test_get_valve_capability_missing_entity():
 async def test_get_valve_capability_number_and_climate():
     hass = MagicMock()
 
-    class State:
+    class MockState:
         def __init__(self, attrs):
             self.attributes = attrs
-            self.state = "on"
+            self.entity_state = "on"
 
     # number domain
-    hass.states.get = MagicMock(return_value=State({"min": 10, "max": 90}))
+    hass.states.get = MagicMock(return_value=MockState({"min": 10, "max": 90}))
     handler = DeviceControlHandler(hass, MagicMock())
     cap = handler.get_valve_capability("number.valve1")
     assert cap["supports_position"] is True
     assert cap["position_min"] == 10
 
     # climate domain with position and temperature
-    hass.states.get = MagicMock(return_value=State({"position": 50, "temperature": 21.0}))
+    hass.states.get = MagicMock(return_value=MockState({"position": 50, "temperature": 21.0}))
     cap2 = handler.get_valve_capability("climate.trv1")
     assert cap2["supports_position"] is True
     assert cap2["supports_temperature"] is True
@@ -220,17 +218,21 @@ async def test_async_ensure_and_turn_off_climate_power(monkeypatch):
     await handler._async_turn_off_climate_power("invalid")
 
     # With switch not on
-    class State:
-        def __init__(self, state, attrs=None):
-            self.state = state
+    class MockState:
+        def __init__(self, entity_state, attrs=None):
+            self._state = entity_state
             self.attributes = attrs or {}
 
-    hass.states.get = MagicMock(return_value=State("off"))
+        @property
+        def state(self):
+            return self._state
+
+    hass.states.get = MagicMock(return_value=MockState("off"))
     hass.services.async_call = AsyncMock()
     await handler._async_ensure_climate_power_on("climate.unit1")
     hass.services.async_call.assert_called()
 
-    hass.states.get = MagicMock(return_value=State("on"))
+    hass.states.get = MagicMock(return_value=MockState("on"))
     hass.services.async_call = AsyncMock()
     await handler._async_turn_off_climate_power("climate.unit1")
     hass.services.async_call.assert_called()
@@ -294,7 +296,7 @@ def test_collect_heating_areas_and_calculations():
     area_manager.get_all_areas.return_value = {"a1": area}
 
     ot_logger = MagicMock()
-    heating_ids, heating_types, overheads = handler._collect_heating_areas(ot_logger)
+    heating_ids, _, overheads = handler._collect_heating_areas(ot_logger)
     assert "a1" in heating_ids
     assert abs(overheads["a1"] - 20.0) < 0.001
 
@@ -351,12 +353,12 @@ async def test_async_control_switches_and_valves(monkeypatch):
     hass.services.async_call.assert_called()
 
     # valves - number domain
-    class State:
+    class MockState:
         def __init__(self, attrs):
             self.attributes = attrs
-            self.state = "on"
+            self.entity_state = "on"
 
-    hass.states.get = MagicMock(return_value=State({"min": 0, "max": 100}))
+    hass.states.get = MagicMock(return_value=MockState({}))
     hass.services.async_call = AsyncMock()
     await handler.async_control_valves(area, True, 22.0)
     hass.services.async_call.assert_called()
