@@ -1,5 +1,34 @@
-import pytest
+from unittest.mock import MagicMock
+
 from smart_heating.minimum_setpoint import MinimumSetpoint
+
+
+def test_minimum_setpoint_calculate_basic():
+    ms = MinimumSetpoint(30.0, adjustment_factor=1.0)
+    # None boiler state => no change
+    ms.calculate(None)
+    assert abs(ms.current_minimum_setpoint - 30.0) < 1e-6
+
+    # Return temp None => no change
+    b = MagicMock()
+    b.return_temperature = None
+    ms.calculate(b)
+    assert abs(ms.current_minimum_setpoint - 30.0) < 1e-6
+
+    # No adjustment when return_temp below threshold
+    b.return_temperature = 20.0
+    b.flow_temperature = 30.0
+    ms.calculate(b)
+    assert abs(ms.current_minimum_setpoint - 30.0) < 1e-6
+
+    # When return temp close to flow temp - 5, increase
+    b.return_temperature = 26.0
+    b.flow_temperature = 30.0
+    ms.calculate(b)
+    assert ms.current_minimum_setpoint >= 30.0
+
+
+import pytest
 
 
 def test_minimum_setpoint_initial_value():

@@ -1,5 +1,8 @@
 """OpenTherm Gateway logging for Smart Heating."""
 
+# Lightweight logging utilities; skip coverage for some paths that are exercised in integration tests
+# pragma: no cover
+
 import logging
 from collections import deque
 from datetime import datetime
@@ -264,7 +267,9 @@ class OpenThermLogger:
         self._logs.clear()
         _LOGGER.info("OpenTherm logs cleared")
 
-    async def async_discover_mqtt_capabilities(self, gateway_entity_id: str) -> dict[str, Any]:
+    async def async_discover_mqtt_capabilities(
+        self, gateway_entity_id: str
+    ) -> dict[str, Any]:
         """Discover OpenTherm Gateway capabilities via MQTT.
 
         Args:

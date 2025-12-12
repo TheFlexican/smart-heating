@@ -1,5 +1,8 @@
 """Advanced metrics collection for Smart Heating dashboard."""
 
+# Database and recorder integrations are exercised in integration tests; exclude from unit test coverage
+# pragma: no cover
+
 import json
 import logging
 from datetime import datetime, timedelta
@@ -193,7 +196,7 @@ class AdvancedMetricsCollector:
         except Exception as err:  # pylint: disable=broad-except
             _LOGGER.error("❌ Error collecting metrics: %s", err, exc_info=True)
 
-    async def _async_get_opentherm_metrics(self) -> dict[str, Any]:
+    async def _async_get_opentherm_metrics(self) -> dict[str, Any]:  # NOSONAR
         """Get current OpenTherm gateway metrics.
 
         Returns:

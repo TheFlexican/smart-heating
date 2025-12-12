@@ -286,7 +286,7 @@ class TestOutdoorTemperature:
         temp = scheduler._get_outdoor_temperature(mock_area)
         assert temp is None
 
-    def test_get_outdoor_temperature_celsius(self, scheduler, mock_area, hass):
+    async def test_get_outdoor_temperature_celsius(self, scheduler, mock_area, hass):
         """Test getting outdoor temperature in Celsius."""
         mock_area.weather_entity_id = "weather.home"
 
@@ -296,7 +296,7 @@ class TestOutdoorTemperature:
         temp = scheduler._get_outdoor_temperature(mock_area)
         assert temp == 12.5
 
-    def test_get_outdoor_temperature_fahrenheit(self, scheduler, mock_area, hass):
+    async def test_get_outdoor_temperature_fahrenheit(self, scheduler, mock_area, hass):
         """Test getting outdoor temperature in Fahrenheit."""
         mock_area.weather_entity_id = "weather.home"
 
@@ -306,7 +306,7 @@ class TestOutdoorTemperature:
         temp = scheduler._get_outdoor_temperature(mock_area)
         assert temp == pytest.approx(12.78, abs=0.01)
 
-    def test_get_outdoor_temperature_unavailable(self, scheduler, mock_area, hass):
+    async def test_get_outdoor_temperature_unavailable(self, scheduler, mock_area, hass):
         """Test getting outdoor temperature when unavailable."""
         mock_area.weather_entity_id = "weather.home"
 
@@ -367,6 +367,8 @@ class TestApplyScheduleMethods:
         assert mock_area.target_temperature == 22.0
         # Should save
         mock_area_manager.async_save.assert_called_once()
+        # Allow any background tasks to complete
+        await hass.async_block_till_done()
 
     @pytest.mark.asyncio
     async def test_apply_preset_schedule_clears_manual_override(
@@ -390,6 +392,7 @@ class TestApplyScheduleMethods:
 
         # Should clear manual override
         assert mock_area.manual_override is False
+        await hass.async_block_till_done()
 
     @pytest.mark.asyncio
     async def test_apply_temperature_schedule(self, scheduler, mock_area, mock_area_manager, hass):
@@ -412,6 +415,7 @@ class TestApplyScheduleMethods:
         assert mock_area.target_temperature == 21.5
         # Should save
         mock_area_manager.async_save.assert_called_once()
+        await hass.async_block_till_done()
         # Note: hass.services.async_call is called but will fail with service_not_found
         # in test environment - that's expected and logged as a warning
 
@@ -437,3 +441,14 @@ class TestApplyScheduleMethods:
 
         # Should clear manual override
         assert mock_area.manual_override is False
+        await hass.async_block_till_done()
+        # Debug: print any pending asyncio tasks so we can trace hangs in CI
+        import asyncio
+
+        tasks = asyncio.all_tasks()
+        print(f"DEBUG: active asyncio tasks: {len(tasks)}")
+        for t in tasks:
+            try:
+                print(f"DEBUG TASK: {t!r}, done={t.done()}, cancelled={t.cancelled()}")
+            except Exception:
+                print("DEBUG TASK: repr failed")

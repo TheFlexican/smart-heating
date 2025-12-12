@@ -38,7 +38,7 @@ if docker network ls | grep -q "$NETWORK_NAME"; then
 fi
 
 echo "  Clearing Home Assistant data..."
-if [ -d "$HA_CONFIG_DIR" ]; then
+if [[ -d "$HA_CONFIG_DIR" ]]; then
     rm -rf "$HA_CONFIG_DIR"
     echo -e "  ${GREEN}✓${NC} Removed $HA_CONFIG_DIR"
 fi
@@ -102,14 +102,14 @@ echo ""
 
 # Step 5: Build frontend
 echo -e "${YELLOW}[5/9]${NC} Building frontend..."
-if [ -d "$FRONTEND_DIR" ]; then
+if [[ -d "$FRONTEND_DIR" ]]; then
     cd "$FRONTEND_DIR"
-    
-    if [ ! -d "node_modules" ]; then
+
+    if [[ ! -d "node_modules" ]]; then
         echo "  Installing dependencies..."
         npm install > /dev/null 2>&1
     fi
-    
+
     echo "  Building React app..."
     if npm run build > /dev/null 2>&1; then
         echo -e "${GREEN}✓${NC} Frontend built successfully ($(du -sh dist | cut -f1))"
@@ -117,7 +117,7 @@ if [ -d "$FRONTEND_DIR" ]; then
         echo -e "${RED}✗${NC} Frontend build failed"
         exit 1
     fi
-    
+
     cd - > /dev/null
 else
     echo -e "${YELLOW}⚠${NC}  Frontend directory not found, skipping build"

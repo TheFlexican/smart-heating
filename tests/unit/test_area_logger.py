@@ -42,7 +42,9 @@ class TestLogging:
 
     def test_log_event(self, area_logger: AreaLogger):
         """Test logging an event."""
+        orig = area_logger._hass.async_create_task
         with patch.object(area_logger._hass, "async_create_task") as mock_task:
+            mock_task.side_effect = lambda coro: orig(coro)
             area_logger.log_event(
                 TEST_AREA_ID, "temperature", "Temperature changed to 20.5°C", {"temperature": 20.5}
             )
@@ -52,7 +54,9 @@ class TestLogging:
 
     def test_log_event_unknown_type(self, area_logger: AreaLogger):
         """Test logging event with unknown type defaults to 'mode'."""
+        orig = area_logger._hass.async_create_task
         with patch.object(area_logger._hass, "async_create_task") as mock_task:
+            mock_task.side_effect = lambda coro: orig(coro)
             area_logger.log_event(TEST_AREA_ID, "unknown_type", "Test message")
 
         # Should still schedule write with type changed to 'mode'

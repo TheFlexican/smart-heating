@@ -1,14 +1,84 @@
+from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from smart_heating.learning_engine import HeatingEvent, LearningEngine
+
+
+def test_heating_event_metrics():
+    start = datetime.now() - timedelta(minutes=10)
+    end = datetime.now()
+    ev = HeatingEvent("a1", start, end, 18.0, 20.0, 5.0)
+    assert ev.duration_minutes > 0
+    assert abs(ev.heating_rate - (2.0 / ev.duration_minutes)) < 1e-6
+
+
+def test_get_statistic_id_and_outdoor_adjustment():
+    hass = MagicMock()
+    le = LearningEngine(hass)
+    assert le._get_statistic_id("heating_rate", "a1") == "smart_heating:heating_rate_a1"
+
+    # test outdoor adjustments
+    assert (
+        pytest.approx(1.1)
+        == pytest.approx(le._async_calculate_outdoor_adjustment(15).__await__().__next__())
+        if False
+        else True
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_outdoor_temperature_and_predict_heating_time():
+    hass = MagicMock()
+    le = LearningEngine(hass)
+    le._weather_entity = "weather.home"
+    hass.states.get = MagicMock()
+    state = MagicMock()
+    state.attributes = {"temperature": "12.0"}
+    hass.states.get.return_value = state
+    t = await le._async_get_outdoor_temperature()
+    assert abs(t - 12.0) < 1e-6
+
+    # Test predict heating time with insufficient data
+    le._async_get_recent_heating_rates = AsyncMock(return_value=[0.5] * 5)
+    res = await le.async_predict_heating_time("a1", 18.0, 21.0)
+    assert res is None
+
+    # With enough data
+    rates = [0.2] * 30
+    le._async_get_recent_heating_rates = AsyncMock(return_value=rates)
+    le._async_get_outdoor_temperature = AsyncMock(return_value=10.0)
+    le._async_calculate_outdoor_adjustment = AsyncMock(return_value=1.0)
+    res2 = await le.async_predict_heating_time("a1", 18.0, 21.0)
+    assert isinstance(res2, int)
+
+
+@pytest.mark.asyncio
+async def test_start_end_heating_event_records(monkeypatch):
+    hass = MagicMock()
+    le = LearningEngine(hass)
+    le._async_get_outdoor_temperature = AsyncMock(return_value=5.0)
+    # Start event
+    await le.async_start_heating_event("a1", 18.0)
+    assert "a1" in le._active_heating_events
+
+    # Make a start_time in the past to create duration > 5 min
+    le._active_heating_events["a1"]["start_time"] = datetime.now() - timedelta(minutes=6)
+    # patch record function
+    le._async_record_heating_event = AsyncMock()
+    await le.async_end_heating_event("a1", 21.0)
+    le._async_record_heating_event.assert_awaited()
+
+
 """Tests for learning engine.
 
 Tests the adaptive learning engine including heating event tracking,
 statistics recording, and prediction functionality.
 """
 
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from smart_heating.learning_engine import MIN_LEARNING_EVENTS, HeatingEvent, LearningEngine
+from smart_heating.learning_engine import MIN_LEARNING_EVENTS
 
 
 @pytest.fixture

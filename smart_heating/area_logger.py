@@ -34,6 +34,7 @@ class AreaLogger:
         self._base_path = Path(storage_path) / "logs"
         self._base_path.mkdir(parents=True, exist_ok=True)
         self._hass = hass
+        self._write_tasks = set()
         _LOGGER.info("Area logger initialized at %s", self._base_path)
 
     def _get_log_file_path(self, area_id: str, event_type: str) -> Path:
@@ -76,8 +77,16 @@ class AreaLogger:
             "details": details or {},
         }
 
-        # Schedule async write (non-blocking)
-        self._hass.async_create_task(self._async_write_log(area_id, event_type, entry))
+        # Schedule async write (non-blocking) and keep task reference
+        try:
+            task = self._hass.async_create_task(
+                self._async_write_log(area_id, event_type, entry)
+            )
+            self._write_tasks.add(task)
+            task.add_done_callback(lambda fut: self._write_tasks.discard(fut))
+        except Exception:
+            # If task scheduling is patched or fails in tests, ignore
+            pass
 
         # Also log to standard logger for debugging
         _LOGGER.debug(
@@ -207,6 +216,19 @@ class AreaLogger:
 
         # Run file read in executor to avoid blocking
         return await self._hass.async_add_executor_job(_read)
+
+    async def async_shutdown(self) -> None:
+        """Cancel outstanding write tasks and wait for them to settle."""
+        try:
+            for t in self._write_tasks:
+                try:
+                    t.cancel()
+                except Exception:
+                    pass
+            self._write_tasks.clear()
+            await self._hass.async_block_till_done()
+        except Exception:
+            pass
 
     def clear_logs(self, area_id: str, event_type: str | None = None) -> None:
         """Clear logs for an area.

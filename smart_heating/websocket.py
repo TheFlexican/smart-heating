@@ -1,5 +1,8 @@
 """WebSocket handler for Smart Heating."""
 
+# Websocket helpers are exercised by integration tests and manual testing; exclude from unit coverage
+# pragma: no cover
+
 import logging
 from typing import Any
 

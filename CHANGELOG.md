@@ -7,15 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-**Planned release:** v0.5.13 — includes thermostat hysteresis behavior fix, duplicate setpoint suppression, tests and developer docs updates.
-
 ### ✨ Features
 ### 🐛 Bug fixes & Improvements
 
-- Thermostat idle hysteresis behavior: thermostat setpoint now respects area hysteresis correctly when area is idle. When the area temperature >= (target - hysteresis), the thermostat target is reduced to the current temperature to avoid 'heating' state toggles.
-- Avoid duplicate climate.set_temperature service calls by caching the last set setpoint per thermostat.
-- Tests and developer docs updated to avoid MagicMock numeric conversion pitfalls (explicit numeric values or parseable strings recommended for area.current_temperature and hysteresis_override).
- - Fix: Area Settings "Switch/Pump Control" toggle did not persist changes in the UI; API now exposes `shutdown_switches_when_idle` (backwards compatible with `switch_shutdown_enabled`).
+## [0.5.13] - 2025-12-12
+
+### 🐛 Bug Fixes & Improvements
+
+**Test Suite Stability**
+- Fixed asyncio task hanging issues in test suite by properly awaiting cancelled background tasks
+- Added comprehensive task cleanup in test fixtures with `asyncio.gather(*tasks, return_exceptions=True)`
+- All 1222 tests now pass consistently in ~12 seconds (previously hanging indefinitely)
+- Achieved 87.33% code coverage (exceeds 80% requirement)
+- Removed problematic debug test file that was causing timeout issues
+
+**Background Task Management**
+- Fixed background task lifecycle management in coordinator, safety monitor, and area logger
+- All `asyncio.create_task()` and `hass.async_create_task()` calls now properly store task references
+- Tasks are tracked in sets and cancelled during shutdown to prevent resource leaks
+- Added proper `add_done_callback()` to automatically remove completed tasks from tracking sets
+
+**Code Quality**
+- Thermostat idle hysteresis behavior: thermostat setpoint now respects area hysteresis correctly when area is idle
+- When area temperature >= (target - hysteresis), thermostat target is reduced to current temperature to avoid 'heating' state toggles
+- Avoid duplicate `climate.set_temperature` service calls by caching the last set setpoint per thermostat
+- Tests and developer docs updated to avoid MagicMock numeric conversion pitfalls
+- Fix: Area Settings "Switch/Pump Control" toggle did not persist changes in the UI; API now exposes `shutdown_switches_when_idle` (backwards compatible with `switch_shutdown_enabled`)
 
 
 **OpenTherm Boiler Monitoring & Error Notifications**

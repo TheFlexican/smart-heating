@@ -1,8 +1,50 @@
 import pytest
+from smart_heating.heating_curve import HEATING_SYSTEM_UNDERFLOOR, HeatingCurve
+
+
+def test_calculate_basic():
+    # Simple compute, should be deterministic
+    val = HeatingCurve.calculate(22.0, 10.0)
+    assert isinstance(val, float)
+
+
+def test_base_offset():
+    hc1 = HeatingCurve(heating_system=HEATING_SYSTEM_UNDERFLOOR)
+    assert abs(hc1.base_offset - 40.0) < 0.001
+    hc2 = HeatingCurve()
+    assert abs(hc2.base_offset - 55.0) < 0.001
+
+
+def test_calculate_coefficient_and_update():
+    hc = HeatingCurve()
+    setpoint = 60.0
+    target = 22.0
+    outside = 10.0
+    coeff = hc.calculate_coefficient(setpoint, target, outside)
+    assert isinstance(coeff, float)
+    # The update method should set the internals and value
+    hc.update(target, outside)
+    assert hc.value is None or isinstance(hc.value, float)
+
+
+def test_autotune_and_restore():
+    hc = HeatingCurve()
+    # autotune returns None for too small setpoints
+    assert hc.autotune(5.0, 22.0, 10.0) is None
+
+    # Now with a realistic setpoint sequence, we expect an average coefficient
+    for sp in [55.0, 56.0, 57.0, 58.0, 56.0]:
+        res = hc.autotune(sp, 22.0, 10.0)
+        assert res is None or isinstance(res, float)
+
+    # Restore and ensure derivative/optimal coefficients are set
+    hc.restore_autotune(1.2, 0.1)
+    assert abs(hc.optimal_coefficient - 1.2) < 0.001
+    assert abs(hc.coefficient_derivative - 0.1) < 0.001
+
+
 from smart_heating.heating_curve import (
     HEATING_SYSTEM_RADIATOR,
-    HEATING_SYSTEM_UNDERFLOOR,
-    HeatingCurve,
 )
 
 

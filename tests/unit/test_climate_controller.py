@@ -1,11 +1,94 @@
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from smart_heating.climate_controller import ClimateController
+
+
+@pytest.mark.asyncio
+async def test_set_area_logger_and_delegations(mock_hass, mock_area_manager):
+    cc = ClimateController(mock_hass, mock_area_manager)
+    logger = MagicMock()
+    cc.set_area_logger(logger)
+    assert cc.sensor_handler is not None
+    assert cc.protection_handler is not None
+    assert cc.cycle_handler is not None
+
+
+@pytest.mark.asyncio
+async def test_async_update_area_temperatures_updates(mock_hass, mock_area_manager):
+    cc = ClimateController(mock_hass, mock_area_manager)
+    # Prepare area
+    area = MagicMock()
+    area.get_temperature_sensors.return_value = ["s1"]
+    area.get_thermostats.return_value = []
+    area.current_temperature = None
+    mock_area_manager.get_all_areas.return_value = {"a1": area}
+    # Patch handler
+    cc.temp_handler = MagicMock()
+    cc.temp_handler.collect_area_temperatures.return_value = [20.0, 21.0]
+    await cc.async_update_area_temperatures()
+    assert abs(area.current_temperature - 20.5) < 1e-6
+
+
+@pytest.mark.asyncio
+async def test_async_control_heating_disabled_and_manual_override(mock_hass, mock_area_manager):
+    cc = ClimateController(mock_hass, mock_area_manager)
+    # Area disabled
+    area = MagicMock()
+    area.enabled = False
+    area.current_temperature = 20.0
+    mock_area_manager.get_all_areas.return_value = {"a1": area}
+    # Set handlers
+    cc.cycle_handler = MagicMock()
+    cc.cycle_handler.async_prepare_heating_cycle = AsyncMock(return_value=(False, None))
+    cc.protection_handler = MagicMock()
+    cc.device_handler = MagicMock()
+    cc.device_handler.async_control_opentherm_gateway = AsyncMock()
+    cc.temp_handler = MagicMock()
+    # Ensure protection handler async_handle_disabled_area is awaited
+    cc.protection_handler.async_handle_disabled_area = AsyncMock()
+    await cc.async_control_heating()
+    cc.protection_handler.async_handle_disabled_area.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_async_control_heating_heating_path(mock_hass, mock_area_manager):
+    cc = ClimateController(mock_hass, mock_area_manager)
+    area = MagicMock()
+    area.enabled = True
+    area.current_temperature = 18.0
+    area.target_temperature = 21.0
+    area.hvac_mode = "heat"
+    area.hysteresis_override = None
+    area.boost_mode_active = False
+    area.preset_mode = "comfort"
+    area.manual_override = False
+    area.get_effective_target_temperature = MagicMock(return_value=21.0)
+    mock_area_manager.get_all_areas.return_value = {"a1": area}
+    # Set handlers
+    cc.temp_handler = MagicMock()
+    cc.device_handler = MagicMock()
+    cc.device_handler.async_control_opentherm_gateway = AsyncMock()
+    # cycle handler should return (should_record_history, tracker) but we'll set up async_prepare_heating_cycle
+    tracker = MagicMock()
+    tracker.async_record_temperature = AsyncMock()
+    cc.cycle_handler = MagicMock()
+    cc.cycle_handler.async_prepare_heating_cycle = AsyncMock(return_value=(False, None))
+    cc.cycle_handler.async_handle_heating_required = AsyncMock(return_value=([], 21.0))
+    cc.protection_handler = MagicMock()
+    cc.protection_handler.apply_vacation_mode = MagicMock()
+    cc.protection_handler.apply_frost_protection = MagicMock(return_value=21.0)
+    cc.protection_handler.async_handle_manual_override = AsyncMock()
+    await cc.async_control_heating()
+    cc.cycle_handler.async_handle_heating_required.assert_called()
+
+
 """Test climate_controller.py module."""
 
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
-from smart_heating.climate_controller import ClimateController
 from smart_heating.const import (
     DEFAULT_FROST_PROTECTION_TEMP,
     PRESET_AWAY,

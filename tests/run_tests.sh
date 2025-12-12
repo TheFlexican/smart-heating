@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Check if virtual environment exists (in parent directory)
-if [ ! -d "venv" ]; then
+if [[ ! -d "venv" ]]; then
     echo -e "${YELLOW}Virtual environment not found. Creating...${NC}"
     python3 -m venv venv
 fi
@@ -39,7 +39,8 @@ pytest tests/unit \
     --cov-report=html:coverage_html \
     --cov-report=xml:coverage.xml \
     --cov-branch \
-    -v
+    -vv \
+    -s
 
 # Check coverage
 echo ""

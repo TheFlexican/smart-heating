@@ -150,7 +150,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     advanced_metrics_collector = AdvancedMetricsCollector(hass)
     hass.data[DOMAIN]["advanced_metrics_collector"] = advanced_metrics_collector
     # Setup will run async, logs if database not available
-    hass.async_create_task(advanced_metrics_collector.async_setup())
+    # Start async setup task and keep reference for cleanup in tests
+    hass.data[DOMAIN]["advanced_metrics_task"] = hass.async_create_task(
+        advanced_metrics_collector.async_setup()
+    )
     _LOGGER.info("Advanced metrics collector initialized")
 
     # Create safety monitor
@@ -209,7 +212,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await asyncio.sleep(5)
         await climate_controller.async_control_heating()
 
-    hass.async_create_task(run_initial_control())
+    # Start and keep reference for test cleanup
+    hass.data[DOMAIN]["initial_control_task"] = hass.async_create_task(
+        run_initial_control()
+    )
 
     _LOGGER.info("Climate controller started with 30-second update interval")
 
@@ -242,7 +248,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             except Exception as err:
                 _LOGGER.error("Failed to discover OpenTherm capabilities: %s", err)
 
-        hass.async_create_task(discover_capabilities())
+        # Keep the discover task reference for cleanup
+        hass.data[DOMAIN]["discover_capabilities_task"] = hass.async_create_task(
+            discover_capabilities()
+        )
 
     # Register sidebar panel
     await async_register_panel(hass, entry)
@@ -644,13 +653,17 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         # Shutdown safety monitor
         if "safety_monitor" in hass.data[DOMAIN]:
-            await hass.data[DOMAIN]["safety_monitor"].async_shutdown()
+            from smart_heating.utils.coordinator_helpers import call_maybe_async
+
+            await call_maybe_async(hass.data[DOMAIN]["safety_monitor"].async_shutdown)
             _LOGGER.debug("Safety monitor stopped")
 
         # Shutdown coordinator and remove state listeners
         if entry.entry_id in hass.data[DOMAIN]:
             coordinator = hass.data[DOMAIN][entry.entry_id]
-            await coordinator.async_shutdown()
+            from smart_heating.utils.coordinator_helpers import call_maybe_async
+
+            await call_maybe_async(coordinator.async_shutdown)
             _LOGGER.debug("Coordinator state listeners removed")
 
         # Stop climate controller
@@ -660,17 +673,41 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Stop schedule executor
         if "schedule_executor" in hass.data[DOMAIN]:
-            await hass.data[DOMAIN]["schedule_executor"].async_stop()
+            await call_maybe_async(hass.data[DOMAIN]["schedule_executor"].async_stop)
             _LOGGER.debug("Schedule executor stopped")
 
         # Unload history tracker
         if "history" in hass.data[DOMAIN]:
-            await hass.data[DOMAIN]["history"].async_unload()
+            await call_maybe_async(hass.data[DOMAIN]["history"].async_unload)
             _LOGGER.debug("History tracker unloaded")
 
         # Remove coordinator from hass.data
         hass.data[DOMAIN].pop(entry.entry_id)
         _LOGGER.debug("Smart Heating coordinator removed from hass.data")
+
+        # Cancel tasks created with hass.async_create_task stored in hass.data
+        for task_key in (
+            "advanced_metrics_task",
+            "initial_control_task",
+            "discover_capabilities_task",
+        ):
+            try:
+                t = hass.data[DOMAIN].get(task_key)
+                if t and hasattr(t, "cancel"):
+                    t.cancel()
+            except Exception:
+                pass
+        try:
+            await hass.async_block_till_done()
+        except Exception:
+            pass
+
+        # Shutdown area logger write tasks
+        if "area_logger" in hass.data[DOMAIN]:
+            try:
+                await call_maybe_async(hass.data[DOMAIN]["area_logger"].async_shutdown)
+            except Exception:
+                pass
 
         # Remove sidebar panel
         try:

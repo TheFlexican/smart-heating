@@ -1,6 +1,6 @@
 Test scripts utilities
 
-- `./scripts/setup_test.sh` - build and configure the test HA env (already existing)
+- `./scripts/setup_test.sh` - build and configure the test HA env
 
 Usage example:
 

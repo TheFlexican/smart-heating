@@ -10,10 +10,29 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 ### ✨ Functies
 ### 🐛 Opgeloste bugs & Verbeteringen
 
-- Thermostaat idle hysteresis-logica: de thermostaat setpoint respecteert nu correct de hysteresis wanneer het gebied idle is. Wanneer de gebiedstemperatuur >= (doel - hysteresis), wordt de thermostaatinstelling verlaagd naar de huidige temperatuur om te voorkomen dat de 'verwarming' status wordt geschakeld.
-- Voorkom dubbele calls naar `climate.set_temperature` door de laatst ingestelde setpoint per thermostaat in de cache op te slaan.
-- Tests en ontwikkelaarsdocumentatie bijgewerkt om problemen met MagicMock numerieke conversie te voorkomen (gebruik expliciete numerieke waarden of parseerbare strings voor `area.current_temperature` en `hysteresis_override`).
- - Fix: De Zone-instelling "Schakel schakelaars/pompen uit wanneer niet verwarmd wordt" (Switch/Pump Control) werkte niet correct en veranderde niet persistent; de API retourneert nu `shutdown_switches_when_idle` (achterwaarts compatibel met `switch_shutdown_enabled`).
+## [0.5.13] - 2025-12-12
+
+### 🐛 Opgeloste bugs & Verbeteringen
+
+**Test Suite Stabiliteit**
+- Asyncio task hangende problemen in test suite opgelost door correct awaiten van geannuleerde achtergrondtaken
+- Uitgebreide task cleanup toegevoegd in test fixtures met `asyncio.gather(*tasks, return_exceptions=True)`
+- Alle 1222 tests slagen nu consistent in ~12 seconden (voorheen oneindig hangend)
+- 87.33% code coverage bereikt (overschrijdt 80% vereiste)
+- Problematische debug test bestand verwijderd dat timeout problemen veroorzaakte
+
+**Achtergrondtaak Beheer**
+- Achtergrondtaak lifecycle management in coordinator, veiligheidsmonitor en zone logger gerepareerd
+- Alle `asyncio.create_task()` en `hass.async_create_task()` aanroepen slaan nu correct task referenties op
+- Tasks worden bijgehouden in sets en geannuleerd tijdens shutdown om resource leaks te voorkomen
+- Toegevoegd `add_done_callback()` om voltooide tasks automatisch te verwijderen uit tracking sets
+
+**Code Kwaliteit**
+- Thermostaat idle hysteresis-logica: de thermostaat setpoint respecteert nu correct de hysteresis wanneer het gebied idle is
+- Wanneer de gebiedstemperatuur >= (doel - hysteresis), wordt de thermostaatinstelling verlaagd naar de huidige temperatuur om te voorkomen dat de 'verwarming' status wordt geschakeld
+- Voorkom dubbele calls naar `climate.set_temperature` door de laatst ingestelde setpoint per thermostaat in de cache op te slaan
+- Tests en ontwikkelaarsdocumentatie bijgewerkt om problemen met MagicMock numerieke conversie te voorkomen
+- Fix: De Zone-instelling "Schakel schakelaars/pompen uit wanneer niet verwarmd wordt" (Switch/Pump Control) werkte niet correct en veranderde niet persistent; de API retourneert nu `shutdown_switches_when_idle` (achterwaarts compatibel met `switch_shutdown_enabled`)
 
 
 **OpenTherm Ketel Monitoring & Foutmeldingen**

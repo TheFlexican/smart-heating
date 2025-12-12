@@ -29,24 +29,24 @@ if ! docker ps | grep -q "$HA_CONTAINER"; then
 fi
 
 echo -e "${YELLOW}[1/3]${NC} Building frontend..."
-if [ -d "$FRONTEND_DIR" ]; then
+if [[ -d "$FRONTEND_DIR" ]]; then
     cd "$FRONTEND_DIR"
-    
+
     # Check if node_modules exists
-    if [ ! -d "node_modules" ]; then
+    if [[ ! -d "node_modules" ]]; then
         echo "  Installing dependencies..."
         npm install --silent
     fi
-    
+
     # Build frontend
     echo "  Building React app..."
     npm run build --silent
-    
-    if [ ! -d "dist" ]; then
+
+    if [[ ! -d "dist" ]]; then
         echo -e "${RED}✗${NC} Frontend build failed - dist directory not found"
         exit 1
     fi
-    
+
     cd - > /dev/null
     echo -e "${GREEN}✓${NC} Frontend built successfully"
 else

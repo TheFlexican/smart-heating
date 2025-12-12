@@ -1,11 +1,91 @@
-"""Tests for ConfigManager - Basic smoke tests."""
-
+from datetime import datetime
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from smart_heating.config_manager import ConfigManager
+from smart_heating.config_manager import CURRENT_VERSION, ConfigManager
 from smart_heating.const import DOMAIN
+
+
+@pytest.fixture
+def tmp_storage(tmp_path):
+    p = tmp_path / "sh_data"
+    p.mkdir()
+    return p
+
+
+@pytest.mark.asyncio
+async def test_validate_import_data_and_export(tmp_storage, mock_hass, mock_area_manager):
+    cm = ConfigManager(mock_hass, mock_area_manager, tmp_storage)
+
+    # Missing version should raise
+    with pytest.raises(ValueError):
+        cm._validate_import_data({})
+
+    # Minimal export should include version and areas
+    mock_area_manager.get_all_areas.return_value = {"a1": MagicMock(to_dict=lambda: {"name": "A1"})}
+    res = await cm.async_export_config()
+    assert res["version"] == CURRENT_VERSION
+    assert "areas" in res
+
+
+@pytest.mark.asyncio
+async def test_async_import_global_settings_and_areas(tmp_storage, mock_hass, mock_area_manager):
+    cm = ConfigManager(mock_hass, mock_area_manager, tmp_storage)
+    data = {
+        "version": CURRENT_VERSION,
+        "global_settings": {
+            "frost_protection": {"enabled": True, "min_temperature": 6.0},
+            "global_presets": {"comfort_temp": 22.0},
+            "trv_settings": {"heating_temp": 25.0},
+            "opentherm": {"gateway_id": "gw1"},
+            "safety_sensors": ["sensor.s1"],
+        },
+        "areas": {"a1": {"name": "Area One", "enabled": True, "target_temperature": 21.5}},
+    }
+
+    # set existing empty areas
+    mock_area_manager.get_all_areas.return_value = {}
+    changes = await cm.async_import_config(data, create_backup=False)
+    assert changes["areas_created"] == 1
+    assert changes["global_settings_updated"] is True
+
+    # Update path - area already exists
+    area_mock = MagicMock()
+    area_mock.name = "Area One"
+    mock_area_manager.get_all_areas.return_value = {"a1": area_mock}
+    mock_area_manager.get_area.return_value = area_mock
+    data2 = {
+        "version": CURRENT_VERSION,
+        "areas": {"a1": {"name": "New Name", "target_temperature": 22.0}},
+    }
+    changes2 = await cm.async_import_config(data2, create_backup=False)
+    assert changes2["areas_updated"] == 1
+
+
+@pytest.mark.asyncio
+async def test_import_vacation_mode(tmp_storage, mock_hass, mock_area_manager):
+    cm = ConfigManager(mock_hass, mock_area_manager, tmp_storage)
+    # no vacation manager in hass.data -> function should not crash
+    await cm._async_import_vacation_mode({"enabled": True, "start_date": None})
+
+    # with vacation manager
+    vm = MagicMock()
+    vm.async_save = AsyncMock()
+    mock_hass.data[DOMAIN]["vacation_manager"] = vm
+    data = {
+        "enabled": True,
+        "start_date": datetime.now().isoformat(),
+        "end_date": None,
+        "preset_mode": "away",
+    }
+    await cm._async_import_vacation_mode(data)
+    assert vm.enabled is True
+
+
+from unittest.mock import patch
+
+import pytest
 
 
 @pytest.fixture

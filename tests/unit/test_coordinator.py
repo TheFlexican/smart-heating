@@ -254,10 +254,21 @@ class TestStateChangeHandling:
         event = MagicMock()
         event.data = {"entity_id": "climate.test", "old_state": None, "new_state": mock_new_state}
 
-        with patch("asyncio.create_task") as mock_create_task:
+        import asyncio as _asyncio
+
+        orig = _asyncio.create_task
+        with patch("smart_heating.coordinator.asyncio.create_task") as mock_create_task:
+            mock_create_task.side_effect = lambda coro, orig=orig: orig(coro)
             coordinator._handle_state_change(event)
             # Should trigger refresh for initial state
-            mock_create_task.assert_called_once()
+            assert mock_create_task.called
+            # Ensure that a coordinator async_request_refresh coroutine was scheduled
+            # A debounce task should be created (local coroutine). Don't require it to schedule 'async_request_refresh' yet.
+            assert any(
+                hasattr(c.args[0], "cr_code")
+                and c.args[0].cr_code.co_name == "async_request_refresh"
+                for c in mock_create_task.call_args_list
+            )
 
     @pytest.mark.asyncio
     async def test_handle_state_change_state_changed(self, coordinator: SmartHeatingCoordinator):
@@ -277,10 +288,19 @@ class TestStateChangeHandling:
             "new_state": mock_new_state,
         }
 
-        with patch("asyncio.create_task") as mock_create_task:
+        import asyncio as _asyncio
+
+        orig = _asyncio.create_task
+        with patch("smart_heating.coordinator.asyncio.create_task") as mock_create_task:
+            mock_create_task.side_effect = lambda coro, orig=orig: orig(coro)
             coordinator._handle_state_change(event)
             # Should trigger refresh when state changes
-            mock_create_task.assert_called_once()
+            assert mock_create_task.called
+            assert any(
+                hasattr(c.args[0], "cr_code")
+                and c.args[0].cr_code.co_name == "async_request_refresh"
+                for c in mock_create_task.call_args_list
+            )
 
     @pytest.mark.asyncio
     async def test_handle_state_change_current_temperature_changed(
@@ -310,10 +330,19 @@ class TestStateChangeHandling:
             "new_state": mock_new_state,
         }
 
-        with patch("asyncio.create_task") as mock_create_task:
+        import asyncio as _asyncio
+
+        orig = _asyncio.create_task
+        with patch("smart_heating.coordinator.asyncio.create_task") as mock_create_task:
+            mock_create_task.side_effect = lambda coro, orig=orig: orig(coro)
             coordinator._handle_state_change(event)
             # Should trigger refresh when current temperature changes
-            mock_create_task.assert_called_once()
+            assert mock_create_task.called
+            assert any(
+                hasattr(c.args[0], "cr_code")
+                and c.args[0].cr_code.co_name == "async_request_refresh"
+                for c in mock_create_task.call_args_list
+            )
 
     @pytest.mark.asyncio
     async def test_handle_state_change_hvac_action_changed(
@@ -343,10 +372,19 @@ class TestStateChangeHandling:
             "new_state": mock_new_state,
         }
 
-        with patch("asyncio.create_task") as mock_create_task:
+        import asyncio as _asyncio
+
+        orig = _asyncio.create_task
+        with patch("smart_heating.coordinator.asyncio.create_task") as mock_create_task:
+            mock_create_task.side_effect = lambda coro, orig=orig: orig(coro)
             coordinator._handle_state_change(event)
             # Should trigger refresh when hvac_action changes
-            mock_create_task.assert_called_once()
+            assert mock_create_task.called
+            assert any(
+                hasattr(c.args[0], "cr_code")
+                and c.args[0].cr_code.co_name == "async_request_refresh"
+                for c in mock_create_task.call_args_list
+            )
 
     @pytest.mark.asyncio
     async def test_handle_state_change_target_temperature_debounced(
@@ -376,10 +414,19 @@ class TestStateChangeHandling:
             "new_state": mock_new_state,
         }
 
-        with patch("asyncio.create_task") as mock_create_task:
+        import asyncio as _asyncio
+
+        orig = _asyncio.create_task
+        with patch("smart_heating.coordinator.asyncio.create_task") as mock_create_task:
+            mock_create_task.side_effect = lambda coro, orig=orig: orig(coro)
             coordinator._handle_state_change(event)
             # Should create debounce task, not trigger immediate refresh
-            mock_create_task.assert_called_once()
+            assert mock_create_task.called
+            assert any(
+                hasattr(c.args[0], "cr_code")
+                and c.args[0].cr_code.co_name == "debounced_temp_update"
+                for c in mock_create_task.call_args_list
+            )
             # Task should be stored in debounce_tasks
             assert "climate.test" in coordinator._debounce_tasks
 

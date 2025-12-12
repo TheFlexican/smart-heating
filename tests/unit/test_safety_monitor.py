@@ -141,7 +141,10 @@ class TestStateChangeHandling:
             {"entity_id": "binary_sensor.smoke", "old_state": old_state, "new_state": new_state},
         )
 
+        orig = hass.async_create_task
         with patch.object(hass, "async_create_task") as mock_task:
+            # Ensure the patched create_task actually schedules the coroutine to avoid "coroutine never awaited"
+            mock_task.side_effect = lambda coro: orig(coro)
             safety_monitor._handle_safety_sensor_state_change(event)
 
         # Should schedule safety check

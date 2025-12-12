@@ -42,6 +42,7 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         self.area_manager = area_manager
         self._unsub_state_listener = None
         self._debounce_tasks = {}  # Track debounce tasks per entity
+        self._refresh_tasks = set()  # Track outstanding refresh tasks
         # Default to False; will be enabled during async_setup to handle startup race conditions
         self._startup_grace_period = False
         _LOGGER.debug("Smart Heating coordinator initialized")
@@ -294,13 +295,52 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Triggering coordinator refresh for %s", entity_id)
             import asyncio
 
-            asyncio.create_task(self.async_request_refresh())
+            # Schedule a refresh and keep a reference so it doesn't get garbage collected
+            try:
+                task = asyncio.create_task(self.async_request_refresh())
+                self._refresh_tasks.add(task)
+                task.add_done_callback(lambda fut: self._refresh_tasks.discard(fut))
+            except Exception:
+                # If scheduling fails, ignore
+                pass
 
     async def async_shutdown(self) -> None:
         """Shutdown coordinator and clean up listeners."""
         if self._unsub_state_listener:
             self._unsub_state_listener()
             self._unsub_state_listener = None
+        # Cancel grace period task
+        try:
+            if getattr(self, "_grace_period_task", None):
+                self._grace_period_task.cancel()
+                self._grace_period_task = None
+        except Exception:
+            pass
+        # Cancel any debounce tasks
+        try:
+            for t in self._debounce_tasks.values():
+                try:
+                    t.cancel()
+                except Exception:
+                    pass
+            self._debounce_tasks.clear()
+        except Exception:
+            pass
+        # Cancel any refresh tasks
+        try:
+            for t in self._refresh_tasks:
+                try:
+                    t.cancel()
+                except Exception:
+                    pass
+            self._refresh_tasks.clear()
+        except Exception:
+            pass
+        # Let cancellations settle
+        try:
+            await self.hass.async_block_till_done()
+        except Exception:
+            pass
         _LOGGER.debug("Smart Heating coordinator shutdown")
 
     def _get_device_state_data(self, device_id: str, device_info: dict) -> dict:

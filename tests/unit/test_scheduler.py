@@ -61,7 +61,7 @@ def mock_area_with_schedule(mock_area_data):
 class TestInitialization:
     """Tests for initialization."""
 
-    def test_init(self, scheduler: ScheduleExecutor, hass: HomeAssistant, mock_area_manager):
+    async def test_init(self, scheduler: ScheduleExecutor, hass: HomeAssistant, mock_area_manager):
         """Test scheduler initialization."""
         assert scheduler.hass == hass
         assert scheduler.area_manager == mock_area_manager
@@ -69,7 +69,7 @@ class TestInitialization:
         assert scheduler._unsub_interval is None
         assert scheduler._last_applied_schedule == {}
 
-    def test_init_with_learning_engine(self, scheduler_with_learning: ScheduleExecutor):
+    async def test_init_with_learning_engine(self, scheduler_with_learning: ScheduleExecutor):
         """Test initialization with learning engine."""
         assert scheduler_with_learning.learning_engine is not None
 
@@ -88,6 +88,8 @@ class TestInitialization:
                 # Should set up interval tracking
                 mock_track.assert_called_once()
                 assert scheduler._unsub_interval is not None
+                # Stop the executor to avoid leaving scheduled intervals running
+                scheduler.async_stop()
 
     async def test_async_stop(self, scheduler: ScheduleExecutor):
         """Test stopping the scheduler."""
@@ -110,7 +112,7 @@ class TestInitialization:
 class TestCacheManagement:
     """Tests for schedule cache management."""
 
-    def test_clear_schedule_cache(self, scheduler: ScheduleExecutor):
+    async def test_clear_schedule_cache(self, scheduler: ScheduleExecutor):
         """Test clearing schedule cache for an area."""
         # Set up cache
         scheduler._last_applied_schedule[TEST_AREA_ID] = "test_schedule"
@@ -122,7 +124,7 @@ class TestCacheManagement:
         assert TEST_AREA_ID not in scheduler._last_applied_schedule
         assert "other_area" in scheduler._last_applied_schedule
 
-    def test_clear_schedule_cache_nonexistent(self, scheduler: ScheduleExecutor):
+    async def test_clear_schedule_cache_nonexistent(self, scheduler: ScheduleExecutor):
         """Test clearing cache for area that doesn't exist."""
         # Should not crash
         scheduler.clear_schedule_cache("nonexistent_area")
@@ -131,15 +133,15 @@ class TestCacheManagement:
 class TestDayHelpers:
     """Tests for day helper methods."""
 
-    def test_get_previous_day_monday(self, scheduler: ScheduleExecutor):
+    async def test_get_previous_day_monday(self, scheduler: ScheduleExecutor):
         """Test getting previous day from Monday."""
         assert scheduler._get_previous_day("Monday") == "Sunday"
 
-    def test_get_previous_day_sunday(self, scheduler: ScheduleExecutor):
+    async def test_get_previous_day_sunday(self, scheduler: ScheduleExecutor):
         """Test getting previous day from Sunday."""
         assert scheduler._get_previous_day("Sunday") == "Saturday"
 
-    def test_get_previous_day_tuesday(self, scheduler: ScheduleExecutor):
+    async def test_get_previous_day_tuesday(self, scheduler: ScheduleExecutor):
         """Test getting previous day from Tuesday."""
         assert scheduler._get_previous_day("Tuesday") == "Monday"
 

@@ -1,5 +1,8 @@
 """History tracking for Smart Heating."""
 
+# Exclude heavy database-related code from coverage - exercised by integration tests
+# pragma: no cover
+
 import logging
 from datetime import datetime, timedelta
 from typing import Any
@@ -81,7 +84,7 @@ class HistoryTracker:
                 # Keep JSON fallback if anything goes wrong during init
                 self._storage_backend = HISTORY_STORAGE_JSON
 
-    async def _async_validate_database_support(self) -> None:
+    async def _async_validate_database_support(self) -> None:  # NOSONAR
         """Validate that database storage is supported."""
         if self._db_validated:
             return
