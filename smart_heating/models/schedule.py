@@ -155,18 +155,40 @@ class Schedule:
         # Convert frontend days format to internal format if needed
         days_data = data.get("days")
         if days_data and isinstance(days_data, list) and days_data:
-            # Check if it's frontend format (Monday, Tuesday, etc.)
+            # Check if it's frontend format (Monday, Tuesday, etc.) or localized names
+            # Accept both English and Dutch day names, case-insensitive
             day_map = {
-                "Monday": "mon",
-                "Tuesday": "tue",
-                "Wednesday": "wed",
-                "Thursday": "thu",
-                "Friday": "fri",
-                "Saturday": "sat",
-                "Sunday": "sun",
+                "monday": "mon",
+                "maandag": "mon",
+                "tuesday": "tue",
+                "dinsdag": "tue",
+                "wednesday": "wed",
+                "woensdag": "wed",
+                "thursday": "thu",
+                "donderdag": "thu",
+                "friday": "fri",
+                "vrijdag": "fri",
+                "saturday": "sat",
+                "zaterdag": "sat",
+                "sunday": "sun",
+                "zondag": "sun",
+                # Also accept 3-letter short names
+                "mon": "mon",
+                "tue": "tue",
+                "wed": "wed",
+                "thu": "thu",
+                "fri": "fri",
+                "sat": "sat",
+                "sun": "sun",
             }
-            if days_data[0] in day_map:
-                days_data = [day_map.get(d, d) for d in days_data]
+
+            def map_day(d: str) -> str:
+                if not isinstance(d, str):
+                    return d
+                key = d.strip().lower()
+                return day_map.get(key, d)
+
+            days_data = [map_day(d) for d in days_data]
 
         # Filter out None values to match type hint list[str] | None
         filtered_days = [d for d in days_data if d is not None] if days_data else None

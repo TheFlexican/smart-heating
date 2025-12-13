@@ -242,6 +242,39 @@ class TestFindActiveSchedule:
         schedule = scheduler._find_active_schedule(schedules, "Monday", time(7, 0))
         assert schedule is None
 
+    def test_find_active_schedule_localized_day_names(self, scheduler):
+        """Test accepting localized day names (e.g., Dutch 'Maandag')."""
+        {
+            "1": Schedule(
+                schedule_id="1",
+                time="08:00",
+                day="Monday",
+                start_time="08:00",
+                end_time="17:00",
+                temperature=20.0,
+                enabled=True,
+            )
+        }
+
+        # Simulate frontend providing localized day name - 'Maandag'
+        schedules_localized = {
+            "1": Schedule.from_dict(
+                {
+                    "id": "1",
+                    "start_time": "08:00",
+                    "end_time": "17:00",
+                    "days": ["Maandag"],
+                    "temperature": 20.0,
+                    "enabled": True,
+                }
+            )
+        }
+
+        # Should match Monday at 10:00
+        schedule = scheduler._find_active_schedule(schedules_localized, "Monday", time(10, 0))
+        assert schedule is not None
+        assert schedule.schedule_id == "1"
+
 
 class TestGetPresetTemperature:
     """Test _get_preset_temperature method."""
