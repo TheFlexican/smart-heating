@@ -45,7 +45,7 @@ interface ZoneCardProps {
   setCardRef?: (el: HTMLElement | null) => void
 }
 
-const ZoneCard = ({ area, onUpdate, index }: ZoneCardProps) => {
+const ZoneCard = ({ area, onUpdate, index, setCardRef }: ZoneCardProps) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
