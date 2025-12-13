@@ -60,6 +60,11 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
 
   // Get displayed temperature: use effective temperature when in preset mode, otherwise use target
   const getDisplayTemperature = () => {
+    // If area is disabled or explicitly off, always fall back to base target temperature
+    if (!area.enabled || area.state === 'off') {
+      return area.target_temperature
+    }
+
     // When using preset mode (not manual override), show effective temperature
     if (!area.manual_override && area.preset_mode && area.preset_mode !== 'none' && area.effective_target_temperature != null) {
       return area.effective_target_temperature
@@ -408,7 +413,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
               {t('area.targetTemperature')}
-              {area.preset_mode && area.preset_mode !== 'none' && (
+              {area.enabled && area.state !== 'off' && area.preset_mode && area.preset_mode !== 'none' && (
                 <Chip
                   label={t(`presets.${area.preset_mode}`).toUpperCase()}
                   size="small"

@@ -21,17 +21,31 @@
     "react-router-dom": "^6.28.0",
     "recharts": "^2.15.0"
   },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:unit": "vitest run"
+  },
+  "vitest": {
+    "globals": true,
+    "environment": "jsdom",
+    "setupFiles": [
+      "./tests/setup.ts"
+    ]
+  },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/user-event": "^14.4.3",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^22.1.0",
     "typescript": "^5.7.2",
-    "vite": "^6.0.1"
-  },
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "vite": "^6.0.1",
+    "vitest": "^4.0.15"
   }
 }
