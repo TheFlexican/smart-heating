@@ -1,6 +1,0 @@
-[run]
-omit =
-    smart_heating/history.py
-    smart_heating/advanced_metrics_collector.py
-    smart_heating/opentherm_logger.py
-    smart_heating/websocket.py
