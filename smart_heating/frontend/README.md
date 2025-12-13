@@ -23,7 +23,7 @@ This is the React-based frontend for the Smart Heating Home Assistant integratio
 ### Setup
 
 ```bash
-cd custom_components/smart_heating/frontend
+cd smart_heating/frontend
 npm install
 ```
 

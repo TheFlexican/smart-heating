@@ -2,7 +2,7 @@
 name: typescript-testing
 description: Write Jest/Vitest unit tests for React components with Testing Library patterns
 argument-hint: Describe what to test (component, hook, or API client)...
-tools: ['edit', 'search', 'fetch', 'githubRepo', 'usages']
+tools: ['edit', 'search', 'web/fetch', 'web/githubRepo', 'search/usages', 'execute']
 target: vscode
 handoffs:
   - label: Run Tests
