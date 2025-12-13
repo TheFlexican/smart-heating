@@ -194,45 +194,60 @@ mcp_sonarqube_get_project_quality_gate_status(projectKey="TheFlexican_smart-heat
   5. Continue until all todos complete
 - Skip todo tracking for simple single-step tasks
 
-**RULE #6: Test Coverage**
-- **Minimum 80% code coverage required** for all Python modules
+**RULE #6: Test Coverage - Delegate to Pytest Agent**
+
+**⚠️ IMPORTANT: Use the Pytest Test Writer Agent for Testing Tasks**
+
+When user requests involve testing, test writing, or test coverage, **delegate to the Pytest Agent** instead of handling directly:
+
+**Delegate to Pytest Agent when:**
+- User asks to "write tests" or "add test coverage"
+- User mentions "pytest", "test this feature", "regression test"
+- New features need test coverage
+- Bugs require regression tests
+- Refactoring needs test updates
+- Coverage drops below 80%
+- Adding new platforms or components
+
+**How to Delegate:**
+```markdown
+Use the runSubagent tool with the Pytest agent context:
+
+runSubagent(
+  description="Write pytest tests",
+  prompt="Write comprehensive pytest tests for [module/feature]. Ensure 80%+ coverage and follow HA testing conventions. See .github/agents/home-assistant-pytest.agent.md for guidelines."
+)
+```
+
+**For Simple Test Updates:**
+You may handle simple test fixes yourself (e.g., updating assertions) if:
+- Fixing a single broken test after code change
+- Updating mock return values
+- Adjusting test data
+- No new test coverage needed
+
+**Test Requirements (Enforced by Pytest Agent):**
+- **Minimum 80% code coverage** for all Python modules
 - **Two test layers:** Python unit tests (pytest) + E2E tests (Playwright)
-- **NEVER skip writing tests** - No matter how complex or time-consuming
-- **ALL tests must be fully implemented** - No placeholder or skipped tests without explicit user permission
-- **NEVER stop implementing tests** due to "complexity" or token usage concerns
-- If a test is complex, take the time to implement it properly with mocks and fixtures
-- Token budget is 1,000,000 - don't stop until the work is complete or you hit actual limits
+- **All tests must pass** before committing
+- **No placeholder tests** - all tests fully implemented
 
-**NOTE FOR TEST AUTHORS**
-- When writing tests for numeric values (e.g., hysteresis thresholds and temperatures), avoid relying on MagicMock objects in a way that causes accidental numeric conversions. MagicMock values may respond to arithmetic operators and can create unexpected behavior. Prefer explicitly typed numbers or parseable strings when required by the code under test.
-- If an area-level configuration value (like `hysteresis_override`) may be present in tests as a MagicMock, explicitly cast or validate numeric types in tests or in code. E.g.:
+**Pytest Agent Reference:**
+- See `.github/agents/home-assistant-pytest.agent.md` for complete guidelines
+- Agent handles test generation, coverage analysis, and HA conventions
+- Use `runSubagent` to delegate test writing tasks
 
-```python
-val = getattr(area, 'hysteresis_override', None)
-if isinstance(val, (int, float)):
-  val = float(val)
-else:
-  # choose default
-  val = 0.5
+**Quick Test Commands (for verification):**
+```bash
+# Run all Python tests
+bash tests/run_tests.sh
+
+# Run specific test file
+source venv && pytest tests/unit/test_area_manager.py -v
+
+# Run with coverage
+source venv && pytest tests/unit --cov=smart_heating --cov-report=html -v
 ```
-
-This ensures tests don't assume MagicMock numeric behavior and makes results deterministic.
-
-**FINDINGS FROM RECENT CHANGE:**
-- The thermostat idle logic has been updated to use a hysteresis-aware setpoint for idle devices. If the current area temperature >= (target - hysteresis) then we set the thermostat to the current temperature; otherwise keep the target temperature. Duplicate `climate.set_temperature` calls are avoided by caching the last set setpoint per thermostat.
-- To test the new code, prefer to create fixtures that set `area.current_temperature` and `area.hysteresis_override` to numeric values (int/float or numeric-string). Avoid MagicMock for these values so comparisons are safe.
-- Example test pattern for idle thermostat behavior:
-
-```python
-@pytest.mark.asyncio
-async def test_idle_hysteresis_behavior(device_handler, mock_area):
-  mock_area.get_thermostats.return_value = ['climate.thermo1']
-  mock_area.current_temperature = 21.0
-  await device_handler.async_control_thermostats(mock_area, False, 22.0)
-  # Expect climate.set_temperature called to 22.0 or 21.0 depending on hysteresis
-```
-
-Following this pattern will avoid unexpected comparisons and make tests deterministic.
 
 **RULE #7: API Testing After Deployment**
 - **ALWAYS test API endpoints after deploying features/fixes** using curl commands
@@ -249,51 +264,15 @@ Following this pattern will avoid unexpected comparisons and make tests determin
 - Document test results showing successful validation and error handling
 - This ensures features work end-to-end before user testing
 
-**Python Unit Tests (pytest):**
-- Location: `tests/unit/` directory
-- Framework: pytest with pytest-asyncio, pytest-cov, pytest-homeassistant-custom-component
-- Run: `bash tests/run_tests.sh` (automated) or `pytest tests/unit --cov=smart_heating -v`
-- Coverage: HTML report at `coverage_html/index.html`, enforced 80% threshold
-- Test files: 12+ files with 126+ test functions covering:
-  - `test_area_manager.py` - Area CRUD, global settings (19 tests, 90%+ target)
-  - `test_models_area.py` - Area model, devices, sensors (20 tests, 90%+ target)
-  - `test_coordinator.py` - Data coordination (15 tests, 80%+ target)
-  - `test_climate.py` - Climate platform (14 tests, 80%+ target)
-  - `test_scheduler.py` - Schedule execution (11 tests, 80%+ target)
-  - `test_safety_monitor.py` - Safety monitoring (10 tests, 80%+ target)
-  - `test_vacation_manager.py` - Vacation mode (10 tests, 80%+ target)
-  - `test_switch.py` - Switch platform (8 tests, 80%+ target)
-  - `test_utils.py` - Validators, response builders (8 tests, 90%+ target)
-  - `test_config_flow.py` - Config flow (5 tests, 80%+ target)
-  - `test_init.py` - Integration setup (6 tests, 80%+ target)
-- Common fixtures in `tests/conftest.py`: mock_area_manager, mock_coordinator, mock_area_data, etc.
-- Documentation: `tests/README.md` (comprehensive guide), `TESTING_SUMMARY.md`, `TESTING_QUICKSTART.md`
+## Testing Overview
 
-**E2E Tests (Playwright):**
-- Location: `tests/e2e/` directory
-- Run: `cd tests/e2e && npm test`
-- Coverage: 109 total tests, 105 passing, 4 skipped
-- Test files: navigation, temperature-control, boost-mode, comprehensive-features, sensor-management, backend-logging, device-management, enhanced-schedule-ui, vacation-mode
-- Must pass 100% before committing
+**For detailed testing guidelines, see the Pytest Agent:** `.github/agents/home-assistant-pytest.agent.md`
 
-**When Adding New Features:**
-1. Write Python unit tests FIRST (TDD approach recommended)
-2. Add E2E tests for user-facing features
-3. Run both test suites: `bash tests/run_tests.sh && cd tests/e2e && npm test`
-4. Verify coverage meets 80%: check `coverage_html/index.html`
-5. Update tests when modifying existing code
-6. Test edge cases, error conditions, and boundary values
-7. **Never skip tests** - implement them fully even if complex
-
-**Home Assistant Testing Best Practices (per official docs):**
-- Use official `pytest-homeassistant-custom-component` package
-- Use `MockConfigEntry` from `pytest_homeassistant_custom_component.common`
-- Use `hass` fixture for Home Assistant instance
-- Test via HA core interfaces (hass.states, hass.services, registries)
-- Mock external dependencies properly
-- Use async_setup_entry/async_unload_entry patterns
-- Test entity properties through coordinator data
-- Follow patterns from https://developers.home-assistant.io/docs/development_testing/
+**Test Structure:**
+- Python unit tests: `tests/unit/` (126+ tests, pytest-based)
+- E2E tests: `tests/e2e/` (109 tests, Playwright-based)
+- Coverage target: 80% minimum for Python modules
+- Common fixtures: `tests/conftest.py`
 
 **Quick Commands:**
 ```bash

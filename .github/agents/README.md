@@ -44,6 +44,41 @@ runSubagent({
 })
 ```
 
+### 🧪 Pytest Test Writer Agent
+**File:** `home-assistant-pytest.agent.md`
+
+**Purpose:** Write and maintain pytest tests for Home Assistant integrations
+
+**Expertise:**
+- Home Assistant testing conventions and fixtures
+- Async pytest with pytest-asyncio
+- Config flow, entity platform, coordinator tests
+- Mock-based testing strategies
+- Code coverage analysis and improvement
+- TDD (Test-Driven Development)
+
+**When to Use:**
+- "Write tests for this feature"
+- "Improve test coverage"
+- "Add regression tests for this bug"
+- "Update tests after refactoring"
+- "Write integration tests"
+- When coverage drops below 80%
+
+**Tools:**
+- pytest and pytest-asyncio
+- pytest-homeassistant-custom-component
+- pytest-cov for coverage
+- unittest.mock for mocking
+
+**Example Delegation:**
+```typescript
+runSubagent({
+  description: "Write pytest tests",
+  prompt: "Write comprehensive pytest tests for smart_heating/area_manager.py. Ensure 80%+ coverage and follow HA testing conventions. See .github/agents/home-assistant-pytest.agent.md for guidelines."
+})
+```
+
 ## How to Use Agents
 
 ### From User Perspective
