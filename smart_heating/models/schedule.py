@@ -15,9 +15,9 @@ class Schedule:
         schedule_id: str,
         time: str = "",
         temperature: float | None = None,
-        days: list[str] | None = None,
+        days: list[int] | None = None,
         enabled: bool = True,
-        day: str | None = None,
+        day: int | None = None,
         start_time: str | None = None,
         end_time: str | None = None,
         preset_mode: str | None = None,
@@ -46,32 +46,68 @@ class Schedule:
         self.preset_mode = preset_mode
         self.date = date  # Specific date for one-time schedules
 
-        # Convert between day formats
-        day_map = {
-            "Monday": "mon",
-            "Tuesday": "tue",
-            "Wednesday": "wed",
-            "Thursday": "thu",
-            "Friday": "fri",
-            "Saturday": "sat",
-            "Sunday": "sun",
-        }
-        reverse_day_map = {v: k for k, v in day_map.items()}
+        # Use numeric indices internally: 0=Monday .. 6=Sunday
 
         # If date is specified, this is a date-specific schedule (not recurring weekly)
         if date:
             self.day = None
             self.days = None
-        elif day:
-            self.day = day
-            self.days = [day_map.get(day, "mon")]
+        elif day is not None:
+            # Normalize localized day to English full name if possible
+            if isinstance(day, int):
+                normalized_day = int(day % 7)
+            elif isinstance(day, str):
+                day_key = day.strip().lower()
+                short_codes = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
+                if day_key in short_codes:
+                    short_to_index = {
+                        "mon": 0,
+                        "tue": 1,
+                        "wed": 2,
+                        "thu": 3,
+                        "fri": 4,
+                        "sat": 5,
+                        "sun": 6,
+                    }
+                    normalized_day = short_to_index[day_key]
+                else:
+                    raise ValueError(
+                        "Invalid 'day' string format: use numeric index (0=Monday) or short code 'mon'"
+                    )
+            else:
+                normalized_day = day
+            self.day = int(normalized_day)
+            self.days = [int(normalized_day)]
         elif days:
-            self.days = days
-            # Use first day for display
-            self.day = reverse_day_map.get(days[0], "Monday") if days else "Monday"
+            # Accept days as list of short codes ("mon") or numeric indices (0=Monday)
+            def normalize_day_item(d):
+                if isinstance(d, int):
+                    return int(d % 7)
+                if isinstance(d, str):
+                    key = d.strip().lower()
+                    if key in {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}:
+                        short_to_index = {
+                            "mon": 0,
+                            "tue": 1,
+                            "wed": 2,
+                            "thu": 3,
+                            "fri": 4,
+                            "sat": 5,
+                            "sun": 6,
+                        }
+                        return short_to_index.get(key)
+                    # Reject full English or localized day names to enforce indices/short codes
+                    raise ValueError(
+                        "Invalid 'days' string format: use numeric indices (0=Monday) or short codes (mon)"
+                    )
+                return d
+
+            self.days = [normalize_day_item(x) for x in days]
+            # Use first day for display (as index)
+            self.day = int(self.days[0]) if self.days else 0
         else:
-            self.days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-            self.day = "Monday"
+            self.days = [0, 1, 2, 3, 4, 5, 6]
+            self.day = 0
 
         self.enabled = enabled
 
@@ -102,9 +138,8 @@ class Schedule:
         if not self.days:
             return False
 
-        day_names = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-        current_day = day_names[current_time.weekday()]
-        if current_day not in self.days:
+        current_day_idx = current_time.weekday()
+        if current_day_idx not in self.days:
             return False
 
         # Check time (within 30 minutes)
@@ -128,20 +163,10 @@ class Schedule:
             result["date"] = self.date
         # Add days for recurring weekly schedules
         elif self.days:
-            # Convert internal format to frontend format
-            day_map = {
-                "mon": "Monday",
-                "tue": "Tuesday",
-                "wed": "Wednesday",
-                "thu": "Thursday",
-                "fri": "Friday",
-                "sat": "Saturday",
-                "sun": "Sunday",
-            }
-            result["days"] = [day_map.get(d, d) for d in self.days]
-            # Keep single day for backwards compatibility
-            if self.day:
-                result["day"] = self.day
+            # Already stored as indices
+            result["days"] = [int(d) for d in self.days]
+            if self.day is not None:
+                result["day"] = int(self.day)
 
         if self.temperature is not None:
             result["temperature"] = self.temperature
@@ -155,21 +180,54 @@ class Schedule:
         # Convert frontend days format to internal format if needed
         days_data = data.get("days")
         if days_data and isinstance(days_data, list) and days_data:
-            # Check if it's frontend format (Monday, Tuesday, etc.)
-            day_map = {
-                "Monday": "mon",
-                "Tuesday": "tue",
-                "Wednesday": "wed",
-                "Thursday": "thu",
-                "Friday": "fri",
-                "Saturday": "sat",
-                "Sunday": "sun",
-            }
-            if days_data[0] in day_map:
-                days_data = [day_map.get(d, d) for d in days_data]
+            # Filter out None before mapping
+            days_data = [d for d in days_data if d is not None]
+
+            # Expect numeric day indices (0=Monday) or short 3-letter codes (mon, tue, ...)
+            def map_day_any_to_index(d: Any) -> int:
+                if isinstance(d, int):
+                    return int(d % 7)
+                if not isinstance(d, str):
+                    raise ValueError(
+                        "Invalid 'days' entry: must be integer index or short code"
+                    )
+                key = d.strip().lower()
+                short_to_idx = {
+                    "mon": 0,
+                    "tue": 1,
+                    "wed": 2,
+                    "thu": 3,
+                    "fri": 4,
+                    "sat": 5,
+                    "sun": 6,
+                }
+                if key in short_to_idx:
+                    return short_to_idx[key]
+                raise ValueError(
+                    "Invalid 'days' string format: use numeric indices (0=Monday) or short codes (mon)"
+                )
+
+            days_data = [map_day_any_to_index(d) for d in days_data]
 
         # Filter out None values to match type hint list[str] | None
-        filtered_days = [d for d in days_data if d is not None] if days_data else None
+        filtered_days = (
+            [int(d) for d in days_data if d is not None] if days_data else None
+        )
+
+        # Normalize input 'day' to index if provided as string short code
+        day_val = data.get("day")
+        if isinstance(day_val, str):
+            short_to_idx = {
+                "mon": 0,
+                "tue": 1,
+                "wed": 2,
+                "thu": 3,
+                "fri": 4,
+                "sat": 5,
+                "sun": 6,
+            }
+            key = day_val.strip().lower()
+            day_val = short_to_idx.get(key)
 
         return cls(
             schedule_id=data["id"],
@@ -177,7 +235,7 @@ class Schedule:
             temperature=data.get("temperature"),
             days=filtered_days,
             enabled=data.get("enabled", True),
-            day=data.get("day"),
+            day=day_val,
             start_time=data.get("start_time"),
             end_time=data.get("end_time"),
             preset_mode=data.get("preset_mode"),
