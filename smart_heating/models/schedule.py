@@ -87,9 +87,12 @@ class Schedule:
         if date:
             self.day = None
             self.days = None
-        elif day:
+        elif day is not None:
             # Normalize localized day to English full name if possible
-            if isinstance(day, str):
+            if isinstance(day, int):
+                index_map_full = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday", 5: "Saturday", 6: "Sunday"}
+                normalized_day = index_map_full.get(day % 7, day)
+            elif isinstance(day, str):
                 day_key = day.strip().lower()
                 normalized_day = localized_day_map.get(day_key, day)
             else:
@@ -214,13 +217,17 @@ class Schedule:
                 "sun": "sun",
             }
 
-            def map_day(d: str) -> str:
+            def map_day_any(d: Any) -> str:
+                # Accept integers as day indices
+                if isinstance(d, int):
+                    idx_map = {0: "mon", 1: "tue", 2: "wed", 3: "thu", 4: "fri", 5: "sat", 6: "sun"}
+                    return idx_map.get(d % 7, str(d))
                 if not isinstance(d, str):
                     return d
                 key = d.strip().lower()
                 return day_map.get(key, d)
 
-            days_data = [map_day(d) for d in days_data]
+            days_data = [map_day_any(d) for d in days_data]
 
         # Filter out None values to match type hint list[str] | None
         filtered_days = [d for d in days_data if d is not None] if days_data else None

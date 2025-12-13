@@ -291,6 +291,20 @@ class TestFindActiveSchedule:
         assert s.day == "Monday"
         assert s.days == ["mon"]
 
+    def test_schedule_constructor_day_index(self):
+        """Schedule constructor accepts day index (e.g., 0 for Monday)."""
+        s = Schedule(
+            schedule_id="2",
+            time="08:00",
+            day=0,
+            start_time="08:00",
+            end_time="17:00",
+            temperature=19.0,
+            enabled=True,
+        )
+        assert s.day == "Monday"
+        assert s.days == ["mon"]
+
 
 class TestGetPresetTemperature:
     """Test _get_preset_temperature method."""
