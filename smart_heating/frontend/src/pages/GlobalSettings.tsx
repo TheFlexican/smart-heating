@@ -39,7 +39,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AssessmentIcon from '@mui/icons-material/Assessment'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, getSafetySensor, removeSafetySensor, getConfig, setOpenthermGateway, getOpenthermGateways, getAdvancedControlConfig, setAdvancedControlConfig, calibrateOpentherm, type SafetySensorResponse } from '../api'
+import { getGlobalPresets, setGlobalPresets, getGlobalPresence, setGlobalPresence, getHysteresis, setHysteresis, getSafetySensor, setSafetySensor, removeSafetySensor, setHideDevicesPanel, getConfig, setOpenthermGateway, getOpenthermGateways, getAdvancedControlConfig, setAdvancedControlConfig, calibrateOpentherm, type SafetySensorResponse } from '../api'
 import { PresenceSensorConfig, WindowSensorConfig, SafetySensorConfig } from '../types'
 import SensorConfigDialog from '../components/SensorConfigDialog'
 import SafetySensorConfigDialog from '../components/SafetySensorConfigDialog'
@@ -55,7 +55,7 @@ interface TabPanelProps {
   value: number
 }
 
-function TabPanel(props: Readonly<TabPanelProps>) {
+function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props
   return (
     <div
@@ -97,12 +97,12 @@ const presetDescriptions = {
   activity_temp: 'Active daytime temperature',
 }
 
-export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ themeMode: 'light' | 'dark', onThemeChange: (mode: 'light' | 'dark') => void }>) {
+export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode: 'light' | 'dark', onThemeChange: (mode: 'light' | 'dark') => void }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState(0)
   const [presets, setPresets] = useState<GlobalPresetsData | null>(null)
-  const [hysteresis, setHysteresis] = useState<number>(0.5)
+  const [hysteresis, setHysteresisValue] = useState<number>(0.5)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -112,16 +112,16 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
   const [presenceSensors, setPresenceSensors] = useState<PresenceSensorConfig[]>([])
   const [sensorDialogOpen, setSensorDialogOpen] = useState(false)
   const [hysteresisHelpOpen, setHysteresisHelpOpen] = useState(false)
-  const [safetySensor, setSafetySensor] = useState<SafetySensorResponse | null>(null)
+  const [safetySensor, setSafetySensorState] = useState<SafetySensorResponse | null>(null)
   const [safetySensorDialogOpen, setSafetySensorDialogOpen] = useState(false)
-  const [hideDevicesPanel, setHideDevicesPanel] = useState(false)
+  const [hideDevicesPanel, setHideDevicesPanelState] = useState(false)
   // Advanced control state
   const [advancedControlEnabled, setAdvancedControlEnabled] = useState(false)
   const [heatingCurveEnabled, setHeatingCurveEnabled] = useState(false)
   const [pwmEnabled, setPwmEnabled] = useState(false)
   const [pidEnabled, setPidEnabled] = useState(false)
   const [overshootProtectionEnabled, setOvershootProtectionEnabled] = useState(false)
-  const [defaultCoefficient, setDefaultCoefficient] = useState<number>(1)
+  const [defaultCoefficient, setDefaultCoefficient] = useState<number>(1.0)
 
   // OpenTherm Gateway Configuration
   const [openthermGatewayId, setOpenthermGatewayId] = useState<string>('')
@@ -141,11 +141,11 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
   const loadConfig = async () => {
     try {
       const config = await getConfig()
-      setHideDevicesPanel(config.hide_devices_panel || false)
+      setHideDevicesPanelState(config.hide_devices_panel || false)
 
       // Load OpenTherm configuration
       setOpenthermGatewayId(config.opentherm_gateway_id || '')
-      setHideDevicesPanel(config.hide_devices_panel || false)
+      setHideDevicesPanelState(config.hide_devices_panel || false)
     } catch (err) {
       console.error('Error loading config:', err)
     }
@@ -160,7 +160,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
       setPwmEnabled(!!cfg.pwm_enabled)
       setPidEnabled(!!cfg.pid_enabled)
       setOvershootProtectionEnabled(!!cfg.overshoot_protection_enabled)
-      setDefaultCoefficient(Number(cfg.default_heating_curve_coefficient || 1))
+      setDefaultCoefficient(Number(cfg.default_heating_curve_coefficient || 1.0))
     } catch (err) {
       console.error('Error loading advanced control config', err)
     }
@@ -201,7 +201,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
   const loadHysteresis = async () => {
     try {
       const value = await getHysteresis()
-      setHysteresis(value)
+      setHysteresisValue(value)
     } catch (err) {
       console.error('Error loading hysteresis:', err)
     }
@@ -210,7 +210,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
   const loadSafetySensor = async () => {
     try {
       const data = await getSafetySensor()
-      setSafetySensor(data)
+      setSafetySensorState(data)
     } catch (err) {
       console.error('Error loading safety sensor:', err)
     } finally {
@@ -252,7 +252,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
 
   const handleHysteresisChange = (_event: Event, value: number | number[]) => {
     const newValue = Array.isArray(value) ? value[0] : value
-    setHysteresis(newValue)
+    setHysteresisValue(newValue)
 
     // Clear any existing timeout
     if (hysteresisSaveTimeout) {
@@ -264,7 +264,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
       try {
         setSaving(true)
         setSaveSuccess(false)
-        setHysteresis(newValue)
+        await setHysteresis(newValue)
         setSaveSuccess(true)
         setTimeout(() => setSaveSuccess(false), 2000)
       } catch (err) {
@@ -282,16 +282,16 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
 
   const handleToggleHideDevicesPanel = async (hide: boolean) => {
     try {
-      setHideDevicesPanel(hide)
-      setHideDevicesPanel(hide)
+      setHideDevicesPanelState(hide)
+      await setHideDevicesPanel(hide)
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
       // Reload to apply changes
-      setTimeout(() => globalThis.location.reload(), 500)
+      setTimeout(() => window.location.reload(), 500)
     } catch (err) {
       setError('Failed to save setting')
       console.error('Error saving hide devices panel:', err)
-      setHideDevicesPanel(!hide)
+      setHideDevicesPanelState(!hide)
     }
   }
 
@@ -337,7 +337,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
         pwm_enabled: false,
         pid_enabled: false,
         overshoot_protection_enabled: false,
-        default_heating_curve_coefficient: 1,
+        default_heating_curve_coefficient: 1.0,
       })
       // reload values immediately
       await loadAdvancedControlConfig()
@@ -372,7 +372,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
     setCalibrating(true)
     try {
       const res = await calibrateOpentherm()
-      if (res?.opv) {
+      if (res && res.opv) {
         setCalibrationResult(res.opv)
       }
     } catch (err) {
@@ -406,8 +406,9 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
     }
   }
 
-  const handleAddSafetySensor = async (_config: SafetySensorConfig) => {
+  const handleAddSafetySensor = async (config: SafetySensorConfig) => {
     try {
+      await setSafetySensor(config)
       await loadSafetySensor()
       setSafetySensorDialogOpen(false)
       setSaveSuccess(true)
@@ -447,7 +448,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 0, display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {/* Header */}
       <Paper
         elevation={0}
@@ -458,7 +459,6 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
           display: 'flex',
           alignItems: 'center',
           gap: 1,
-          flexShrink: 0,
         }}
       >
         <IconButton onClick={() => navigate('/')} edge="start">
@@ -467,7 +467,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
         <Typography variant="h6">{t('globalSettings.title', 'Global Settings')}</Typography>
       </Paper>
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, flexShrink: 0 }}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
         <Tabs
           value={activeTab}
           onChange={(_, newValue) => setActiveTab(newValue)}
@@ -511,8 +511,9 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
           />
         </Tabs>
       </Box>
-      {/* Content area: flexbox will automatically calculate available space */}
-      <Box sx={{ px: 2, py: 2, flex: 1, overflowY: 'auto', minHeight: 0 }}>
+
+      {/* Content area: on mobile allow scrolling inside the viewport */}
+      <Box sx={{ px: 2, overflowY: { xs: 'auto', sm: 'visible' }, maxHeight: { xs: 'calc(100vh - 120px)', sm: 'none' }, py: 2 }}>
         {saveSuccess && (
           <Alert severity="success" sx={{ mt: 2, mb: 2 }}>
             {t('globalSettings.saveSuccess', 'Settings saved successfully')}
@@ -685,7 +686,8 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
                       <ListItemText
                         primary={sensor.sensor_id}
                         secondary={
-                          <Typography component="span" variant="body2">
+                          <>
+                            <Typography component="span" variant="body2">
                               {t('globalSettings.safety.attribute', 'Attribute')}: {sensor.attribute} | {' '}
                               {t('globalSettings.safety.status', 'Status')}: {
                                 sensor.enabled
@@ -693,6 +695,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
                                   : t('globalSettings.safety.disabled', '✗ Disabled')
                               }
                             </Typography>
+                          </>
                         }
                       />
                     </ListItem>
@@ -824,13 +827,13 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
                   value={hysteresis}
                   onChange={handleHysteresisChange}
                   min={0.1}
-                  max={2}
+                  max={2.0}
                   step={0.1}
                   marks={[
                     { value: 0.1, label: '0.1°C' },
                     { value: 0.5, label: '0.5°C' },
-                    { value: 1, label: '1.0°C' },
-                    { value: 2, label: '2.0°C' },
+                    { value: 1.0, label: '1.0°C' },
+                    { value: 2.0, label: '2.0°C' },
                   ]}
                   valueLabelDisplay="on"
                   valueLabelFormat={(v) => `${v.toFixed(1)}°C`}
@@ -977,7 +980,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: Readonly<{ 
                     labelId="opentherm-gateway-select-label"
                     value={openthermGatewayId}
                     label={t('globalSettings.opentherm.gatewayId', 'Gateway Integration ID (ID or slug)')}
-                    onChange={(e) => setOpenthermGatewayId(e.target.value)}
+                    onChange={(e) => setOpenthermGatewayId(e.target.value as string)}
                   >
                     <MenuItem value="">None (Disabled)</MenuItem>
                     {openthermGateways.map((g) => (

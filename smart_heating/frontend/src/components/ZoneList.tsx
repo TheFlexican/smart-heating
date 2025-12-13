@@ -120,17 +120,17 @@ const ZoneList = ({ areas, loading, onUpdate, showHidden, onToggleShowHidden, on
           <SortableContext items={visibleAreas.map(a => a.id)} strategy={rectSortingStrategy}>
             <Box
               sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                sm: 'repeat(2, 1fr)',
-                md: 'repeat(3, 1fr)',
-                lg: 'repeat(4, 1fr)',
-              },
-              gap: { xs: 2, sm: 2, md: 3 },
-              minHeight: 100,
-              borderRadius: 2,
-              p: 0.5,
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(2, 1fr)',
+                  md: 'repeat(3, 1fr)',
+                  lg: 'repeat(4, 1fr)',
+                },
+                gap: { xs: 2, sm: 2, md: 3 },
+                minHeight: 100,
+                borderRadius: 2,
+                p: 0.5,
               }}
             >
               {visibleAreas.map((area) => (
