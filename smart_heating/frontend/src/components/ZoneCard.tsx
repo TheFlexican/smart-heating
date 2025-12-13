@@ -42,6 +42,7 @@ interface ZoneCardProps {
   area: Zone
   onUpdate: () => void
   index: number
+  setCardRef?: (el: HTMLElement | null) => void
 }
 
 const ZoneCard = ({ area, onUpdate, index }: ZoneCardProps) => {
@@ -290,8 +291,16 @@ const ZoneCard = ({ area, onUpdate, index }: ZoneCardProps) => {
     <Draggable draggableId={`area-card-${area.id}`} index={index}>
       {(dragProvided, dragSnapshot) => (
         <div
-          ref={dragProvided.innerRef}
-          {...dragProvided.draggableProps}
+              ref={(el) => {
+                try {
+                  // attach to react-beautiful-dnd internals
+                  dragProvided.innerRef(el as any)
+                } catch (e) {
+                  // ignore
+                }
+                if (typeof setCardRef === 'function') setCardRef(el)
+              }}
+              {...dragProvided.draggableProps}
         >
           <Droppable droppableId={`area-${area.id}`}>
             {(provided, snapshot) => (
@@ -319,6 +328,7 @@ const ZoneCard = ({ area, onUpdate, index }: ZoneCardProps) => {
                     transform: 'translateY(-2px)',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
                   },
+                  minHeight: { xs: 160, sm: 180 },
                 }}
               >
                 <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
