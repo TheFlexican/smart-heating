@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Avoid duplicate `climate.set_temperature` service calls by caching the last set setpoint per thermostat
 - Tests and developer docs updated to avoid MagicMock numeric conversion pitfalls
 - Fix: Area Settings "Switch/Pump Control" toggle did not persist changes in the UI; API now exposes `shutdown_switches_when_idle` (backwards compatible with `switch_shutdown_enabled`)
+ - Fix: Schedules using localized day names (e.g., 'Maandag') were not recognized by the scheduler; the backend now accepts English, Dutch and short day names.
 
 
 **OpenTherm Boiler Monitoring & Error Notifications**

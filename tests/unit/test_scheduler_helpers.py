@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import zoneinfo
 from datetime import datetime, time
 from unittest.mock import AsyncMock, MagicMock
 
@@ -13,6 +14,7 @@ from smart_heating.const import (
     PRESET_HOME,
     PRESET_SLEEP,
 )
+from smart_heating.models.area import Area
 from smart_heating.models.schedule import Schedule
 from smart_heating.scheduler import ScheduleExecutor
 
@@ -275,6 +277,20 @@ class TestFindActiveSchedule:
         assert schedule is not None
         assert schedule.schedule_id == "1"
 
+    def test_schedule_constructor_localized_day_param(self):
+        """Schedule constructor accepts localized 'day' parameter (e.g., 'Maandag')."""
+        s = Schedule(
+            schedule_id="1",
+            time="08:00",
+            day="Maandag",
+            start_time="08:00",
+            end_time="17:00",
+            temperature=20.0,
+            enabled=True,
+        )
+        assert s.day == "Monday"
+        assert s.days == ["mon"]
+
 
 class TestGetPresetTemperature:
     """Test _get_preset_temperature method."""
@@ -485,3 +501,34 @@ class TestApplyScheduleMethods:
                 print(f"DEBUG TASK: {t!r}, done={t.done()}, cancelled={t.cancelled()}")
             except Exception:
                 print("DEBUG TASK: repr failed")
+
+    @pytest.mark.asyncio
+    async def test_localized_schedule_applies(self, scheduler, hass, mock_area_manager):
+        """Test a schedule created with localized day name applies to area."""
+        # Create a real area instance
+        area = Area("slaapkamer", "Slaapkamer")
+        area.preset_mode = "none"
+        area.manual_override = True
+        # Add schedule using localized Dutch day name
+        schedule = Schedule.from_dict(
+            {
+                "id": "1",
+                "start_time": "08:00",
+                "end_time": "17:00",
+                "days": ["Maandag"],
+                "temperature": 21.5,
+                "enabled": True,
+            }
+        )
+        area.add_schedule(schedule)
+        mock_area_manager.get_all_areas.return_value = {"slaapkamer": area}
+
+        # Choose a timezone-aware Monday date/time that matches the schedule
+        tz = zoneinfo.ZoneInfo(hass.config.time_zone or "UTC")
+        now = datetime(2025, 12, 15, 10, 0, tzinfo=tz)  # Monday, 10:00
+
+        await scheduler._async_check_schedules(now)
+
+        # Schedule should apply and manual override cleared
+        assert area.target_temperature == pytest.approx(21.5)
+        assert area.manual_override is False

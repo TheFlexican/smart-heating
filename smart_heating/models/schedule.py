@@ -47,6 +47,7 @@ class Schedule:
         self.date = date  # Specific date for one-time schedules
 
         # Convert between day formats
+        # Map day names to short codes; accept localized names (English/Dutch) and short names
         day_map = {
             "Monday": "mon",
             "Tuesday": "tue",
@@ -56,6 +57,30 @@ class Schedule:
             "Saturday": "sat",
             "Sunday": "sun",
         }
+        # Any input `day` might be localized; create a normalized lookup for day param too
+        localized_day_map = {
+            "monday": "Monday",
+            "maandag": "Monday",
+            "tuesday": "Tuesday",
+            "dinsdag": "Tuesday",
+            "wednesday": "Wednesday",
+            "woensdag": "Wednesday",
+            "thursday": "Thursday",
+            "donderdag": "Thursday",
+            "friday": "Friday",
+            "vrijdag": "Friday",
+            "saturday": "Saturday",
+            "zaterdag": "Saturday",
+            "sunday": "Sunday",
+            "zondag": "Sunday",
+            "mon": "Monday",
+            "tue": "Tuesday",
+            "wed": "Wednesday",
+            "thu": "Thursday",
+            "fri": "Friday",
+            "sat": "Saturday",
+            "sun": "Sunday",
+        }
         reverse_day_map = {v: k for k, v in day_map.items()}
 
         # If date is specified, this is a date-specific schedule (not recurring weekly)
@@ -63,8 +88,15 @@ class Schedule:
             self.day = None
             self.days = None
         elif day:
-            self.day = day
-            self.days = [day_map.get(day, "mon")]
+            # Normalize localized day to English full name if possible
+            if isinstance(day, str):
+                day_key = day.strip().lower()
+                normalized_day = localized_day_map.get(day_key, day)
+            else:
+                normalized_day = day
+            self.day = normalized_day
+            # Map normalized full name to short day code where possible
+            self.days = [day_map.get(self.day, "mon")]
         elif days:
             self.days = days
             # Use first day for display
