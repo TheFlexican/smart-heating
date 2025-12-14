@@ -2,7 +2,7 @@
 name: playwright-e2e
 description: Write Playwright E2E tests for user workflows with semantic locators and reliability
 argument-hint: Describe the user workflow to test...
-tools: ['edit', 'search', 'web/fetch', 'web/githubRepo', 'search/usages', 'execute', 'playwright/*']
+tools: ['edit', 'search', 'web/fetch', 'web/githubRepo', 'search/usages', 'execute', 'playwright/*', 'github/*' ]
 target: vscode
 handoffs:
   - label: Run E2E Tests

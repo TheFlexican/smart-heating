@@ -22,7 +22,7 @@ import RouterIcon from '@mui/icons-material/Router'
 import WaterIcon from '@mui/icons-material/Water'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import { Device } from '../types'
-import { refreshDevices } from '../api'
+import { refreshDevices } from '../api/devices'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 

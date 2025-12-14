@@ -56,28 +56,25 @@ import {
   cancelBoost,
   setHvacMode,
   setSwitchShutdown,
+  setAreaPresetConfig,
+  setPrimaryTemperatureSensor,
+  setHeatingType,
+  setAreaHeatingCurve,
+  addDeviceToZone,
+  removeDeviceFromZone,
+} from '../api/areas'
+import {
   addWindowSensor,
   removeWindowSensor,
   addPresenceSensor,
   removePresenceSensor,
-  getHistoryConfig,
-  setHistoryRetention as updateHistoryRetention,
-  migrateHistoryStorage,
-  getDatabaseStats,
-  getDevices,
-  addDeviceToZone,
-  removeDeviceFromZone,
-  getEntityState,
-  getGlobalPresets,
-  setAreaPresetConfig,
   setAreaPresenceConfig,
-  getAreaLogs,
-  AreaLogEntry,
-  setPrimaryTemperatureSensor,
-  getWeatherEntities,
-  setHeatingType,
-  setAreaHeatingCurve,
-} from '../api'
+} from '../api/sensors'
+import { getAreaLogs, AreaLogEntry } from '../api/logs'
+import { getHistoryConfig, setHistoryRetention as updateHistoryRetention, migrateHistoryStorage, getDatabaseStats } from '../api/history'
+import { getDevices } from '../api/devices'
+import { getGlobalPresets } from '../api/presets'
+import { getEntityState, getWeatherEntities } from '../api/config'
 import ScheduleEditor from '../components/ScheduleEditor'
 import HistoryChart from '../components/HistoryChart'
 import SensorConfigDialog from '../components/SensorConfigDialog'

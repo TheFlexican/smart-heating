@@ -61,7 +61,8 @@ smart_heating/
 │           ├── main.tsx
 │           ├── App.tsx
 │           ├── types.ts
-│           ├── api.ts
+│           ├── api/                  # Module-gebaseerde frontend API (voorkeur)
+│           ├── api.ts               # Verouderd aggregator; import direct uit modules
 │           ├── i18n.ts       # i18n configuratie (v0.6.0)
 │           ├── locales/      # Vertalingen (v0.6.0)
 │           │   ├── en/translation.json

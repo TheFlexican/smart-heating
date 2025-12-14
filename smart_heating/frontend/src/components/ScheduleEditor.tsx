@@ -20,7 +20,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import EventIcon from '@mui/icons-material/Event'
 import RepeatIcon from '@mui/icons-material/Repeat'
 import { Zone, ScheduleEntry } from '../types'
-import { addScheduleToZone, removeScheduleFromZone, updateScheduleInZone } from '../api'
+import { addScheduleToZone, removeScheduleFromZone, updateScheduleInZone } from '../api/areas'
 import ScheduleEntryDialog from './ScheduleEntryDialog'
 import { format, parse } from 'date-fns'
 
