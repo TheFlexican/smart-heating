@@ -28,7 +28,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import WarningIcon from '@mui/icons-material/Warning'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { EfficiencyReport, EfficiencyMetrics } from '../types'
-import { getEfficiencyReport, getAllAreasEfficiency } from '../api'
+import { getEfficiencyReport, getAllAreasEfficiency } from '../api/efficiency'
 
 type Period = 'day' | 'week' | 'month' | 'year'
 

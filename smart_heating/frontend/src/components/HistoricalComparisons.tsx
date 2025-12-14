@@ -27,7 +27,7 @@ import TrendingDownIcon from '@mui/icons-material/TrendingDown'
 import TrendingFlatIcon from '@mui/icons-material/TrendingFlat'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { ComparisonResult, MetricDelta } from '../types'
-import { getComparison, getCustomComparison } from '../api'
+import { getComparison, getCustomComparison } from '../api/efficiency'
 
 type Period = 'day' | 'week' | 'month' | 'year' | 'custom'
 

@@ -1,9 +1,12 @@
 /// <reference types="vitest" />
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
-import SettingsSection from '../../components/SettingsSection'
+import SettingsSection from '../components/SettingsSection'
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material'
-import * as api from '../../api'
+import * as areas from '../api/areas'
+import * as devices from '../api/devices'
+import * as history from '../api/history'
+import * as config from '../api/config'
 import { vi, it, expect } from 'vitest'
 import userEvent from '@testing-library/user-event'
 
@@ -25,15 +28,16 @@ const area = {
   devices: [],
 }
 
-vi.spyOn(api, 'getZones').mockResolvedValue([area])
-vi.spyOn(api, 'getGlobalPresets').mockResolvedValue({ away_temp: 16, eco_temp: 18, comfort_temp: 22, home_temp: 21, sleep_temp: 19, activity_temp: 23 })
-vi.spyOn(api, 'getDevices').mockResolvedValue([])
-vi.spyOn(api, 'getEntityState').mockResolvedValue({ state: 'home' })
-vi.spyOn(api, 'getHistoryConfig').mockResolvedValue({ retention_days: 30 })
-vi.spyOn(api, 'getWeatherEntities').mockResolvedValue([])
-vi.spyOn(api, 'getAreaLogs').mockResolvedValue([])
+vi.spyOn(areas, 'getZones').mockResolvedValue([area])
+vi.spyOn(areas, 'getAreaPresetConfig').mockResolvedValue({})
+vi.spyOn(devices, 'getDevices').mockResolvedValue([])
+vi.spyOn(config, 'getEntityState').mockResolvedValue({ state: 'home' })
+vi.spyOn(history, 'getHistoryConfig').mockResolvedValue({ retention_days: 30 })
+vi.spyOn(config, 'getWeatherEntities').mockResolvedValue([])
+import * as logs from '../api/logs'
+vi.spyOn(logs, 'getAreaLogs').mockResolvedValue([])
 
-vi.mock('../../hooks/useWebSocket', () => ({ useWebSocket: () => ({}) }))
+vi.mock('../hooks/useWebSocket', () => ({ useWebSocket: () => ({}) }))
 
 it('preset select is disabled when area is disabled/off', async () => {
   await userEvent.setup()

@@ -38,7 +38,7 @@ import {
 } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { getUsers, createUser, updateUser, deleteUser, updateUserSettings } from '../api'
+import { getUsers, createUser, updateUser, deleteUser, updateUserSettings } from '../api/users'
 import { UserProfile, UserData, MultiUserSettings } from '../types'
 
 export const UserManagement: React.FC = () => {

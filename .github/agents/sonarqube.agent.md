@@ -2,11 +2,15 @@
 name: sonarqube-quality
 description: Analyze code quality, fix issues, and refactor using SonarQube
 argument-hint: Describe what code quality issues to analyze or fix...
-tools: ['edit', 'search', 'web/fetch', 'web/githubRepo', 'search/usages', 'sonarqube/*','execute']
+tools: ['edit', 'search', 'web/fetch', 'web/githubRepo', 'search/usages', 'sonarqube/*','execute', 'github/*']
 target: vscode
 handoffs:
-  - label: Write Tests
+  - label: Write Python Tests
     agent: home-assistant-pytest
+    prompt: Write comprehensive tests for the refactored code to ensure 80%+ coverage.
+    send: false
+  - label: Write Typescript/React Tests
+    agent: typescript-testing
     prompt: Write comprehensive tests for the refactored code to ensure 80%+ coverage.
     send: false
   - label: Deploy Changes

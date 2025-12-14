@@ -43,7 +43,7 @@ import {
   discoverOpenThermCapabilities,
   clearOpenThermLogs,
   getOpenThermSensorStates,
-} from '../api'
+} from '../api/opentherm'
 
 interface OpenThermLog {
   timestamp: string

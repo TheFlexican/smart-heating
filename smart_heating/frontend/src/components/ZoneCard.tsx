@@ -37,7 +37,8 @@ import BookmarkIcon from '@mui/icons-material/Bookmark'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import { Zone } from '../types'
-import { setZoneTemperature, removeDeviceFromZone, hideZone, unhideZone, getEntityState, setManualOverride, setBoostMode, cancelBoost } from '../api'
+import { setZoneTemperature, removeDeviceFromZone, hideZone, unhideZone, setManualOverride, setBoostMode, cancelBoost } from '../api/areas'
+import { getEntityState } from '../api/config'
 
 interface ZoneCardProps {
   area: Zone

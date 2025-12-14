@@ -17,7 +17,7 @@ import {
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { HassEntity, SafetySensorConfig } from '../types'
-import { getBinarySensorEntities } from '../api'
+import { getBinarySensorEntities } from '../api/config'
 
 interface SafetySensorConfigDialogProps {
   open: boolean
@@ -86,10 +86,10 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = []
     if (configuredSensors.includes(e.entity_id)) {
       return false
     }
-    
+
     const deviceClass = e.attributes.device_class
-    return deviceClass === 'smoke' || 
-           deviceClass === 'gas' || 
+    return deviceClass === 'smoke' ||
+           deviceClass === 'gas' ||
            deviceClass === 'carbon_monoxide' ||
            deviceClass === 'safety' ||
            deviceClass === 'problem' ||

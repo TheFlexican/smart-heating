@@ -22,7 +22,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { VacationMode } from '../types'
-import { getVacationMode, enableVacationMode, disableVacationMode } from '../api'
+import { getVacationMode, enableVacationMode, disableVacationMode } from '../api/vacation'
 
 export const VacationModeSettings: React.FC = () => {
   const { t } = useTranslation()

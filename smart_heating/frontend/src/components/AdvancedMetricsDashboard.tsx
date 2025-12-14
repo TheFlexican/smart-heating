@@ -36,7 +36,8 @@ import {
   AreaChart,
 } from 'recharts'
 import { useTranslation } from 'react-i18next'
-import { getAdvancedMetrics, getZones } from '../api'
+import { getAdvancedMetrics } from '../api/metrics'
+import { getZones } from '../api/areas'
 import { AdvancedMetricPoint, Zone } from '../types'
 import { useWebSocket } from '../hooks/useWebSocket'
 

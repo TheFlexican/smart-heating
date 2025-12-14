@@ -1,7 +1,7 @@
 /// <reference types="vitest" />
 import { render, screen } from '@testing-library/react'
 import { vi, it, describe, expect } from 'vitest'
-import ZoneCard from '../ZoneCard'
+import ZoneCard from './ZoneCard'
 
 // Mock react-i18next to provide a basic translation function
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, v?: any) => {
@@ -14,16 +14,16 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, v?: an
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
 
 // Mock API functions called by ZoneCard
-vi.mock('../../api', () => ({
+vi.mock('../api/areas', () => ({
   setZoneTemperature: vi.fn(),
   removeDeviceFromZone: vi.fn(),
   hideZone: vi.fn(),
   unhideZone: vi.fn(),
-  getEntityState: vi.fn().mockResolvedValue({ state: 'home' }),
   setManualOverride: vi.fn(),
   setBoostMode: vi.fn(),
   cancelBoost: vi.fn(),
 }))
+vi.mock('../api/config', () => ({ getEntityState: vi.fn().mockResolvedValue({ state: 'home' }) }))
 
 const baseArea = {
   id: 'area_1',

@@ -337,7 +337,7 @@ All agents have access to project context:
 
 ## Current Agent Coverage
 
-The Smart Heating project has **complete development lifecycle coverage** with 6 specialized agents:
+The Smart Heating project has **complete development lifecycle coverage** with 7 specialized agents:
 
 ### Code Quality (1 agent)
 - ✅ **SonarQube Agent** - Code quality analysis, refactoring, security scanning
@@ -351,7 +351,28 @@ The Smart Heating project has **complete development lifecycle coverage** with 6
 - ✅ **TypeScript Testing Agent** - Unit tests for React components, Jest/Vitest
 - ✅ **Playwright Agent** - E2E tests, user workflows, cross-browser testing
 
+### Bug Resolution (1 agent)
+- ✅ **Bugfix Agent** - End-to-end bug triage, TDD fixes, cross-domain testing, PR creation
+
 ### Coverage Map
+```
+Development Lifecycle:
+├── Implementation
+│   ├── Backend: Home Assistant Integration Agent
+│   └── Frontend: TypeScript/React Agent
+├── Testing
+│   ├── Backend Unit: Home Assistant Pytest Agent
+│   ├── Frontend Unit: TypeScript Testing Agent
+│   └── E2E: Playwright Agent
+├── Quality: SonarQube Agent
+└── Bug Resolution: Bugfix Agent (orchestrates all agents)
+
+Complete separation of concerns:
+✅ Development vs Testing vs Quality vs Bug Resolution
+✅ Backend vs Frontend
+✅ Unit vs E2E vs Integration
+✅ TDD-first bug fixes
+```
 ```
 Development Lifecycle:
 ├── Implementation
