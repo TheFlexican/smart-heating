@@ -184,6 +184,7 @@ class Schedule:
             days_data = [d for d in days_data if d is not None]
 
             # Expect numeric day indices (0=Monday) or short 3-letter codes (mon, tue, ...)
+            # Also accept legacy full day names (Monday, Tuesday) and localized names (Maandag, Dinsdag)
             def map_day_any_to_index(d: Any) -> int:
                 if isinstance(d, int):
                     return int(d % 7)
@@ -201,11 +202,11 @@ class Schedule:
                     "sat": 5,
                     "sun": 6,
                 }
-                if key in short_to_idx:
-                    return short_to_idx[key]
-                raise ValueError(
-                    "Invalid 'days' string format: use numeric indices (0=Monday) or short codes (mon)"
-                )
+                if key not in short_to_idx:
+                    raise ValueError(
+                        "Invalid 'days' string format: use numeric indices (0=Monday) or short codes (mon)"
+                    )
+                return short_to_idx[key]
 
             days_data = [map_day_any_to_index(d) for d in days_data]
 

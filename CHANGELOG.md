@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### ⚡ Major Upgrades
+- **React 19.2:** Upgraded from React 18.3.1 to 19.2.3 with full React 19 support including new JSX transform, concurrent features, and improved TypeScript types
+- **Material-UI v7:** Upgraded from MUI 6.1.9 to 7.3.6 with React 19 compatibility, updated component APIs, and improved theming
+- **MUI X Date Pickers v8.22:** Upgraded from v7.22.2 to v8.22.0 for date-fns v4 compatibility and latest features
+- **Vite 7:** Upgraded from Vite 6.0.1 to 7.2.7 with Rolldown bundler, improved performance, and better module resolution
+- **TypeScript 5.9:** Upgraded from TypeScript 5.7.2 to 5.9.3 with improved type inference and better React 19 support
+- **React Router v7:** Upgraded from React Router 6.28.0 to 7.1.3 with modern routing patterns and improved performance
+- **Testing Libraries:** Upgraded to React 19 compatible versions (@testing-library/react 16.1.0, jsdom 25.0.1)
+- **date-fns v4:** Upgraded from date-fns 2.30.0 to 4.1.0 with improved tree-shaking and performance (requires @mui/x-date-pickers v8+)
+- **React Router v7.10:** Upgraded from v6.28.0 to v7.10.1 with modern routing patterns
+- **Vite Plugin React v5:** Upgraded from v4.3.4 to v5.1.2 with improved React 19 support
+- **Recharts v3:** Upgraded from v2.15.0 to v3.5.1 with React 19 compatibility
+- **jsdom v27:** Upgraded from v25.0.1 to v27.3.0 with improved DOM compatibility
+- **Axios v1.13:** Upgraded from v1.7.9 to v1.13.2 with security fixes
+
 ### ✨ Features
 - **Refactor:** Split frontend API into module files under `src/api/*`. Updated imports across the frontend to import from module-level API files and added module-focused unit tests. The top-level `src/api.ts` is deprecated — import from specific modules (for example, `src/api/areas`) instead.
 

@@ -304,7 +304,7 @@ export default function AdvancedMetricsDashboard() {
 
         {/* Statistics Cards */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
             <Card>
               <CardContent>
                 <Stack direction="row" spacing={1} alignItems="center">
@@ -320,7 +320,7 @@ export default function AdvancedMetricsDashboard() {
             </Card>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
             <Card>
               <CardContent>
                 <Stack direction="row" spacing={1} alignItems="center">
@@ -336,7 +336,7 @@ export default function AdvancedMetricsDashboard() {
             </Card>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
             <Card>
               <CardContent>
                 <Stack direction="row" spacing={1} alignItems="center">
@@ -352,7 +352,7 @@ export default function AdvancedMetricsDashboard() {
             </Card>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
             <Card>
               <CardContent>
                 <Stack direction="row" spacing={1} alignItems="center">
@@ -368,7 +368,7 @@ export default function AdvancedMetricsDashboard() {
             </Card>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
             <Card>
               <CardContent>
                 <Stack direction="row" spacing={1} alignItems="center">
@@ -434,7 +434,7 @@ export default function AdvancedMetricsDashboard() {
               const areaData = latestMetric?.area_metrics?.[area.id]
 
               return (
-                <Grid item xs={12} sm={6} md={4} key={area.id}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={area.id}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" gutterBottom>

@@ -269,7 +269,7 @@ export default function OpenThermLogger() {
           <Grid container spacing={2}>
             {/* Control Setpoint */}
             {sensorStates.control_setpoint !== undefined && (
-              <Grid item xs={12} sm={6} md={4}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Card variant="outlined">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
@@ -290,7 +290,7 @@ export default function OpenThermLogger() {
 
             {/* Modulation Level */}
             {sensorStates.modulation_level !== undefined && (
-              <Grid item xs={12} sm={6} md={4}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Card variant="outlined">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
@@ -311,7 +311,7 @@ export default function OpenThermLogger() {
 
             {/* Flame Status */}
             {sensorStates.flame_on !== undefined && (
-              <Grid item xs={12} sm={6} md={4}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Card variant="outlined">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
@@ -332,7 +332,7 @@ export default function OpenThermLogger() {
 
             {/* CH Water Temperature */}
             {sensorStates.ch_water_temp !== undefined && (
-              <Grid item xs={12} sm={6} md={4}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Card variant="outlined">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
@@ -353,7 +353,7 @@ export default function OpenThermLogger() {
 
             {/* Return Water Temperature */}
             {sensorStates.return_water_temp !== undefined && (
-              <Grid item xs={12} sm={6} md={4}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Card variant="outlined">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
@@ -374,7 +374,7 @@ export default function OpenThermLogger() {
 
             {/* CH Pressure */}
             {sensorStates.ch_pressure !== undefined && (
-              <Grid item xs={12} sm={6} md={4}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Card variant="outlined">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
@@ -395,7 +395,7 @@ export default function OpenThermLogger() {
 
             {/* Room Temperature */}
             {sensorStates.room_temp !== undefined && (
-              <Grid item xs={12} sm={6} md={4}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Card variant="outlined">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
@@ -411,12 +411,12 @@ export default function OpenThermLogger() {
                     </Stack>
                   </CardContent>
                 </Card>
-              </Grid>
+            </Grid>
             )}
 
             {/* Room Setpoint */}
             {sensorStates.room_setpoint !== undefined && (
-              <Grid item xs={12} sm={6} md={4}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Card variant="outlined">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
@@ -448,7 +448,7 @@ export default function OpenThermLogger() {
               <Grid container spacing={1}>
                 {/* CH Active */}
                 {sensorStates.ch_active !== undefined && (
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <Chip
                       icon={sensorStates.ch_active ? <CheckCircleIcon /> : undefined}
                       label={t('opentherm.chActive', 'CH Active')}
@@ -461,7 +461,7 @@ export default function OpenThermLogger() {
 
                 {/* DHW Active */}
                 {sensorStates.dhw_active !== undefined && (
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <Chip
                       icon={sensorStates.dhw_active ? <CheckCircleIcon /> : undefined}
                       label={t('opentherm.dhwActive', 'Hot Water Active')}
@@ -474,7 +474,7 @@ export default function OpenThermLogger() {
 
                 {/* Fault */}
                 {sensorStates.fault && (
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <Chip
                       icon={<ErrorIcon />}
                       label={t('opentherm.fault', 'FAULT')}
@@ -486,7 +486,7 @@ export default function OpenThermLogger() {
 
                 {/* Diagnostic */}
                 {sensorStates.diagnostic && (
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <Chip
                       icon={<WarningIcon />}
                       label={t('opentherm.diagnostic', 'Diagnostic')}
@@ -498,7 +498,7 @@ export default function OpenThermLogger() {
 
                 {/* Low Water Pressure */}
                 {sensorStates.low_water_pressure && (
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <Chip
                       icon={<ErrorIcon />}
                       label={t('opentherm.lowWaterPressure', 'Low Water Pressure')}
@@ -510,7 +510,7 @@ export default function OpenThermLogger() {
 
                 {/* Gas Fault */}
                 {sensorStates.gas_fault && (
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <Chip
                       icon={<ErrorIcon />}
                       label={t('opentherm.gasFault', 'Gas Fault')}
@@ -522,7 +522,7 @@ export default function OpenThermLogger() {
 
                 {/* Air Pressure Fault */}
                 {sensorStates.air_pressure_fault && (
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <Chip
                       icon={<ErrorIcon />}
                       label={t('opentherm.airPressureFault', 'Air Pressure Fault')}
@@ -534,7 +534,7 @@ export default function OpenThermLogger() {
 
                 {/* Water Overtemperature */}
                 {sensorStates.water_overtemp && (
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <Chip
                       icon={<ErrorIcon />}
                       label={t('opentherm.waterOvertemp', 'Water Overtemp')}
@@ -546,7 +546,7 @@ export default function OpenThermLogger() {
 
                 {/* Service Required */}
                 {sensorStates.service_required && (
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <Chip
                       icon={<BuildIcon />}
                       label={t('opentherm.serviceRequired', 'Service Required')}

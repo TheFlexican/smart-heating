@@ -24,7 +24,7 @@ echo ""
 # Step 1: Clean up everything
 echo -e "${YELLOW}[1/9]${NC} Cleaning up existing setup..."
 echo "  Stopping and removing containers..."
-for container in "$HA_CONTAINER" "$MQTT_CONTAINER"; do
+for container in "$HA_CONTAINER" "$MQTT_CONTAINER" "mariadb-test"; do
     if docker ps -a | grep -q "$container"; then
         docker rm -f "$container" > /dev/null 2>&1
         echo -e "  ${GREEN}✓${NC} Removed $container"
@@ -32,9 +32,11 @@ for container in "$HA_CONTAINER" "$MQTT_CONTAINER"; do
 done
 
 echo "  Removing Docker network..."
-if docker network ls | grep -q "$NETWORK_NAME"; then
-    docker network rm "$NETWORK_NAME" > /dev/null 2>&1
+if docker network ls | grep -q "$NETWORK_NAME" 2>/dev/null; then
+    docker network rm "$NETWORK_NAME" > /dev/null 2>&1 || true
     echo -e "  ${GREEN}✓${NC} Removed network $NETWORK_NAME"
+else
+    echo -e "  ${GREEN}✓${NC} Network $NETWORK_NAME does not exist"
 fi
 
 echo "  Clearing Home Assistant data..."
@@ -45,7 +47,10 @@ fi
 
 # Also clean up any Docker volumes that might persist
 echo "  Removing Docker volumes..."
-docker volume ls -q | grep -E "(homeassistant|smart_heating)" | xargs -r docker volume rm > /dev/null 2>&1 || true
+VOLUMES=$(docker volume ls -q | grep -E "(homeassistant|smart_heating)" || true)
+if [[ -n "$VOLUMES" ]]; then
+    echo "$VOLUMES" | xargs docker volume rm > /dev/null 2>&1 || true
+fi
 echo -e "  ${GREEN}✓${NC} Cleaned Docker volumes"
 
 echo "  Pulling latest Docker images..."
