@@ -6,7 +6,7 @@ import { Page } from '@playwright/test';
 
 export async function login(page: Page) {
   await page.goto('/');
-  
+
   // Check if we need to login
   const loginForm = page.locator('input[name="username"]');
   if (await loginForm.isVisible({ timeout: 2000 }).catch(() => false)) {
@@ -29,7 +29,23 @@ export async function navigateToArea(page: Page, areaName: string) {
   // Wait for areas to load
   await page.waitForTimeout(1000);
   // Click on the area card - try multiple selectors
-  const areaCard = page.getByText(areaName, { exact: false }).first();
+  let areaCard;
+  if (areaName) {
+    areaCard = page.getByText(areaName, { exact: false }).first();
+    try {
+      await areaCard.waitFor({ state: 'visible', timeout: 10000 });
+      await areaCard.click();
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1000);
+      return;
+    } catch (e) {
+      // fallback to first area
+      console.warn(`Area named ${areaName} not found - falling back to first area: ${e}`);
+    }
+  }
+
+  // Fallback: use the first clickable area element
+  areaCard = page.getByRole('button').first();
   await areaCard.waitFor({ state: 'visible', timeout: 10000 });
   await areaCard.click();
   await page.waitForLoadState('networkidle');

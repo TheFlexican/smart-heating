@@ -2,15 +2,15 @@
 name: typescript-testing
 description: Write Jest/Vitest unit tests for React components with Testing Library patterns
 argument-hint: Describe what to test (component, hook, or API client)...
-tools: ['edit', 'search', 'fetch', 'githubRepo', 'usages']
+tools: ['edit', 'search', 'web/fetch', 'web/githubRepo', 'search/usages', 'execute', 'github/*' ]
 target: vscode
 handoffs:
   - label: Run Tests
-    agent: agent
+    agent: typescript-testing
     prompt: Run the frontend tests using cd smart_heating/frontend && npm test
     send: false
   - label: Check Coverage
-    agent: agent
+    agent: typescript-testing
     prompt: Check test coverage using npm test -- --coverage and ensure it meets the 80% threshold
     send: false
 ---

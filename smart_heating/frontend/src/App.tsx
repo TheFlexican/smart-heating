@@ -19,7 +19,10 @@ import EfficiencyReports from './components/EfficiencyReports'
 import HistoricalComparisons from './components/HistoricalComparisons'
 import AdvancedMetricsDashboard from './components/AdvancedMetricsDashboard'
 import { Zone, Device } from './types'
-import { getZones, getDevices, getConfig, getSafetySensor } from './api'
+import { getZones } from './api/areas'
+import { getDevices } from './api/devices'
+import { getConfig } from './api/config'
+import { getSafetySensor } from './api/safety'
 import { useWebSocket } from './hooks/useWebSocket'
 
 // Home Assistant theme factory - matches HA's native theme

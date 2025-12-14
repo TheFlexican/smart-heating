@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Alert, Box, Button, Typography } from '@mui/material'
 import { useTranslation } from 'react-i18next'
-import { getVacationMode, disableVacationMode } from '../api'
+import { getVacationMode, disableVacationMode } from '../api/vacation'
 import { VacationMode } from '../types'
 
 export const VacationModeBanner: React.FC = () => {

@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### ✨ Features
+- **Refactor:** Split frontend API into module files under `src/api/*`. Updated imports across the frontend to import from module-level API files and added module-focused unit tests. The top-level `src/api.ts` is deprecated — import from specific modules (for example, `src/api/areas`) instead.
+
 ### 🐛 Bug fixes & Improvements
 
 ## [0.5.14] - 2025-12-13

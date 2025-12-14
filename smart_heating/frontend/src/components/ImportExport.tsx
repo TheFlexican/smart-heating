@@ -22,7 +22,7 @@ import {
 } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { importConfig, validateConfig } from '../api'
+import { importConfig, validateConfig } from '../api/import_export'
 
 interface ImportPreview {
   valid: boolean

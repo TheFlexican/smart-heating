@@ -22,7 +22,7 @@ import {
   Scatter,
   ComposedChart
 } from 'recharts'
-import { getHistory } from '../api'
+import { getHistory } from '../api/history'
 
 interface HistoryEntry {
   timestamp: string

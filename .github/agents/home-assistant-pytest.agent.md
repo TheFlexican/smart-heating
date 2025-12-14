@@ -2,7 +2,7 @@
 name: home-assistant-pytest
 description: Write pytest tests for Home Assistant integrations with 80%+ coverage
 argument-hint: Describe what to test (module, feature, or component)...
-tools: ['edit', 'search', 'fetch', 'githubRepo', 'usages']
+tools: ['edit', 'search', 'web/fetch', 'web/githubRepo', 'search/usages', 'execute', 'github/*', 'pylance-mcp-server/*']
 target: vscode
 handoffs:
   - label: Run Tests

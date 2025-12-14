@@ -62,7 +62,8 @@ smart_heating/
 │           ├── main.tsx
 │           ├── App.tsx
 │           ├── types.ts
-│           ├── api.ts
+│           ├── api/                  # Module-based frontend API (preferred)
+│           ├── api.ts               # Deprecated aggregator; import modules directly
 │           └── components/
 │               ├── Dashboard.tsx
 │               ├── GlobalSettings.tsx

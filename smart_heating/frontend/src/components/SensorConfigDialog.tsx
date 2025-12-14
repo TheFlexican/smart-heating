@@ -16,7 +16,7 @@ import {
   CircularProgress,
 } from '@mui/material'
 import { HassEntity, WindowSensorConfig, PresenceSensorConfig } from '../types'
-import { getBinarySensorEntities } from '../api'
+import { getBinarySensorEntities } from '../api/config'
 
 interface SensorConfigDialogProps {
   open: boolean
