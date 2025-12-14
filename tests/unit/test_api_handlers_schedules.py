@@ -339,25 +339,23 @@ class TestScheduleHandlers:
         """Test updating a schedule by removing a single day from its days list."""
         from smart_heating.models.schedule import Schedule
 
-        # Create a real schedule in area with multiple days
-        schedule = Schedule(
-            "sched_123", "08:00", temperature=21.0, days=["Monday", "Tuesday", "Wednesday"]
-        )
+        # Create a real schedule in area with multiple days (0=Monday, 1=Tuesday, 2=Wednesday)
+        schedule = Schedule("sched_123", "08:00", temperature=21.0, days=[0, 1, 2])
         mock_area_manager.get_area.return_value.schedules = {"sched_123": schedule}
 
-        # Update to remove Monday
+        # Update to remove Monday (0)
         response = await handle_update_schedule(
             mock_hass,
             mock_area_manager,
             "living_room",
             "sched_123",
-            {"days": ["Tuesday", "Wednesday"]},
+            {"days": [1, 2]},
         )
 
         assert response.status == 200
         body = json.loads(response.body.decode())
         assert body["success"] is True
-        assert body["schedule"]["days"] == ["Tuesday", "Wednesday"]
+        assert body["schedule"]["days"] == [1, 2]
 
     @pytest.mark.asyncio
     async def test_handle_update_schedule_delete_if_empty_days(self, mock_hass, mock_area_manager):
@@ -365,8 +363,8 @@ class TestScheduleHandlers:
         from smart_heating.models.schedule import Schedule
 
         schedule = Schedule(
-            "sched_del", "08:00", temperature=21.0, days=["Monday"]
-        )  # 1-day schedule
+            "sched_del", "08:00", temperature=21.0, days=[0]
+        )  # 1-day schedule (0=Monday)
         mock_area_manager.get_area.return_value.schedules = {"sched_del": schedule}
 
         response = await handle_update_schedule(
