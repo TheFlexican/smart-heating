@@ -31,25 +31,57 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const reconnectAttempts = useRef(0)
   const maxReconnectAttempts = 10  // Increased for mobile
   const messageIdRef = useRef(1)
   const isAuthenticatedRef = useRef(false)
-  const pingIntervalRef = useRef<ReturnType<typeof setInterval>>()
+  const pingIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
   const intentionalCloseRef = useRef(false)
 
   const getAuthToken = (): string | null => {
-    // Try to get auth token from localStorage (HA stores it there)
-    const haTokens = localStorage.getItem('hassTokens')
-    if (haTokens) {
-      try {
-        const tokens = JSON.parse(haTokens)
-        return tokens.access_token
-      } catch (e) {
-        console.error('Failed to parse HA tokens:', e)
+    // Method 1: Try to get from URL query parameter (for iframe embedding)
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const urlToken = params.get('hassToken') || params.get('token')
+      if (urlToken) {
+        console.log('[WebSocket] Using auth token from URL parameter')
+        return urlToken
       }
+    } catch (e) {
+      console.debug('[WebSocket] No token in URL parameters')
     }
+
+    // Method 2: Try to get from parent window (for iframe embedding)
+    try {
+      if (window.parent && window.parent !== window) {
+        // We're in an iframe - try to access parent's connection
+        const parentConnection = (window.parent as any).hassConnection
+        if (parentConnection?.auth?.data?.access_token) {
+          console.log('[WebSocket] Using auth token from parent window')
+          return parentConnection.auth.data.access_token
+        }
+      }
+    } catch (e) {
+      // Cross-origin error is expected and OK - we're in an iframe
+      console.debug('[WebSocket] Cannot access parent window (expected in iframe)')
+    }
+
+    // Method 3: Try to get from localStorage (for standalone or same-origin)
+    try {
+      const haTokens = localStorage.getItem('hassTokens')
+      if (haTokens) {
+        const tokens = JSON.parse(haTokens)
+        if (tokens.access_token) {
+          console.log('[WebSocket] Using auth token from localStorage')
+          return tokens.access_token
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse HA tokens from localStorage:', e)
+    }
+
+    console.warn('[WebSocket] No auth token found - WebSocket will be disabled')
     return null
   }
 
@@ -77,7 +109,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data)
-          
+
           // Handle authentication phase
           if (message.type === 'auth_required') {
             const token = getAuthToken()
@@ -90,14 +122,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
               reconnectAttempts.current = maxReconnectAttempts
               return
             }
-            
+
             ws.send(JSON.stringify({
               type: 'auth',
               access_token: token
             }))
             return
           }
-          
+
           if (message.type === 'auth_ok') {
             console.log('[WebSocket] Authenticated successfully')
             isAuthenticatedRef.current = true
@@ -105,7 +137,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             setError(null)
             reconnectAttempts.current = 0
             options.onConnect?.()
-            
+
             // Start keepalive ping every 30 seconds
             if (pingIntervalRef.current) {
               clearInterval(pingIntervalRef.current)
@@ -118,7 +150,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
                 }))
               }
             }, 30000)
-            
+
             // Now subscribe to our custom events
             ws.send(JSON.stringify({
               id: messageIdRef.current++,
@@ -126,14 +158,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             }))
             return
           }
-          
+
           if (message.type === 'auth_invalid') {
             console.error('Authentication failed:', message.error)
             setError('Authentication failed')
             ws.close()
             return
           }
-          
+
           // Handle command phase messages
           if (message.type === 'result') {
             // Check if this is a subscription update (has event data)
@@ -144,14 +176,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
               options.onZonesUpdate?.(areasArray)
               return
             }
-            
+
             if (!message.success) {
               console.error('Command failed:', message.error)
               setError(message.error?.message || 'Command failed')
             }
             return
           }
-          
+
           if (message.type === 'event') {
             // Handle our custom area events
             const event = message.result || message
@@ -164,25 +196,25 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             }
             return
           }
-          
+
           // Legacy message handling (for backward compatibility)
           switch (message.type) {
             case 'pong':
               // Keepalive response
               break
-              
+
             case 'areas_updated':
               if (message.data?.areas) {
                 options.onZonesUpdate?.(message.data.areas)
               }
               break
-            
+
             case 'area_updated':
               if (message.data?.area) {
                 options.onZoneUpdate?.(message.data.area)
               }
               break
-            
+
             case 'area_deleted':
               if (message.data?.area_id) {
                 options.onZoneDelete?.(message.data.area_id)
@@ -205,7 +237,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         setIsConnected(false)
         wsRef.current = null
         options.onDisconnect?.()
-        
+
         // Clear ping interval
         if (pingIntervalRef.current) {
           clearInterval(pingIntervalRef.current)
@@ -223,7 +255,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         if (reconnectAttempts.current < maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000)
           console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`)
-          
+
           reconnectTimeoutRef.current = setTimeout(() => {
             reconnectAttempts.current++
             connect()
@@ -243,21 +275,21 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const disconnect = () => {
     console.log('[WebSocket] Disconnecting')
     intentionalCloseRef.current = true
-    
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
     }
-    
+
     if (pingIntervalRef.current) {
       clearInterval(pingIntervalRef.current)
       pingIntervalRef.current = undefined
     }
-    
+
     if (wsRef.current) {
       wsRef.current.close()
       wsRef.current = null
     }
-    
+
     setIsConnected(false)
   }
 

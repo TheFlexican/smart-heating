@@ -61,11 +61,11 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
     setDialogOpen(true)
   }
 
-  const handleDelete = async (id: string, day?: string) => {
+  const handleDelete = async (id: string, day?: string | number) => {
     try {
       const schedule = schedules.find(s => s.id === id)
       // If a specific day is supplied and schedule exists + has >1 days, update days
-      if (day && schedule?.days?.length && schedule.days.length > 1) {
+      if (day !== undefined && schedule?.days?.length && schedule.days.length > 1) {
         const newDays = schedule.days.filter(d => d !== day)
         await updateScheduleInZone(area.id, id, { days: newDays })
       } else {
@@ -272,7 +272,7 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
                           <Chip
                             key={schedule.id}
                             label={formatScheduleLabel(schedule)}
-                            onDelete={() => handleDelete(schedule.id, day)}
+                            onDelete={() => handleDelete(schedule.id, dayIndex)}
                             onClick={() => handleEdit(schedule)}
                             color="primary"
                             variant="outlined"

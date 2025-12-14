@@ -7,6 +7,21 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 
 ## [Niet Uitgebracht]
 
+### ⚡ Belangrijke Upgrades
+- **React 19.2:** Geüpgraded van React 18.3.1 naar 19.2.3 met volledige React 19 ondersteuning inclusief nieuwe JSX transform, concurrent features en verbeterde TypeScript types
+- **Material-UI v7:** Geüpgraded van MUI 6.1.9 naar 7.3.6 met React 19 compatibiliteit, bijgewerkte component APIs en verbeterde theming
+- **MUI X Date Pickers v8.22:** Geüpgraded van v7.22.2 naar v8.22.0 voor date-fns v4 compatibiliteit en nieuwste functies
+- **Vite 7:** Geüpgraded van Vite 6.0.1 naar 7.2.7 met Rolldown bundler, verbeterde prestaties en betere module resolutie
+- **TypeScript 5.9:** Geüpgraded van TypeScript 5.7.2 naar 5.9.3 met verbeterde type inference en betere React 19 ondersteuning
+- **React Router v7:** Geüpgraded van React Router 6.28.0 naar 7.1.3 met moderne routing patronen en verbeterde prestaties
+- **Testing Libraries:** Geüpgraded naar React 19 compatibele versies (@testing-library/react 16.1.0, jsdom 25.0.1)
+- **date-fns v4:** Geüpgraded van date-fns 2.30.0 naar 4.1.0 met verbeterde tree-shaking en prestaties (vereist @mui/x-date-pickers v8+)
+- **React Router v7.10:** Geüpgraded van v6.28.0 naar v7.10.1 met moderne routing patronen
+- **Vite Plugin React v5:** Geüpgraded van v4.3.4 naar v5.1.2 met verbeterde React 19 ondersteuning
+- **Recharts v3:** Geüpgraded van v2.15.0 naar v3.5.1 met React 19 compatibiliteit
+- **jsdom v27:** Geüpgraded van v25.0.1 naar v27.3.0 met verbeterde DOM compatibiliteit
+- **Axios v1.13:** Geüpgraded van v1.7.9 naar v1.13.2 met beveiligingsfixes
+
 ### ✨ Functies
 - **Refactor:** De frontend API is opgesplitst in modulebestanden onder `src/api/*`. Imports zijn bijgewerkt zodat components direct uit module-niveau API-bestanden importeren. Het top-level `src/api.ts` is gedepricieerd — import rechtstreeks uit specifieke modules (bijv. `src/api/areas`).
 

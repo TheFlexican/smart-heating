@@ -2,7 +2,7 @@
 name: typescript-react
 description: Build type-safe React components with Material-UI and proper TypeScript patterns
 argument-hint: Describe the React component or feature to build...
-tools: ['edit', 'search', 'web/fetch', 'web/githubRepo', 'search/usages', 'execute', 'github/*' ]
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'todo']
 target: vscode
 handoffs:
   - label: Write Unit Tests

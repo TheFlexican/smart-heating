@@ -301,7 +301,7 @@ const HistoricalComparisons: React.FC = () => {
             {t('comparison.customRange')}
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 type="date"
@@ -311,7 +311,7 @@ const HistoricalComparisons: React.FC = () => {
                 slotProps={{ inputLabel: { shrink: true } }}
               />
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 type="date"
@@ -321,7 +321,7 @@ const HistoricalComparisons: React.FC = () => {
                 slotProps={{ inputLabel: { shrink: true } }}
               />
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 type="date"
@@ -331,7 +331,7 @@ const HistoricalComparisons: React.FC = () => {
                 slotProps={{ inputLabel: { shrink: true } }}
               />
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 type="date"
@@ -341,7 +341,7 @@ const HistoricalComparisons: React.FC = () => {
                 slotProps={{ inputLabel: { shrink: true } }}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Button
                 variant="contained"
                 onClick={loadCustomComparison}
@@ -376,7 +376,7 @@ const HistoricalComparisons: React.FC = () => {
                 {t('comparison.summary')}
               </Typography>
               <Grid container spacing={2} mb={4}>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   {renderMetricComparison(
                     t('comparison.energyScore'),
                     comparison.current_summary.energy_score,
@@ -384,7 +384,7 @@ const HistoricalComparisons: React.FC = () => {
                     comparison.summary_delta.energy_score
                   )}
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   {renderMetricComparison(
                     t('comparison.heatingTime'),
                     comparison.current_summary.heating_time_percentage,
@@ -393,7 +393,7 @@ const HistoricalComparisons: React.FC = () => {
                     '%'
                   )}
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   {renderMetricComparison(
                     t('comparison.heatingCycles'),
                     comparison.current_summary.heating_cycles,
@@ -401,7 +401,7 @@ const HistoricalComparisons: React.FC = () => {
                     comparison.summary_delta.heating_cycles
                   )}
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   {renderMetricComparison(
                     t('comparison.tempDelta'),
                     comparison.current_summary.avg_temp_delta,

@@ -351,7 +351,7 @@ export const UserManagement: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('users.userId', 'User ID')}
@@ -361,7 +361,7 @@ export const UserManagement: React.FC = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('users.name', 'Name')}
@@ -370,7 +370,7 @@ export const UserManagement: React.FC = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('users.personEntity', 'Person Entity')}
@@ -381,7 +381,7 @@ export const UserManagement: React.FC = () => {
                 helperText="e.g., person.john"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -392,13 +392,13 @@ export const UserManagement: React.FC = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="subtitle1" gutterBottom>
                 {t('users.presetPreferences', 'Preset Preferences')}
               </Typography>
             </Grid>
             {['home', 'away', 'sleep', 'eco', 'comfort', 'activity'].map((preset) => (
-              <Grid item xs={6} md={4} key={preset}>
+              <Grid size={{ xs: 6, md: 4 }} key={preset}>
                 <TextField
                   fullWidth
                   type="number"

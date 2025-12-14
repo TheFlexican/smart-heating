@@ -38,8 +38,8 @@ describe('ZoneCard extended behaviors', () => {
     expect((await import('../api/areas')).setBoostMode).toHaveBeenCalled()
     expect(onUpdate).toHaveBeenCalled()
 
-    // toggle manual override switch
-    const manualSwitch = screen.getByRole('checkbox')
+    // toggle manual override switch (use switch role, not checkbox)
+    const manualSwitch = screen.getByRole('switch')
     await userEvent.click(manualSwitch)
     expect((await import('../api/areas')).setManualOverride).toHaveBeenCalled()
   })

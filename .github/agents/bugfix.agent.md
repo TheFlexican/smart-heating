@@ -2,7 +2,7 @@
 name: bugfix
 description: End-to-end bug triage, reproduction, and fixing across frontend/backend with comprehensive testing
 argument-hint: Describe the bug, steps to reproduce, expected vs actual behavior...
-tools: ['edit', 'search', 'web/fetch', 'web/githubRepo', 'search/usages', 'execute', 'sonarqube/*', 'playwright/*', 'github/*']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'sonarqube/*', 'playwright/*', 'github/*', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'sonarsource.sonarlint-vscode/sonarqube_getPotentialSecurityIssues', 'sonarsource.sonarlint-vscode/sonarqube_excludeFiles', 'sonarsource.sonarlint-vscode/sonarqube_setUpConnectedMode', 'sonarsource.sonarlint-vscode/sonarqube_analyzeFile', 'todo']
 target: vscode
 handoffs:
   - label: Write Backend Tests

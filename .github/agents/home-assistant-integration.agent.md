@@ -2,7 +2,7 @@
 name: home-assistant-integration
 description: Develop Home Assistant integrations with proper HA patterns and async code
 argument-hint: Describe the HA feature to implement (platform, entity, service)...
-tools: ['edit', 'search', 'web/fetch', 'web/githubRepo', 'search/usages', 'execute', 'github/*', 'pylance-mcp-server/*']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'pylance-mcp-server/*', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'todo']
 target: vscode
 handoffs:
   - label: Write Tests
