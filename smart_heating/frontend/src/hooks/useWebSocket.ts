@@ -40,16 +40,48 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const intentionalCloseRef = useRef(false)
 
   const getAuthToken = (): string | null => {
-    // Try to get auth token from localStorage (HA stores it there)
-    const haTokens = localStorage.getItem('hassTokens')
-    if (haTokens) {
-      try {
-        const tokens = JSON.parse(haTokens)
-        return tokens.access_token
-      } catch (e) {
-        console.error('Failed to parse HA tokens:', e)
+    // Method 1: Try to get from URL query parameter (for iframe embedding)
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const urlToken = params.get('hassToken') || params.get('token')
+      if (urlToken) {
+        console.log('[WebSocket] Using auth token from URL parameter')
+        return urlToken
       }
+    } catch (e) {
+      console.debug('[WebSocket] No token in URL parameters')
     }
+
+    // Method 2: Try to get from parent window (for iframe embedding)
+    try {
+      if (window.parent && window.parent !== window) {
+        // We're in an iframe - try to access parent's connection
+        const parentConnection = (window.parent as any).hassConnection
+        if (parentConnection?.auth?.data?.access_token) {
+          console.log('[WebSocket] Using auth token from parent window')
+          return parentConnection.auth.data.access_token
+        }
+      }
+    } catch (e) {
+      // Cross-origin error is expected and OK - we're in an iframe
+      console.debug('[WebSocket] Cannot access parent window (expected in iframe)')
+    }
+
+    // Method 3: Try to get from localStorage (for standalone or same-origin)
+    try {
+      const haTokens = localStorage.getItem('hassTokens')
+      if (haTokens) {
+        const tokens = JSON.parse(haTokens)
+        if (tokens.access_token) {
+          console.log('[WebSocket] Using auth token from localStorage')
+          return tokens.access_token
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse HA tokens from localStorage:', e)
+    }
+
+    console.warn('[WebSocket] No auth token found - WebSocket will be disabled')
     return null
   }
 
