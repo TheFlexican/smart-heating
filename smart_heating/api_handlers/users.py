@@ -88,15 +88,36 @@ async def handle_create_user(
     try:
         data = await request.json()
 
-        user_id = data.get("user_id")
         name = data.get("name")
         person_entity = data.get("person_entity")
 
-        if not user_id or not name or not person_entity:
+        # Validate required fields (user_id is now optional, auto-generated if not provided)
+        if not name or not person_entity:
             return web.json_response(
-                {"error": "Missing required fields: user_id, name, person_entity"},
+                {"error": "Missing required fields: name, person_entity"},
                 status=400,
             )
+
+        # Check for duplicate person_entity
+        existing_user = user_manager.get_user_by_person_entity(person_entity)
+        if existing_user:
+            return web.json_response(
+                {"error": f"A user is already linked to {person_entity}"},
+                status=400,
+            )
+
+        # Auto-generate user_id from name if not provided
+        user_id = data.get("user_id")
+        if not user_id:
+            # Generate unique user_id from name
+            import re
+            import time
+
+            # Sanitize name: lowercase, replace spaces/special chars with underscore
+            sanitized = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+            # Add timestamp to ensure uniqueness
+            user_id = f"{sanitized}_{int(time.time())}"
+            _LOGGER.info("Auto-generated user_id: %s for user: %s", user_id, name)
 
         preset_preferences = data.get("preset_preferences", {})
         priority = data.get("priority", 5)
@@ -143,6 +164,16 @@ async def handle_update_user(
     """
     try:
         data = await request.json()
+
+        # If person_entity is being updated, check for duplicates
+        if "user_id" in data:
+            person_entity = data["user_id"]
+            existing_user = user_manager.get_user_by_person_entity(person_entity)
+            if existing_user and existing_user.get("internal_id") != user_id:
+                return web.json_response(
+                    {"error": f"A user is already linked to {person_entity}"},
+                    status=400,
+                )
 
         user = await user_manager.update_user_profile(user_id, data)
 

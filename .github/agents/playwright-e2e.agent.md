@@ -154,7 +154,17 @@ tests/e2e/
    ├─ Review test execution time
    └─ Check screenshots/traces for failures
 
-5. OPTIMIZATION PHASE
+5. INSPECTION & DEBUGGING WITH MCP PLAYWRIGHT
+   - ALWAYS use the MCP Playwright browser to *inspect and reproduce* UI issues before changing tests. Use it to:
+     - Login to Home Assistant if necessary, using the same credentials/setup as tests.
+     - Navigate to Smart Heating and open the exact page/section the test is exercising (e.g., Global Settings → Advanced → Advanced Boiler & Control).
+     - Verify that elements are visible, check their attributes (`data-testid`, `role`, `aria-*`) and whether any overlays (snackbars, alerts) block interactions.
+     - If elements are not found, try adjusting the viewport or scrolling the page; MCP Playwright allows interactive inspection and clicking to reveal hidden content.
+     - Capture a snapshot and use that to pick robust selectors (prefer `getByTestId` when available, or semantic locators otherwise).
+   - If UI elements are missing `data-testid` attributes, create a ticket and hand off to the **TypeScript/React Agent** to add stable `data-testid` attributes at the appropriate component locations.
+   - When WebSocket or snackbar messages block clicks, use the existing `dismissSmartHeatingSnackbar()` helper (or implement a short-lived handler in the test) to dismiss or wait for the message to disappear.
+
+6. OPTIMIZATION PHASE
    ├─ Remove unnecessary waits
    ├─ Optimize locators
    ├─ Extract common patterns to helpers

@@ -204,9 +204,9 @@ class UserManager:
         """Create a new user profile.
 
         Args:
-            user_id: Unique user ID
+            user_id: Unique internal user ID (key in storage)
             name: User's display name
-            person_entity: Home Assistant person entity ID
+            person_entity: Home Assistant person entity ID for presence tracking
             preset_preferences: Temperature preferences per preset
             priority: User priority (1-10, higher = more important)
             areas: List of area IDs this user cares about (empty = all)
@@ -319,6 +319,23 @@ class UserManager:
             Dictionary of all user profiles
         """
         return self._data["users"].copy()
+
+    def get_user_by_person_entity(self, person_entity: str) -> dict[str, Any] | None:
+        """Get a user profile by person entity.
+
+        Args:
+            person_entity: Person entity ID to search for
+
+        Returns:
+            User profile data (including internal user_id key) or None if not found
+        """
+        for internal_id, user_data in self._data["users"].items():
+            if user_data.get("user_id") == person_entity:
+                # Return copy with internal_id for validation
+                result = user_data.copy()
+                result["internal_id"] = internal_id
+                return result
+        return None
 
     def get_presence_state(self) -> dict[str, Any]:
         """Get current presence state.

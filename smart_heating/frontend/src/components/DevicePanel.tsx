@@ -129,6 +129,7 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
         <FormControlLabel
           control={
             <Switch
+              data-testid="climate-filter-toggle"
               checked={showOnlyHeating}
               onChange={(e) => setShowOnlyHeating(e.target.checked)}
               size="small"
@@ -148,6 +149,7 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
         <TextField
           fullWidth
           size="small"
+          data-testid="device-search-input"
           placeholder={t('devices.searchPlaceholder')}
           value={deviceSearch}
           onChange={(e) => setDeviceSearch(e.target.value)}
@@ -175,6 +177,7 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
             {filteredDevices.map((device) => (
               <ListItem
                 key={device.id}
+                data-testid={`available-device-${(device.name || device.id).toLowerCase().replaceAll(' ', '-')}`}
                 sx={{
                   borderRadius: 1,
                   '&:hover': {

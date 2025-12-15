@@ -45,4 +45,12 @@ export const getWeatherEntities = async (): Promise<any[]> => {
   return response.data.entities
 }
 
+export const getPersonEntities = async (): Promise<any[]> => {
+  // Person entities are included in binary_sensor endpoint with device_class: presence
+  const response = await axios.get(`${API_BASE}/entities/binary_sensor`)
+  return response.data.entities.filter((entity: any) =>
+    entity.entity_id.startsWith('person.')
+  )
+}
+
 export default {}

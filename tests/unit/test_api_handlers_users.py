@@ -56,14 +56,24 @@ async def test_handle_create_user_validation_and_success():
     resp = await users_mod.handle_create_user(hass, um, req)
     assert resp.status == 400
 
+    # duplicate person_entity
+    req.json = AsyncMock(return_value={"name": "R", "person_entity": "person.r"})
+    um.get_user_by_person_entity.return_value = {"user_id": "person.r", "name": "Existing"}
+    resp = await users_mod.handle_create_user(hass, um, req)
+    assert resp.status == 400
+    import json as _json
+
+    data = _json.loads(resp.body.decode())
+    assert "already linked" in data["error"]
+
     # success
     req.json = AsyncMock(return_value={"user_id": "u1", "name": "R", "person_entity": "person.r"})
+    um.get_user_by_person_entity.return_value = None  # No duplicate
     um.create_user_profile = AsyncMock(return_value={"user_id": "u1"})
     hass.bus = MagicMock()
     hass.bus.async_fire = MagicMock()
     resp = await users_mod.handle_create_user(hass, um, req)
     assert resp.status == 201
-    import json as _json
 
     data = _json.loads(resp.body.decode())
     assert "user" in data
@@ -85,6 +95,23 @@ async def test_handle_update_user_and_value_error():
     um.update_user_profile = AsyncMock(side_effect=ValueError("bad"))
     resp = await users_mod.handle_update_user(hass, um, req, "u1")
     assert resp.status == 400
+
+    # duplicate person_entity
+    req.json = AsyncMock(return_value={"user_id": "person.other"})
+    um.get_user_by_person_entity.return_value = {"user_id": "person.other", "internal_id": "u2"}
+    resp = await users_mod.handle_update_user(hass, um, req, "u1")
+    assert resp.status == 400
+    import json as _json
+
+    data = _json.loads(resp.body.decode())
+    assert "already linked" in data["error"]
+
+    # allow keeping same person_entity
+    req.json = AsyncMock(return_value={"user_id": "person.same"})
+    um.get_user_by_person_entity.return_value = {"user_id": "person.same", "internal_id": "u1"}
+    um.update_user_profile = AsyncMock(return_value={"user_id": "u1"})
+    resp = await users_mod.handle_update_user(hass, um, req, "u1")
+    assert resp.status == 200
 
 
 @pytest.mark.asyncio

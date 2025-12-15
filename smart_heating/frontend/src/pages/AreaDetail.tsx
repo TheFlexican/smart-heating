@@ -479,6 +479,7 @@ const ZoneDetail = () => {
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>{t('settingsCards.currentPreset')}</InputLabel>
               <Select
+                data-testid="preset-mode-select"
                 disabled={!area.enabled || area.state === 'off'}
                 value={area.preset_mode || 'none'}
                 label={t('settingsCards.currentPreset')}
@@ -611,7 +612,7 @@ const ZoneDetail = () => {
         badge: area.boost_mode_active ? 'ACTIVE' : undefined,
         defaultExpanded: area.boost_mode_active,
         content: area.boost_mode_active ? (
-          <Box>
+          <Box data-testid="boost-mode-active">
             <Alert severity="warning" sx={{ mb: 2 }}>
               Boost mode is <strong>ACTIVE</strong>! Temperature: {area.boost_temp}°C, Duration: {area.boost_duration} minutes
             </Alert>
@@ -633,6 +634,7 @@ const ZoneDetail = () => {
         ) : (
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
             <TextField
+              data-testid="boost-temperature-input"
               label="Boost Temperature"
               type="number"
               defaultValue={25}
@@ -641,6 +643,7 @@ const ZoneDetail = () => {
               id="boost-temp-input"
             />
             <TextField
+              data-testid="boost-duration-input"
               label="Duration (minutes)"
               type="number"
               defaultValue={60}
@@ -680,6 +683,7 @@ const ZoneDetail = () => {
           <FormControl fullWidth>
             <InputLabel>HVAC Mode</InputLabel>
             <Select
+              data-testid="hvac-mode-select"
               value={area.hvac_mode || 'heat'}
               label="HVAC Mode"
               onChange={async (e) => {
@@ -709,6 +713,8 @@ const ZoneDetail = () => {
         content: (
           <Box>
             <RadioGroup
+              data-testid="heating-type-control"
+              aria-label={t('settingsCards.heatingTypeTitle', 'Heating Type')}
               value={area.heating_type || 'radiator'}
               onChange={async (e) => {
                 try {
@@ -750,7 +756,7 @@ const ZoneDetail = () => {
             </Alert>
 
             {/* Per-area heating curve coefficient */}
-            <Box sx={{ mt: 2 }}>
+            <Box sx={{ mt: 2 }} data-testid="heating-curve-control">
               <Typography variant="subtitle1">{t('settingsCards.heatingCurveTitle', 'Heating Curve Coefficient')}</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 {t('settingsCards.heatingCurveDescription', 'Optional per-area coefficient used in heating curve calculations. Leave blank to use the global coefficient.')}
@@ -767,6 +773,8 @@ const ZoneDetail = () => {
                   onChange={(e) => setAreaHeatingCurveCoefficient(e.target.value ? Number(e.target.value) : null)}
                   disabled={useGlobalHeatingCurve}
                   slotProps={{ htmlInput: { step: 0.1, min: 0.1, max: 10 } }}
+                  inputProps={{ 'data-testid': 'heating-curve-control' }}
+                  helperText={useGlobalHeatingCurve ? t('settingsCards.heatingCurveHelper.usingGlobal', 'Using global coefficient') : t('settingsCards.heatingCurveHelper.overrideActive', 'Per-area override active')}
                 />
                 <Button variant="contained" onClick={async () => {
                   try {
@@ -842,6 +850,7 @@ const ZoneDetail = () => {
                   return (
                     <ListItem
                       key={sensorConfig.entity_id}
+                      data-testid="window-sensor-item"
                       secondaryAction={
                         <IconButton
                           edge="end"
@@ -956,6 +965,7 @@ const ZoneDetail = () => {
                   return (
                     <ListItem
                       key={entity_id}
+                      data-testid="presence-sensor-item"
                       secondaryAction={
                         <IconButton
                           edge="end"
@@ -1034,6 +1044,7 @@ const ZoneDetail = () => {
                 </Typography>
               </Box>
               <Switch
+                data-testid="auto-preset-toggle"
                 checked={area.auto_preset_enabled ?? false}
                 onChange={async (e) => {
                   try {
@@ -1782,13 +1793,13 @@ const ZoneDetail = () => {
             }
           }}
         >
-          <Tab label={t('tabs.overview')} />
-          <Tab label={t('tabs.devices')} />
-          <Tab label={t('tabs.schedule')} />
-          <Tab label={t('tabs.history')} />
-          <Tab label={t('tabs.settings')} />
-          <Tab label={t('tabs.learning')} />
-          <Tab label={t('tabs.logs')} icon={<ArticleIcon />} iconPosition="start" />
+          <Tab data-testid="area-detail-tab-overview" label={t('tabs.overview')} />
+          <Tab data-testid="area-detail-tab-devices" label={t('tabs.devices')} />
+          <Tab data-testid="area-detail-tab-schedule" label={t('tabs.schedule')} />
+          <Tab data-testid="area-detail-tab-history" label={t('tabs.history')} />
+          <Tab data-testid="area-detail-tab-settings" label={t('tabs.settings')} />
+          <Tab data-testid="area-detail-tab-learning" label={t('tabs.learning')} />
+          <Tab data-testid="tab-logs" label={t('tabs.logs')} icon={<ArticleIcon />} iconPosition="start" />
         </Tabs>
       </Paper>
 
@@ -2369,7 +2380,7 @@ const ZoneDetail = () => {
 
                 if (logs.length === 0) {
                   return (
-                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <Box data-testid="area-logs-empty" sx={{ textAlign: 'center', py: 4 }}>
                       <Typography variant="body2" color="text.secondary">
                         {t('settingsCards.noLogsYet')}
                       </Typography>
