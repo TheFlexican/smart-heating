@@ -318,10 +318,10 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
             {/** Render heating/cooling activity only if present in history entries */}
             {(() => {
               const hasHeating = chartData.some(
-                d => d.heatingDot !== null && d.heatingDot !== undefined
+                d => d.heatingDot !== null && d.heatingDot !== undefined,
               )
               const hasCooling = chartData.some(
-                d => d.coolingDot !== null && d.coolingDot !== undefined
+                d => d.coolingDot !== null && d.coolingDot !== undefined,
               )
               return (
                 <>

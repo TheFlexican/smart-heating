@@ -86,7 +86,7 @@ const ScheduleEntryDialog = ({ open, onClose, onSave, editingEntry }: ScheduleEn
 
   const handleDayToggle = (dayIndex: number) => {
     setSelectedDays(prev =>
-      prev.includes(dayIndex) ? prev.filter(d => d !== dayIndex) : [...prev, dayIndex]
+      prev.includes(dayIndex) ? prev.filter(d => d !== dayIndex) : [...prev, dayIndex],
     )
   }
 

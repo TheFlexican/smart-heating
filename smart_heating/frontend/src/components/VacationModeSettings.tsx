@@ -68,7 +68,7 @@ export const VacationModeSettings: React.FC = () => {
         retryCount < 3
       ) {
         console.warn(
-          `Failed to load vacation mode (network error), retrying (${retryCount + 1}/3)...`
+          `Failed to load vacation mode (network error), retrying (${retryCount + 1}/3)...`,
         )
         // Exponential backoff: 500ms, 1s, 2s
         const delay = 500 * Math.pow(2, retryCount)

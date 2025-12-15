@@ -131,7 +131,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
 
   const handleTemperatureCommit = async (
     event: Event | React.SyntheticEvent,
-    value: number | number[]
+    value: number | number[],
   ) => {
     event.stopPropagation()
     try {

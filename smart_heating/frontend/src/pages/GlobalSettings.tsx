@@ -579,7 +579,7 @@ export default function GlobalSettings({
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               {t(
                 'globalSettings.presets.description',
-                'These are the default temperatures for each preset mode. Areas can choose to use these global settings or define their own custom temperatures.'
+                'These are the default temperatures for each preset mode. Areas can choose to use these global settings or define their own custom temperatures.',
               )}
             </Typography>
 
@@ -630,7 +630,7 @@ export default function GlobalSettings({
               💡{' '}
               {t(
                 'globalSettings.presets.tip',
-                'Tip: To customize temperatures for a specific area, go to that area\'s settings and toggle off "Use global preset" for individual preset modes.'
+                'Tip: To customize temperatures for a specific area, go to that area\'s settings and toggle off "Use global preset" for individual preset modes.',
               )}
             </Typography>
           </Paper>
@@ -645,7 +645,7 @@ export default function GlobalSettings({
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               {t(
                 'globalSettings.sensors.description',
-                'Configure presence sensors that can be used across all areas. Areas can choose to use these global sensors or configure their own.'
+                'Configure presence sensors that can be used across all areas. Areas can choose to use these global sensors or configure their own.',
               )}
             </Typography>
 
@@ -669,7 +669,7 @@ export default function GlobalSettings({
                       primary={sensor.entity_id}
                       secondary={t(
                         'globalSettings.sensors.switchText',
-                        "Switches heating to 'away' when nobody is home"
+                        "Switches heating to 'away' when nobody is home",
                       )}
                     />
                   </ListItem>
@@ -679,7 +679,7 @@ export default function GlobalSettings({
               <Alert severity="info" sx={{ mb: 2 }}>
                 {t(
                   'globalSettings.sensors.noSensors',
-                  'No global presence sensors configured. Add sensors that will be available to all areas.'
+                  'No global presence sensors configured. Add sensors that will be available to all areas.',
                 )}
               </Alert>
             )}
@@ -698,7 +698,7 @@ export default function GlobalSettings({
               💡{' '}
               {t(
                 'globalSettings.sensors.tip',
-                'Tip: Areas can enable "Use global presence" in their settings to use these sensors instead of configuring their own.'
+                'Tip: Areas can enable "Use global presence" in their settings to use these sensors instead of configuring their own.',
               )}
             </Typography>
           </Paper>
@@ -723,7 +723,7 @@ export default function GlobalSettings({
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               {t(
                 'globalSettings.safety.description',
-                'Configure smoke or carbon monoxide detectors that will automatically shut down all heating when danger is detected. All areas will be disabled immediately to prevent heating during a safety emergency.'
+                'Configure smoke or carbon monoxide detectors that will automatically shut down all heating when danger is detected. All areas will be disabled immediately to prevent heating during a safety emergency.',
               )}
             </Typography>
 
@@ -731,7 +731,7 @@ export default function GlobalSettings({
               <Alert severity="error" sx={{ mb: 3 }}>
                 {t(
                   'globalSettings.safety.alertActive',
-                  '⚠️ SAFETY ALERT ACTIVE! All heating has been shut down. Please resolve the safety issue and manually re-enable areas.'
+                  '⚠️ SAFETY ALERT ACTIVE! All heating has been shut down. Please resolve the safety issue and manually re-enable areas.',
                 )}
               </Alert>
             )}
@@ -799,7 +799,7 @@ export default function GlobalSettings({
                 <Alert severity="warning" sx={{ mb: 2 }}>
                   {t(
                     'globalSettings.safety.notConfigured',
-                    'No safety sensors configured. It is highly recommended to configure smoke or CO detectors for emergency heating shutdown.'
+                    'No safety sensors configured. It is highly recommended to configure smoke or CO detectors for emergency heating shutdown.',
                   )}
                 </Alert>
 
@@ -819,7 +819,7 @@ export default function GlobalSettings({
               💡{' '}
               {t(
                 'globalSettings.safety.tip',
-                'When any safety sensor detects smoke or carbon monoxide, all heating will be immediately stopped and all areas disabled. Areas must be manually re-enabled after the safety issue is resolved.'
+                'When any safety sensor detects smoke or carbon monoxide, all heating will be immediately stopped and all areas disabled. Areas must be manually re-enabled after the safety issue is resolved.',
               )}
             </Typography>
           </Paper>
@@ -835,7 +835,7 @@ export default function GlobalSettings({
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               {t(
                 'globalSettings.theme.description',
-                'Choose the color theme for the application interface.'
+                'Choose the color theme for the application interface.',
               )}
             </Typography>
 
@@ -887,7 +887,7 @@ export default function GlobalSettings({
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               {t(
                 'globalSettings.hysteresis.description',
-                'Controls the temperature buffer to prevent rapid on/off cycling of your heating system.'
+                'Controls the temperature buffer to prevent rapid on/off cycling of your heating system.',
               )}
             </Typography>
 
@@ -898,14 +898,14 @@ export default function GlobalSettings({
               <Typography variant="body2" sx={{ mb: 1 }}>
                 {t(
                   'globalSettings.hysteresis.explanation',
-                  'Hysteresis prevents your heating system from constantly turning on and off (short cycling), which can damage equipment like boilers, relays, and valves.'
+                  'Hysteresis prevents your heating system from constantly turning on and off (short cycling), which can damage equipment like boilers, relays, and valves.',
                 )}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>
                 <strong>{t('globalSettings.hysteresis.howItWorks', 'How it works:')}</strong>{' '}
                 {t(
                   'globalSettings.hysteresis.example',
-                  'If your target is 19.2°C and hysteresis is 0.5°C, heating starts at 18.7°C and stops at 19.2°C.'
+                  'If your target is 19.2°C and hysteresis is 0.5°C, heating starts at 18.7°C and stops at 19.2°C.',
                 )}
               </Typography>
               <Typography variant="body2">
@@ -917,19 +917,19 @@ export default function GlobalSettings({
                 <li>
                   {t(
                     'globalSettings.hysteresis.rec1',
-                    '0.1°C - Minimal delay, more frequent cycling (use only if needed)'
+                    '0.1°C - Minimal delay, more frequent cycling (use only if needed)',
                   )}
                 </li>
                 <li>
                   {t(
                     'globalSettings.hysteresis.rec2',
-                    '0.5°C - Balanced (default, recommended for most systems)'
+                    '0.5°C - Balanced (default, recommended for most systems)',
                   )}
                 </li>
                 <li>
                   {t(
                     'globalSettings.hysteresis.rec3',
-                    '1.0°C - Energy efficient, less wear on equipment'
+                    '1.0°C - Energy efficient, less wear on equipment',
                   )}
                 </li>
               </ul>
@@ -937,7 +937,7 @@ export default function GlobalSettings({
                 💡{' '}
                 {t(
                   'globalSettings.hysteresis.tip',
-                  'Tip: For immediate heating, use Boost Mode instead of reducing hysteresis.'
+                  'Tip: For immediate heating, use Boost Mode instead of reducing hysteresis.',
                 )}
               </Typography>
             </Alert>
@@ -949,7 +949,7 @@ export default function GlobalSettings({
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 {t(
                   'globalSettings.hysteresis.heatingStarts',
-                  'Heating starts when temperature drops'
+                  'Heating starts when temperature drops',
                 )}{' '}
                 {hysteresis.toFixed(1)}°C{' '}
                 {t('globalSettings.hysteresis.belowTarget', 'below target')}
@@ -986,7 +986,7 @@ export default function GlobalSettings({
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               {t(
                 'globalSettings.ui.description',
-                'Customize the user interface to your preferences.'
+                'Customize the user interface to your preferences.',
               )}
             </Typography>
 
@@ -1009,7 +1009,7 @@ export default function GlobalSettings({
                   <Typography variant="body2" color="text.secondary">
                     {t(
                       'globalSettings.ui.hideDevicesPanelDescription',
-                      "Hide the sidebar with available devices when you're done setting up zones."
+                      "Hide the sidebar with available devices when you're done setting up zones.",
                     )}
                   </Typography>
                 </Box>
@@ -1032,7 +1032,7 @@ export default function GlobalSettings({
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 {t(
                   'globalSettings.advanced.description',
-                  'Advanced features for optimizing setpoints, boiler cycling and energy efficiency. These are disabled by default. Enable to use advanced control algorithms (heating curves, PWM for on/off boilers, PID auto-gains, and calibration routines).'
+                  'Advanced features for optimizing setpoints, boiler cycling and energy efficiency. These are disabled by default. Enable to use advanced control algorithms (heating curves, PWM for on/off boilers, PID auto-gains, and calibration routines).',
                 )}
               </Typography>
               <Stack spacing={2}>
@@ -1095,7 +1095,7 @@ export default function GlobalSettings({
                   <Typography>
                     {t(
                       'globalSettings.advanced.overshoot',
-                      'Overshoot Protection (OPV) calibration'
+                      'Overshoot Protection (OPV) calibration',
                     )}
                   </Typography>
                   <Switch
@@ -1114,7 +1114,7 @@ export default function GlobalSettings({
                   <Typography>
                     {t(
                       'globalSettings.advanced.defaultCoefficient',
-                      'Default heating curve coefficient'
+                      'Default heating curve coefficient',
                     )}
                   </Typography>
                   <input
@@ -1124,7 +1124,7 @@ export default function GlobalSettings({
                     onChange={e =>
                       handleToggleAdvancedControl(
                         'default_heating_curve_coefficient',
-                        Number(e.target.value)
+                        Number(e.target.value),
                       )
                     }
                     step={0.1}
@@ -1133,7 +1133,7 @@ export default function GlobalSettings({
                   <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
                     {t(
                       'globalSettings.advanced.defaultCoefficientHelper',
-                      'Default coefficient used when Heating Curve is enabled'
+                      'Default coefficient used when Heating Curve is enabled',
                     )}
                   </Typography>
                 </Box>
@@ -1205,13 +1205,13 @@ export default function GlobalSettings({
                 <Typography variant="body2">
                   {t(
                     'globalSettings.opentherm.description',
-                    'Enter the numeric integration ID (e.g., 128937219831729813), NOT the entity ID (e.g., climate.opentherm_thermostaat).'
+                    'Enter the numeric integration ID (e.g., 128937219831729813), NOT the entity ID (e.g., climate.opentherm_thermostaat).',
                   )}
                 </Typography>
                 <Typography variant="body2" sx={{ mt: 1 }}>
                   {t(
                     'globalSettings.opentherm.findId',
-                    'Find this ID in: Settings → Devices & Services → OpenTherm Gateway → Click "Configure" → Look for "ID" field (numeric value).'
+                    'Find this ID in: Settings → Devices & Services → OpenTherm Gateway → Click "Configure" → Look for "ID" field (numeric value).',
                   )}
                 </Typography>
               </Box>
@@ -1221,7 +1221,7 @@ export default function GlobalSettings({
                   <Alert severity="warning">
                     {t(
                       'globalSettings.opentherm.noGateways',
-                      'No OpenTherm gateways found. Please add the OpenTherm Gateway integration in Home Assistant and configure its gateway ID.'
+                      'No OpenTherm gateways found. Please add the OpenTherm Gateway integration in Home Assistant and configure its gateway ID.',
                     )}{' '}
                     <a href="/config/integrations" target="_blank" rel="noreferrer">
                       {t('globalSettings.openIntegrations', 'Open Integrations')}
@@ -1237,7 +1237,7 @@ export default function GlobalSettings({
                     value={openthermGatewayId}
                     label={t(
                       'globalSettings.opentherm.gatewayId',
-                      'Gateway Integration ID (ID or slug)'
+                      'Gateway Integration ID (ID or slug)',
                     )}
                     onChange={e => setOpenthermGatewayId(e.target.value)}
                   >

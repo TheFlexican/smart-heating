@@ -57,7 +57,7 @@ export default tseslint.config(
       // Style rules (handled by Prettier mostly)
       'semi': ['error', 'never'],
       'quotes': ['error', 'single', { avoidEscape: true }],
-      'comma-dangle': ['error', 'always-multiline'],
+      // comma-dangle handled by Prettier
     },
   },
 )

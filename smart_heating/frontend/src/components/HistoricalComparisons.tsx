@@ -125,7 +125,7 @@ const HistoricalComparisons: React.FC = () => {
     currentValue: number,
     previousValue: number,
     delta: MetricDelta,
-    unit: string = ''
+    unit: string = '',
   ) => (
     <Card>
       <CardContent>
@@ -359,7 +359,7 @@ const HistoricalComparisons: React.FC = () => {
                     t('comparison.energyScore'),
                     comparison.current_summary.energy_score,
                     comparison.previous_summary.energy_score,
-                    comparison.summary_delta.energy_score
+                    comparison.summary_delta.energy_score,
                   )}
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -368,7 +368,7 @@ const HistoricalComparisons: React.FC = () => {
                     comparison.current_summary.heating_time_percentage,
                     comparison.previous_summary.heating_time_percentage,
                     comparison.summary_delta.heating_time,
-                    '%'
+                    '%',
                   )}
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -376,7 +376,7 @@ const HistoricalComparisons: React.FC = () => {
                     t('comparison.heatingCycles'),
                     comparison.current_summary.heating_cycles,
                     comparison.previous_summary.heating_cycles,
-                    comparison.summary_delta.heating_cycles
+                    comparison.summary_delta.heating_cycles,
                   )}
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -385,7 +385,7 @@ const HistoricalComparisons: React.FC = () => {
                     comparison.current_summary.avg_temp_delta,
                     comparison.previous_summary.avg_temp_delta,
                     comparison.summary_delta.temp_delta,
-                    '°C'
+                    '°C',
                   )}
                 </Grid>
               </Grid>

@@ -50,7 +50,7 @@ export const getOpenThermSensorStates = async (): Promise<any> => {
   ]
 
   const results = await Promise.allSettled(
-    sensorIds.map(id => getEntityState(id).catch(() => null))
+    sensorIds.map(id => getEntityState(id).catch(() => null)),
   )
 
   const sensorMapping: Array<{

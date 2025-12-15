@@ -5,7 +5,7 @@ type Period = 'day' | 'week' | 'month' | 'year'
 
 export const getEfficiencyReport = async (
   areaId: string,
-  period: Period = 'week'
+  period: Period = 'week',
 ): Promise<any> => {
   const response = await axios.get(`${API_BASE}/efficiency/report/${areaId}?period=${period}`)
   return response.data
@@ -30,7 +30,7 @@ export const getCustomComparison = async (
   startA: string,
   endA: string,
   startB: string,
-  endB: string
+  endB: string,
 ): Promise<any> => {
   const response = await axios.post(`${API_BASE}/comparison/custom`, {
     start_a: startA,

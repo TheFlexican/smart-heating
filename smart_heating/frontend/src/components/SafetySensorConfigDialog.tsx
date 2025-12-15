@@ -116,7 +116,7 @@ const SafetySensorConfigDialog = ({
           <Alert severity="info" data-testid="safety-info">
             {t(
               'globalSettings.safety.sensorDescription',
-              'Configure a smoke or carbon monoxide detector that will automatically shut down all heating when danger is detected.'
+              'Configure a smoke or carbon monoxide detector that will automatically shut down all heating when danger is detected.',
             )}
           </Alert>
 
@@ -167,7 +167,7 @@ const SafetySensorConfigDialog = ({
                 onChange={e => setAttribute(e.target.value)}
                 helperText={t(
                   'globalSettings.safety.attributeHelp',
-                  'The sensor attribute to monitor (e.g., "state", "smoke", "carbon_monoxide")'
+                  'The sensor attribute to monitor (e.g., "state", "smoke", "carbon_monoxide")',
                 )}
               />
 
@@ -179,7 +179,7 @@ const SafetySensorConfigDialog = ({
                 onChange={e => setAlertValue(e.target.value)}
                 helperText={t(
                   'globalSettings.safety.alertValueHelp',
-                  'The value that indicates danger (e.g., "true", "on", "detected")'
+                  'The value that indicates danger (e.g., "true", "on", "detected")',
                 )}
               />
 

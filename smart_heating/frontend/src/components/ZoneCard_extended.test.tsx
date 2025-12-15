@@ -105,7 +105,7 @@ describe('ZoneCard extended behaviors', () => {
     const removeButtons = screen.getAllByRole('button', { hidden: true })
     // removeButtons includes many icons; find the one containing RemoveCircleOutlineIcon
     const removeBtn = removeButtons.find(
-      b => b.querySelector('svg')?.dataset?.testid === 'RemoveCircleOutlineIcon'
+      b => b.querySelector('svg')?.dataset?.testid === 'RemoveCircleOutlineIcon',
     )
     if (removeBtn) await userEvent.click(removeBtn)
     expect((await import('../api/areas')).removeDeviceFromZone).toHaveBeenCalled()
@@ -135,7 +135,7 @@ describe('ZoneCard extended behaviors', () => {
     // open menu
     const menuButtons = screen.getAllByRole('button')
     const moreBtn = menuButtons.find(
-      b => b.querySelector('svg')?.dataset?.testid === 'MoreVertIcon'
+      b => b.querySelector('svg')?.dataset?.testid === 'MoreVertIcon',
     )
     if (moreBtn) await userEvent.click(moreBtn)
 

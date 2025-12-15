@@ -12,12 +12,12 @@ describe('ScheduleEntryDialog', () => {
     const user = userEvent.setup()
 
     render(
-      <ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />
+      <ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />,
     )
 
     // Should show weekly toggle
     expect(
-      screen.getByRole('button', { name: 'scheduleDialog.weeklyRecurring' })
+      screen.getByRole('button', { name: 'scheduleDialog.weeklyRecurring' }),
     ).toBeInTheDocument()
 
     // Clear selected days with 'clear selection' and verify save is disabled via validation
@@ -31,7 +31,7 @@ describe('ScheduleEntryDialog', () => {
     const user = userEvent.setup()
 
     render(
-      <ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />
+      <ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />,
     )
 
     // Switch to date mode

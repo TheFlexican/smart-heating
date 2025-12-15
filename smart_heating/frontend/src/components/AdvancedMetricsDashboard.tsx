@@ -138,13 +138,13 @@ export default function AdvancedMetricsDashboard() {
     avgModulation:
       metrics.length > 0
         ? (metrics.reduce((acc, m) => acc + (m.modulation_level || 0), 0) / metrics.length).toFixed(
-            1
+            1,
           )
         : '0',
     avgFlowTemp:
       metrics.length > 0
         ? (metrics.reduce((acc, m) => acc + (m.boiler_flow_temp || 0), 0) / metrics.length).toFixed(
-            1
+            1,
           )
         : '0',
     avgReturnTemp:
@@ -162,7 +162,7 @@ export default function AdvancedMetricsDashboard() {
         ? (
             metrics.reduce(
               (acc, m) => acc + ((m.boiler_flow_temp || 0) - (m.boiler_return_temp || 0)),
-              0
+              0,
             ) / metrics.length
           ).toFixed(1)
         : '0',
@@ -226,7 +226,7 @@ export default function AdvancedMetricsDashboard() {
         <Alert severity="info" sx={{ mb: 2 }}>
           {t(
             'advancedMetrics.noData',
-            'No metrics data yet. Data is collected every 5 minutes. Check back soon!'
+            'No metrics data yet. Data is collected every 5 minutes. Check back soon!',
           )}
         </Alert>
       )}
@@ -243,7 +243,7 @@ export default function AdvancedMetricsDashboard() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           {t(
             'advancedMetrics.heatingCurve.description',
-            'Shows how the system proactively adjusts flow temperature based on outdoor conditions'
+            'Shows how the system proactively adjusts flow temperature based on outdoor conditions',
           )}
         </Typography>
 
@@ -294,7 +294,7 @@ export default function AdvancedMetricsDashboard() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           {t(
             'advancedMetrics.efficiency.description',
-            'Modulation stability and thermal performance indicators'
+            'Modulation stability and thermal performance indicators',
           )}
         </Typography>
 
@@ -404,7 +404,7 @@ export default function AdvancedMetricsDashboard() {
             <strong>{t('advancedMetrics.efficiency.tip', 'Tip')}:</strong>{' '}
             {t(
               'advancedMetrics.efficiency.tipText',
-              'Stable modulation between 30-60% indicates efficient operation. Large fluctuations suggest the system is cycling on/off frequently.'
+              'Stable modulation between 30-60% indicates efficient operation. Large fluctuations suggest the system is cycling on/off frequently.',
             )}
           </Typography>
         </Alert>
@@ -418,7 +418,7 @@ export default function AdvancedMetricsDashboard() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           {t(
             'advancedMetrics.areas.description',
-            'Current advanced feature configuration per heating area'
+            'Current advanced feature configuration per heating area',
           )}
         </Typography>
 

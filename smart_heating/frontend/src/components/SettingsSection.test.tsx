@@ -16,7 +16,7 @@ describe('SettingsSection', () => {
         onExpandedChange={onChange}
       >
         <div>child content</div>
-      </SettingsSection>
+      </SettingsSection>,
     )
 
     expect(screen.getByText('Test')).toBeInTheDocument()

@@ -142,7 +142,7 @@ const ZoneDetail = () => {
   const [weatherEntities, setWeatherEntities] = useState<HassEntity[]>([])
   const [weatherEntitiesLoading, setWeatherEntitiesLoading] = useState(false)
   const [areaHeatingCurveCoefficient, setAreaHeatingCurveCoefficient] = useState<number | null>(
-    null
+    null,
   )
   const [useGlobalHeatingCurve, setUseGlobalHeatingCurve] = useState<boolean>(true)
 
@@ -300,7 +300,7 @@ const ZoneDetail = () => {
       const available = allDevices.filter(device => {
         // Check if already assigned
         const alreadyAssigned = currentZone.devices.some(
-          d => (d.entity_id || d.id) === (device.entity_id || device.id)
+          d => (d.entity_id || d.id) === (device.entity_id || device.id),
         )
         if (alreadyAssigned) return false
 
@@ -398,7 +398,7 @@ const ZoneDetail = () => {
 
   const handleTemperatureCommit = async (
     _event: Event | React.SyntheticEvent,
-    value: number | number[]
+    value: number | number[],
   ) => {
     if (!area) return
 
@@ -497,7 +497,7 @@ const ZoneDetail = () => {
   const getPresetTemp = (
     presetKey: string,
     customTemp: number | undefined,
-    fallback: number
+    fallback: number,
   ): string => {
     if (!area) return `${fallback}°C`
 
@@ -767,7 +767,7 @@ const ZoneDetail = () => {
                 try {
                   const tempInput = document.getElementById('boost-temp-input') as HTMLInputElement
                   const durationInput = document.getElementById(
-                    'boost-duration-input'
+                    'boost-duration-input',
                   ) as HTMLInputElement
                   const temp = Number.parseFloat(tempInput.value)
                   const duration = Number.parseInt(durationInput.value)
@@ -819,7 +819,7 @@ const ZoneDetail = () => {
         title: t('settingsCards.heatingTypeTitle', 'Heating Type'),
         description: t(
           'settingsCards.heatingTypeDescription',
-          'Select radiator or floor heating to optimize temperature control'
+          'Select radiator or floor heating to optimize temperature control',
         ),
         icon: <LocalFireDepartmentIcon />,
         badge:
@@ -839,7 +839,7 @@ const ZoneDetail = () => {
                 try {
                   await setHeatingType(
                     area.id,
-                    e.target.value as 'radiator' | 'floor_heating' | 'airco'
+                    e.target.value as 'radiator' | 'floor_heating' | 'airco',
                   )
                   loadData()
                 } catch (error) {
@@ -858,7 +858,7 @@ const ZoneDetail = () => {
                     <Typography variant="caption" color="text.secondary">
                       {t(
                         'settingsCards.radiatorDescription',
-                        'Fast response, higher overhead temperature (default: +20°C)'
+                        'Fast response, higher overhead temperature (default: +20°C)',
                       )}
                     </Typography>
                   </Box>
@@ -875,7 +875,7 @@ const ZoneDetail = () => {
                     <Typography variant="caption" color="text.secondary">
                       {t(
                         'settingsCards.floorHeatingDescription',
-                        'Slow response, lower overhead temperature (default: +5°C)'
+                        'Slow response, lower overhead temperature (default: +5°C)',
                       )}
                     </Typography>
                   </Box>
@@ -892,7 +892,7 @@ const ZoneDetail = () => {
                     <Typography variant="caption" color="text.secondary">
                       {t(
                         'settingsCards.aircoDescription',
-                        'Use air conditioner (cooling/heating). Radiator/floor-specific settings are disabled.'
+                        'Use air conditioner (cooling/heating). Radiator/floor-specific settings are disabled.',
                       )}
                     </Typography>
                   </Box>
@@ -903,7 +903,7 @@ const ZoneDetail = () => {
             <Alert severity="info" sx={{ mt: 2 }}>
               {t(
                 'settingsCards.heatingTypeInfo',
-                'Heating type affects the boiler setpoint temperature. Radiators use higher temperature for faster heating, floor heating uses lower temperature for gradual heating.'
+                'Heating type affects the boiler setpoint temperature. Radiators use higher temperature for faster heating, floor heating uses lower temperature for gradual heating.',
               )}
             </Alert>
 
@@ -915,7 +915,7 @@ const ZoneDetail = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 {t(
                   'settingsCards.heatingCurveDescription',
-                  'Optional per-area coefficient used in heating curve calculations. Leave blank to use the global coefficient.'
+                  'Optional per-area coefficient used in heating curve calculations. Leave blank to use the global coefficient.',
                 )}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
@@ -945,11 +945,11 @@ const ZoneDetail = () => {
                       : useGlobalHeatingCurve
                         ? t(
                             'settingsCards.heatingCurveHelper.usingGlobal',
-                            'Using global coefficient'
+                            'Using global coefficient',
                           )
                         : t(
                             'settingsCards.heatingCurveHelper.overrideActive',
-                            'Per-area override active'
+                            'Per-area override active',
                           )
                   }
                 />
@@ -960,7 +960,7 @@ const ZoneDetail = () => {
                       await setAreaHeatingCurve(
                         area.id,
                         useGlobalHeatingCurve,
-                        areaHeatingCurveCoefficient ?? undefined
+                        areaHeatingCurveCoefficient ?? undefined,
                       )
                       await loadData()
                     } catch (err) {
@@ -1549,7 +1549,7 @@ const ZoneDetail = () => {
                   console.log('Weather sensor onChange - Selected value:', newValue)
                   console.log(
                     'Weather sensor onChange - Current area.weather_entity_id:',
-                    area.weather_entity_id
+                    area.weather_entity_id,
                   )
                   try {
                     const serviceCallBody = {
@@ -1661,7 +1661,7 @@ const ZoneDetail = () => {
                             use_global: useGlobal,
                             hysteresis: useGlobal ? null : 0.5,
                           }),
-                        }
+                        },
                       )
                       if (!response.ok) {
                         const errorText = await response.text()
@@ -1711,7 +1711,7 @@ const ZoneDetail = () => {
                               use_global: false,
                               hysteresis: value,
                             }),
-                          }
+                          },
                         )
                         if (!response.ok) {
                           const errorText = await response.text()
@@ -1810,7 +1810,7 @@ const ZoneDetail = () => {
                     onClick={async () => {
                       if (
                         !confirm(
-                          'Migrate history data to database? This requires MariaDB, MySQL, or PostgreSQL. SQLite is not supported.'
+                          'Migrate history data to database? This requires MariaDB, MySQL, or PostgreSQL. SQLite is not supported.',
                         )
                       )
                         return
@@ -1819,7 +1819,7 @@ const ZoneDetail = () => {
                         const result = await migrateHistoryStorage('database')
                         if (result.success) {
                           alert(
-                            `Successfully migrated ${result.migrated_entries} entries to database!`
+                            `Successfully migrated ${result.migrated_entries} entries to database!`,
                           )
                           await loadHistoryConfig()
                         } else {

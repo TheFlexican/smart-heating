@@ -232,7 +232,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
       if (editingUser) {
         // Update existing user
         const userId = Object.keys(userData?.users || {}).find(
-          key => userData?.users[key].user_id === editingUser.user_id
+          key => userData?.users[key].user_id === editingUser.user_id,
         )
         if (userId) {
           await updateUser(userId, {
@@ -287,7 +287,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
       setSettingsDialogOpen(false)
     } catch (err: any) {
       setError(
-        err.response?.data?.error || t('users.errorUpdatingSettings', 'Failed to update settings')
+        err.response?.data?.error || t('users.errorUpdatingSettings', 'Failed to update settings'),
       )
       console.error('Error updating settings:', err)
     }
@@ -407,7 +407,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
                 icon={<HomeIcon />}
                 label={t(
                   'users.usersHome',
-                  `${userData.presence_state.users_home.length} users home`
+                  `${userData.presence_state.users_home.length} users home`,
                 )}
                 color={userData.presence_state.users_home.length > 0 ? 'success' : 'default'}
               />
@@ -415,7 +415,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
                 <Chip
                   label={t(
                     'users.activeUser',
-                    `Active: ${userData.users[userData.presence_state.active_user]?.name || 'Unknown'}`
+                    `Active: ${userData.users[userData.presence_state.active_user]?.name || 'Unknown'}`,
                   )}
                   color="primary"
                 />
@@ -423,7 +423,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
               <Chip
                 label={t(
                   `users.mode.${userData.presence_state.combined_mode}`,
-                  userData.presence_state.combined_mode
+                  userData.presence_state.combined_mode,
                 )}
               />
             </Stack>
@@ -516,7 +516,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
                     disabled
                     helperText={t(
                       'users.userIdReadOnly',
-                      'Read-only - Person entity linked to this user'
+                      'Read-only - Person entity linked to this user',
                     )}
                   />
                 </Grid>

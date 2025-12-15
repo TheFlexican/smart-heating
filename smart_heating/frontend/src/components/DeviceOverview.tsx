@@ -108,7 +108,7 @@ const DeviceOverview = ({ areas }: DeviceOverviewProps) => {
       areaName: area.name,
       areaId: area.id,
       areaTarget: area.target_temperature,
-    }))
+    })),
   )
 
   if (allDevices.length === 0) {

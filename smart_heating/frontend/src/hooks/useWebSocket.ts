@@ -131,7 +131,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
               JSON.stringify({
                 type: 'auth',
                 access_token: token,
-              })
+              }),
             )
             return
           }
@@ -154,7 +154,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
                   JSON.stringify({
                     id: messageIdRef.current++,
                     type: 'ping',
-                  })
+                  }),
                 )
               }
             }, 30000)
@@ -164,7 +164,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
               JSON.stringify({
                 id: messageIdRef.current++,
                 type: 'smart_heating/subscribe',
-              })
+              }),
             )
             return
           }
@@ -265,7 +265,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         if (reconnectAttempts.current < maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000)
           console.log(
-            `[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`
+            `[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`,
           )
 
           reconnectTimeoutRef.current = setTimeout(() => {

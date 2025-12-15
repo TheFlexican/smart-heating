@@ -42,7 +42,7 @@ describe('ZoneCard additional tests', () => {
     render(
       <MemoryRouter>
         <ZoneCard area={area as any} onUpdate={() => {}} />
-      </MemoryRouter>
+      </MemoryRouter>,
     )
     const temps = screen.getAllByText(/20.0°C/)
     expect(temps.length).toBeGreaterThan(0)
@@ -67,7 +67,7 @@ describe('ZoneCard additional tests', () => {
     render(
       <MemoryRouter>
         <ZoneCard area={area as any} onUpdate={() => {}} />
-      </MemoryRouter>
+      </MemoryRouter>,
     )
     expect(screen.getByText(/70%/)).toBeInTheDocument()
     expect(screen.getByText('area.on')).toBeInTheDocument()
@@ -91,10 +91,10 @@ describe('ZoneCard additional tests', () => {
     const { container } = render(
       <MemoryRouter>
         <ZoneCard area={area} onUpdate={() => {}} />
-      </MemoryRouter>
+      </MemoryRouter>,
     )
     const menuButton = Array.from(container.querySelectorAll('button')).find(b =>
-      b.innerHTML.includes('MoreVertIcon')
+      b.innerHTML.includes('MoreVertIcon'),
     )
     await user.click(menuButton)
     const menuItem = screen.getByText('area.hideArea')
@@ -118,7 +118,7 @@ describe('ZoneCard additional tests', () => {
     render(
       <MemoryRouter>
         <ZoneCard area={area} onUpdate={() => {}} />
-      </MemoryRouter>
+      </MemoryRouter>,
     )
     const slider = screen.getByRole('slider')
     fireEvent.change(slider, { target: { value: 22 } })

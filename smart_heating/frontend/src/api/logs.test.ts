@@ -26,7 +26,7 @@ describe('API - Logs', () => {
     expect(mockedAxios.get).toHaveBeenCalledWith('/api/smart_heating/areas/a1/logs?')
     await logs.getAreaLogs('a1', { limit: 5, type: 'warning' })
     expect(mockedAxios.get).toHaveBeenCalledWith(
-      '/api/smart_heating/areas/a1/logs?limit=5&type=warning'
+      '/api/smart_heating/areas/a1/logs?limit=5&type=warning',
     )
   })
 })

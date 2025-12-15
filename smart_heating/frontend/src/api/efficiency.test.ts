@@ -12,11 +12,11 @@ describe('API - Efficiency', () => {
     mockedAxios.get = vi.fn().mockResolvedValue({ data: { report: true } }) as any
     await efficiency.getEfficiencyReport('a1')
     expect(mockedAxios.get).toHaveBeenCalledWith(
-      '/api/smart_heating/efficiency/report/a1?period=week'
+      '/api/smart_heating/efficiency/report/a1?period=week',
     )
     await efficiency.getAllAreasEfficiency('day')
     expect(mockedAxios.get).toHaveBeenCalledWith(
-      '/api/smart_heating/efficiency/all_areas?period=day'
+      '/api/smart_heating/efficiency/all_areas?period=day',
     )
     await efficiency.getComparison('month')
     expect(mockedAxios.get).toHaveBeenCalledWith('/api/smart_heating/comparison/month')

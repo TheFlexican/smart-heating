@@ -14,7 +14,7 @@ describe('API - History', () => {
       .mockResolvedValue({ data: { area_id: 'a1', entries: [], count: 0 } }) as any
     await api.getHistory('a1', { hours: 2, startTime: '2024-01-01', endTime: '2024-01-02' })
     expect(mockedAxios.get).toHaveBeenCalledWith(
-      '/api/smart_heating/areas/a1/history?hours=2&start_time=2024-01-01&end_time=2024-01-02'
+      '/api/smart_heating/areas/a1/history?hours=2&start_time=2024-01-01&end_time=2024-01-02',
     )
   })
 

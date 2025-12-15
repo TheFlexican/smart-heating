@@ -12,7 +12,7 @@ describe('Header', () => {
     render(
       <MemoryRouter>
         <Header />
-      </MemoryRouter>
+      </MemoryRouter>,
     )
 
     expect(screen.getByTestId('header-settings-button')).toBeInTheDocument()

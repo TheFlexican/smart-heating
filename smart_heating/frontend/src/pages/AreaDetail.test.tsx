@@ -87,7 +87,7 @@ it('preset select is disabled when area is disabled/off', async () => {
       defaultExpanded={true}
     >
       {content}
-    </SettingsSection>
+    </SettingsSection>,
   )
 
   // The Select should be present and disabled for disabled/off area
@@ -126,7 +126,7 @@ it('heating type control has testid and accessible label', async () => {
       defaultExpanded={true}
     >
       {content}
-    </SettingsSection>
+    </SettingsSection>,
   )
 
   // testid present
@@ -153,7 +153,7 @@ it('heating curve control is disabled for airco area', async () => {
       <Routes>
         <Route path="/areas/:areaId" element={<ZoneDetail />} />
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
   // Expand heating-type section and check helper text is visible
@@ -181,7 +181,7 @@ it('switch/pump control is disabled for airco area', async () => {
       <Routes>
         <Route path="/areas/:areaId" element={<ZoneDetail />} />
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
   // Expand switch-control section and check helper text and disabled state
@@ -231,7 +231,7 @@ it('heating curve control has testid and toggles input disabled when using globa
       defaultExpanded={true}
     >
       <TestComponent />
-    </SettingsSection>
+    </SettingsSection>,
   )
 
   // testid present
@@ -257,7 +257,7 @@ it('renders Logs tab and opens logs panel (shows empty state)', async () => {
       <Routes>
         <Route path="/areas/:areaId" element={<ZoneDetail />} />
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
   // Logs tab should be present (stable testid)
@@ -294,7 +294,7 @@ it('auto preset toggle has stable testid and is renderable', async () => {
       defaultExpanded={true}
     >
       {content}
-    </SettingsSection>
+    </SettingsSection>,
   )
 
   await waitFor(() => expect(screen.queryByTestId('auto-preset-toggle')).not.toBeNull())

@@ -40,7 +40,7 @@ export const getHistory = async (
     hours?: number
     startTime?: string
     endTime?: string
-  }
+  },
 ): Promise<any> => {
   const params = new URLSearchParams()
   if (options?.hours) {

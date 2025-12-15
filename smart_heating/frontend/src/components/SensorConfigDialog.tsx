@@ -32,7 +32,7 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
 
   // Window sensor states
   const [windowAction, setWindowAction] = useState<'turn_off' | 'reduce_temperature' | 'none'>(
-    'reduce_temperature'
+    'reduce_temperature',
   )
   const [windowTempDrop, setWindowTempDrop] = useState(5)
 

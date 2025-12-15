@@ -4,7 +4,7 @@ const API_BASE = '/api/smart_heating'
 
 export const addWindowSensor = async (
   areaId: string,
-  config: WindowSensorConfig
+  config: WindowSensorConfig,
 ): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/window_sensors`, config)
 }
@@ -15,14 +15,14 @@ export const removeWindowSensor = async (areaId: string, sensorEntityId: string)
 
 export const addPresenceSensor = async (
   areaId: string,
-  config: PresenceSensorConfig
+  config: PresenceSensorConfig,
 ): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/presence_sensors`, config)
 }
 
 export const removePresenceSensor = async (
   areaId: string,
-  sensorEntityId: string
+  sensorEntityId: string,
 ): Promise<void> => {
   await axios.delete(`${API_BASE}/areas/${areaId}/presence_sensors/${sensorEntityId}`)
 }

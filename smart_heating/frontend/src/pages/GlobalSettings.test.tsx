@@ -44,7 +44,7 @@ describe('GlobalSettings', () => {
     render(
       <BrowserRouter>
         <GlobalSettings themeMode="light" onThemeChange={() => {}} />
-      </BrowserRouter>
+      </BrowserRouter>,
     )
 
     // Verify all API calls made on load
@@ -59,7 +59,7 @@ describe('GlobalSettings', () => {
     const { getByTestId } = render(
       <BrowserRouter>
         <GlobalSettings themeMode="light" onThemeChange={() => {}} />
-      </BrowserRouter>
+      </BrowserRouter>,
     )
 
     await waitFor(() => {
@@ -71,7 +71,7 @@ describe('GlobalSettings', () => {
     const { getByTestId, queryByTestId } = render(
       <BrowserRouter>
         <GlobalSettings themeMode="light" onThemeChange={() => {}} />
-      </BrowserRouter>
+      </BrowserRouter>,
     )
 
     // Switch to Sensors tab to expose presence controls
@@ -106,7 +106,7 @@ describe('GlobalSettings', () => {
     const { findByTestId } = render(
       <BrowserRouter>
         <GlobalSettings themeMode="light" onThemeChange={() => {}} />
-      </BrowserRouter>
+      </BrowserRouter>,
     )
 
     // Switch to Users tab and open add dialog
@@ -148,7 +148,7 @@ describe('GlobalSettings', () => {
     const { getByTestId } = render(
       <BrowserRouter>
         <TestComponent />
-      </BrowserRouter>
+      </BrowserRouter>,
     )
 
     const wrapper = getByTestId('heating-curve-control')

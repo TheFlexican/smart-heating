@@ -141,7 +141,7 @@ const EfficiencyReports: React.FC = () => {
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         {renderMetricCard(
           t('efficiency.heatingTime'),
-          `${metrics.heating_time_percentage.toFixed(1)}%`
+          `${metrics.heating_time_percentage.toFixed(1)}%`,
         )}
       </Grid>
 

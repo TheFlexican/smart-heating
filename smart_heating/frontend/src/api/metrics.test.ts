@@ -14,7 +14,7 @@ describe('API - Metrics', () => {
     expect(mockedAxios.get).toHaveBeenCalledWith('/api/smart_heating/metrics/advanced?days=7')
     await metrics.getAdvancedMetrics(1, 'a1')
     expect(mockedAxios.get).toHaveBeenCalledWith(
-      '/api/smart_heating/metrics/advanced?days=1&area_id=a1'
+      '/api/smart_heating/metrics/advanced?days=1&area_id=a1',
     )
   })
 })

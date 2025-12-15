@@ -43,7 +43,7 @@ export const unhideZone = async (areaId: string): Promise<void> => {
 
 export const addScheduleToZone = async (
   areaId: string,
-  schedule: Omit<ScheduleEntry, 'id'>
+  schedule: Omit<ScheduleEntry, 'id'>,
 ): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/schedules`, schedule)
 }
@@ -55,7 +55,7 @@ export const removeScheduleFromZone = async (areaId: string, scheduleId: string)
 export const updateScheduleInZone = async (
   areaId: string,
   scheduleId: string,
-  update: Partial<Omit<ScheduleEntry, 'id'>>
+  update: Partial<Omit<ScheduleEntry, 'id'>>,
 ): Promise<void> => {
   await axios.patch(`${API_BASE}/areas/${areaId}/schedules/${scheduleId}`, update)
 }
@@ -74,7 +74,7 @@ export const setPresetMode = async (areaId: string, presetMode: string): Promise
 export const setBoostMode = async (
   areaId: string,
   duration: number,
-  temperature?: number
+  temperature?: number,
 ): Promise<void> => {
   const data: any = { duration }
   if (temperature !== undefined) {
@@ -103,7 +103,7 @@ export const copySchedule = async (
   sourceAreaId: string,
   targetAreaId: string,
   sourceDays?: string[],
-  targetDays?: string[]
+  targetDays?: string[],
 ): Promise<void> => {
   const data: any = {
     source_area_id: sourceAreaId,
@@ -121,7 +121,7 @@ export const copySchedule = async (
 export const setHeatingType = async (
   areaId: string,
   heatingType: 'radiator' | 'floor_heating' | 'airco',
-  customOverheadTemp?: number
+  customOverheadTemp?: number,
 ): Promise<void> => {
   const data: any = { heating_type: heatingType }
   if (customOverheadTemp !== undefined) {
@@ -142,7 +142,7 @@ export const getAreaPresetConfig = async (areaId: string): Promise<any> => {
 export const setAreaHeatingCurve = async (
   areaId: string,
   useGlobal: boolean,
-  coefficient?: number
+  coefficient?: number,
 ): Promise<void> => {
   const data: any = { use_global: useGlobal }
   if (coefficient !== undefined) {
@@ -157,7 +157,7 @@ export const setManualOverride = async (areaId: string, enabled: boolean): Promi
 
 export const setPrimaryTemperatureSensor = async (
   areaId: string,
-  sensorId: string | null
+  sensorId: string | null,
 ): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/primary_temp_sensor`, { sensor_id: sensorId })
 }

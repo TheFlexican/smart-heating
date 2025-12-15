@@ -77,7 +77,7 @@ describe('API additional endpoints', () => {
     expect(mockedAxios.get).toHaveBeenCalledWith('/api/smart_heating/areas/a1/logs?')
     await log.getAreaLogs('a1', { limit: 10, type: 'info' })
     expect(mockedAxios.get).toHaveBeenCalledWith(
-      '/api/smart_heating/areas/a1/logs?limit=10&type=info'
+      '/api/smart_heating/areas/a1/logs?limit=10&type=info',
     )
   })
 
@@ -132,11 +132,11 @@ describe('API additional endpoints', () => {
     mockedAxios.get = vi.fn().mockResolvedValue({ data: { report: true } }) as any
     await efficiency.getEfficiencyReport('a1')
     expect(mockedAxios.get).toHaveBeenCalledWith(
-      '/api/smart_heating/efficiency/report/a1?period=week'
+      '/api/smart_heating/efficiency/report/a1?period=week',
     )
     await efficiency.getAllAreasEfficiency('day')
     expect(mockedAxios.get).toHaveBeenCalledWith(
-      '/api/smart_heating/efficiency/all_areas?period=day'
+      '/api/smart_heating/efficiency/all_areas?period=day',
     )
     await efficiency.getComparison('month')
     expect(mockedAxios.get).toHaveBeenCalledWith('/api/smart_heating/comparison/month')
@@ -156,7 +156,7 @@ describe('API additional endpoints', () => {
     expect(mockedAxios.get).toHaveBeenCalledWith('/api/smart_heating/metrics/advanced?days=7')
     await metrics.getAdvancedMetrics(1, 'a1')
     expect(mockedAxios.get).toHaveBeenCalledWith(
-      '/api/smart_heating/metrics/advanced?days=1&area_id=a1'
+      '/api/smart_heating/metrics/advanced?days=1&area_id=a1',
     )
   })
 })

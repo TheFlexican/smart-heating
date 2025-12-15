@@ -12,7 +12,7 @@ describe('ScheduleEntryDialog additional behaviors', () => {
     const user = userEvent.setup()
 
     render(
-      <ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />
+      <ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />,
     )
 
     // Initially Save should be enabled (Monday selected)
@@ -35,7 +35,7 @@ describe('ScheduleEntryDialog additional behaviors', () => {
     const onClose = vi.fn()
     const user = userEvent.setup()
     render(
-      <ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />
+      <ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />,
     )
 
     await user.click(screen.getByTestId('schedule-type-date'))
@@ -62,7 +62,7 @@ describe('ScheduleEntryDialog additional behaviors', () => {
         onClose={onClose}
         onSave={onSave}
         editingEntry={editingEntry as any}
-      />
+      />,
     )
     await userEvent.click(screen.getByRole('button', { name: 'common.save' }))
     expect(onSave).toHaveBeenCalled()

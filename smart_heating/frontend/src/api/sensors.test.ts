@@ -17,7 +17,7 @@ describe('API - Sensors', () => {
     mockedAxios.delete = vi.fn().mockResolvedValue({ data: {} }) as any
     await s.removeWindowSensor('a1', 'sensor.w1')
     expect(mockedAxios.delete).toHaveBeenCalledWith(
-      '/api/smart_heating/areas/a1/window_sensors/sensor.w1'
+      '/api/smart_heating/areas/a1/window_sensors/sensor.w1',
     )
 
     mockedAxios.post = vi.fn().mockResolvedValue({ data: {} }) as any
@@ -28,7 +28,7 @@ describe('API - Sensors', () => {
     mockedAxios.delete = vi.fn().mockResolvedValue({ data: {} }) as any
     await s.removePresenceSensor('a1', 'sensor.p1')
     expect(mockedAxios.delete).toHaveBeenCalledWith(
-      '/api/smart_heating/areas/a1/presence_sensors/sensor.p1'
+      '/api/smart_heating/areas/a1/presence_sensors/sensor.p1',
     )
 
     mockedAxios.get = vi.fn().mockResolvedValue({ data: { sensors: [] } }) as any

@@ -244,7 +244,7 @@ export default function OpenThermLogger() {
         <Alert severity="info" sx={{ mt: 1 }}>
           {t(
             'opentherm.noGateways',
-            'No OpenTherm gateways found. Please add the OpenTherm Gateway integration in Home Assistant.'
+            'No OpenTherm gateways found. Please add the OpenTherm Gateway integration in Home Assistant.',
           )}
         </Alert>
       )}
