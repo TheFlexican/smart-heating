@@ -775,7 +775,7 @@ const ZoneDetail = () => {
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <FormControlLabel
-                  control={<Switch checked={!useGlobalHeatingCurve} onChange={(e) => setUseGlobalHeatingCurve(!e.target.checked)} />}
+                  control={<Switch data-testid="heating-curve-override-switch" checked={!useGlobalHeatingCurve} onChange={(e) => setUseGlobalHeatingCurve(!e.target.checked)} />}
                   label={t('settingsCards.heatingCurveUseArea', 'Use area-specific coefficient')}
                 />
                 <TextField
