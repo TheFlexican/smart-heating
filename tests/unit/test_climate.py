@@ -23,7 +23,9 @@ from tests.unit.const import TEST_AREA_ID, TEST_AREA_NAME
 
 
 @pytest.fixture
-def climate_entity(hass: HomeAssistant, mock_coordinator, mock_config_entry) -> AreaClimate:
+def climate_entity(
+    hass: HomeAssistant, mock_coordinator, mock_config_entry
+) -> AreaClimate:
     """Create a climate entity."""
     # Create a mock Area object
     mock_area = MagicMock()
@@ -53,7 +55,9 @@ class TestClimateEntitySetup:
         mock_area.name = TEST_AREA_NAME
 
         # Set up coordinator with area
-        mock_coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
+        mock_coordinator.area_manager.get_all_areas.return_value = {
+            TEST_AREA_ID: mock_area
+        }
 
         # Store coordinator in hass.data as async_setup_entry expects
         from smart_heating.const import DOMAIN
@@ -83,7 +87,10 @@ class TestClimateEntityProperties:
     def test_unique_id(self, climate_entity: AreaClimate, mock_config_entry):
         """Test unique ID."""
         # Unique ID is "{entry_id}_climate_{area_id}"
-        assert climate_entity.unique_id == f"{mock_config_entry.entry_id}_climate_{TEST_AREA_ID}"
+        assert (
+            climate_entity.unique_id
+            == f"{mock_config_entry.entry_id}_climate_{TEST_AREA_ID}"
+        )
 
     def test_supported_features(self, climate_entity: AreaClimate):
         """Test supported features."""
@@ -213,8 +220,12 @@ class TestClimateEntityAttributes:
         # Mock device methods
         climate_entity._area.devices = {"device1": MagicMock(), "device2": MagicMock()}
         climate_entity._area.get_thermostats = MagicMock(return_value=["thermostat1"])
-        climate_entity._area.get_temperature_sensors = MagicMock(return_value=["sensor1"])
-        climate_entity._area.get_opentherm_gateways = MagicMock(return_value=["gateway1"])
+        climate_entity._area.get_temperature_sensors = MagicMock(
+            return_value=["sensor1"]
+        )
+        climate_entity._area.get_opentherm_gateways = MagicMock(
+            return_value=["gateway1"]
+        )
 
         attrs = climate_entity.extra_state_attributes
 

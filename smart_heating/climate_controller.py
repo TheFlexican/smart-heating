@@ -407,9 +407,9 @@ class ClimateController:
                             "hysteresis": hysteresis,
                             "heat_threshold": target_temp - hysteresis,
                             "cool_threshold": target_temp + hysteresis,
-                            "hvac_mode": area.hvac_mode
-                            if hasattr(area, "hvac_mode")
-                            else "heat",
+                            "hvac_mode": (
+                                area.hvac_mode if hasattr(area, "hvac_mode") else "heat"
+                            ),
                             "reason": reason,
                         },
                     )

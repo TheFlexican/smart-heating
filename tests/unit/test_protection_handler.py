@@ -64,5 +64,7 @@ async def test_apply_vacation_mode_and_manual_override_and_disabled_area():
     area.get_thermostats.return_value = []
     area.get_switches.return_value = []
     area.get_valves.return_value = []
-    await ph.async_handle_disabled_area("a1", area, device_handler, history_tracker, True)
+    await ph.async_handle_disabled_area(
+        "a1", area, device_handler, history_tracker, True
+    )
     history_tracker.async_record_temperature.assert_awaited()

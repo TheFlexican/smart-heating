@@ -50,7 +50,9 @@ class TestLogsHandlers:
     """Test logs API handlers."""
 
     @pytest.mark.asyncio
-    async def test_handle_get_area_logs_success(self, mock_hass, mock_area_logger, mock_request):
+    async def test_handle_get_area_logs_success(
+        self, mock_hass, mock_area_logger, mock_request
+    ):
         """Test getting area logs successfully."""
         response = await handle_get_area_logs(mock_hass, "living_room", mock_request)
 
@@ -71,7 +73,9 @@ class TestLogsHandlers:
         )
 
     @pytest.mark.asyncio
-    async def test_handle_get_area_logs_with_limit(self, mock_hass, mock_area_logger, mock_request):
+    async def test_handle_get_area_logs_with_limit(
+        self, mock_hass, mock_area_logger, mock_request
+    ):
         """Test getting area logs with limit parameter."""
         mock_request.query = {"limit": "10"}
 
@@ -139,7 +143,9 @@ class TestLogsHandlers:
         assert body["logs"] == []
 
     @pytest.mark.asyncio
-    async def test_handle_get_area_logs_error(self, mock_hass, mock_area_logger, mock_request):
+    async def test_handle_get_area_logs_error(
+        self, mock_hass, mock_area_logger, mock_request
+    ):
         """Test getting area logs when error occurs."""
         # Make async_get_logs raise exception
         mock_area_logger.async_get_logs.side_effect = Exception("Database error")

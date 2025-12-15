@@ -109,7 +109,8 @@ async def test_calibrate_opv_paths(monkeypatch):
             return None
 
     monkeypatch.setattr(
-        "smart_heating.api_handlers.opentherm.OvershootProtection", lambda *a, **k: OPFail()
+        "smart_heating.api_handlers.opentherm.OvershootProtection",
+        lambda *a, **k: OPFail(),
     )
     resp = await handle_calibrate_opentherm(hass, area_manager, None)
     assert resp.status == 500
@@ -119,7 +120,8 @@ async def test_calibrate_opv_paths(monkeypatch):
             return 2.5
 
     monkeypatch.setattr(
-        "smart_heating.api_handlers.opentherm.OvershootProtection", lambda *a, **k: OPSuccess()
+        "smart_heating.api_handlers.opentherm.OvershootProtection",
+        lambda *a, **k: OPSuccess(),
     )
     area_manager.async_save = AsyncMock()
     resp = await handle_calibrate_opentherm(hass, area_manager, MagicMock())

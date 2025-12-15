@@ -18,7 +18,8 @@ async def test_async_cleanup_old_metrics(monkeypatch):
     fake_recorder.async_add_executor_job = AsyncMock(return_value=3)
 
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance", lambda hass: fake_recorder
+        "smart_heating.advanced_metrics_collector.get_instance",
+        lambda hass: fake_recorder,
     )
 
     await collector._async_cleanup_old_metrics(None)
@@ -39,7 +40,8 @@ async def test_async_insert_metrics_error(monkeypatch):
             raise RuntimeError("DB insert failed")
 
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance", lambda hass: BadRecorder()
+        "smart_heating.advanced_metrics_collector.get_instance",
+        lambda hass: BadRecorder(),
     )
 
     # Should not raise an exception

@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from smart_heating.config_flow import SmartHeatingConfigFlow, SmartHeatingOptionsFlowHandler
+from smart_heating.config_flow import (
+    SmartHeatingConfigFlow,
+    SmartHeatingOptionsFlowHandler,
+)
 
 
 class TestConfigFlow:
@@ -60,14 +63,18 @@ class TestConfigFlow:
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
 
-    async def test_options_flow_lists_gateways(self, hass: HomeAssistant, mock_config_entry):
+    async def test_options_flow_lists_gateways(
+        self, hass: HomeAssistant, mock_config_entry
+    ):
         """Options flow should list configured OpenTherm gateway entries."""
         mock_config_entry.add_to_hass(hass)
 
         # Create an OpenTherm gateway config entry
         from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-        ot_entry = MockConfigEntry(domain="opentherm_gw", data={"id": "gateway1"}, title="GW1")
+        ot_entry = MockConfigEntry(
+            domain="opentherm_gw", data={"id": "gateway1"}, title="GW1"
+        )
         ot_entry.add_to_hass(hass)
 
         flow = SmartHeatingOptionsFlowHandler()

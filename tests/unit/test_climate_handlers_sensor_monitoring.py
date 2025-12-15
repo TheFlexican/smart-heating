@@ -66,7 +66,9 @@ def mock_area():
 class TestSensorMonitoringHandlerInit:
     """Test SensorMonitoringHandler initialization."""
 
-    def test_init_with_valid_params(self, mock_hass, mock_area_manager, mock_area_logger):
+    def test_init_with_valid_params(
+        self, mock_hass, mock_area_manager, mock_area_logger
+    ):
         """Test initialization with valid parameters."""
         handler = SensorMonitoringHandler(
             hass=mock_hass,
@@ -90,7 +92,9 @@ class TestCheckWindowSensors:
 
         assert result is False
 
-    def test_check_window_sensors_all_closed(self, sensor_handler, mock_area, mock_hass):
+    def test_check_window_sensors_all_closed(
+        self, sensor_handler, mock_area, mock_hass
+    ):
         """Test checking windows when all are closed."""
         mock_area.window_sensors = [
             {"entity_id": "binary_sensor.window1"},
@@ -140,7 +144,9 @@ class TestCheckWindowSensors:
 
         assert result is True
 
-    def test_check_window_sensors_unavailable_sensor(self, sensor_handler, mock_area, mock_hass):
+    def test_check_window_sensors_unavailable_sensor(
+        self, sensor_handler, mock_area, mock_hass
+    ):
         """Test checking windows when sensor is unavailable."""
         mock_area.window_sensors = [{"entity_id": "binary_sensor.window1"}]
 
@@ -216,7 +222,9 @@ class TestGetPresenceSensorsForArea:
         assert result == mock_area.presence_sensors
         assert len(result) == 2
 
-    def test_get_global_presence_sensors(self, sensor_handler, mock_area, mock_area_manager):
+    def test_get_global_presence_sensors(
+        self, sensor_handler, mock_area, mock_area_manager
+    ):
         """Test getting global presence sensors."""
         mock_area.use_global_presence = True
         mock_area_manager.global_presence_sensors = [
@@ -372,7 +380,9 @@ class TestHandleAutoPresetChange:
     """Test handle_auto_preset_change method."""
 
     @pytest.mark.asyncio
-    async def test_auto_preset_disabled(self, sensor_handler, mock_area, mock_area_manager):
+    async def test_auto_preset_disabled(
+        self, sensor_handler, mock_area, mock_area_manager
+    ):
         """Test auto preset when disabled."""
         mock_area.auto_preset_enabled = False
 
@@ -426,7 +436,9 @@ class TestHandleAutoPresetChange:
         assert "eco" in call_args[0][2].lower()
 
     @pytest.mark.asyncio
-    async def test_auto_preset_no_change_needed(self, sensor_handler, mock_area, mock_area_manager):
+    async def test_auto_preset_no_change_needed(
+        self, sensor_handler, mock_area, mock_area_manager
+    ):
         """Test auto preset when no change needed."""
         mock_area.auto_preset_enabled = True
         mock_area.auto_preset_home = "comfort"
@@ -554,7 +566,9 @@ class TestAsyncUpdateSensorStates:
 class TestEdgeCases:
     """Test edge cases and error handling."""
 
-    def test_check_window_sensors_empty_entity_id(self, sensor_handler, mock_area, mock_hass):
+    def test_check_window_sensors_empty_entity_id(
+        self, sensor_handler, mock_area, mock_hass
+    ):
         """Test checking window with malformed sensor config."""
         mock_area.window_sensors = [{"entity_id": ""}]
 

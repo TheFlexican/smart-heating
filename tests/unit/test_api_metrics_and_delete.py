@@ -79,6 +79,8 @@ async def test_delete_vacation_and_safety_sensor(hass, mock_area_manager):
         assert resp.status == 400
 
         # Safety sensor with query param provided
-        req = make_mocked_request("DELETE", "/api/smart_heating/safety_sensor?sensor_id=sensor_1")
+        req = make_mocked_request(
+            "DELETE", "/api/smart_heating/safety_sensor?sensor_id=sensor_1"
+        )
         resp = await api_view.delete(req, "safety_sensor")
         assert resp.status == 200

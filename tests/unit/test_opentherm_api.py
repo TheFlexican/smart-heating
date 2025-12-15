@@ -13,7 +13,11 @@ from smart_heating.api_handlers.opentherm import handle_get_opentherm_gateways
 
 class DummyEntry:
     def __init__(
-        self, entry_id: str, title: str, data: dict | None = None, options: dict | None = None
+        self,
+        entry_id: str,
+        title: str,
+        data: dict | None = None,
+        options: dict | None = None,
     ):
         self.entry_id = entry_id
         self.title = title

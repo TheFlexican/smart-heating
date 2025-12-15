@@ -83,7 +83,11 @@ async def test_async_load_reads_existing_file(mock_hass, temp_storage_path):
                 "areas": [],
             }
         },
-        "presence_state": {"users_home": [], "active_user": None, "combined_mode": "none"},
+        "presence_state": {
+            "users_home": [],
+            "active_user": None,
+            "combined_mode": "none",
+        },
         "settings": {"multi_user_strategy": "priority", "enabled": True},
     }
 

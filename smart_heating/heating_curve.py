@@ -62,7 +62,8 @@ class HeatingCurve:
         self, setpoint: float, target_temperature: float, outside_temperature: float
     ) -> Optional[float]:
         """Autotune heuristic: compute a coefficient from current setpoint and adjust
-        using small fuzzy rules before storing an average value. Returns the computed coefficient."""
+        using small fuzzy rules before storing an average value. Returns the computed coefficient.
+        """
         if setpoint <= MINIMUM_SETPOINT:
             return None
 

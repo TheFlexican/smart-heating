@@ -1,4 +1,8 @@
-from smart_heating.heating_curve import HEATING_SYSTEM_UNDERFLOOR, MINIMUM_SETPOINT, HeatingCurve
+from smart_heating.heating_curve import (
+    HEATING_SYSTEM_UNDERFLOOR,
+    MINIMUM_SETPOINT,
+    HeatingCurve,
+)
 
 
 def test_calculate_formula_and_base_offset():

@@ -37,7 +37,9 @@ class TestAreaHandlers:
     """Test area service handlers."""
 
     @pytest.mark.asyncio
-    async def test_async_handle_set_temperature_success(self, mock_area_manager, mock_coordinator):
+    async def test_async_handle_set_temperature_success(
+        self, mock_area_manager, mock_coordinator
+    ):
         """Test setting area temperature successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -48,14 +50,18 @@ class TestAreaHandlers:
         await async_handle_set_temperature(call, mock_area_manager, mock_coordinator)
 
         # Verify temperature was set
-        mock_area_manager.set_area_target_temperature.assert_called_once_with("living_room", 21.5)
+        mock_area_manager.set_area_target_temperature.assert_called_once_with(
+            "living_room", 21.5
+        )
         # Verify data was saved
         mock_area_manager.async_save.assert_called_once()
         # Verify coordinator refresh
         mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_handle_set_temperature_error(self, mock_area_manager, mock_coordinator):
+    async def test_async_handle_set_temperature_error(
+        self, mock_area_manager, mock_coordinator
+    ):
         """Test setting temperature when area manager raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -64,7 +70,9 @@ class TestAreaHandlers:
         }
 
         # Make set_area_target_temperature raise ValueError
-        mock_area_manager.set_area_target_temperature.side_effect = ValueError("Area not found")
+        mock_area_manager.set_area_target_temperature.side_effect = ValueError(
+            "Area not found"
+        )
 
         # Should not raise, just log error
         await async_handle_set_temperature(call, mock_area_manager, mock_coordinator)
@@ -76,7 +84,9 @@ class TestAreaHandlers:
         mock_coordinator.async_request_refresh.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_handle_enable_area_success(self, mock_area_manager, mock_coordinator):
+    async def test_async_handle_enable_area_success(
+        self, mock_area_manager, mock_coordinator
+    ):
         """Test enabling area successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {ATTR_AREA_ID: "living_room"}
@@ -91,7 +101,9 @@ class TestAreaHandlers:
         mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_handle_enable_area_error(self, mock_area_manager, mock_coordinator):
+    async def test_async_handle_enable_area_error(
+        self, mock_area_manager, mock_coordinator
+    ):
         """Test enabling area when area manager raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {ATTR_AREA_ID: "unknown_area"}
@@ -109,7 +121,9 @@ class TestAreaHandlers:
         mock_coordinator.async_request_refresh.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_handle_disable_area_success(self, mock_area_manager, mock_coordinator):
+    async def test_async_handle_disable_area_success(
+        self, mock_area_manager, mock_coordinator
+    ):
         """Test disabling area successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {ATTR_AREA_ID: "living_room"}
@@ -124,7 +138,9 @@ class TestAreaHandlers:
         mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_handle_disable_area_error(self, mock_area_manager, mock_coordinator):
+    async def test_async_handle_disable_area_error(
+        self, mock_area_manager, mock_coordinator
+    ):
         """Test disabling area when area manager raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {ATTR_AREA_ID: "unknown_area"}

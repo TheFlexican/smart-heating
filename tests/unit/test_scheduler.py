@@ -61,7 +61,9 @@ def mock_area_with_schedule(mock_area_data):
 class TestInitialization:
     """Tests for initialization."""
 
-    async def test_init(self, scheduler: ScheduleExecutor, hass: HomeAssistant, mock_area_manager):
+    async def test_init(
+        self, scheduler: ScheduleExecutor, hass: HomeAssistant, mock_area_manager
+    ):
         """Test scheduler initialization."""
         assert scheduler.hass == hass
         assert scheduler.area_manager == mock_area_manager
@@ -69,7 +71,9 @@ class TestInitialization:
         assert scheduler._unsub_interval is None
         assert scheduler._last_applied_schedule == {}
 
-    async def test_init_with_learning_engine(self, scheduler_with_learning: ScheduleExecutor):
+    async def test_init_with_learning_engine(
+        self, scheduler_with_learning: ScheduleExecutor
+    ):
         """Test initialization with learning engine."""
         assert scheduler_with_learning.learning_engine is not None
 
@@ -78,7 +82,9 @@ class TestInitialization:
         with patch.object(
             scheduler, "_async_check_schedules", new_callable=AsyncMock
         ) as mock_check:
-            with patch("smart_heating.scheduler.async_track_time_interval") as mock_track:
+            with patch(
+                "smart_heating.scheduler.async_track_time_interval"
+            ) as mock_track:
                 mock_track.return_value = MagicMock()
 
                 await scheduler.async_start()
@@ -149,18 +155,26 @@ class TestDayHelpers:
 class TestTimeMatching:
     """Tests for time matching methods."""
 
-    def test_is_time_in_normal_schedule(self, scheduler: ScheduleExecutor, mock_schedule):
+    def test_is_time_in_normal_schedule(
+        self, scheduler: ScheduleExecutor, mock_schedule
+    ):
         """Test matching time in normal schedule."""
         # Schedule is 07:00-09:00, test 08:00
         current_time = time(8, 0)
 
-        assert scheduler._is_time_in_normal_schedule(mock_schedule, current_time) is True
+        assert (
+            scheduler._is_time_in_normal_schedule(mock_schedule, current_time) is True
+        )
 
-    def test_is_time_in_normal_schedule_outside(self, scheduler: ScheduleExecutor, mock_schedule):
+    def test_is_time_in_normal_schedule_outside(
+        self, scheduler: ScheduleExecutor, mock_schedule
+    ):
         """Test time outside normal schedule."""
         current_time = time(10, 0)
 
-        assert scheduler._is_time_in_normal_schedule(mock_schedule, current_time) is False
+        assert (
+            scheduler._is_time_in_normal_schedule(mock_schedule, current_time) is False
+        )
 
     def test_is_time_in_midnight_crossing_schedule_today(
         self, scheduler: ScheduleExecutor, mock_schedule
@@ -174,7 +188,9 @@ class TestTimeMatching:
         current_time = time(23, 0)
 
         assert (
-            scheduler._is_time_in_midnight_crossing_schedule_today(mock_schedule, current_time)
+            scheduler._is_time_in_midnight_crossing_schedule_today(
+                mock_schedule, current_time
+            )
             is True
         )
 
@@ -200,7 +216,9 @@ class TestTimeMatching:
 class TestFindActiveSchedule:
     """Tests for finding active schedules."""
 
-    def test_find_active_schedule_normal(self, scheduler: ScheduleExecutor, mock_schedule):
+    def test_find_active_schedule_normal(
+        self, scheduler: ScheduleExecutor, mock_schedule
+    ):
         """Test finding active normal schedule."""
         schedules = {"test_id": mock_schedule}
         current_time = time(8, 0)
@@ -209,7 +227,9 @@ class TestFindActiveSchedule:
 
         assert result == mock_schedule
 
-    def test_find_active_schedule_none(self, scheduler: ScheduleExecutor, mock_schedule):
+    def test_find_active_schedule_none(
+        self, scheduler: ScheduleExecutor, mock_schedule
+    ):
         """Test finding no active schedule."""
         schedules = {"test_id": mock_schedule}
         current_time = time(10, 0)  # Outside schedule
@@ -271,7 +291,9 @@ class TestPresetTemperature:
         """Test getting unknown preset falls back to target temperature."""
         mock_area_with_schedule.target_temperature = 20.0
 
-        temp = scheduler._get_preset_temperature(mock_area_with_schedule, "unknown_preset")
+        temp = scheduler._get_preset_temperature(
+            mock_area_with_schedule, "unknown_preset"
+        )
 
         assert temp == 20.0
 
@@ -292,7 +314,9 @@ class TestApplySchedule:
             await scheduler._apply_schedule(mock_area_with_schedule, mock_schedule)
 
         mock_apply.assert_called_once_with(
-            mock_area_with_schedule, mock_schedule, f"climate.smart_heating_{TEST_AREA_ID}"
+            mock_area_with_schedule,
+            mock_schedule,
+            f"climate.smart_heating_{TEST_AREA_ID}",
         )
 
     async def test_apply_preset_schedule(
@@ -310,7 +334,9 @@ class TestApplySchedule:
             await scheduler._apply_schedule(mock_area_with_schedule, mock_schedule)
 
         mock_apply.assert_called_once_with(
-            mock_area_with_schedule, mock_schedule, f"climate.smart_heating_{TEST_AREA_ID}"
+            mock_area_with_schedule,
+            mock_schedule,
+            f"climate.smart_heating_{TEST_AREA_ID}",
         )
 
     async def test_apply_temperature_schedule_updates_area(
@@ -341,7 +367,9 @@ class TestScheduleChecking:
     ):
         """Test that disabled areas are skipped."""
         mock_area_with_schedule.enabled = False
-        mock_area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area_with_schedule}
+        mock_area_manager.get_all_areas.return_value = {
+            TEST_AREA_ID: mock_area_with_schedule
+        }
 
         now = datetime(2024, 1, 1, 8, 0)  # Monday 08:00
 
@@ -351,30 +379,44 @@ class TestScheduleChecking:
         assert TEST_AREA_ID not in scheduler._last_applied_schedule
 
     async def test_check_schedules_applies_active(
-        self, scheduler: ScheduleExecutor, mock_area_with_schedule, mock_schedule, mock_area_manager
+        self,
+        scheduler: ScheduleExecutor,
+        mock_area_with_schedule,
+        mock_schedule,
+        mock_area_manager,
     ):
         """Test that active schedules are applied."""
         mock_schedule.day = 0
         mock_schedule.start_time = "07:00"
         mock_schedule.end_time = "09:00"
         mock_area_with_schedule.schedules = {"test_id": mock_schedule}
-        mock_area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area_with_schedule}
+        mock_area_manager.get_all_areas.return_value = {
+            TEST_AREA_ID: mock_area_with_schedule
+        }
 
         now = datetime(2024, 1, 1, 8, 0)  # Monday 08:00
 
         with patch.object(scheduler.hass.config, "time_zone", "UTC"):
-            with patch.object(scheduler, "_apply_schedule", new_callable=AsyncMock) as mock_apply:
+            with patch.object(
+                scheduler, "_apply_schedule", new_callable=AsyncMock
+            ) as mock_apply:
                 await scheduler._async_check_schedules(now)
 
         mock_apply.assert_called_once_with(mock_area_with_schedule, mock_schedule)
 
     async def test_check_schedules_cache_prevents_reapply(
-        self, scheduler: ScheduleExecutor, mock_area_with_schedule, mock_schedule, mock_area_manager
+        self,
+        scheduler: ScheduleExecutor,
+        mock_area_with_schedule,
+        mock_schedule,
+        mock_area_manager,
     ):
         """Test that schedule cache prevents reapplying same schedule."""
         mock_schedule.day = 0
         mock_area_with_schedule.schedules = {"test_id": mock_schedule}
-        mock_area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area_with_schedule}
+        mock_area_manager.get_all_areas.return_value = {
+            TEST_AREA_ID: mock_area_with_schedule
+        }
 
         # Set cache to indicate schedule already applied
         scheduler._last_applied_schedule[TEST_AREA_ID] = (
@@ -384,7 +426,9 @@ class TestScheduleChecking:
         now = datetime(2024, 1, 1, 8, 0)
 
         with patch.object(scheduler.hass.config, "time_zone", "UTC"):
-            with patch.object(scheduler, "_apply_schedule", new_callable=AsyncMock) as mock_apply:
+            with patch.object(
+                scheduler, "_apply_schedule", new_callable=AsyncMock
+            ) as mock_apply:
                 await scheduler._async_check_schedules(now)
 
         # Should not reapply
@@ -394,7 +438,9 @@ class TestScheduleChecking:
 class TestSmartNightBoost:
     """Tests for smart night boost functionality."""
 
-    async def test_find_first_morning_schedule(self, scheduler_with_learning: ScheduleExecutor):
+    async def test_find_first_morning_schedule(
+        self, scheduler_with_learning: ScheduleExecutor
+    ):
         """Test finding first morning schedule."""
         morning_schedule = MagicMock()
         morning_schedule.day = 0
@@ -466,7 +512,9 @@ class TestSmartNightBoost:
         now = datetime(2024, 1, 1, 6, 0)
 
         # Should return early without errors
-        await scheduler_with_learning._handle_smart_night_boost(mock_area_with_schedule, now)
+        await scheduler_with_learning._handle_smart_night_boost(
+            mock_area_with_schedule, now
+        )
 
 
 class TestAreaLogger:
@@ -511,7 +559,9 @@ class TestSmartNightBoostEdgeCases:
         now = datetime(2024, 1, 1, 6, 0)
 
         # Should return early due to no temperature data
-        await scheduler_with_learning._handle_smart_night_boost(mock_area_with_schedule, now)
+        await scheduler_with_learning._handle_smart_night_boost(
+            mock_area_with_schedule, now
+        )
 
     async def test_handle_smart_night_boost_target_passed_today(
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
@@ -528,7 +578,9 @@ class TestSmartNightBoostEdgeCases:
         now = datetime(2024, 1, 1, 8, 0)
 
         # Should use tomorrow's target
-        await scheduler_with_learning._handle_smart_night_boost(mock_area_with_schedule, now)
+        await scheduler_with_learning._handle_smart_night_boost(
+            mock_area_with_schedule, now
+        )
 
         # Verify prediction was called
         scheduler_with_learning.learning_engine.async_predict_heating_time.assert_called()
@@ -552,7 +604,9 @@ class TestSmartNightBoostEdgeCases:
         now = datetime(2024, 1, 1, 6, 0)
 
         # Should return early when no prediction
-        await scheduler_with_learning._handle_smart_night_boost(mock_area_with_schedule, now)
+        await scheduler_with_learning._handle_smart_night_boost(
+            mock_area_with_schedule, now
+        )
 
     async def test_handle_smart_night_boost_in_heating_window(
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
@@ -574,7 +628,9 @@ class TestSmartNightBoostEdgeCases:
         now = datetime(2024, 1, 1, 6, 15)
 
         # Should activate smart night boost
-        await scheduler_with_learning._handle_smart_night_boost(mock_area_with_schedule, now)
+        await scheduler_with_learning._handle_smart_night_boost(
+            mock_area_with_schedule, now
+        )
 
     async def test_handle_smart_night_boost_before_heating_window(
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
@@ -596,7 +652,9 @@ class TestSmartNightBoostEdgeCases:
         now = datetime(2024, 1, 1, 5, 0)
 
         # Should log that it will start later
-        await scheduler_with_learning._handle_smart_night_boost(mock_area_with_schedule, now)
+        await scheduler_with_learning._handle_smart_night_boost(
+            mock_area_with_schedule, now
+        )
 
     async def test_get_target_time_and_temp_from_schedule_with_preset(
         self, scheduler: ScheduleExecutor, mock_area_with_schedule

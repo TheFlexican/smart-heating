@@ -15,7 +15,9 @@ def tmp_storage(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_validate_import_data_and_export(tmp_storage, mock_hass, mock_area_manager):
+async def test_validate_import_data_and_export(
+    tmp_storage, mock_hass, mock_area_manager
+):
     cm = ConfigManager(mock_hass, mock_area_manager, tmp_storage)
 
     # Missing version should raise
@@ -23,14 +25,18 @@ async def test_validate_import_data_and_export(tmp_storage, mock_hass, mock_area
         cm._validate_import_data({})
 
     # Minimal export should include version and areas
-    mock_area_manager.get_all_areas.return_value = {"a1": MagicMock(to_dict=lambda: {"name": "A1"})}
+    mock_area_manager.get_all_areas.return_value = {
+        "a1": MagicMock(to_dict=lambda: {"name": "A1"})
+    }
     res = await cm.async_export_config()
     assert res["version"] == CURRENT_VERSION
     assert "areas" in res
 
 
 @pytest.mark.asyncio
-async def test_async_import_global_settings_and_areas(tmp_storage, mock_hass, mock_area_manager):
+async def test_async_import_global_settings_and_areas(
+    tmp_storage, mock_hass, mock_area_manager
+):
     cm = ConfigManager(mock_hass, mock_area_manager, tmp_storage)
     data = {
         "version": CURRENT_VERSION,
@@ -41,7 +47,9 @@ async def test_async_import_global_settings_and_areas(tmp_storage, mock_hass, mo
             "opentherm": {"gateway_id": "gw1"},
             "safety_sensors": ["sensor.s1"],
         },
-        "areas": {"a1": {"name": "Area One", "enabled": True, "target_temperature": 21.5}},
+        "areas": {
+            "a1": {"name": "Area One", "enabled": True, "target_temperature": 21.5}
+        },
     }
 
     # set existing empty areas
@@ -143,7 +151,9 @@ class TestConfigManagerBasics:
     def test_init_creates_manager(self, mock_hass, mock_area_manager):
         """Test that ConfigManager can be initialized."""
         with patch("smart_heating.config_manager.Path.mkdir"):
-            manager = ConfigManager(mock_hass, mock_area_manager, "/config/.storage/smart_heating")
+            manager = ConfigManager(
+                mock_hass, mock_area_manager, "/config/.storage/smart_heating"
+            )
 
         assert manager is not None
         assert isinstance(manager.storage_path, Path)
@@ -184,7 +194,9 @@ class TestConfigManagerBasics:
         }
 
         with patch.object(
-            config_manager, "_async_create_backup", new=AsyncMock(return_value="backup.json")
+            config_manager,
+            "_async_create_backup",
+            new=AsyncMock(return_value="backup.json"),
         ):
             result = await config_manager.async_import_config(data, create_backup=True)
 

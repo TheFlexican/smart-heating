@@ -18,7 +18,8 @@ async def test_async_init_database_supported(monkeypatch):
             self.engine = MagicMock()
 
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance", lambda hass: FakeRecorder()
+        "smart_heating.advanced_metrics_collector.get_instance",
+        lambda hass: FakeRecorder(),
     )
 
     ok = await collector._async_init_database()
@@ -95,7 +96,9 @@ def test_get_metrics_sync_area_filter_and_invalid_json():
 
     # Create fake rows
     class Row:
-        def __init__(self, timestamp, outdoor_temp, boiler_flow_temp, area_metrics_json):
+        def __init__(
+            self, timestamp, outdoor_temp, boiler_flow_temp, area_metrics_json
+        ):
             self.timestamp = timestamp
             self.outdoor_temp = outdoor_temp
             self.boiler_flow_temp = boiler_flow_temp

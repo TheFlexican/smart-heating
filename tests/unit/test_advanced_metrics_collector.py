@@ -15,11 +15,14 @@ async def test_async_init_database_mysql(monkeypatch):
 
     # Patch the function reference used by the collector module
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance", lambda hass: FakeRecorder()
+        "smart_heating.advanced_metrics_collector.get_instance",
+        lambda hass: FakeRecorder(),
     )
 
     # Prevent real metadata create_all from running
-    monkeypatch.setattr("sqlalchemy.schema.MetaData.create_all", lambda self, engine: None)
+    monkeypatch.setattr(
+        "sqlalchemy.schema.MetaData.create_all", lambda self, engine: None
+    )
 
     collector = AdvancedMetricsCollector(hass)
     result = await collector._async_init_database()
@@ -55,9 +58,15 @@ async def test_get_opentherm_metrics(monkeypatch):
             "sensor.opentherm_gateway_otgw_otgw_boiler_flow_water_temperature": MagicMock(
                 state="27.0"
             ),
-            "sensor.opentherm_gateway_otgw_otgw_return_water_temperature": MagicMock(state="26.0"),
-            "sensor.opentherm_gateway_otgw_otgw_control_setpoint": MagicMock(state="50.0"),
-            "sensor.opentherm_gateway_otgw_otgw_relative_modulation_level": MagicMock(state="45.0"),
+            "sensor.opentherm_gateway_otgw_otgw_return_water_temperature": MagicMock(
+                state="26.0"
+            ),
+            "sensor.opentherm_gateway_otgw_otgw_control_setpoint": MagicMock(
+                state="50.0"
+            ),
+            "sensor.opentherm_gateway_otgw_otgw_relative_modulation_level": MagicMock(
+                state="45.0"
+            ),
             "binary_sensor.opentherm_gateway_flame": MagicMock(state="on"),
         }
         return mapping.get(entity_id)

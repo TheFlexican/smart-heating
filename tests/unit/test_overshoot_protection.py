@@ -29,7 +29,9 @@ async def test_calculate_with_samples(monkeypatch):
 @pytest.mark.asyncio
 async def test_calculate_handles_exception(monkeypatch):
     coord = MagicMock()
-    coord.async_set_control_max_relative_modulation = AsyncMock(side_effect=Exception("fail"))
+    coord.async_set_control_max_relative_modulation = AsyncMock(
+        side_effect=Exception("fail")
+    )
     op = OvershootProtection(coord, "radiator")
 
     monkeypatch.setattr(asyncio, "sleep", AsyncMock())

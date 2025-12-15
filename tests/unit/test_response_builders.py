@@ -5,7 +5,11 @@ from smart_heating.utils.response_builders import build_area_response, build_dev
 
 def test_build_device_info_and_area_response():
     state = MagicMock()
-    state.attributes = {"friendly_name": "Dev1", "temperature": 21.0, "current_temperature": 20.5}
+    state.attributes = {
+        "friendly_name": "Dev1",
+        "temperature": 21.0,
+        "current_temperature": 20.5,
+    }
     state.state = "on"
     device_data = {"type": "sensor", "mqtt_topic": "topic"}
     coordinator_device = {

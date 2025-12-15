@@ -12,7 +12,9 @@ async def test_async_register_panel_remove_raises(monkeypatch):
     def raise_key(h, p):
         raise KeyError()
 
-    monkeypatch.setattr("homeassistant.components.frontend.async_remove_panel", raise_key)
+    monkeypatch.setattr(
+        "homeassistant.components.frontend.async_remove_panel", raise_key
+    )
     called = {}
 
     def fake_register(*args, **kwargs):
@@ -57,22 +59,41 @@ async def test_climate_controller_heating_paths(monkeypatch):
         # default methods
         a.get_temperature_sensors.return_value = ["s1"]
         a.get_thermostats.return_value = ["t1"]
-        a.get_effective_target_temperature.return_value = getattr(a, "target_temperature", 21.0)
+        a.get_effective_target_temperature.return_value = getattr(
+            a, "target_temperature", 21.0
+        )
         return a
 
     areas = {
-        "disabled": make_area(enabled=False, current_temperature=20.0, target_temperature=22.0),
+        "disabled": make_area(
+            enabled=False, current_temperature=20.0, target_temperature=22.0
+        ),
         "manual": make_area(
-            enabled=True, manual_override=True, current_temperature=20.0, target_temperature=22.0
+            enabled=True,
+            manual_override=True,
+            current_temperature=20.0,
+            target_temperature=22.0,
         ),
         "offmode": make_area(
-            enabled=True, hvac_mode="off", current_temperature=20.0, target_temperature=22.0
+            enabled=True,
+            hvac_mode="off",
+            current_temperature=20.0,
+            target_temperature=22.0,
         ),
-        "notemp": make_area(enabled=True, current_temperature=None, target_temperature=22.0),
-        "within_hyst": make_area(enabled=True, current_temperature=21.3, target_temperature=21.5),
-        "heating": make_area(enabled=True, current_temperature=18.0, target_temperature=21.0),
+        "notemp": make_area(
+            enabled=True, current_temperature=None, target_temperature=22.0
+        ),
+        "within_hyst": make_area(
+            enabled=True, current_temperature=21.3, target_temperature=21.5
+        ),
+        "heating": make_area(
+            enabled=True, current_temperature=18.0, target_temperature=21.0
+        ),
         "cooling": make_area(
-            enabled=True, current_temperature=25.0, target_temperature=21.0, hvac_mode="cool"
+            enabled=True,
+            current_temperature=25.0,
+            target_temperature=21.0,
+            hvac_mode="cool",
         ),
     }
 
@@ -85,8 +106,12 @@ async def test_climate_controller_heating_paths(monkeypatch):
     fake_history = MagicMock()
     fake_history.async_save = AsyncMock()
     fake_history.async_record_temperature = AsyncMock()
-    fake_cycle.async_prepare_heating_cycle = AsyncMock(return_value=(True, fake_history))
-    fake_cycle.async_handle_heating_required = AsyncMock(return_value=(["heating"], 22.0))
+    fake_cycle.async_prepare_heating_cycle = AsyncMock(
+        return_value=(True, fake_history)
+    )
+    fake_cycle.async_handle_heating_required = AsyncMock(
+        return_value=(["heating"], 22.0)
+    )
     fake_cycle.async_handle_cooling_required = AsyncMock(return_value=None)
     fake_cycle.async_handle_heating_stop = AsyncMock(return_value=None)
     fake_cycle.async_handle_cooling_stop = AsyncMock(return_value=None)

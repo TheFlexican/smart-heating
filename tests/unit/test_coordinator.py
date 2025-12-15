@@ -26,7 +26,9 @@ class TestCoordinatorInitialization:
 
     def test_init(self, hass: HomeAssistant, mock_config_entry, mock_area_manager):
         """Test coordinator initialization."""
-        coordinator = SmartHeatingCoordinator(hass, mock_config_entry, mock_area_manager)
+        coordinator = SmartHeatingCoordinator(
+            hass, mock_config_entry, mock_area_manager
+        )
 
         assert coordinator.hass == hass
         assert coordinator.area_manager == mock_area_manager
@@ -34,9 +36,13 @@ class TestCoordinatorInitialization:
         assert coordinator.update_interval == UPDATE_INTERVAL
         assert coordinator._unsub_state_listener is None
 
-    def test_update_interval(self, hass: HomeAssistant, mock_config_entry, mock_area_manager):
+    def test_update_interval(
+        self, hass: HomeAssistant, mock_config_entry, mock_area_manager
+    ):
         """Test update interval configuration."""
-        coordinator = SmartHeatingCoordinator(hass, mock_config_entry, mock_area_manager)
+        coordinator = SmartHeatingCoordinator(
+            hass, mock_config_entry, mock_area_manager
+        )
 
         # Should use UPDATE_INTERVAL constant
         assert coordinator.update_interval == UPDATE_INTERVAL
@@ -49,7 +55,9 @@ class TestCoordinatorSetup:
         """Test setup with no devices."""
         coordinator.area_manager.get_all_areas.return_value = {}
 
-        with patch("smart_heating.coordinator.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.coordinator.async_track_state_change_event"
+        ) as mock_track:
             await coordinator.async_setup()
 
             # Should not set up state listeners if no devices
@@ -64,7 +72,9 @@ class TestCoordinatorSetup:
         mock_area.devices = {"climate.test": {"type": "thermostat"}}
         coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
 
-        with patch("smart_heating.coordinator.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.coordinator.async_track_state_change_event"
+        ) as mock_track:
             mock_track.return_value = MagicMock()
             await coordinator.async_setup()
 
@@ -144,7 +154,9 @@ class TestCoordinatorDataUpdate:
         assert data["areas"][TEST_AREA_ID]["name"] == "Living Room"
         assert data["areas"][TEST_AREA_ID]["enabled"] is True
 
-    async def test_async_update_data_empty_areas(self, coordinator: SmartHeatingCoordinator):
+    async def test_async_update_data_empty_areas(
+        self, coordinator: SmartHeatingCoordinator
+    ):
         """Test data update with no areas."""
         coordinator.area_manager.get_all_areas.return_value = {}
 
@@ -237,7 +249,9 @@ class TestCoordinatorDataUpdate:
 class TestStateChangeHandling:
     """Test state change event handling."""
 
-    def test_handle_state_change_no_new_state(self, coordinator: SmartHeatingCoordinator):
+    def test_handle_state_change_no_new_state(
+        self, coordinator: SmartHeatingCoordinator
+    ):
         """Test handling state change with no new state."""
         event = MagicMock()
         event.data = {"entity_id": "climate.test", "new_state": None}
@@ -246,13 +260,19 @@ class TestStateChangeHandling:
         coordinator._handle_state_change(event)
 
     @pytest.mark.asyncio
-    async def test_handle_state_change_initial_state(self, coordinator: SmartHeatingCoordinator):
+    async def test_handle_state_change_initial_state(
+        self, coordinator: SmartHeatingCoordinator
+    ):
         """Test handling initial state (old_state is None)."""
         mock_new_state = MagicMock()
         mock_new_state.state = "heat"
 
         event = MagicMock()
-        event.data = {"entity_id": "climate.test", "old_state": None, "new_state": mock_new_state}
+        event.data = {
+            "entity_id": "climate.test",
+            "old_state": None,
+            "new_state": mock_new_state,
+        }
 
         import asyncio as _asyncio
 
@@ -271,7 +291,9 @@ class TestStateChangeHandling:
             )
 
     @pytest.mark.asyncio
-    async def test_handle_state_change_state_changed(self, coordinator: SmartHeatingCoordinator):
+    async def test_handle_state_change_state_changed(
+        self, coordinator: SmartHeatingCoordinator
+    ):
         """Test handling state change."""
         mock_old_state = MagicMock()
         mock_old_state.state = "idle"
@@ -618,7 +640,9 @@ class TestCoordinatorAreaUpdates:
 
         assert coordinator.data["areas"][TEST_AREA_ID]["current_temperature"] == 20.0
 
-    async def test_update_area_target_temperature(self, coordinator: SmartHeatingCoordinator):
+    async def test_update_area_target_temperature(
+        self, coordinator: SmartHeatingCoordinator
+    ):
         """Test updating area target temperature."""
         mock_area = MagicMock()
         mock_area.area_id = TEST_AREA_ID
@@ -668,7 +692,9 @@ class TestCoordinatorAreaUpdates:
 
         assert coordinator.data["areas"][TEST_AREA_ID]["target_temperature"] == 22.0
 
-    async def test_update_area_enabled_state(self, coordinator: SmartHeatingCoordinator):
+    async def test_update_area_enabled_state(
+        self, coordinator: SmartHeatingCoordinator
+    ):
         """Test updating area enabled state."""
         mock_area = MagicMock()
         mock_area.area_id = TEST_AREA_ID
@@ -779,7 +805,9 @@ class TestDebounceTemperatureChange:
 class TestTemperatureSensorConversion:
     """Test temperature sensor data extraction and conversion."""
 
-    def test_get_temperature_from_sensor_celsius(self, coordinator: SmartHeatingCoordinator):
+    def test_get_temperature_from_sensor_celsius(
+        self, coordinator: SmartHeatingCoordinator
+    ):
         """Test getting temperature from Celsius sensor."""
         state = State("sensor.temp", "20.5", {"unit_of_measurement": "°C"})
 
@@ -787,7 +815,9 @@ class TestTemperatureSensorConversion:
 
         assert result == 20.5
 
-    def test_get_temperature_from_sensor_fahrenheit(self, coordinator: SmartHeatingCoordinator):
+    def test_get_temperature_from_sensor_fahrenheit(
+        self, coordinator: SmartHeatingCoordinator
+    ):
         """Test getting temperature from Fahrenheit sensor."""
         state = State("sensor.temp", "68.0", {"unit_of_measurement": "°F"})
 
@@ -796,7 +826,9 @@ class TestTemperatureSensorConversion:
         assert result is not None
         assert abs(result - 20.0) < 0.1  # 68°F ≈ 20°C
 
-    def test_get_temperature_from_sensor_unavailable(self, coordinator: SmartHeatingCoordinator):
+    def test_get_temperature_from_sensor_unavailable(
+        self, coordinator: SmartHeatingCoordinator
+    ):
         """Test getting temperature from unavailable sensor."""
         state = State("sensor.temp", "unavailable", {})
 
@@ -804,7 +836,9 @@ class TestTemperatureSensorConversion:
 
         assert result is None
 
-    def test_get_temperature_from_sensor_unknown(self, coordinator: SmartHeatingCoordinator):
+    def test_get_temperature_from_sensor_unknown(
+        self, coordinator: SmartHeatingCoordinator
+    ):
         """Test getting temperature from unknown sensor."""
         state = State("sensor.temp", "unknown", {})
 
@@ -812,7 +846,9 @@ class TestTemperatureSensorConversion:
 
         assert result is None
 
-    def test_get_temperature_from_sensor_invalid(self, coordinator: SmartHeatingCoordinator):
+    def test_get_temperature_from_sensor_invalid(
+        self, coordinator: SmartHeatingCoordinator
+    ):
         """Test getting temperature from sensor with invalid value."""
         state = State("sensor.temp", "invalid", {})
 

@@ -348,7 +348,9 @@ class TestAreaWindowSensors:
         area = Area(TEST_AREA_ID, TEST_AREA_NAME)
 
         area.add_window_sensor("binary_sensor.window1", "reduce_temperature", 2.0)
-        area.add_window_sensor("binary_sensor.window1", "reduce_temperature", 3.0)  # Duplicate
+        area.add_window_sensor(
+            "binary_sensor.window1", "reduce_temperature", 3.0
+        )  # Duplicate
 
         # Should still only have one sensor
         assert len(area.window_sensors) == 1

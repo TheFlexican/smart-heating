@@ -15,7 +15,9 @@ from smart_heating.const import DOMAIN, PLATFORMS
 class TestIntegrationSetup:
     """Test integration setup."""
 
-    async def test_async_setup_entry_success(self, hass: HomeAssistant, mock_config_entry):
+    async def test_async_setup_entry_success(
+        self, hass: HomeAssistant, mock_config_entry
+    ):
         """Test successful integration setup."""
         mock_config_entry.add_to_hass(hass)
 
@@ -34,7 +36,9 @@ class TestIntegrationSetup:
             patch("smart_heating.async_register_panel") as mock_register_panel,
             patch("smart_heating.async_setup_services") as mock_setup_services,
             patch("smart_heating.async_track_time_interval"),
-            patch.object(hass.config_entries, "async_forward_entry_setups", new=AsyncMock()),
+            patch.object(
+                hass.config_entries, "async_forward_entry_setups", new=AsyncMock()
+            ),
         ):
             # Configure mocks
             mock_area_manager = AsyncMock()
@@ -141,7 +145,9 @@ class TestIntegrationSetup:
             patch("smart_heating.async_register_panel"),
             patch("smart_heating.async_setup_services"),
             patch("smart_heating.async_track_time_interval"),
-            patch.object(hass.config_entries, "async_forward_entry_setups", new=AsyncMock()),
+            patch.object(
+                hass.config_entries, "async_forward_entry_setups", new=AsyncMock()
+            ),
         ):
             # Setup all async mocks properly
             mock_area_manager = MagicMock()
@@ -177,7 +183,9 @@ class TestIntegrationSetup:
             # Verify OpenTherm gateway was set
             mock_area_manager.set_opentherm_gateway.assert_called_once_with("gateway1")
 
-    async def test_async_setup_entry_skip_override_if_numeric_saved(self, hass: HomeAssistant):
+    async def test_async_setup_entry_skip_override_if_numeric_saved(
+        self, hass: HomeAssistant
+    ):
         """If a numeric ID is present in storage, the options entity id should not override it."""
         from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -207,7 +215,9 @@ class TestIntegrationSetup:
             patch("smart_heating.setup_websocket"),
             patch("smart_heating.async_register_panel"),
             patch("smart_heating.async_setup_services"),
-            patch.object(hass.config_entries, "async_forward_entry_setups", new=AsyncMock()),
+            patch.object(
+                hass.config_entries, "async_forward_entry_setups", new=AsyncMock()
+            ),
         ):
             # Setup all async mocks properly
             mock_area_manager = MagicMock()
@@ -245,7 +255,9 @@ class TestIntegrationSetup:
             # Verify that set_opentherm_gateway was not called to override the numeric ID
             mock_area_manager.set_opentherm_gateway.assert_not_called()
 
-    async def test_async_unload_entry_success(self, hass: HomeAssistant, mock_config_entry):
+    async def test_async_unload_entry_success(
+        self, hass: HomeAssistant, mock_config_entry
+    ):
         """Test successful integration unload."""
         mock_config_entry.add_to_hass(hass)
 
@@ -306,7 +318,9 @@ class TestIntegrationSetup:
 class TestIntegrationData:
     """Test integration data management."""
 
-    async def test_coordinator_stored_correctly(self, hass: HomeAssistant, mock_config_entry):
+    async def test_coordinator_stored_correctly(
+        self, hass: HomeAssistant, mock_config_entry
+    ):
         """Test that coordinator is stored correctly in hass.data."""
         mock_config_entry.add_to_hass(hass)
 
@@ -325,7 +339,9 @@ class TestIntegrationData:
             patch("smart_heating.async_register_panel"),
             patch("smart_heating.async_setup_services"),
             patch("smart_heating.async_track_time_interval"),
-            patch.object(hass.config_entries, "async_forward_entry_setups", new=AsyncMock()),
+            patch.object(
+                hass.config_entries, "async_forward_entry_setups", new=AsyncMock()
+            ),
         ):
             # Setup all async mocks properly
             mock_area = MagicMock()
@@ -380,7 +396,9 @@ class TestIntegrationData:
             patch("smart_heating.async_register_panel"),
             patch("smart_heating.async_setup_services"),
             patch("smart_heating.async_track_time_interval"),
-            patch.object(hass.config_entries, "async_forward_entry_setups", new=AsyncMock()),
+            patch.object(
+                hass.config_entries, "async_forward_entry_setups", new=AsyncMock()
+            ),
         ):
             # Setup all async mocks properly
             mock_area = MagicMock()

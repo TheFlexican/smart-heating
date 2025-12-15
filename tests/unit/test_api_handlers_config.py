@@ -108,7 +108,9 @@ async def test_handle_set_opentherm_gateway_updates_config_entry(hass: HomeAssis
     # Mock hass.config_entries.async_update_entry
     hass.config_entries.async_update_entry = AsyncMock()
 
-    await handle_set_opentherm_gateway(area_manager, coordinator, {"gateway_id": "gateway1"})
+    await handle_set_opentherm_gateway(
+        area_manager, coordinator, {"gateway_id": "gateway1"}
+    )
 
     # Verify area_manager.set_opentherm_gateway was called
     area_manager.set_opentherm_gateway.assert_called_once_with("gateway1")
@@ -326,11 +328,15 @@ class TestConfigHandlers:
         assert mock_area_manager.pwm_enabled
         assert mock_area_manager.pid_enabled
         assert mock_area_manager.overshoot_protection_enabled
-        assert mock_area_manager.default_heating_curve_coefficient == pytest.approx(1.25)
+        assert mock_area_manager.default_heating_curve_coefficient == pytest.approx(
+            1.25
+        )
         mock_area_manager.async_save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_set_advanced_control_config_invalid_coefficient(self, mock_area_manager):
+    async def test_handle_set_advanced_control_config_invalid_coefficient(
+        self, mock_area_manager
+    ):
         data = {"default_heating_curve_coefficient": "not-a-number"}
         response = await handle_set_advanced_control_config(mock_area_manager, data)
         assert response.status == 400
@@ -446,7 +452,11 @@ class TestConfigHandlers:
         mock_vacation.get_data.return_value = {"enabled": True}
         mock_hass.data[DOMAIN]["vacation_manager"] = mock_vacation
 
-        data = {"start_date": "2024-01-01", "end_date": "2024-01-07", "temperature": 15.0}
+        data = {
+            "start_date": "2024-01-01",
+            "end_date": "2024-01-07",
+            "temperature": 15.0,
+        }
         response = await handle_enable_vacation_mode(mock_hass, data)
 
         assert response.status == 200
@@ -577,7 +587,9 @@ class TestConfigHandlers:
         mock_hass.bus.async_fire.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_set_safety_sensor_missing_id(self, mock_hass, mock_area_manager):
+    async def test_handle_set_safety_sensor_missing_id(
+        self, mock_hass, mock_area_manager
+    ):
         """Test setting safety sensor without sensor_id."""
         data = {}
         response = await handle_set_safety_sensor(mock_hass, mock_area_manager, data)
@@ -613,7 +625,9 @@ class TestConfigHandlers:
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         data = {"hvac_mode": "cool"}
-        response = await handle_set_hvac_mode(mock_hass, mock_area_manager, "living_room", data)
+        response = await handle_set_hvac_mode(
+            mock_hass, mock_area_manager, "living_room", data
+        )
 
         assert response.status == 200
         body = json.loads(response.body.decode())
@@ -625,22 +639,30 @@ class TestConfigHandlers:
         mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_set_hvac_mode_missing_mode(self, mock_hass, mock_area_manager):
+    async def test_handle_set_hvac_mode_missing_mode(
+        self, mock_hass, mock_area_manager
+    ):
         """Test setting HVAC mode without mode parameter."""
         data = {}
-        response = await handle_set_hvac_mode(mock_hass, mock_area_manager, "living_room", data)
+        response = await handle_set_hvac_mode(
+            mock_hass, mock_area_manager, "living_room", data
+        )
 
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "error" in body
 
     @pytest.mark.asyncio
-    async def test_handle_set_hvac_mode_area_not_found(self, mock_hass, mock_area_manager):
+    async def test_handle_set_hvac_mode_area_not_found(
+        self, mock_hass, mock_area_manager
+    ):
         """Test setting HVAC mode for non-existent area."""
         mock_area_manager.get_area.return_value = None
 
         data = {"hvac_mode": "cool"}
-        response = await handle_set_hvac_mode(mock_hass, mock_area_manager, "nonexistent", data)
+        response = await handle_set_hvac_mode(
+            mock_hass, mock_area_manager, "nonexistent", data
+        )
 
         assert response.status == 400
         body = json.loads(response.body.decode())

@@ -183,7 +183,10 @@ class TestBuildAreaResponse:
         area.shutdown_switches_when_idle = False
         area.shutdown_switch_entities = []
 
-        devices = [{"id": "device1", "name": "Device 1"}, {"id": "device2", "name": "Device 2"}]
+        devices = [
+            {"id": "device1", "name": "Device 1"},
+            {"id": "device2", "name": "Device 2"},
+        ]
 
         result = build_area_response(area, devices)
 

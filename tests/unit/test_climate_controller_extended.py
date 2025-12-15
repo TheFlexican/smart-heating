@@ -16,7 +16,9 @@ def mock_hass():
     hass = MagicMock()
     hass.data = {
         "smart_heating": {
-            "history": MagicMock(async_record_temperature=AsyncMock(), async_save=AsyncMock()),
+            "history": MagicMock(
+                async_record_temperature=AsyncMock(), async_save=AsyncMock()
+            ),
             "vacation_manager": None,
         }
     }
@@ -99,11 +101,17 @@ class TestTemperatureMethods:
     def test_convert_fahrenheit_to_celsius(self, controller):
         """Test Fahrenheit to Celsius conversion."""
         # 32°F = 0°C
-        assert controller._convert_fahrenheit_to_celsius(32.0) == pytest.approx(0.0, abs=0.1)
+        assert controller._convert_fahrenheit_to_celsius(32.0) == pytest.approx(
+            0.0, abs=0.1
+        )
         # 212°F = 100°C
-        assert controller._convert_fahrenheit_to_celsius(212.0) == pytest.approx(100.0, abs=0.1)
+        assert controller._convert_fahrenheit_to_celsius(212.0) == pytest.approx(
+            100.0, abs=0.1
+        )
         # 68°F = 20°C
-        assert controller._convert_fahrenheit_to_celsius(68.0) == pytest.approx(20.0, abs=0.1)
+        assert controller._convert_fahrenheit_to_celsius(68.0) == pytest.approx(
+            20.0, abs=0.1
+        )
 
     def test_get_temperature_from_sensor_celsius(self, controller, mock_hass):
         """Test getting temperature from sensor in Celsius."""
@@ -177,7 +185,10 @@ class TestTemperatureMethods:
         # Mock thermostat
         thermostat_state = MagicMock()
         thermostat_state.state = "heating"
-        thermostat_state.attributes = {"current_temperature": 21.0, "unit_of_measurement": "°C"}
+        thermostat_state.attributes = {
+            "current_temperature": 21.0,
+            "unit_of_measurement": "°C",
+        }
 
         mock_hass.states.get.side_effect = lambda entity_id: {
             "sensor.temp": sensor_state,
@@ -271,7 +282,9 @@ class TestPresenceSensors:
         sensors = controller._get_presence_sensors_for_area(mock_area)
         assert sensors == [{"entity_id": "person.john"}]
 
-    def test_get_presence_sensors_global(self, controller, mock_area_manager, mock_area):
+    def test_get_presence_sensors_global(
+        self, controller, mock_area_manager, mock_area
+    ):
         """Test getting global presence sensors."""
         mock_area.use_global_presence = True
         mock_area_manager.global_presence_sensors = [{"entity_id": "person.jane"}]
@@ -376,7 +389,9 @@ class TestFrostProtection:
         result = controller._apply_frost_protection("living_room", 5.0)
         assert result == 7.0
 
-    def test_apply_frost_protection_vacation_mode(self, controller, mock_hass, mock_area_manager):
+    def test_apply_frost_protection_vacation_mode(
+        self, controller, mock_hass, mock_area_manager
+    ):
         """Test frost protection with vacation mode override."""
         mock_area_manager.frost_protection_enabled = False
 
@@ -419,7 +434,9 @@ class TestVacationMode:
 class TestDeviceControl:
     """Tests for device control methods."""
 
-    def test_is_any_thermostat_actively_heating_true(self, controller, mock_hass, mock_area):
+    def test_is_any_thermostat_actively_heating_true(
+        self, controller, mock_hass, mock_area
+    ):
         """Test detecting active heating."""
         state = MagicMock()
         state.attributes = {"hvac_action": "heating"}
@@ -430,7 +447,9 @@ class TestDeviceControl:
         is_heating = controller._is_any_thermostat_actively_heating(mock_area)
         assert is_heating is True
 
-    def test_is_any_thermostat_actively_heating_false(self, controller, mock_hass, mock_area):
+    def test_is_any_thermostat_actively_heating_false(
+        self, controller, mock_hass, mock_area
+    ):
         """Test detecting no active heating."""
         state = MagicMock()
         state.attributes = {"hvac_action": "idle"}
@@ -442,7 +461,9 @@ class TestDeviceControl:
         assert is_heating is False
 
     @pytest.mark.asyncio
-    async def test_async_control_thermostats_heating(self, controller, mock_hass, mock_area):
+    async def test_async_control_thermostats_heating(
+        self, controller, mock_hass, mock_area
+    ):
         """Test controlling thermostats to heat."""
         mock_area.get_thermostats.return_value = ["climate.living_room"]
 
@@ -451,7 +472,9 @@ class TestDeviceControl:
         # Ensure a set temperature service call occurred with the expected parameters
         calls = [c.args for c in mock_hass.services.async_call.call_args_list]
         assert any(
-            call[0] == "climate" and call[1] == "set_temperature" and call[2]["temperature"] == 21.0
+            call[0] == "climate"
+            and call[1] == "set_temperature"
+            and call[2]["temperature"] == 21.0
             for call in calls
         )
 
@@ -506,7 +529,9 @@ class TestDeviceControl:
         assert len(set_temp_calls) == 2
 
     @pytest.mark.asyncio
-    async def test_async_control_switches_turn_on(self, controller, mock_hass, mock_area):
+    async def test_async_control_switches_turn_on(
+        self, controller, mock_hass, mock_area
+    ):
         """Test turning on switches."""
         mock_area.get_switches.return_value = ["switch.pump"]
 
@@ -520,7 +545,9 @@ class TestDeviceControl:
         )
 
     @pytest.mark.asyncio
-    async def test_async_control_switches_turn_off(self, controller, mock_hass, mock_area):
+    async def test_async_control_switches_turn_off(
+        self, controller, mock_hass, mock_area
+    ):
         """Test turning off switches when shutdown allowed."""
         state = MagicMock()
         state.attributes = {"hvac_action": "idle"}
@@ -562,7 +589,9 @@ class TestDeviceControl:
         )
 
     @pytest.mark.asyncio
-    async def test_async_control_valves_number_entity_open(self, controller, mock_hass, mock_area):
+    async def test_async_control_valves_number_entity_open(
+        self, controller, mock_hass, mock_area
+    ):
         """Test opening valve via number entity."""
         state = MagicMock()
         state.attributes = {"min": 0, "max": 100}
@@ -583,7 +612,9 @@ class TestDeviceControl:
         )
 
     @pytest.mark.asyncio
-    async def test_async_control_valves_number_entity_close(self, controller, mock_hass, mock_area):
+    async def test_async_control_valves_number_entity_close(
+        self, controller, mock_hass, mock_area
+    ):
         """Test closing valve via number entity."""
         state = MagicMock()
         state.attributes = {"min": 0, "max": 100}
@@ -604,7 +635,9 @@ class TestDeviceControl:
         )
 
     @pytest.mark.asyncio
-    async def test_async_get_outdoor_temperature_success(self, controller, mock_hass, mock_area):
+    async def test_async_get_outdoor_temperature_success(
+        self, controller, mock_hass, mock_area
+    ):
         """Test getting outdoor temperature."""
         state = MagicMock()
         state.state = "15.0"
@@ -633,6 +666,23 @@ class TestDeviceControl:
         mock_area_manager.opentherm_gateway_id = (
             "climate.boiler"  # Corrected to reflect the intended gateway ID
         )
+        
+        # Add a radiator area that needs heating to trigger OpenTherm
+        from smart_heating.models.area import Area
+        radiator_area = Area("test_area", "Test Room")
+        radiator_area.heating_type = "radiator"
+        radiator_area.state = "heating"
+        radiator_area.current_temperature = 18.0
+        radiator_area.target_temperature = 21.0
+        
+        mock_area_manager.get_all_areas.return_value = {
+            "test_area": radiator_area,
+        }
+        # Add missing attributes
+        mock_area_manager.advanced_control_enabled = False
+        mock_area_manager.heating_curve_enabled = False
+        mock_area_manager.pid_enabled = False
+        mock_area_manager.pwm_enabled = False
 
         await controller._async_control_opentherm_gateway(True, 21.0)
 
@@ -737,7 +787,9 @@ class TestHeatingCycle:
     """Tests for heating control cycle."""
 
     @pytest.mark.asyncio
-    async def test_async_prepare_heating_cycle(self, controller, mock_hass, mock_area_manager):
+    async def test_async_prepare_heating_cycle(
+        self, controller, mock_hass, mock_area_manager
+    ):
         """Test preparing for heating cycle."""
         mock_area_manager.get_all_areas.return_value = {}
 
@@ -754,11 +806,15 @@ class TestHeatingCycle:
         mock_area.current_temperature = 20.0
         mock_area.state = "idle"  # Initial state
 
-        await controller._async_handle_disabled_area("living_room", mock_area, history, True)
+        await controller._async_handle_disabled_area(
+            "living_room", mock_area, history, True
+        )
 
         assert mock_area.state == "off"
         # History is recorded BEFORE state is changed to "off", so it uses the current state
-        history.async_record_temperature.assert_called_once_with("living_room", 20.0, 21.0, "idle")
+        history.async_record_temperature.assert_called_once_with(
+            "living_room", 20.0, 21.0, "idle"
+        )
 
     @pytest.mark.asyncio
     async def test_async_handle_manual_override(self, controller, mock_hass, mock_area):

@@ -120,9 +120,9 @@ class Area:
         self.window_is_open: bool = False  # Cached state
 
         # Presence sensor settings (new config structure)
-        self.presence_sensors: list[
-            dict[str, Any]
-        ] = []  # List of presence sensor configs
+        self.presence_sensors: list[dict[str, Any]] = (
+            []
+        )  # List of presence sensor configs
         self.presence_detected: bool = False  # Cached state
         self.use_global_presence: bool = (
             False  # Use global presence sensors instead of area-specific

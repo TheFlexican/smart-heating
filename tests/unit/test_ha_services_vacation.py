@@ -98,7 +98,9 @@ class TestVacationHandlers:
         )
 
     @pytest.mark.asyncio
-    async def test_async_handle_enable_vacation_mode_no_manager(self, mock_hass, mock_coordinator):
+    async def test_async_handle_enable_vacation_mode_no_manager(
+        self, mock_hass, mock_coordinator
+    ):
         """Test enabling vacation mode when vacation manager not found."""
         # No vacation_manager in hass.data
         call = MagicMock(spec=ServiceCall)
@@ -145,7 +147,9 @@ class TestVacationHandlers:
         mock_vacation_manager.async_disable.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_handle_disable_vacation_mode_no_manager(self, mock_hass, mock_coordinator):
+    async def test_async_handle_disable_vacation_mode_no_manager(
+        self, mock_hass, mock_coordinator
+    ):
         """Test disabling vacation mode when vacation manager not found."""
         # No vacation_manager in hass.data
         call = MagicMock(spec=ServiceCall)

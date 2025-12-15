@@ -212,7 +212,9 @@ async def test_handle_get_efficiency_report_error_handling(
     mock_hass, mock_area_manager, mock_efficiency_calculator
 ):
     """Test error handling in efficiency report."""
-    mock_efficiency_calculator.calculate_all_areas_efficiency.side_effect = Exception("Test error")
+    mock_efficiency_calculator.calculate_all_areas_efficiency.side_effect = Exception(
+        "Test error"
+    )
 
     request = make_mocked_request(
         "GET",
@@ -273,7 +275,9 @@ async def test_handle_get_efficiency_report_no_areas(
     mock_hass, mock_area_manager, mock_efficiency_calculator
 ):
     """Test all-areas report with no data returns default summary and recommendations."""
-    mock_efficiency_calculator.calculate_all_areas_efficiency = AsyncMock(return_value=[])
+    mock_efficiency_calculator.calculate_all_areas_efficiency = AsyncMock(
+        return_value=[]
+    )
 
     request = make_mocked_request(
         "GET",
@@ -293,7 +297,9 @@ async def test_handle_get_efficiency_report_no_areas(
 
 
 @pytest.mark.asyncio
-async def test_handle_get_area_efficiency_history(mock_hass, mock_efficiency_calculator):
+async def test_handle_get_area_efficiency_history(
+    mock_hass, mock_efficiency_calculator
+):
     """Test getting efficiency history for an area."""
     mock_efficiency_calculator.calculate_area_efficiency = AsyncMock(
         return_value={

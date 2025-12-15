@@ -60,7 +60,8 @@ async def test_async_insert_metrics_calls_recorder(monkeypatch):
             self.async_add_executor_job = AsyncMock(return_value=None)
 
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance", lambda hass: FakeRecorder()
+        "smart_heating.advanced_metrics_collector.get_instance",
+        lambda hass: FakeRecorder(),
     )
 
     open_metrics = {"boiler_flow_temp": 30.0}
@@ -79,7 +80,9 @@ async def test_async_get_metrics(monkeypatch):
 
     # Create fake rows as simple objects
     class Row:
-        def __init__(self, timestamp, outdoor_temp, boiler_flow_temp, area_metrics_json):
+        def __init__(
+            self, timestamp, outdoor_temp, boiler_flow_temp, area_metrics_json
+        ):
             self.timestamp = timestamp
             self.outdoor_temp = outdoor_temp
             self.boiler_flow_temp = boiler_flow_temp
@@ -114,7 +117,8 @@ async def test_async_get_metrics(monkeypatch):
     )
 
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance", lambda hass: fake_recorder
+        "smart_heating.advanced_metrics_collector.get_instance",
+        lambda hass: fake_recorder,
     )
     collector._db_engine = MagicMock()
     collector._db_table = MagicMock()

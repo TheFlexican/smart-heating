@@ -201,7 +201,9 @@ async def test_get_valve_capability_number_and_climate():
     assert cap["position_min"] == 10
 
     # climate domain with position and temperature
-    hass.states.get = MagicMock(return_value=MockState({"position": 50, "temperature": 21.0}))
+    hass.states.get = MagicMock(
+        return_value=MockState({"position": 50, "temperature": 21.0})
+    )
     cap2 = handler.get_valve_capability("climate.trv1")
     assert cap2["supports_position"] is True
     assert cap2["supports_temperature"] is True
@@ -328,7 +330,9 @@ def test_compute_candidate_and_enforce_minimum(monkeypatch):
     a.heating_type = "floor_heating"
     area_manager.get_area.return_value = a
     handler.hass.states.get = MagicMock(
-        return_value=MagicMock(attributes={"return_water_temp": 55.0, "ch_water_temp": 60.0})
+        return_value=MagicMock(
+            attributes={"return_water_temp": 55.0, "ch_water_temp": 60.0}
+        )
     )
     boiler = handler._enforce_minimum_setpoints(["a1"], 30.0, "gateway.1")
     assert boiler >= 40.0

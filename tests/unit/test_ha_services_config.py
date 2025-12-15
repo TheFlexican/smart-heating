@@ -94,7 +94,9 @@ class TestConfigHandlers:
         assert mock_climate_controller._hysteresis == pytest.approx(0.8)
 
     @pytest.mark.asyncio
-    async def test_async_handle_set_hysteresis_no_controller(self, mock_hass, mock_coordinator):
+    async def test_async_handle_set_hysteresis_no_controller(
+        self, mock_hass, mock_coordinator
+    ):
         """Test setting hysteresis when climate controller not found."""
         # No climate_controller in hass.data
         call = MagicMock(spec=ServiceCall)
@@ -114,7 +116,9 @@ class TestConfigHandlers:
             "enabled": True,
         }
 
-        await async_handle_set_opentherm_gateway(call, mock_area_manager, mock_coordinator)
+        await async_handle_set_opentherm_gateway(
+            call, mock_area_manager, mock_coordinator
+        )
 
         # Verify gateway was set
         mock_area_manager.set_opentherm_gateway.assert_called_once_with("gateway1")
@@ -129,7 +133,9 @@ class TestConfigHandlers:
         call = MagicMock(spec=ServiceCall)
         call.data = {"gateway_id": "gateway1"}
 
-        await async_handle_set_opentherm_gateway(call, mock_area_manager, mock_coordinator)
+        await async_handle_set_opentherm_gateway(
+            call, mock_area_manager, mock_coordinator
+        )
 
         # Verify gateway was set with default enabled=True
         mock_area_manager.set_opentherm_gateway.assert_called_once_with("gateway1")
@@ -143,10 +149,14 @@ class TestConfigHandlers:
         call.data = {"gateway_id": "gateway1"}
 
         # Make set_opentherm_gateway raise ValueError
-        mock_area_manager.set_opentherm_gateway.side_effect = ValueError("Invalid gateway")
+        mock_area_manager.set_opentherm_gateway.side_effect = ValueError(
+            "Invalid gateway"
+        )
 
         # Should not raise, just log error
-        await async_handle_set_opentherm_gateway(call, mock_area_manager, mock_coordinator)
+        await async_handle_set_opentherm_gateway(
+            call, mock_area_manager, mock_coordinator
+        )
 
         # Should not save on error
         mock_area_manager.async_save.assert_not_called()
@@ -163,7 +173,9 @@ class TestConfigHandlers:
             "temp_offset": 1.5,
         }
 
-        await async_handle_set_trv_temperatures(call, mock_area_manager, mock_coordinator)
+        await async_handle_set_trv_temperatures(
+            call, mock_area_manager, mock_coordinator
+        )
 
         # Verify temperatures were set
         mock_area_manager.set_trv_temperatures.assert_called_once_with(26.0, 8.0, 1.5)
@@ -178,7 +190,9 @@ class TestConfigHandlers:
         call = MagicMock(spec=ServiceCall)
         call.data = {}
 
-        await async_handle_set_trv_temperatures(call, mock_area_manager, mock_coordinator)
+        await async_handle_set_trv_temperatures(
+            call, mock_area_manager, mock_coordinator
+        )
 
         # Verify temperatures were set with defaults
         mock_area_manager.set_trv_temperatures.assert_called_once_with(25.0, 10.0, None)
@@ -192,10 +206,14 @@ class TestConfigHandlers:
         call.data = {}
 
         # Make set_trv_temperatures raise ValueError
-        mock_area_manager.set_trv_temperatures.side_effect = ValueError("Invalid temperatures")
+        mock_area_manager.set_trv_temperatures.side_effect = ValueError(
+            "Invalid temperatures"
+        )
 
         # Should not raise, just log error
-        await async_handle_set_trv_temperatures(call, mock_area_manager, mock_coordinator)
+        await async_handle_set_trv_temperatures(
+            call, mock_area_manager, mock_coordinator
+        )
 
         # Should not save on error
         mock_area_manager.async_save.assert_not_called()
@@ -211,7 +229,9 @@ class TestConfigHandlers:
             ATTR_FROST_PROTECTION_TEMP: 5.0,
         }
 
-        await async_handle_set_frost_protection(call, mock_area_manager, mock_coordinator)
+        await async_handle_set_frost_protection(
+            call, mock_area_manager, mock_coordinator
+        )
 
         # Verify frost protection was set
         assert mock_area_manager.frost_protection_enabled is True
@@ -231,7 +251,9 @@ class TestConfigHandlers:
 
         original_temp = mock_area_manager.frost_protection_temp
 
-        await async_handle_set_frost_protection(call, mock_area_manager, mock_coordinator)
+        await async_handle_set_frost_protection(
+            call, mock_area_manager, mock_coordinator
+        )
 
         # Verify only enabled was set
         assert mock_area_manager.frost_protection_enabled is True
@@ -250,7 +272,9 @@ class TestConfigHandlers:
         mock_area_manager.async_save.side_effect = ValueError("Save failed")
 
         # Should not raise, just log error
-        await async_handle_set_frost_protection(call, mock_area_manager, mock_coordinator)
+        await async_handle_set_frost_protection(
+            call, mock_area_manager, mock_coordinator
+        )
 
         # Should not refresh on error
         mock_coordinator.async_request_refresh.assert_not_called()
@@ -275,7 +299,9 @@ class TestConfigHandlers:
         mock_history_tracker._async_cleanup_old_entries.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_handle_set_history_retention_no_tracker(self, mock_hass, mock_coordinator):
+    async def test_async_handle_set_history_retention_no_tracker(
+        self, mock_hass, mock_coordinator
+    ):
         """Test setting history retention when tracker not found."""
         # No history tracker in hass.data
         call = MagicMock(spec=ServiceCall)
@@ -295,7 +321,9 @@ class TestConfigHandlers:
         call.data = {ATTR_HISTORY_RETENTION_DAYS: 30}
 
         # Make set_retention_days raise exception
-        mock_history_tracker.set_retention_days.side_effect = Exception("Invalid retention")
+        mock_history_tracker.set_retention_days.side_effect = Exception(
+            "Invalid retention"
+        )
 
         # Should not raise, just log error
         await async_handle_set_history_retention(call, mock_hass, mock_coordinator)

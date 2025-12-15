@@ -32,14 +32,18 @@ def mock_area():
 class TestInitialization:
     """Tests for initialization."""
 
-    def test_init(self, safety_monitor: SafetyMonitor, hass: HomeAssistant, mock_area_manager):
+    def test_init(
+        self, safety_monitor: SafetyMonitor, hass: HomeAssistant, mock_area_manager
+    ):
         """Test safety monitor initialization."""
         assert safety_monitor.hass == hass
         assert safety_monitor.area_manager == mock_area_manager
         assert safety_monitor._state_unsub is None
         assert safety_monitor._emergency_shutdown_active is False
 
-    async def test_async_setup_no_sensors(self, safety_monitor: SafetyMonitor, mock_area_manager):
+    async def test_async_setup_no_sensors(
+        self, safety_monitor: SafetyMonitor, mock_area_manager
+    ):
         """Test setup with no safety sensors."""
         mock_area_manager.get_safety_sensors.return_value = []
 
@@ -59,7 +63,9 @@ class TestInitialization:
         # Mock the sensor state
         hass.states.async_set("binary_sensor.smoke_detector", "off")
 
-        with patch("smart_heating.safety_monitor.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.safety_monitor.async_track_state_change_event"
+        ) as mock_track:
             mock_track.return_value = MagicMock()
             await safety_monitor.async_setup()
 
@@ -94,7 +100,9 @@ class TestInitialization:
 
         hass.states.async_set("binary_sensor.smoke", "off")
 
-        with patch("smart_heating.safety_monitor.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.safety_monitor.async_track_state_change_event"
+        ) as mock_track:
             mock_track.return_value = MagicMock()
             await safety_monitor.async_setup()
 
@@ -113,7 +121,9 @@ class TestInitialization:
         # Don't create the sensor state
         # hass.states.get will return None
 
-        with patch("smart_heating.safety_monitor.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.safety_monitor.async_track_state_change_event"
+        ) as mock_track:
             mock_track.return_value = MagicMock()
             await safety_monitor.async_setup()
 
@@ -138,7 +148,11 @@ class TestStateChangeHandling:
 
         event = Event(
             "state_changed",
-            {"entity_id": "binary_sensor.smoke", "old_state": old_state, "new_state": new_state},
+            {
+                "entity_id": "binary_sensor.smoke",
+                "old_state": old_state,
+                "new_state": new_state,
+            },
         )
 
         orig = hass.async_create_task
@@ -178,10 +192,17 @@ class TestSafetyChecks:
         assert safety_monitor._emergency_shutdown_active is False
 
     async def test_check_safety_status_alert_detected(
-        self, safety_monitor: SafetyMonitor, mock_area_manager, mock_area, hass: HomeAssistant
+        self,
+        safety_monitor: SafetyMonitor,
+        mock_area_manager,
+        mock_area,
+        hass: HomeAssistant,
     ):
         """Test checking safety status when alert is detected."""
-        mock_area_manager.check_safety_sensor_status.return_value = (True, "binary_sensor.smoke")
+        mock_area_manager.check_safety_sensor_status.return_value = (
+            True,
+            "binary_sensor.smoke",
+        )
         mock_area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
 
         # Mock the emergency shutdown method to avoid complex internal calls
@@ -322,7 +343,9 @@ class TestReconfigure:
         # Mock sensor state
         hass.states.async_set("binary_sensor.co", "off")
 
-        with patch("smart_heating.safety_monitor.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.safety_monitor.async_track_state_change_event"
+        ) as mock_track:
             mock_track.return_value = MagicMock()
             await safety_monitor.async_reconfigure()
 
@@ -353,7 +376,9 @@ class TestShutdown:
 class TestReset:
     """Tests for reset functionality."""
 
-    def test_reset_emergency_shutdown(self, safety_monitor: SafetyMonitor, mock_area_manager):
+    def test_reset_emergency_shutdown(
+        self, safety_monitor: SafetyMonitor, mock_area_manager
+    ):
         """Test resetting emergency shutdown state."""
         safety_monitor._emergency_shutdown_active = True
 

@@ -74,7 +74,9 @@ class TestHistoryHandlers:
     """Test history API handlers."""
 
     @pytest.mark.asyncio
-    async def test_handle_get_history_default(self, mock_hass, mock_history_tracker, mock_request):
+    async def test_handle_get_history_default(
+        self, mock_hass, mock_history_tracker, mock_request
+    ):
         """Test getting history with default parameters (24 hours)."""
         response = await handle_get_history(mock_hass, "living_room", mock_request)
 
@@ -89,7 +91,9 @@ class TestHistoryHandlers:
         assert len(body["entries"]) == 1
 
         # Verify history tracker was called with 24 hours
-        mock_history_tracker.get_history.assert_called_once_with("living_room", hours=24)
+        mock_history_tracker.get_history.assert_called_once_with(
+            "living_room", hours=24
+        )
 
     @pytest.mark.asyncio
     async def test_handle_get_history_custom_hours(
@@ -108,7 +112,9 @@ class TestHistoryHandlers:
         assert body["hours"] == 48
 
         # Verify history tracker was called with 48 hours
-        mock_history_tracker.get_history.assert_called_once_with("living_room", hours=48)
+        mock_history_tracker.get_history.assert_called_once_with(
+            "living_room", hours=48
+        )
 
     @pytest.mark.asyncio
     async def test_handle_get_history_custom_time_range(
@@ -140,7 +146,10 @@ class TestHistoryHandlers:
         self, mock_hass, mock_history_tracker, mock_request
     ):
         """Test getting history with invalid time format."""
-        mock_request.query = {"start_time": "invalid", "end_time": "2024-01-02T00:00:00"}
+        mock_request.query = {
+            "start_time": "invalid",
+            "end_time": "2024-01-02T00:00:00",
+        }
 
         response = await handle_get_history(mock_hass, "living_room", mock_request)
 
@@ -183,7 +192,9 @@ class TestHistoryHandlers:
         assert body["stats"]["confidence"] == 0.85
 
         # Verify learning engine was called
-        mock_learning_engine.async_get_learning_stats.assert_called_once_with("living_room")
+        mock_learning_engine.async_get_learning_stats.assert_called_once_with(
+            "living_room"
+        )
 
     @pytest.mark.asyncio
     async def test_handle_get_learning_stats_no_engine(self, mock_hass):
@@ -231,7 +242,9 @@ class TestHistoryHandlers:
         assert "error" in body
 
     @pytest.mark.asyncio
-    async def test_handle_set_history_config_success(self, mock_hass, mock_history_tracker):
+    async def test_handle_set_history_config_success(
+        self, mock_hass, mock_history_tracker
+    ):
         """Test setting history configuration successfully."""
         data = {"retention_days": 60}
 
@@ -282,10 +295,14 @@ class TestHistoryHandlers:
         assert "error" in body
 
     @pytest.mark.asyncio
-    async def test_handle_set_history_config_invalid_value(self, mock_hass, mock_history_tracker):
+    async def test_handle_set_history_config_invalid_value(
+        self, mock_hass, mock_history_tracker
+    ):
         """Test setting history config with invalid value."""
         # Make set_retention_days raise ValueError
-        mock_history_tracker.set_retention_days.side_effect = ValueError("Invalid retention")
+        mock_history_tracker.set_retention_days.side_effect = ValueError(
+            "Invalid retention"
+        )
 
         data = {"retention_days": -5}
         response = await handle_set_history_config(mock_hass, data)

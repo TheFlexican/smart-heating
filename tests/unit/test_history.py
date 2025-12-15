@@ -70,7 +70,9 @@ class TestHistoryTrackerLoad:
 
             # Should schedule cleanup
             mock_track.assert_called_once_with(
-                history_tracker.hass, history_tracker._async_periodic_cleanup, CLEANUP_INTERVAL
+                history_tracker.hass,
+                history_tracker._async_periodic_cleanup,
+                CLEANUP_INTERVAL,
             )
 
     @pytest.mark.asyncio
@@ -214,7 +216,9 @@ class TestHistoryTrackerRecord:
     @pytest.mark.asyncio
     async def test_record_temperature_new_area(self, history_tracker):
         """Test recording temperature for new area."""
-        await history_tracker.async_record_temperature("living_room", 20.0, 21.0, "heating")
+        await history_tracker.async_record_temperature(
+            "living_room", 20.0, 21.0, "heating"
+        )
 
         # Should create history for area
         assert "living_room" in history_tracker._history
@@ -239,13 +243,15 @@ class TestHistoryTrackerRecord:
             }
         ]
 
-        await history_tracker.async_record_temperature("living_room", 20.5, 21.0, "heating")
+        await history_tracker.async_record_temperature(
+            "living_room", 20.5, 21.0, "heating"
+        )
 
         # Should append new entry
         assert len(history_tracker._history["living_room"]) == 2
-        assert history_tracker._history["living_room"][1]["current_temperature"] == pytest.approx(
-            20.5
-        )
+        assert history_tracker._history["living_room"][1][
+            "current_temperature"
+        ] == pytest.approx(20.5)
 
     @pytest.mark.asyncio
     async def test_record_temperature_limit(self, history_tracker):
@@ -261,7 +267,9 @@ class TestHistoryTrackerRecord:
             for _ in range(1001)
         ]
 
-        await history_tracker.async_record_temperature("living_room", 20.5, 21.0, "heating")
+        await history_tracker.async_record_temperature(
+            "living_room", 20.5, 21.0, "heating"
+        )
 
         # Should limit to 1000 entries
         assert len(history_tracker._history["living_room"]) == 1000
@@ -345,7 +353,9 @@ class TestHistoryTrackerGet:
         start = now - timedelta(days=4)
         end = now - timedelta(days=2)
 
-        result = history_tracker.get_history("living_room", start_time=start, end_time=end)
+        result = history_tracker.get_history(
+            "living_room", start_time=start, end_time=end
+        )
 
         # Should only return entry within custom range
         assert len(result) == 1
@@ -389,7 +399,9 @@ class TestHistoryTrackerDatabaseStorage:
     """Test database storage backend."""
 
     @pytest.mark.asyncio
-    async def test_validate_database_support_sqlite_fallback(self, mock_hass, mock_store):
+    async def test_validate_database_support_sqlite_fallback(
+        self, mock_hass, mock_store
+    ):
         """Test that SQLite falls back to JSON storage."""
         mock_recorder = MagicMock()
         mock_recorder.db_url = "sqlite:///home-assistant_v2.db"

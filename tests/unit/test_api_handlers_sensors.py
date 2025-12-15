@@ -52,7 +52,9 @@ class TestAddWindowSensor:
     """Tests for handle_add_window_sensor."""
 
     @pytest.mark.asyncio
-    async def test_add_window_sensor_success(self, mock_hass, mock_area_manager, mock_area):
+    async def test_add_window_sensor_success(
+        self, mock_hass, mock_area_manager, mock_area
+    ):
         """Test successfully adding a window sensor."""
         mock_area_manager.get_area.return_value = mock_area
 
@@ -62,7 +64,9 @@ class TestAddWindowSensor:
             "temp_drop": 2.0,
         }
 
-        response = await handle_add_window_sensor(mock_hass, mock_area_manager, "living_room", data)
+        response = await handle_add_window_sensor(
+            mock_hass, mock_area_manager, "living_room", data
+        )
 
         assert response.status == 200
         body = json.loads(response.body.decode())
@@ -73,16 +77,22 @@ class TestAddWindowSensor:
             "binary_sensor.living_room_window", "turn_off", 2.0
         )
         mock_area_manager.async_save.assert_called_once()
-        mock_hass.data["smart_heating"]["entry_id_123"].async_request_refresh.assert_called_once()
+        mock_hass.data["smart_heating"][
+            "entry_id_123"
+        ].async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_add_window_sensor_default_action(self, mock_hass, mock_area_manager, mock_area):
+    async def test_add_window_sensor_default_action(
+        self, mock_hass, mock_area_manager, mock_area
+    ):
         """Test adding window sensor with default action."""
         mock_area_manager.get_area.return_value = mock_area
 
         data = {"entity_id": "binary_sensor.bedroom_window"}
 
-        response = await handle_add_window_sensor(mock_hass, mock_area_manager, "bedroom", data)
+        response = await handle_add_window_sensor(
+            mock_hass, mock_area_manager, "bedroom", data
+        )
 
         assert response.status == 200
         body = json.loads(response.body.decode())
@@ -94,11 +104,15 @@ class TestAddWindowSensor:
         )
 
     @pytest.mark.asyncio
-    async def test_add_window_sensor_missing_entity_id(self, mock_hass, mock_area_manager):
+    async def test_add_window_sensor_missing_entity_id(
+        self, mock_hass, mock_area_manager
+    ):
         """Test error when entity_id is missing."""
         data = {"action_when_open": "turn_off"}
 
-        response = await handle_add_window_sensor(mock_hass, mock_area_manager, "living_room", data)
+        response = await handle_add_window_sensor(
+            mock_hass, mock_area_manager, "living_room", data
+        )
 
         assert response.status == 400
         body = json.loads(response.body.decode())
@@ -111,21 +125,27 @@ class TestAddWindowSensor:
 
         data = {"entity_id": "binary_sensor.window"}
 
-        response = await handle_add_window_sensor(mock_hass, mock_area_manager, "nonexistent", data)
+        response = await handle_add_window_sensor(
+            mock_hass, mock_area_manager, "nonexistent", data
+        )
 
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "Area nonexistent not found" in body["error"]
 
     @pytest.mark.asyncio
-    async def test_add_window_sensor_value_error(self, mock_hass, mock_area_manager, mock_area):
+    async def test_add_window_sensor_value_error(
+        self, mock_hass, mock_area_manager, mock_area
+    ):
         """Test handling ValueError from area."""
         mock_area_manager.get_area.return_value = mock_area
         mock_area.add_window_sensor.side_effect = ValueError("Invalid sensor")
 
         data = {"entity_id": "binary_sensor.invalid"}
 
-        response = await handle_add_window_sensor(mock_hass, mock_area_manager, "living_room", data)
+        response = await handle_add_window_sensor(
+            mock_hass, mock_area_manager, "living_room", data
+        )
 
         assert response.status == 400
         body = json.loads(response.body.decode())
@@ -136,24 +156,35 @@ class TestRemoveWindowSensor:
     """Tests for handle_remove_window_sensor."""
 
     @pytest.mark.asyncio
-    async def test_remove_window_sensor_success(self, mock_hass, mock_area_manager, mock_area):
+    async def test_remove_window_sensor_success(
+        self, mock_hass, mock_area_manager, mock_area
+    ):
         """Test successfully removing a window sensor."""
         mock_area_manager.get_area.return_value = mock_area
 
         response = await handle_remove_window_sensor(
-            mock_hass, mock_area_manager, "living_room", "binary_sensor.living_room_window"
+            mock_hass,
+            mock_area_manager,
+            "living_room",
+            "binary_sensor.living_room_window",
         )
 
         assert response.status == 200
         body = json.loads(response.body.decode())
         assert body["success"] is True
 
-        mock_area.remove_window_sensor.assert_called_once_with("binary_sensor.living_room_window")
+        mock_area.remove_window_sensor.assert_called_once_with(
+            "binary_sensor.living_room_window"
+        )
         mock_area_manager.async_save.assert_called_once()
-        mock_hass.data["smart_heating"]["entry_id_123"].async_request_refresh.assert_called_once()
+        mock_hass.data["smart_heating"][
+            "entry_id_123"
+        ].async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_remove_window_sensor_area_not_found(self, mock_hass, mock_area_manager):
+    async def test_remove_window_sensor_area_not_found(
+        self, mock_hass, mock_area_manager
+    ):
         """Test error when area is not found."""
         mock_area_manager.get_area.return_value = None
 
@@ -166,7 +197,9 @@ class TestRemoveWindowSensor:
         assert "Area nonexistent not found" in body["error"]
 
     @pytest.mark.asyncio
-    async def test_remove_window_sensor_value_error(self, mock_hass, mock_area_manager, mock_area):
+    async def test_remove_window_sensor_value_error(
+        self, mock_hass, mock_area_manager, mock_area
+    ):
         """Test handling ValueError from area."""
         mock_area_manager.get_area.return_value = mock_area
         mock_area.remove_window_sensor.side_effect = ValueError("Sensor not found")
@@ -184,7 +217,9 @@ class TestAddPresenceSensor:
     """Tests for handle_add_presence_sensor."""
 
     @pytest.mark.asyncio
-    async def test_add_presence_sensor_success(self, mock_hass, mock_area_manager, mock_area):
+    async def test_add_presence_sensor_success(
+        self, mock_hass, mock_area_manager, mock_area
+    ):
         """Test successfully adding a presence sensor."""
         mock_area_manager.get_area.return_value = mock_area
 
@@ -201,10 +236,14 @@ class TestAddPresenceSensor:
 
         mock_area.add_presence_sensor.assert_called_once_with("person.john")
         mock_area_manager.async_save.assert_called_once()
-        mock_hass.data["smart_heating"]["entry_id_123"].async_request_refresh.assert_called_once()
+        mock_hass.data["smart_heating"][
+            "entry_id_123"
+        ].async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_add_presence_sensor_missing_entity_id(self, mock_hass, mock_area_manager):
+    async def test_add_presence_sensor_missing_entity_id(
+        self, mock_hass, mock_area_manager
+    ):
         """Test error when entity_id is missing."""
         data = {}
 
@@ -217,7 +256,9 @@ class TestAddPresenceSensor:
         assert "entity_id required" in body["error"]
 
     @pytest.mark.asyncio
-    async def test_add_presence_sensor_area_not_found(self, mock_hass, mock_area_manager):
+    async def test_add_presence_sensor_area_not_found(
+        self, mock_hass, mock_area_manager
+    ):
         """Test error when area is not found."""
         mock_area_manager.get_area.return_value = None
 
@@ -232,10 +273,14 @@ class TestAddPresenceSensor:
         assert "Area nonexistent not found" in body["error"]
 
     @pytest.mark.asyncio
-    async def test_add_presence_sensor_value_error(self, mock_hass, mock_area_manager, mock_area):
+    async def test_add_presence_sensor_value_error(
+        self, mock_hass, mock_area_manager, mock_area
+    ):
         """Test handling ValueError from area."""
         mock_area_manager.get_area.return_value = mock_area
-        mock_area.add_presence_sensor.side_effect = ValueError("Invalid presence sensor")
+        mock_area.add_presence_sensor.side_effect = ValueError(
+            "Invalid presence sensor"
+        )
 
         data = {"entity_id": "person.invalid"}
 
@@ -252,7 +297,9 @@ class TestRemovePresenceSensor:
     """Tests for handle_remove_presence_sensor."""
 
     @pytest.mark.asyncio
-    async def test_remove_presence_sensor_success(self, mock_hass, mock_area_manager, mock_area):
+    async def test_remove_presence_sensor_success(
+        self, mock_hass, mock_area_manager, mock_area
+    ):
         """Test successfully removing a presence sensor."""
         mock_area_manager.get_area.return_value = mock_area
 
@@ -266,10 +313,14 @@ class TestRemovePresenceSensor:
 
         mock_area.remove_presence_sensor.assert_called_once_with("person.john")
         mock_area_manager.async_save.assert_called_once()
-        mock_hass.data["smart_heating"]["entry_id_123"].async_request_refresh.assert_called_once()
+        mock_hass.data["smart_heating"][
+            "entry_id_123"
+        ].async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_remove_presence_sensor_area_not_found(self, mock_hass, mock_area_manager):
+    async def test_remove_presence_sensor_area_not_found(
+        self, mock_hass, mock_area_manager
+    ):
         """Test error when area is not found."""
         mock_area_manager.get_area.return_value = None
 
@@ -347,14 +398,18 @@ class TestGetBinarySensorEntities:
 
         # Check binary sensor
         binary_entity = next(
-            e for e in body["entities"] if e["entity_id"] == "binary_sensor.living_room_window"
+            e
+            for e in body["entities"]
+            if e["entity_id"] == "binary_sensor.living_room_window"
         )
         assert binary_entity["state"] == "on"
         assert binary_entity["attributes"]["friendly_name"] == "Living Room Window"
         assert binary_entity["attributes"]["device_class"] == "window"
 
         # Check person
-        person_entity = next(e for e in body["entities"] if e["entity_id"] == "person.john")
+        person_entity = next(
+            e for e in body["entities"] if e["entity_id"] == "person.john"
+        )
         assert person_entity["state"] == "home"
         assert person_entity["attributes"]["friendly_name"] == "John"
         assert person_entity["attributes"]["device_class"] == "presence"

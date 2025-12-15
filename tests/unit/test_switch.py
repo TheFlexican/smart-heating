@@ -36,7 +36,9 @@ class TestSwitchEntitySetup:
         mock_area.name = TEST_AREA_NAME
 
         # Set up coordinator with area
-        mock_coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
+        mock_coordinator.area_manager.get_all_areas.return_value = {
+            TEST_AREA_ID: mock_area
+        }
 
         # Store coordinator in hass.data
         from smart_heating.const import DOMAIN
@@ -66,7 +68,10 @@ class TestSwitchEntityProperties:
     def test_unique_id(self, switch_entity: AreaSwitch, mock_config_entry):
         """Test unique ID."""
         # Unique ID is "{entry_id}_switch_{area_id}"
-        assert switch_entity.unique_id == f"{mock_config_entry.entry_id}_switch_{TEST_AREA_ID}"
+        assert (
+            switch_entity.unique_id
+            == f"{mock_config_entry.entry_id}_switch_{TEST_AREA_ID}"
+        )
 
     def test_is_on_enabled(self, switch_entity: AreaSwitch):
         """Test is_on when area is enabled."""

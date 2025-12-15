@@ -82,7 +82,9 @@ class TestStorage:
         """Test loading corrupted file handles error gracefully."""
         # Write corrupted JSON
         vacation_manager._storage_file.parent.mkdir(parents=True, exist_ok=True)
-        await asyncio.to_thread(vacation_manager._storage_file.write_text, "invalid json{")
+        await asyncio.to_thread(
+            vacation_manager._storage_file.write_text, "invalid json{"
+        )
 
         # Should handle error gracefully
         await vacation_manager.async_load()
@@ -116,7 +118,9 @@ class TestEnable:
         assert result["preset_mode"] == "eco"
 
     @pytest.mark.asyncio
-    async def test_enable_with_frost_protection(self, vacation_manager: VacationManager):
+    async def test_enable_with_frost_protection(
+        self, vacation_manager: VacationManager
+    ):
         """Test enabling with custom frost protection."""
         result = await vacation_manager.async_enable(
             frost_protection_override=True,
@@ -192,7 +196,9 @@ class TestExpiration:
     """Tests for expiration checking."""
 
     @pytest.mark.asyncio
-    async def test_check_expiration_not_expired(self, vacation_manager: VacationManager):
+    async def test_check_expiration_not_expired(
+        self, vacation_manager: VacationManager
+    ):
         """Test expiration check when not expired."""
         future_date = (date.today() + timedelta(days=7)).isoformat()
         await vacation_manager.async_enable(end_date=future_date)
@@ -212,7 +218,9 @@ class TestExpiration:
         assert vacation_manager._data["enabled"] is False
 
     @pytest.mark.asyncio
-    async def test_check_expiration_no_end_date(self, vacation_manager: VacationManager):
+    async def test_check_expiration_no_end_date(
+        self, vacation_manager: VacationManager
+    ):
         """Test expiration check with no end date set."""
         await vacation_manager.async_enable(end_date=None)
 
@@ -222,10 +230,14 @@ class TestExpiration:
         assert vacation_manager._data["enabled"] is True
 
     @pytest.mark.asyncio
-    async def test_check_expiration_not_enabled(self, vacation_manager: VacationManager):
+    async def test_check_expiration_not_enabled(
+        self, vacation_manager: VacationManager
+    ):
         """Test expiration check when not enabled."""
         vacation_manager._data["enabled"] = False
-        vacation_manager._data["end_date"] = (date.today() - timedelta(days=1)).isoformat()
+        vacation_manager._data["end_date"] = (
+            date.today() - timedelta(days=1)
+        ).isoformat()
 
         await vacation_manager._check_expiration()
 
@@ -233,7 +245,9 @@ class TestExpiration:
         assert vacation_manager._data["enabled"] is False
 
     @pytest.mark.asyncio
-    async def test_check_expiration_invalid_date(self, vacation_manager: VacationManager):
+    async def test_check_expiration_invalid_date(
+        self, vacation_manager: VacationManager
+    ):
         """Test expiration check with invalid date format."""
         await vacation_manager.async_enable()
         vacation_manager._data["end_date"] = "invalid-date"
@@ -248,7 +262,9 @@ class TestActiveStatus:
     def test_is_active_when_enabled(self, vacation_manager: VacationManager):
         """Test is_active returns True when enabled."""
         vacation_manager._data["enabled"] = True
-        vacation_manager._data["end_date"] = (date.today() + timedelta(days=7)).isoformat()
+        vacation_manager._data["end_date"] = (
+            date.today() + timedelta(days=7)
+        ).isoformat()
 
         assert vacation_manager.is_active() is True
 
@@ -261,7 +277,9 @@ class TestActiveStatus:
     def test_is_active_when_expired(self, vacation_manager: VacationManager):
         """Test is_active returns False when expired."""
         vacation_manager._data["enabled"] = True
-        vacation_manager._data["end_date"] = (date.today() - timedelta(days=1)).isoformat()
+        vacation_manager._data["end_date"] = (
+            date.today() - timedelta(days=1)
+        ).isoformat()
 
         assert vacation_manager.is_active() is False
 
@@ -311,7 +329,9 @@ class TestGetters:
 
         assert vacation_manager.get_min_temperature() is None
 
-    def test_get_min_temperature_frost_disabled(self, vacation_manager: VacationManager):
+    def test_get_min_temperature_frost_disabled(
+        self, vacation_manager: VacationManager
+    ):
         """Test getting min temperature when frost protection disabled."""
         vacation_manager._data["enabled"] = True
         vacation_manager._data["frost_protection_override"] = False
@@ -334,7 +354,9 @@ class TestGetters:
 class TestPersonListeners:
     """Tests for person entity listeners."""
 
-    def test_setup_person_listeners_no_entities(self, vacation_manager: VacationManager):
+    def test_setup_person_listeners_no_entities(
+        self, vacation_manager: VacationManager
+    ):
         """Test setting up listeners with no entities."""
         vacation_manager._data["person_entities"] = []
 
@@ -342,18 +364,24 @@ class TestPersonListeners:
 
         assert len(vacation_manager._unsub_person_listeners) == 0
 
-    def test_setup_person_listeners_with_entities(self, vacation_manager: VacationManager):
+    def test_setup_person_listeners_with_entities(
+        self, vacation_manager: VacationManager
+    ):
         """Test setting up listeners with entities."""
         vacation_manager._data["person_entities"] = ["person.john", "person.jane"]
 
-        with patch("smart_heating.vacation_manager.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.vacation_manager.async_track_state_change_event"
+        ) as mock_track:
             mock_track.return_value = MagicMock()
             vacation_manager._setup_person_listeners()
 
         assert mock_track.call_count == 2
         assert len(vacation_manager._unsub_person_listeners) == 2
 
-    def test_setup_person_listeners_cleans_existing(self, vacation_manager: VacationManager):
+    def test_setup_person_listeners_cleans_existing(
+        self, vacation_manager: VacationManager
+    ):
         """Test setting up listeners cleans up existing ones."""
         # Create mock existing listeners
         mock_unsub = MagicMock()
@@ -374,13 +402,17 @@ class TestPersonListeners:
         vacation_manager._data["enabled"] = True
         vacation_manager._data["auto_disable"] = True
         vacation_manager._data["person_entities"] = ["person.john"]
-        vacation_manager._data["end_date"] = (date.today() + timedelta(days=7)).isoformat()
+        vacation_manager._data["end_date"] = (
+            date.today() + timedelta(days=7)
+        ).isoformat()
         await vacation_manager.async_save()
 
         # Create new manager and load
         new_manager = VacationManager(hass, str(tmp_path))
 
-        with patch("smart_heating.vacation_manager.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.vacation_manager.async_track_state_change_event"
+        ) as mock_track:
             mock_track.return_value = MagicMock()
             await new_manager.async_load()
 
