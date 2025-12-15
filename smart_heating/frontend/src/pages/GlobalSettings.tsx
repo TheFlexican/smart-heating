@@ -36,7 +36,7 @@ import SecurityIcon from '@mui/icons-material/Security'
 import BackupIcon from '@mui/icons-material/Backup'
 import FireplaceIcon from '@mui/icons-material/Fireplace'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import AssessmentIcon from '@mui/icons-material/Assessment'
+
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getGlobalPresets, setGlobalPresets } from '../api/presets'
@@ -915,23 +915,23 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               <Stack spacing={2}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.enableAll', 'Enable advanced control')}</Typography>
-                  <Switch checked={advancedControlEnabled} onChange={(e) => handleToggleAdvancedControl('advanced_control_enabled', e.target.checked)} inputProps={{ 'data-testid': 'global-advanced-control-switch' }} />
+                  <Switch data-testid="global-advanced-control-switch" checked={advancedControlEnabled} onChange={(e) => handleToggleAdvancedControl('advanced_control_enabled', e.target.checked)} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.heatingCurve', 'Heating curve')}</Typography>
-                  <Switch checked={heatingCurveEnabled} onChange={(e) => handleToggleAdvancedControl('heating_curve_enabled', e.target.checked)} disabled={!advancedControlEnabled} inputProps={{ 'data-testid': 'global-heating-curve-switch' }} />
+                  <Switch data-testid="global-heating-curve-switch" checked={heatingCurveEnabled} onChange={(e) => handleToggleAdvancedControl('heating_curve_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.pwm', 'PWM for on/off boilers')}</Typography>
-                  <Switch checked={pwmEnabled} onChange={(e) => handleToggleAdvancedControl('pwm_enabled', e.target.checked)} disabled={!advancedControlEnabled} inputProps={{ 'data-testid': 'global-pwm-switch' }} />
+                  <Switch data-testid="global-pwm-switch" checked={pwmEnabled} onChange={(e) => handleToggleAdvancedControl('pwm_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.pid', 'PID Automatic Gains')}</Typography>
-                  <Switch checked={pidEnabled} onChange={(e) => handleToggleAdvancedControl('pid_enabled', e.target.checked)} disabled={!advancedControlEnabled} inputProps={{ 'data-testid': 'global-pid-switch' }} />
+                  <Switch data-testid="global-pid-switch" checked={pidEnabled} onChange={(e) => handleToggleAdvancedControl('pid_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.overshoot', 'Overshoot Protection (OPV) calibration')}</Typography>
-                  <Switch checked={overshootProtectionEnabled} onChange={(e) => handleToggleAdvancedControl('overshoot_protection_enabled', e.target.checked)} disabled={!advancedControlEnabled} inputProps={{ 'data-testid': 'global-opv-switch' }} />
+                  <Switch data-testid="global-opv-switch" checked={overshootProtectionEnabled} onChange={(e) => handleToggleAdvancedControl('overshoot_protection_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }} data-testid="heating-curve-control">
                   <Typography>{t('globalSettings.advanced.defaultCoefficient', 'Default heating curve coefficient')}</Typography>

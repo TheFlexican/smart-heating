@@ -263,8 +263,7 @@ const ScheduleEntryDialog = ({
                   slotProps={{
                     textField: {
                       fullWidth: true,
-                      helperText: t('scheduleDialog.dateHelperText'),
-                      'data-testid': 'schedule-date-input',
+                      helperText: t('scheduleDialog.dateHelperText')
                     },
                   }}
                 />

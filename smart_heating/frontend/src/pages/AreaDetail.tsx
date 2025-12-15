@@ -815,9 +815,9 @@ const ZoneDetail = () => {
             <FormControlLabel
               control={
                 <Switch
+                  data-testid="shutdown-switches-input"
                   checked={area.shutdown_switches_when_idle ?? true}
                   disabled={area.heating_type === 'airco'}
-                  inputProps={{ 'data-testid': 'shutdown-switches-input' }}
                   onChange={async (e) => {
                     try {
                       await setSwitchShutdown(area.id, e.target.checked)
