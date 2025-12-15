@@ -8,7 +8,13 @@ describe('SettingsSection', () => {
     const onChange = vi.fn()
     const user = userEvent.setup()
     render(
-      <SettingsSection id="s1" title="Test" description="desc" badge={3} onExpandedChange={onChange}>
+      <SettingsSection
+        id="s1"
+        title="Test"
+        description="desc"
+        badge={3}
+        onExpandedChange={onChange}
+      >
         <div>child content</div>
       </SettingsSection>
     )

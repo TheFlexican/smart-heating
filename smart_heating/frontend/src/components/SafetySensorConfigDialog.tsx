@@ -26,7 +26,12 @@ interface SafetySensorConfigDialogProps {
   configuredSensors?: string[] // List of already-configured sensor IDs to exclude
 }
 
-const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = [] }: SafetySensorConfigDialogProps) => {
+const SafetySensorConfigDialog = ({
+  open,
+  onClose,
+  onAdd,
+  configuredSensors = [],
+}: SafetySensorConfigDialogProps) => {
   const { t } = useTranslation()
   const [entities, setEntities] = useState<HassEntity[]>([])
   const [loading, setLoading] = useState(false)
@@ -88,15 +93,17 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = []
     }
 
     const deviceClass = e.attributes.device_class
-    return deviceClass === 'smoke' ||
-           deviceClass === 'gas' ||
-           deviceClass === 'carbon_monoxide' ||
-           deviceClass === 'safety' ||
-           deviceClass === 'problem' ||
-           e.entity_id.includes('smoke') ||
-           e.entity_id.includes('co_') ||
-           e.entity_id.includes('gas') ||
-           e.entity_id.includes('safety')
+    return (
+      deviceClass === 'smoke' ||
+      deviceClass === 'gas' ||
+      deviceClass === 'carbon_monoxide' ||
+      deviceClass === 'safety' ||
+      deviceClass === 'problem' ||
+      e.entity_id.includes('smoke') ||
+      e.entity_id.includes('co_') ||
+      e.entity_id.includes('gas') ||
+      e.entity_id.includes('safety')
+    )
   })
 
   return (
@@ -124,7 +131,7 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = []
                 <Select
                   data-testid="safety-entity-select"
                   value={selectedEntity}
-                  onChange={(e) => setSelectedEntity(e.target.value)}
+                  onChange={e => setSelectedEntity(e.target.value)}
                   label={t('globalSettings.safety.sensorLabel', 'Safety Sensor')}
                 >
                   {filteredEntities.length === 0 ? (
@@ -132,13 +139,18 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = []
                       {t('globalSettings.safety.noSensors', 'No safety sensors found')}
                     </MenuItem>
                   ) : (
-                    filteredEntities.map((entity) => (
-                      <MenuItem data-testid={`safety-entity-${entity.entity_id}`} key={entity.entity_id} value={entity.entity_id}>
+                    filteredEntities.map(entity => (
+                      <MenuItem
+                        data-testid={`safety-entity-${entity.entity_id}`}
+                        key={entity.entity_id}
+                        value={entity.entity_id}
+                      >
                         <Box>
                           <Typography variant="body2">{entity.name}</Typography>
                           <Typography variant="caption" color="text.secondary">
                             {entity.entity_id}
-                            {entity.attributes.device_class && ` • ${entity.attributes.device_class}`}
+                            {entity.attributes.device_class &&
+                              ` • ${entity.attributes.device_class}`}
                           </Typography>
                         </Box>
                       </MenuItem>
@@ -152,7 +164,7 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = []
                 fullWidth
                 label={t('globalSettings.safety.attributeLabel', 'Attribute to Monitor')}
                 value={attribute}
-                onChange={(e) => setAttribute(e.target.value)}
+                onChange={e => setAttribute(e.target.value)}
                 helperText={t(
                   'globalSettings.safety.attributeHelp',
                   'The sensor attribute to monitor (e.g., "state", "smoke", "carbon_monoxide")'
@@ -164,7 +176,7 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = []
                 fullWidth
                 label={t('globalSettings.safety.alertValueLabel', 'Alert Value')}
                 value={alertValue}
-                onChange={(e) => setAlertValue(e.target.value)}
+                onChange={e => setAlertValue(e.target.value)}
                 helperText={t(
                   'globalSettings.safety.alertValueHelp',
                   'The value that indicates danger (e.g., "true", "on", "detected")'
@@ -172,11 +184,13 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = []
               />
 
               <FormControl fullWidth>
-                <InputLabel>{t('globalSettings.safety.enabledLabel', 'Enable Monitoring')}</InputLabel>
+                <InputLabel>
+                  {t('globalSettings.safety.enabledLabel', 'Enable Monitoring')}
+                </InputLabel>
                 <Select
                   data-testid="safety-enabled-select"
                   value={enabled ? 'true' : 'false'}
-                  onChange={(e) => setEnabled(e.target.value === 'true')}
+                  onChange={e => setEnabled(e.target.value === 'true')}
                   label={t('globalSettings.safety.enabledLabel', 'Enable Monitoring')}
                 >
                   <MenuItem data-testid="safety-enabled-true" value="true">

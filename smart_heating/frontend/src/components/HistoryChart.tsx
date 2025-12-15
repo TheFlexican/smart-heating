@@ -10,7 +10,7 @@ import {
   Button,
   FormControlLabel,
   Checkbox,
-  Stack
+  Stack,
 } from '@mui/material'
 import {
   Line,
@@ -22,7 +22,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
   Scatter,
-  ComposedChart
+  ComposedChart,
 } from 'recharts'
 import { getHistory } from '../api/history'
 
@@ -49,7 +49,6 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
   const [showHeating, setShowHeating] = useState(true)
   const [showCooling, setShowCooling] = useState(true)
 
-
   const loadHistory = async () => {
     try {
       setLoading(true)
@@ -60,7 +59,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
         // Custom time range
         result = await getHistory(areaId, {
           startTime: new Date(startTime).toISOString(),
-          endTime: new Date(endTime).toISOString()
+          endTime: new Date(endTime).toISOString(),
         })
       } else {
         // Preset time range
@@ -93,11 +92,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
   }
 
   if (error) {
-    return (
-      <Alert severity="error">
-        {error}
-      </Alert>
-    )
+    return <Alert severity="error">{error}</Alert>
   }
 
   if (!data || data.length === 0) {
@@ -113,7 +108,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
     time: new Date(entry.timestamp).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hour12: false,
     }),
     current: entry.current_temperature,
     target: entry.target_temperature,
@@ -121,7 +116,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
     heatingDot: entry.state === 'heating' ? entry.current_temperature : null,
     coolingDot: entry.state === 'cooling' ? entry.current_temperature : null,
     // Store state for custom tooltip
-    heatingState: entry.state
+    heatingState: entry.state,
   }))
 
   const hasCooling = chartData.some(d => d.coolingDot !== null && d.coolingDot !== undefined)
@@ -137,33 +132,27 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
             border: '1px solid #2c2c2c',
             borderRadius: '8px',
             padding: '8px 12px',
-            color: '#e1e1e1'
+            color: '#e1e1e1',
           }}
         >
           <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>{data.time}</div>
           <div style={{ color: '#03a9f4' }}>Current: {data.current.toFixed(1)}°C</div>
           <div style={{ color: '#ffc107' }}>Target: {data.target.toFixed(1)}°C</div>
-          {
-            (() => {
-              let stateLabel: string
-              let color: string
-              if (data.heatingState === 'heating') {
-                stateLabel = `${t('areaDetail.heatingActiveLineShort', 'Heating')}: Active`
-                color = '#f44336'
-              } else if (data.heatingState === 'cooling') {
-                stateLabel = `${t('areaDetail.coolingActiveLineShort', 'Cooling')}: Active`
-                color = '#03a9f4'
-              } else {
-                stateLabel = `${t('areaDetail.heatingActiveLineShort', 'Heating')}: Inactive`
-                color = '#e1e1e1'
-              }
-              return (
-                <div style={{ color }}>
-                  {stateLabel}
-                </div>
-              )
-            })()
-          }
+          {(() => {
+            let stateLabel: string
+            let color: string
+            if (data.heatingState === 'heating') {
+              stateLabel = `${t('areaDetail.heatingActiveLineShort', 'Heating')}: Active`
+              color = '#f44336'
+            } else if (data.heatingState === 'cooling') {
+              stateLabel = `${t('areaDetail.coolingActiveLineShort', 'Cooling')}: Active`
+              color = '#03a9f4'
+            } else {
+              stateLabel = `${t('areaDetail.heatingActiveLineShort', 'Heating')}: Inactive`
+              color = '#e1e1e1'
+            }
+            return <div style={{ color }}>{stateLabel}</div>
+          })()}
         </Box>
       )
     }
@@ -171,9 +160,10 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
   }
 
   // Calculate average target temperature for reference line
-  const avgTarget = data.length > 0
-    ? data.reduce((sum, entry) => sum + entry.target_temperature, 0) / data.length
-    : null
+  const avgTarget =
+    data.length > 0
+      ? data.reduce((sum, entry) => sum + entry.target_temperature, 0) / data.length
+      : null
 
   return (
     <Box>
@@ -198,13 +188,27 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
             <ToggleButton value={72}>3d</ToggleButton>
             <ToggleButton value={168}>7d</ToggleButton>
             <ToggleButton value={720}>30d</ToggleButton>
-              <ToggleButton data-testid="history-range-6h" value={6}>6h</ToggleButton>
-              <ToggleButton data-testid="history-range-12h" value={12}>12h</ToggleButton>
-              <ToggleButton data-testid="history-range-24h" value={24}>24h</ToggleButton>
-              <ToggleButton data-testid="history-range-3d" value={72}>3d</ToggleButton>
-              <ToggleButton data-testid="history-range-7d" value={168}>7d</ToggleButton>
-              <ToggleButton data-testid="history-range-30d" value={720}>30d</ToggleButton>
-              <ToggleButton data-testid="history-range-custom" value="custom">Custom</ToggleButton>
+            <ToggleButton data-testid="history-range-6h" value={6}>
+              6h
+            </ToggleButton>
+            <ToggleButton data-testid="history-range-12h" value={12}>
+              12h
+            </ToggleButton>
+            <ToggleButton data-testid="history-range-24h" value={24}>
+              24h
+            </ToggleButton>
+            <ToggleButton data-testid="history-range-3d" value={72}>
+              3d
+            </ToggleButton>
+            <ToggleButton data-testid="history-range-7d" value={168}>
+              7d
+            </ToggleButton>
+            <ToggleButton data-testid="history-range-30d" value={720}>
+              30d
+            </ToggleButton>
+            <ToggleButton data-testid="history-range-custom" value="custom">
+              Custom
+            </ToggleButton>
           </ToggleButtonGroup>
         </Box>
 
@@ -214,7 +218,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
               label="Start Date & Time"
               type="datetime-local"
               value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
+              onChange={e => setStartTime(e.target.value)}
               data-testid="history-start-datetime"
               slotProps={{ inputLabel: { shrink: true } }}
               size="small"
@@ -224,7 +228,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
               label="End Date & Time"
               type="datetime-local"
               value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
+              onChange={e => setEndTime(e.target.value)}
               data-testid="history-end-datetime"
               slotProps={{ inputLabel: { shrink: true } }}
               size="small"
@@ -243,140 +247,167 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
       </Stack>
       <div data-testid="history-chart">
         <ResponsiveContainer width="100%" height={400}>
-        <ComposedChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2c" />
-          <XAxis
-            dataKey="time"
-            stroke="#9e9e9e"
-            tick={{ fill: '#9e9e9e' }}
-          />
-          <YAxis
-            stroke="#9e9e9e"
-            tick={{ fill: '#9e9e9e' }}
-            domain={['dataMin - 2', 'dataMax + 2']}
-            label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft', fill: '#9e9e9e' }}
-          />
-          <Tooltip
-            content={<CustomTooltip />}
-          />
-          <Legend
-            wrapperStyle={{ color: '#e1e1e1' }}
-            formatter={(value: any, entry: any) => {
-              let id = 'history-legend-item-unknown'
-              const val = String(value || '')
-              if (entry && entry.dataKey) {
-                id = `history-legend-item-${entry.dataKey}`
-              } else if (val.includes('currentTempLine') || val.toLowerCase().includes('current')) {
-                id = 'history-legend-item-current'
-              } else if (val.includes('targetTempLine') || val.toLowerCase().includes('target')) {
-                id = 'history-legend-item-target'
-              } else if (val.toLowerCase().includes('heating')) {
-                id = 'history-legend-item-heating'
-              } else if (val.toLowerCase().includes('cooling')) {
-                id = 'history-legend-item-cooling'
-              }
-              return <span data-testid={id}>{value}</span>
-            }}
-          />
-          {avgTarget && (
-            <ReferenceLine
-              y={avgTarget}
-              stroke="#4caf50"
-              strokeDasharray="3 3"
-              strokeWidth={1}
+          <ComposedChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2c" />
+            <XAxis dataKey="time" stroke="#9e9e9e" tick={{ fill: '#9e9e9e' }} />
+            <YAxis
+              stroke="#9e9e9e"
+              tick={{ fill: '#9e9e9e' }}
+              domain={['dataMin - 2', 'dataMax + 2']}
               label={{
-                value: `Avg: ${avgTarget.toFixed(1)}°C`,
-                position: 'right',
-                fill: '#4caf50',
-                fontSize: 12
+                value: 'Temperature (°C)',
+                angle: -90,
+                position: 'insideLeft',
+                fill: '#9e9e9e',
               }}
             />
-          )}
-          <Line
-            type="monotone"
-            dataKey="current"
-            stroke="#03a9f4"
-            strokeWidth={2}
-            dot={false}
-            name={t('areaDetail.currentTempLine')}
-          />
-          <Line
-            type="stepAfter"
-            dataKey="target"
-            stroke="#ffc107"
-            strokeWidth={2}
-            strokeDasharray="5 5"
-            dot={false}
-            name={t('areaDetail.targetTempLine')}
-          />
-          {/** Render heating/cooling activity only if present in history entries */}
-          {(() => {
-            const hasHeating = chartData.some(d => d.heatingDot !== null && d.heatingDot !== undefined)
-            const hasCooling = chartData.some(d => d.coolingDot !== null && d.coolingDot !== undefined)
-            return (
-              <>
-                {hasHeating && showHeating && (
-                  <Scatter
-                    dataKey="heatingDot"
-                    fill="#f44336"
-                    shape="circle"
-                    name={t('areaDetail.heatingActiveLine')}
-                  />
-                )}
-                {hasCooling && showCooling && (
-                  <Scatter
-                    dataKey="coolingDot"
-                    fill="#03a9f4"
-                    shape="circle"
-                    name={t('areaDetail.coolingActiveLine')}
-                  />
-                )}
-              </>
-            )
-          })()}
-
-        </ComposedChart>
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+              wrapperStyle={{ color: '#e1e1e1' }}
+              formatter={(value: any, entry: any) => {
+                let id = 'history-legend-item-unknown'
+                const val = String(value || '')
+                if (entry && entry.dataKey) {
+                  id = `history-legend-item-${entry.dataKey}`
+                } else if (
+                  val.includes('currentTempLine') ||
+                  val.toLowerCase().includes('current')
+                ) {
+                  id = 'history-legend-item-current'
+                } else if (val.includes('targetTempLine') || val.toLowerCase().includes('target')) {
+                  id = 'history-legend-item-target'
+                } else if (val.toLowerCase().includes('heating')) {
+                  id = 'history-legend-item-heating'
+                } else if (val.toLowerCase().includes('cooling')) {
+                  id = 'history-legend-item-cooling'
+                }
+                return <span data-testid={id}>{value}</span>
+              }}
+            />
+            {avgTarget && (
+              <ReferenceLine
+                y={avgTarget}
+                stroke="#4caf50"
+                strokeDasharray="3 3"
+                strokeWidth={1}
+                label={{
+                  value: `Avg: ${avgTarget.toFixed(1)}°C`,
+                  position: 'right',
+                  fill: '#4caf50',
+                  fontSize: 12,
+                }}
+              />
+            )}
+            <Line
+              type="monotone"
+              dataKey="current"
+              stroke="#03a9f4"
+              strokeWidth={2}
+              dot={false}
+              name={t('areaDetail.currentTempLine')}
+            />
+            <Line
+              type="stepAfter"
+              dataKey="target"
+              stroke="#ffc107"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              dot={false}
+              name={t('areaDetail.targetTempLine')}
+            />
+            {/** Render heating/cooling activity only if present in history entries */}
+            {(() => {
+              const hasHeating = chartData.some(
+                d => d.heatingDot !== null && d.heatingDot !== undefined
+              )
+              const hasCooling = chartData.some(
+                d => d.coolingDot !== null && d.coolingDot !== undefined
+              )
+              return (
+                <>
+                  {hasHeating && showHeating && (
+                    <Scatter
+                      dataKey="heatingDot"
+                      fill="#f44336"
+                      shape="circle"
+                      name={t('areaDetail.heatingActiveLine')}
+                    />
+                  )}
+                  {hasCooling && showCooling && (
+                    <Scatter
+                      dataKey="coolingDot"
+                      fill="#03a9f4"
+                      shape="circle"
+                      name={t('areaDetail.coolingActiveLine')}
+                    />
+                  )}
+                </>
+              )
+            })()}
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
 
       {/* test-only flag to indicate cooling series present */}
-      <div data-testid="history-has-cooling" style={{ display: 'none' }}>{hasCooling ? '1' : '0'}</div>
+      <div data-testid="history-has-cooling" style={{ display: 'none' }}>
+        {hasCooling ? '1' : '0'}
+      </div>
 
-        <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
-          {chartData.some(d => d.heatingDot !== null && d.heatingDot !== undefined) && (
-            <FormControlLabel
-              control={(
-                <Checkbox
-                  data-testid="history-toggle-heating"
-                  checked={showHeating}
-                  onChange={(e) => setShowHeating(e.target.checked)}
-                />
-              )}
-              label={t('areaDetail.heatingActiveLineShort', 'Heating')}
-            />
-          )}
-          {hasCooling && (
-            <FormControlLabel
-              control={(
-                <Checkbox
-                  data-testid="history-toggle-cooling"
-                  checked={showCooling}
-                  onChange={(e) => setShowCooling(e.target.checked)}
-                />
-              )}
-              label={t('areaDetail.coolingActiveLineShort', 'Cooling')}
-            />
-          )}
-        </Box>
+      <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+        {chartData.some(d => d.heatingDot !== null && d.heatingDot !== undefined) && (
+          <FormControlLabel
+            control={
+              <Checkbox
+                data-testid="history-toggle-heating"
+                checked={showHeating}
+                onChange={e => setShowHeating(e.target.checked)}
+              />
+            }
+            label={t('areaDetail.heatingActiveLineShort', 'Heating')}
+          />
+        )}
+        {hasCooling && (
+          <FormControlLabel
+            control={
+              <Checkbox
+                data-testid="history-toggle-cooling"
+                checked={showCooling}
+                onChange={e => setShowCooling(e.target.checked)}
+              />
+            }
+            label={t('areaDetail.coolingActiveLineShort', 'Cooling')}
+          />
+        )}
+      </Box>
 
       <Box sx={{ mt: 2 }}>
         <Alert severity="info" variant="outlined">
           <strong>{t('areaDetail.chartLegend')}</strong>
           <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
-            <li><strong data-testid="history-legend-item-temp" style={{ color: '#03a9f4' }}>{t('areaDetail.blueLine')}</strong> {t('areaDetail.blueLineDesc')}</li>
-            <li><strong data-testid="history-legend-item-target" style={{ color: '#ffc107' }}>{t('areaDetail.yellowDashed')}</strong> {t('areaDetail.yellowDashedDesc')}</li>
-            <li><strong data-testid="history-legend-item-redDots" style={{ color: '#f44336' }}>{t('areaDetail.redDots')}</strong> {t('areaDetail.redDotsDesc')}</li>
-            <li><strong data-testid="history-legend-item-greenDashed" style={{ color: '#4caf50' }}>{t('areaDetail.greenDashed')}</strong> {t('areaDetail.greenDashedDesc')}</li>
+            <li>
+              <strong data-testid="history-legend-item-temp" style={{ color: '#03a9f4' }}>
+                {t('areaDetail.blueLine')}
+              </strong>{' '}
+              {t('areaDetail.blueLineDesc')}
+            </li>
+            <li>
+              <strong data-testid="history-legend-item-target" style={{ color: '#ffc107' }}>
+                {t('areaDetail.yellowDashed')}
+              </strong>{' '}
+              {t('areaDetail.yellowDashedDesc')}
+            </li>
+            <li>
+              <strong data-testid="history-legend-item-redDots" style={{ color: '#f44336' }}>
+                {t('areaDetail.redDots')}
+              </strong>{' '}
+              {t('areaDetail.redDotsDesc')}
+            </li>
+            <li>
+              <strong data-testid="history-legend-item-greenDashed" style={{ color: '#4caf50' }}>
+                {t('areaDetail.greenDashed')}
+              </strong>{' '}
+              {t('areaDetail.greenDashedDesc')}
+            </li>
           </ul>
         </Alert>
       </Box>

@@ -1,8 +1,19 @@
-/// <reference types="vitest" />
 import React from 'react'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import SettingsSection from '../components/SettingsSection'
-import { FormControl, InputLabel, Select, MenuItem, RadioGroup, FormControlLabel, Radio, Switch, TextField, Box, Typography } from '@mui/material'
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Switch,
+  TextField,
+  Box,
+  Typography,
+} from '@mui/material'
 import * as areas from '../api/areas'
 import * as devices from '../api/devices'
 import * as history from '../api/history'
@@ -11,7 +22,9 @@ import { vi, it, expect } from 'vitest'
 import userEvent from '@testing-library/user-event'
 
 // Mock translation
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, v?: any) => (v && v.temp) ? `${v.temp}°C` : k }) }))
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (k: string, v?: any) => (v && v.temp ? `${v.temp}°C` : k) }),
+}))
 
 // Mock getZones and other API calls used in AreaDetail
 const area = {
@@ -87,9 +100,18 @@ it('heating type control has testid and accessible label', async () => {
   await userEvent.setup()
 
   const content = (
-    <RadioGroup data-testid="heating-type-control" aria-label={'settingsCards.heatingTypeTitle'} value={'radiator'} onChange={() => {}}>
+    <RadioGroup
+      data-testid="heating-type-control"
+      aria-label={'settingsCards.heatingTypeTitle'}
+      value={'radiator'}
+      onChange={() => {}}
+    >
       <FormControlLabel value="radiator" control={<Radio />} label={'settingsCards.radiator'} />
-      <FormControlLabel value="floor_heating" control={<Radio />} label={'settingsCards.floorHeating'} />
+      <FormControlLabel
+        value="floor_heating"
+        control={<Radio />}
+        label={'settingsCards.floorHeating'}
+      />
       <FormControlLabel value="airco" control={<Radio />} label={'settingsCards.airConditioner'} />
     </RadioGroup>
   )
@@ -121,7 +143,9 @@ it('heating curve control is disabled for airco area', async () => {
   await userEvent.setup()
 
   // Make getZones return an area with heating_type 'airco'
-  vi.spyOn(areas, 'getZones').mockResolvedValue([{ ...(area as any), heating_type: 'airco' } as any])
+  vi.spyOn(areas, 'getZones').mockResolvedValue([
+    { ...(area as any), heating_type: 'airco' } as any,
+  ])
 
   const { MemoryRouter, Routes, Route } = Router as any
   render(
@@ -147,7 +171,9 @@ it('switch/pump control is disabled for airco area', async () => {
   await userEvent.setup()
 
   // Make getZones return an area with heating_type 'airco'
-  vi.spyOn(areas, 'getZones').mockResolvedValue([{ ...(area as any), heating_type: 'airco' } as any])
+  vi.spyOn(areas, 'getZones').mockResolvedValue([
+    { ...(area as any), heating_type: 'airco' } as any,
+  ])
 
   const { MemoryRouter, Routes, Route } = Router as any
   render(
@@ -182,10 +208,15 @@ it('heating curve control has testid and toggles input disabled when using globa
     return (
       <div data-testid="heating-curve-control">
         <FormControlLabel
-          control={<Switch checked={!useGlobal} onChange={(e) => setUseGlobal(!e.target.checked)} />}
+          control={<Switch checked={!useGlobal} onChange={e => setUseGlobal(!e.target.checked)} />}
           label={'settingsCards.heatingCurveUseArea'}
         />
-        <TextField label="Coefficient" type="number" inputProps={{ 'data-testid': 'heating-curve-control-input' }} disabled={useGlobal} />
+        <TextField
+          label="Coefficient"
+          type="number"
+          inputProps={{ 'data-testid': 'heating-curve-control-input' }}
+          disabled={useGlobal}
+        />
       </div>
     )
   }

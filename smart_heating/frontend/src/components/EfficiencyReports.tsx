@@ -146,17 +146,11 @@ const EfficiencyReports: React.FC = () => {
       </Grid>
 
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        {renderMetricCard(
-          t('efficiency.heatingCycles'),
-          metrics.heating_cycles.toString()
-        )}
+        {renderMetricCard(t('efficiency.heatingCycles'), metrics.heating_cycles.toString())}
       </Grid>
 
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        {renderMetricCard(
-          t('efficiency.tempDelta'),
-          `${metrics.avg_temp_delta.toFixed(1)}°C`
-        )}
+        {renderMetricCard(t('efficiency.tempDelta'), `${metrics.avg_temp_delta.toFixed(1)}°C`)}
       </Grid>
     </Grid>
   )
@@ -199,7 +193,7 @@ const EfficiencyReports: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {allAreasReport.area_reports.map((report) => (
+            {allAreasReport.area_reports.map(report => (
               <TableRow
                 key={report.area_id}
                 hover
@@ -220,9 +214,7 @@ const EfficiencyReports: React.FC = () => {
                   {report.metrics.heating_time_percentage.toFixed(1)}%
                 </TableCell>
                 <TableCell align="right">{report.metrics.heating_cycles}</TableCell>
-                <TableCell align="right">
-                  {report.metrics.avg_temp_delta.toFixed(1)}°C
-                </TableCell>
+                <TableCell align="right">{report.metrics.avg_temp_delta.toFixed(1)}°C</TableCell>
                 <TableCell>
                   <Button size="small" variant="outlined">
                     {t('efficiency.areaDetails')}
@@ -247,9 +239,7 @@ const EfficiencyReports: React.FC = () => {
             <Typography variant="h4" gutterBottom>
               {t('efficiency.title')}
             </Typography>
-            <Typography color="textSecondary">
-              {t('efficiency.description')}
-            </Typography>
+            <Typography color="textSecondary">{t('efficiency.description')}</Typography>
           </Box>
         </Box>
 
@@ -312,9 +302,7 @@ const EfficiencyReports: React.FC = () => {
                 <Typography variant="h6">
                   {areaReport.area_name} - {t('efficiency.areaDetails')}
                 </Typography>
-                <Button onClick={() => setSelectedArea(null)}>
-                  {t('common.back')}
-                </Button>
+                <Button onClick={() => setSelectedArea(null)}>{t('common.back')}</Button>
               </Box>
 
               {renderAreaMetrics(areaReport.metrics)}
@@ -341,9 +329,7 @@ const EfficiencyReports: React.FC = () => {
       )}
 
       {!loading && !error && !allAreasReport && (
-        <Alert severity="info">
-          {t('efficiency.noData')}
-        </Alert>
+        <Alert severity="info">{t('efficiency.noData')}</Alert>
       )}
     </Box>
   )

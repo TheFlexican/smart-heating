@@ -1,0 +1,72 @@
+name: Frontend Quality
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'smart_heating/frontend/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'smart_heating/frontend/**'
+
+jobs:
+  frontend-quality:
+    name: Frontend Linting and Testing
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'smart_heating/frontend/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd smart_heating/frontend
+          npm ci
+
+      - name: TypeScript type checking
+        run: |
+          cd smart_heating/frontend
+          npm run type-check
+
+      - name: ESLint
+        run: |
+          cd smart_heating/frontend
+          npm run lint
+
+      - name: Prettier format check
+        run: |
+          cd smart_heating/frontend
+          npm run format:check
+
+      - name: Run tests with coverage
+        run: |
+          cd smart_heating/frontend
+          npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./smart_heating/frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+
+      - name: Build frontend
+        run: |
+          cd smart_heating/frontend
+          npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: smart_heating/frontend/dist/
+          retention-days: 7

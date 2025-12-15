@@ -132,7 +132,7 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
             <Switch
               data-testid="climate-filter-toggle"
               checked={showOnlyHeating}
-              onChange={(e) => setShowOnlyHeating(e.target.checked)}
+              onChange={e => setShowOnlyHeating(e.target.checked)}
               size="small"
               color="primary"
             />
@@ -153,7 +153,7 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
           data-testid="device-search-input"
           placeholder={t('devices.searchPlaceholder')}
           value={deviceSearch}
-          onChange={(e) => setDeviceSearch(e.target.value)}
+          onChange={e => setDeviceSearch(e.target.value)}
         />
       </Box>
 
@@ -175,7 +175,7 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
           </Box>
         ) : (
           <List>
-            {filteredDevices.map((device) => (
+            {filteredDevices.map(device => (
               <ListItem
                 key={device.id}
                 data-testid={`available-device-${(device.name || device.id).toLowerCase().replaceAll(' ', '-')}`}
@@ -188,34 +188,34 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
               >
                 <ListItemIcon sx={{ color: 'text.secondary' }}>
                   {getDeviceIcon(device.type)}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={device.name || device.id}
-                          slotProps={{
-                            primary: { sx: { color: 'text.primary' } }
-                          }}
-                          secondary={
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
-                              <Chip
-                                data-testid={`device-type-chip-${(device.name || device.id).toLowerCase().replaceAll(' ', '-')}`}
-                                label={getDeviceTypeLabel(device.type)}
-                                size="small"
-                                variant="outlined"
-                                sx={{
-                                  borderColor: 'divider',
-                                  color: 'text.secondary',
-                                  width: 'fit-content'
-                                }}
-                              />
-                              {device.ha_area_name && (
-                                <Typography variant="caption" color="text.secondary">
-                                  📍 {device.ha_area_name}
-                                </Typography>
-                              )}
-                            </Box>
-                          }
-                        />
-                      </ListItem>
+                </ListItemIcon>
+                <ListItemText
+                  primary={device.name || device.id}
+                  slotProps={{
+                    primary: { sx: { color: 'text.primary' } },
+                  }}
+                  secondary={
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
+                      <Chip
+                        data-testid={`device-type-chip-${(device.name || device.id).toLowerCase().replaceAll(' ', '-')}`}
+                        label={getDeviceTypeLabel(device.type)}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          borderColor: 'divider',
+                          color: 'text.secondary',
+                          width: 'fit-content',
+                        }}
+                      />
+                      {device.ha_area_name && (
+                        <Typography variant="caption" color="text.secondary">
+                          📍 {device.ha_area_name}
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                />
+              </ListItem>
             ))}
           </List>
         )}

@@ -42,7 +42,12 @@ import { useTranslation } from 'react-i18next'
 import { getGlobalPresets, setGlobalPresets } from '../api/presets'
 import { getGlobalPresence, setGlobalPresence } from '../api/sensors'
 import { getHysteresis, setHysteresis } from '../api/logs'
-import { getSafetySensor, setSafetySensor, removeSafetySensor, type SafetySensorResponse } from '../api/safety'
+import {
+  getSafetySensor,
+  setSafetySensor,
+  removeSafetySensor,
+  type SafetySensorResponse,
+} from '../api/safety'
 import { setHideDevicesPanel } from '../api/devices'
 import { getConfig, getAdvancedControlConfig, setAdvancedControlConfig } from '../api/config'
 import { setOpenthermGateway, getOpenthermGateways, calibrateOpentherm } from '../api/opentherm'
@@ -104,7 +109,13 @@ const presetDescriptions = {
   activity_temp: 'Active daytime temperature',
 }
 
-export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode: 'light' | 'dark', onThemeChange: (mode: 'light' | 'dark') => void }) {
+export default function GlobalSettings({
+  themeMode,
+  onThemeChange,
+}: {
+  themeMode: 'light' | 'dark'
+  onThemeChange: (mode: 'light' | 'dark') => void
+}) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState(0)
@@ -133,7 +144,9 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
   // OpenTherm Gateway Configuration
   const [openthermGatewayId, setOpenthermGatewayId] = useState<string>('')
   const [openthermSaving, setOpenthermSaving] = useState(false)
-  const [openthermGateways, setOpenthermGateways] = useState<Array<{gateway_id: string, title: string}>>([])
+  const [openthermGateways, setOpenthermGateways] = useState<
+    Array<{ gateway_id: string; title: string }>
+  >([])
 
   useEffect(() => {
     loadPresets()
@@ -440,7 +453,9 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Box
+        sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
+      >
         <CircularProgress />
       </Box>
     )
@@ -455,7 +470,16 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 0, display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        pb: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+      }}
+    >
       {/* Header */}
       <Paper
         elevation={0}
@@ -526,7 +550,14 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
       </Box>
 
       {/* Content area: on mobile allow scrolling inside the viewport */}
-      <Box sx={{ px: 2, overflowY: { xs: 'auto', sm: 'visible' }, maxHeight: { xs: 'calc(100vh - 120px)', sm: 'none' }, py: 2 }}>
+      <Box
+        sx={{
+          px: 2,
+          overflowY: { xs: 'auto', sm: 'visible' },
+          maxHeight: { xs: 'calc(100vh - 120px)', sm: 'none' },
+          py: 2,
+        }}
+      >
         {saveSuccess && (
           <Alert severity="success" sx={{ mt: 2, mb: 2 }}>
             {t('globalSettings.saveSuccess', 'Settings saved successfully')}
@@ -546,51 +577,61 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               {t('globalSettings.presets.title', 'Preset Temperatures')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {t('globalSettings.presets.description', 'These are the default temperatures for each preset mode. Areas can choose to use these global settings or define their own custom temperatures.')}
+              {t(
+                'globalSettings.presets.description',
+                'These are the default temperatures for each preset mode. Areas can choose to use these global settings or define their own custom temperatures.'
+              )}
             </Typography>
 
             <Stack spacing={3}>
-              {presets && Object.entries(presetLabels).map(([key, label]) => {
-                const presetKey = key as keyof GlobalPresetsData
-                const value = presets[presetKey]
+              {presets &&
+                Object.entries(presetLabels).map(([key, label]) => {
+                  const presetKey = key as keyof GlobalPresetsData
+                  const value = presets[presetKey]
 
-                return (
-                  <Box key={key}>
-                    <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
-                      {label}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {presetDescriptions[presetKey]}
-                    </Typography>
+                  return (
+                    <Box key={key}>
+                      <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
+                        {label}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        {presetDescriptions[presetKey]}
+                      </Typography>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1 }}>
-                      <Slider
-                        data-testid={`global-preset-${presetKey.replace('_temp', '')}-slider`}
-                        value={value}
-                        onChange={(_, newValue) => handlePresetChange(presetKey, newValue as number)}
-                        min={5}
-                        max={30}
-                        step={0.1}
-                        marks={[
-                          { value: 5, label: '5°C' },
-                          { value: 15, label: '15°C' },
-                          { value: 20, label: '20°C' },
-                          { value: 25, label: '25°C' },
-                          { value: 30, label: '30°C' },
-                        ]}
-                        valueLabelDisplay="on"
-                        valueLabelFormat={(v) => `${v}°C`}
-                        disabled={saving}
-                        sx={{ maxWidth: 600 }}
-                      />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1 }}>
+                        <Slider
+                          data-testid={`global-preset-${presetKey.replace('_temp', '')}-slider`}
+                          value={value}
+                          onChange={(_, newValue) =>
+                            handlePresetChange(presetKey, newValue as number)
+                          }
+                          min={5}
+                          max={30}
+                          step={0.1}
+                          marks={[
+                            { value: 5, label: '5°C' },
+                            { value: 15, label: '15°C' },
+                            { value: 20, label: '20°C' },
+                            { value: 25, label: '25°C' },
+                            { value: 30, label: '30°C' },
+                          ]}
+                          valueLabelDisplay="on"
+                          valueLabelFormat={v => `${v}°C`}
+                          disabled={saving}
+                          sx={{ maxWidth: 600 }}
+                        />
+                      </Box>
                     </Box>
-                  </Box>
-                )
-              })}
+                  )
+                })}
             </Stack>
 
             <Typography variant="body2" color="text.secondary" sx={{ mt: 3, fontStyle: 'italic' }}>
-              💡 {t('globalSettings.presets.tip', 'Tip: To customize temperatures for a specific area, go to that area\'s settings and toggle off "Use global preset" for individual preset modes.')}
+              💡{' '}
+              {t(
+                'globalSettings.presets.tip',
+                'Tip: To customize temperatures for a specific area, go to that area\'s settings and toggle off "Use global preset" for individual preset modes.'
+              )}
             </Typography>
           </Paper>
         </TabPanel>
@@ -602,12 +643,15 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               {t('globalSettings.sensors.title', 'Global Presence Sensors')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {t('globalSettings.sensors.description', 'Configure presence sensors that can be used across all areas. Areas can choose to use these global sensors or configure their own.')}
+              {t(
+                'globalSettings.sensors.description',
+                'Configure presence sensors that can be used across all areas. Areas can choose to use these global sensors or configure their own.'
+              )}
             </Typography>
 
             {presenceSensors.length > 0 ? (
               <List dense>
-                {presenceSensors.map((sensor) => (
+                {presenceSensors.map(sensor => (
                   <ListItem
                     key={sensor.entity_id}
                     data-testid="presence-sensor-item"
@@ -623,14 +667,20 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                   >
                     <ListItemText
                       primary={sensor.entity_id}
-                      secondary={t('globalSettings.sensors.switchText', 'Switches heating to \'away\' when nobody is home')}
+                      secondary={t(
+                        'globalSettings.sensors.switchText',
+                        "Switches heating to 'away' when nobody is home"
+                      )}
                     />
                   </ListItem>
                 ))}
               </List>
             ) : (
               <Alert severity="info" sx={{ mb: 2 }}>
-                {t('globalSettings.sensors.noSensors', 'No global presence sensors configured. Add sensors that will be available to all areas.')}
+                {t(
+                  'globalSettings.sensors.noSensors',
+                  'No global presence sensors configured. Add sensors that will be available to all areas.'
+                )}
               </Alert>
             )}
 
@@ -645,7 +695,11 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
             </Button>
 
             <Typography variant="body2" color="text.secondary" sx={{ mt: 3, fontStyle: 'italic' }}>
-              💡 {t('globalSettings.sensors.tip', 'Tip: Areas can enable "Use global presence" in their settings to use these sensors instead of configuring their own.')}
+              💡{' '}
+              {t(
+                'globalSettings.sensors.tip',
+                'Tip: Areas can enable "Use global presence" in their settings to use these sensors instead of configuring their own.'
+              )}
             </Typography>
           </Paper>
         </TabPanel>
@@ -667,12 +721,18 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               {t('globalSettings.safety.title', '🚨 Safety Sensors (Smoke/CO Detectors)')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {t('globalSettings.safety.description', 'Configure smoke or carbon monoxide detectors that will automatically shut down all heating when danger is detected. All areas will be disabled immediately to prevent heating during a safety emergency.')}
+              {t(
+                'globalSettings.safety.description',
+                'Configure smoke or carbon monoxide detectors that will automatically shut down all heating when danger is detected. All areas will be disabled immediately to prevent heating during a safety emergency.'
+              )}
             </Typography>
 
             {safetySensor?.alert_active && (
               <Alert severity="error" sx={{ mb: 3 }}>
-                {t('globalSettings.safety.alertActive', '⚠️ SAFETY ALERT ACTIVE! All heating has been shut down. Please resolve the safety issue and manually re-enable areas.')}
+                {t(
+                  'globalSettings.safety.alertActive',
+                  '⚠️ SAFETY ALERT ACTIVE! All heating has been shut down. Please resolve the safety issue and manually re-enable areas.'
+                )}
               </Alert>
             )}
 
@@ -680,12 +740,13 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               <>
                 <Alert severity="success" sx={{ mb: 2 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {t('globalSettings.safety.configured', 'Safety Sensors Configured')} ({safetySensor.sensors.length})
+                    {t('globalSettings.safety.configured', 'Safety Sensors Configured')} (
+                    {safetySensor.sensors.length})
                   </Typography>
                 </Alert>
 
                 <List sx={{ mb: 2 }}>
-                  {safetySensor.sensors.map((sensor) => (
+                  {safetySensor.sensors.map(sensor => (
                     <ListItem
                       key={sensor.sensor_id}
                       data-testid="safety-sensor-item"
@@ -708,16 +769,15 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                     >
                       <ListItemText
                         primary={sensor.sensor_id}
-                          secondary={
-                            <Typography component="span" variant="body2">
-                              {t('globalSettings.safety.attribute', 'Attribute')}: {sensor.attribute} | {' '}
-                              {t('globalSettings.safety.status', 'Status')}: {
-                                sensor.enabled
-                                  ? t('globalSettings.safety.enabled', '✓ Enabled')
-                                  : t('globalSettings.safety.disabled', '✗ Disabled')
-                              }
-                            </Typography>
-                          }
+                        secondary={
+                          <Typography component="span" variant="body2">
+                            {t('globalSettings.safety.attribute', 'Attribute')}: {sensor.attribute}{' '}
+                            | {t('globalSettings.safety.status', 'Status')}:{' '}
+                            {sensor.enabled
+                              ? t('globalSettings.safety.enabled', '✓ Enabled')
+                              : t('globalSettings.safety.disabled', '✗ Disabled')}
+                          </Typography>
+                        }
                       />
                     </ListItem>
                   ))}
@@ -737,14 +797,17 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
             ) : (
               <>
                 <Alert severity="warning" sx={{ mb: 2 }}>
-                  {t('globalSettings.safety.notConfigured', 'No safety sensors configured. It is highly recommended to configure smoke or CO detectors for emergency heating shutdown.')}
+                  {t(
+                    'globalSettings.safety.notConfigured',
+                    'No safety sensors configured. It is highly recommended to configure smoke or CO detectors for emergency heating shutdown.'
+                  )}
                 </Alert>
 
                 <Button
                   variant="outlined"
                   fullWidth
-                    data-testid="global-add-safety-sensor"
-                    onClick={() => setSafetySensorDialogOpen(true)}
+                  data-testid="global-add-safety-sensor"
+                  onClick={() => setSafetySensorDialogOpen(true)}
                   startIcon={<SecurityIcon />}
                 >
                   {t('globalSettings.safety.addButton', 'Add Safety Sensor')}
@@ -753,7 +816,11 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
             )}
 
             <Typography variant="body2" color="text.secondary" sx={{ mt: 3, fontStyle: 'italic' }}>
-              💡 {t('globalSettings.safety.tip', 'When any safety sensor detects smoke or carbon monoxide, all heating will be immediately stopped and all areas disabled. Areas must be manually re-enabled after the safety issue is resolved.')}
+              💡{' '}
+              {t(
+                'globalSettings.safety.tip',
+                'When any safety sensor detects smoke or carbon monoxide, all heating will be immediately stopped and all areas disabled. Areas must be manually re-enabled after the safety issue is resolved.'
+              )}
             </Typography>
           </Paper>
         </TabPanel>
@@ -766,7 +833,10 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               {t('globalSettings.theme.title', 'Theme')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {t('globalSettings.theme.description', 'Choose the color theme for the application interface.')}
+              {t(
+                'globalSettings.theme.description',
+                'Choose the color theme for the application interface.'
+              )}
             </Typography>
 
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -781,15 +851,21 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body2" color={themeMode === 'light' ? 'primary' : 'text.secondary'}>
+                <Typography
+                  variant="body2"
+                  color={themeMode === 'light' ? 'primary' : 'text.secondary'}
+                >
                   {t('globalSettings.theme.light', 'Light')}
                 </Typography>
                 <Switch
                   checked={themeMode === 'dark'}
-                  onChange={(e) => onThemeChange(e.target.checked ? 'dark' : 'light')}
+                  onChange={e => onThemeChange(e.target.checked ? 'dark' : 'light')}
                   color="primary"
                 />
-                <Typography variant="body2" color={themeMode === 'dark' ? 'primary' : 'text.secondary'}>
+                <Typography
+                  variant="body2"
+                  color={themeMode === 'dark' ? 'primary' : 'text.secondary'}
+                >
                   {t('globalSettings.theme.dark', 'Dark')}
                 </Typography>
               </Box>
@@ -798,20 +874,21 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
 
           {/* Temperature Hysteresis */}
           <Paper sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Box
+              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}
+            >
               <Typography variant="h6">
                 {t('globalSettings.hysteresis.title', 'Temperature Hysteresis')}
               </Typography>
-              <IconButton
-                onClick={() => setHysteresisHelpOpen(true)}
-                color="primary"
-                size="small"
-              >
+              <IconButton onClick={() => setHysteresisHelpOpen(true)} color="primary" size="small">
                 <HelpOutlineIcon />
               </IconButton>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('globalSettings.hysteresis.description', 'Controls the temperature buffer to prevent rapid on/off cycling of your heating system.')}
+              {t(
+                'globalSettings.hysteresis.description',
+                'Controls the temperature buffer to prevent rapid on/off cycling of your heating system.'
+              )}
             </Typography>
 
             <Alert severity="info" sx={{ mb: 3 }}>
@@ -819,21 +896,49 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                 <strong>{t('globalSettings.hysteresis.what', 'What is hysteresis?')}</strong>
               </Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>
-                {t('globalSettings.hysteresis.explanation', 'Hysteresis prevents your heating system from constantly turning on and off (short cycling), which can damage equipment like boilers, relays, and valves.')}
+                {t(
+                  'globalSettings.hysteresis.explanation',
+                  'Hysteresis prevents your heating system from constantly turning on and off (short cycling), which can damage equipment like boilers, relays, and valves.'
+                )}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>
-                <strong>{t('globalSettings.hysteresis.howItWorks', 'How it works:')}</strong> {t('globalSettings.hysteresis.example', 'If your target is 19.2°C and hysteresis is 0.5°C, heating starts at 18.7°C and stops at 19.2°C.')}
+                <strong>{t('globalSettings.hysteresis.howItWorks', 'How it works:')}</strong>{' '}
+                {t(
+                  'globalSettings.hysteresis.example',
+                  'If your target is 19.2°C and hysteresis is 0.5°C, heating starts at 18.7°C and stops at 19.2°C.'
+                )}
               </Typography>
               <Typography variant="body2">
-                <strong>{t('globalSettings.hysteresis.recommendations', 'Recommendations:')}</strong>
+                <strong>
+                  {t('globalSettings.hysteresis.recommendations', 'Recommendations:')}
+                </strong>
               </Typography>
               <ul style={{ margin: '4px 0 0 0', paddingLeft: '20px' }}>
-                <li>{t('globalSettings.hysteresis.rec1', '0.1°C - Minimal delay, more frequent cycling (use only if needed)')}</li>
-                <li>{t('globalSettings.hysteresis.rec2', '0.5°C - Balanced (default, recommended for most systems)')}</li>
-                <li>{t('globalSettings.hysteresis.rec3', '1.0°C - Energy efficient, less wear on equipment')}</li>
+                <li>
+                  {t(
+                    'globalSettings.hysteresis.rec1',
+                    '0.1°C - Minimal delay, more frequent cycling (use only if needed)'
+                  )}
+                </li>
+                <li>
+                  {t(
+                    'globalSettings.hysteresis.rec2',
+                    '0.5°C - Balanced (default, recommended for most systems)'
+                  )}
+                </li>
+                <li>
+                  {t(
+                    'globalSettings.hysteresis.rec3',
+                    '1.0°C - Energy efficient, less wear on equipment'
+                  )}
+                </li>
               </ul>
               <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
-                💡 {t('globalSettings.hysteresis.tip', 'Tip: For immediate heating, use Boost Mode instead of reducing hysteresis.')}
+                💡{' '}
+                {t(
+                  'globalSettings.hysteresis.tip',
+                  'Tip: For immediate heating, use Boost Mode instead of reducing hysteresis.'
+                )}
               </Typography>
             </Alert>
 
@@ -842,11 +947,16 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                 {t('globalSettings.hysteresis.current', 'Current')}: {hysteresis.toFixed(1)}°C
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {t('globalSettings.hysteresis.heatingStarts', 'Heating starts when temperature drops')} {hysteresis.toFixed(1)}°C {t('globalSettings.hysteresis.belowTarget', 'below target')}
+                {t(
+                  'globalSettings.hysteresis.heatingStarts',
+                  'Heating starts when temperature drops'
+                )}{' '}
+                {hysteresis.toFixed(1)}°C{' '}
+                {t('globalSettings.hysteresis.belowTarget', 'below target')}
               </Typography>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1 }}>
-                  <Slider
+                <Slider
                   data-testid="global-hysteresis-slider"
                   value={hysteresis}
                   onChange={handleHysteresisChange}
@@ -860,7 +970,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                     { value: 2, label: '2°C' },
                   ]}
                   valueLabelDisplay="on"
-                  valueLabelFormat={(v) => `${v.toFixed(1)}°C`}
+                  valueLabelFormat={v => `${v.toFixed(1)}°C`}
                   disabled={saving}
                   sx={{ maxWidth: 600 }}
                 />
@@ -874,30 +984,38 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               {t('globalSettings.ui.title', 'User Interface')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {t('globalSettings.ui.description', 'Customize the user interface to your preferences.')}
+              {t(
+                'globalSettings.ui.description',
+                'Customize the user interface to your preferences.'
+              )}
             </Typography>
 
             <Stack spacing={2}>
-              <Box sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                p: 2,
-                border: 1,
-                borderColor: 'divider',
-                borderRadius: 1
-              }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  p: 2,
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                }}
+              >
                 <Box>
                   <Typography variant="subtitle1">
                     {t('globalSettings.ui.hideDevicesPanel', 'Hide Available Devices Panel')}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {t('globalSettings.ui.hideDevicesPanelDescription', 'Hide the sidebar with available devices when you\'re done setting up zones.')}
+                    {t(
+                      'globalSettings.ui.hideDevicesPanelDescription',
+                      "Hide the sidebar with available devices when you're done setting up zones."
+                    )}
                   </Typography>
                 </Box>
                 <Switch
                   checked={hideDevicesPanel}
-                  onChange={(e) => handleToggleHideDevicesPanel(e.target.checked)}
+                  onChange={e => handleToggleHideDevicesPanel(e.target.checked)}
                   color="primary"
                 />
               </Box>
@@ -906,50 +1024,145 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
           {/* Advanced Control Accordion */}
           <Accordion sx={{ mt: 3 }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h6">{t('globalSettings.advanced.title', 'Advanced Boiler & Control')}</Typography>
+              <Typography variant="h6">
+                {t('globalSettings.advanced.title', 'Advanced Boiler & Control')}
+              </Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {t('globalSettings.advanced.description', 'Advanced features for optimizing setpoints, boiler cycling and energy efficiency. These are disabled by default. Enable to use advanced control algorithms (heating curves, PWM for on/off boilers, PID auto-gains, and calibration routines).')}
+                {t(
+                  'globalSettings.advanced.description',
+                  'Advanced features for optimizing setpoints, boiler cycling and energy efficiency. These are disabled by default. Enable to use advanced control algorithms (heating curves, PWM for on/off boilers, PID auto-gains, and calibration routines).'
+                )}
               </Typography>
               <Stack spacing={2}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography>{t('globalSettings.advanced.enableAll', 'Enable advanced control')}</Typography>
-                  <Switch data-testid="global-advanced-control-switch" checked={advancedControlEnabled} onChange={(e) => handleToggleAdvancedControl('advanced_control_enabled', e.target.checked)} />
+                <Box
+                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                  <Typography>
+                    {t('globalSettings.advanced.enableAll', 'Enable advanced control')}
+                  </Typography>
+                  <Switch
+                    data-testid="global-advanced-control-switch"
+                    checked={advancedControlEnabled}
+                    onChange={e =>
+                      handleToggleAdvancedControl('advanced_control_enabled', e.target.checked)
+                    }
+                  />
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography>{t('globalSettings.advanced.heatingCurve', 'Heating curve')}</Typography>
-                  <Switch data-testid="global-heating-curve-switch" checked={heatingCurveEnabled} onChange={(e) => handleToggleAdvancedControl('heating_curve_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                <Box
+                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                  <Typography>
+                    {t('globalSettings.advanced.heatingCurve', 'Heating curve')}
+                  </Typography>
+                  <Switch
+                    data-testid="global-heating-curve-switch"
+                    checked={heatingCurveEnabled}
+                    onChange={e =>
+                      handleToggleAdvancedControl('heating_curve_enabled', e.target.checked)
+                    }
+                    disabled={!advancedControlEnabled}
+                  />
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography>{t('globalSettings.advanced.pwm', 'PWM for on/off boilers')}</Typography>
-                  <Switch data-testid="global-pwm-switch" checked={pwmEnabled} onChange={(e) => handleToggleAdvancedControl('pwm_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                <Box
+                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                  <Typography>
+                    {t('globalSettings.advanced.pwm', 'PWM for on/off boilers')}
+                  </Typography>
+                  <Switch
+                    data-testid="global-pwm-switch"
+                    checked={pwmEnabled}
+                    onChange={e => handleToggleAdvancedControl('pwm_enabled', e.target.checked)}
+                    disabled={!advancedControlEnabled}
+                  />
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box
+                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
                   <Typography>{t('globalSettings.advanced.pid', 'PID Automatic Gains')}</Typography>
-                  <Switch data-testid="global-pid-switch" checked={pidEnabled} onChange={(e) => handleToggleAdvancedControl('pid_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                  <Switch
+                    data-testid="global-pid-switch"
+                    checked={pidEnabled}
+                    onChange={e => handleToggleAdvancedControl('pid_enabled', e.target.checked)}
+                    disabled={!advancedControlEnabled}
+                  />
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography>{t('globalSettings.advanced.overshoot', 'Overshoot Protection (OPV) calibration')}</Typography>
-                  <Switch data-testid="global-opv-switch" checked={overshootProtectionEnabled} onChange={(e) => handleToggleAdvancedControl('overshoot_protection_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                <Box
+                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                  <Typography>
+                    {t(
+                      'globalSettings.advanced.overshoot',
+                      'Overshoot Protection (OPV) calibration'
+                    )}
+                  </Typography>
+                  <Switch
+                    data-testid="global-opv-switch"
+                    checked={overshootProtectionEnabled}
+                    onChange={e =>
+                      handleToggleAdvancedControl('overshoot_protection_enabled', e.target.checked)
+                    }
+                    disabled={!advancedControlEnabled}
+                  />
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }} data-testid="heating-curve-control">
-                  <Typography>{t('globalSettings.advanced.defaultCoefficient', 'Default heating curve coefficient')}</Typography>
-                  <input data-testid="global-settings-default-coefficient" type='number' value={defaultCoefficient as any} onChange={(e) => handleToggleAdvancedControl('default_heating_curve_coefficient', Number(e.target.value))} step={0.1} disabled={!advancedControlEnabled} />
+                <Box
+                  sx={{ display: 'flex', alignItems: 'center', gap: 2 }}
+                  data-testid="heating-curve-control"
+                >
+                  <Typography>
+                    {t(
+                      'globalSettings.advanced.defaultCoefficient',
+                      'Default heating curve coefficient'
+                    )}
+                  </Typography>
+                  <input
+                    data-testid="global-settings-default-coefficient"
+                    type="number"
+                    value={defaultCoefficient as any}
+                    onChange={e =>
+                      handleToggleAdvancedControl(
+                        'default_heating_curve_coefficient',
+                        Number(e.target.value)
+                      )
+                    }
+                    step={0.1}
+                    disabled={!advancedControlEnabled}
+                  />
                   <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                    {t('globalSettings.advanced.defaultCoefficientHelper', 'Default coefficient used when Heating Curve is enabled')}
+                    {t(
+                      'globalSettings.advanced.defaultCoefficientHelper',
+                      'Default coefficient used when Heating Curve is enabled'
+                    )}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
-                  <Button data-testid="run-opv-calibration" variant='contained' onClick={handleRunCalibration} disabled={!advancedControlEnabled || calibrating}>
-                    {calibrating ? <CircularProgress size={20} /> : t('globalSettings.advanced.runCalibration', 'Run OPV calibration')}
+                  <Button
+                    data-testid="run-opv-calibration"
+                    variant="contained"
+                    onClick={handleRunCalibration}
+                    disabled={!advancedControlEnabled || calibrating}
+                  >
+                    {calibrating ? (
+                      <CircularProgress size={20} />
+                    ) : (
+                      t('globalSettings.advanced.runCalibration', 'Run OPV calibration')
+                    )}
                   </Button>
-                  <Button data-testid="reset-advanced-control" variant='outlined' onClick={handleResetAdvancedControl} disabled={saving}>
+                  <Button
+                    data-testid="reset-advanced-control"
+                    variant="outlined"
+                    onClick={handleResetAdvancedControl}
+                    disabled={saving}
+                  >
                     {t('globalSettings.advanced.resetDefaults', 'Reset to defaults')}
                   </Button>
                   {calibrationResult !== null && (
-                    <Typography variant='body2' sx={{ ml: 2 }}>
-                      {t('globalSettings.advanced.calibrationResult', 'OPV: {{value}} °C', { value: calibrationResult })}
+                    <Typography variant="body2" sx={{ ml: 2 }}>
+                      {t('globalSettings.advanced.calibrationResult', 'OPV: {{value}} °C', {
+                        value: calibrationResult,
+                      })}
                     </Typography>
                   )}
                 </Box>
@@ -977,15 +1190,29 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               </Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <Box sx={{ mb: 3, p: 2, bgcolor: 'info.main', color: 'info.contrastText', borderRadius: 1 }}>
+              <Box
+                sx={{
+                  mb: 3,
+                  p: 2,
+                  bgcolor: 'info.main',
+                  color: 'info.contrastText',
+                  borderRadius: 1,
+                }}
+              >
                 <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
                   ⚠️ {t('globalSettings.opentherm.importantNote', 'Important: Use Numeric ID Only')}
                 </Typography>
                 <Typography variant="body2">
-                  {t('globalSettings.opentherm.description', 'Enter the numeric integration ID (e.g., 128937219831729813), NOT the entity ID (e.g., climate.opentherm_thermostaat).')}
+                  {t(
+                    'globalSettings.opentherm.description',
+                    'Enter the numeric integration ID (e.g., 128937219831729813), NOT the entity ID (e.g., climate.opentherm_thermostaat).'
+                  )}
                 </Typography>
                 <Typography variant="body2" sx={{ mt: 1 }}>
-                  {t('globalSettings.opentherm.findId', 'Find this ID in: Settings → Devices & Services → OpenTherm Gateway → Click "Configure" → Look for "ID" field (numeric value).')}
+                  {t(
+                    'globalSettings.opentherm.findId',
+                    'Find this ID in: Settings → Devices & Services → OpenTherm Gateway → Click "Configure" → Look for "ID" field (numeric value).'
+                  )}
                 </Typography>
               </Box>
 
@@ -1001,16 +1228,21 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                     </a>
                   </Alert>
                 )}
-                  <FormControl fullWidth>
-                  <InputLabel id="opentherm-gateway-select-label">{t('globalSettings.opentherm.gatewayId', 'Gateway Integration ID (ID or slug)')}</InputLabel>
+                <FormControl fullWidth>
+                  <InputLabel id="opentherm-gateway-select-label">
+                    {t('globalSettings.opentherm.gatewayId', 'Gateway Integration ID (ID or slug)')}
+                  </InputLabel>
                   <Select
                     labelId="opentherm-gateway-select-label"
                     value={openthermGatewayId}
-                    label={t('globalSettings.opentherm.gatewayId', 'Gateway Integration ID (ID or slug)')}
-                    onChange={(e) => setOpenthermGatewayId(e.target.value)}
+                    label={t(
+                      'globalSettings.opentherm.gatewayId',
+                      'Gateway Integration ID (ID or slug)'
+                    )}
+                    onChange={e => setOpenthermGatewayId(e.target.value)}
                   >
                     <MenuItem value="">None (Disabled)</MenuItem>
-                    {openthermGateways.map((g) => (
+                    {openthermGateways.map(g => (
                       <MenuItem key={g.gateway_id} value={g.gateway_id}>
                         {g.title}
                       </MenuItem>
@@ -1020,7 +1252,8 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
 
                 {/* Removed manual enable toggle - control is automatic when a gateway id is configured */}
 
-                <Button data-testid="save-opentherm-config"
+                <Button
+                  data-testid="save-opentherm-config"
                   variant="contained"
                   onClick={handleSaveOpenthermConfig}
                   // Disable when saving or there are no available gateways at all
@@ -1057,10 +1290,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
       />
 
       {/* Hysteresis Help Modal */}
-      <HysteresisHelpModal
-        open={hysteresisHelpOpen}
-        onClose={() => setHysteresisHelpOpen(false)}
-      />
+      <HysteresisHelpModal open={hysteresisHelpOpen} onClose={() => setHysteresisHelpOpen(false)} />
     </Box>
   )
 }

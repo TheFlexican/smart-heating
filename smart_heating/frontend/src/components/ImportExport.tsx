@@ -178,9 +178,14 @@ const ImportExport = () => {
   return (
     <Box>
       <Box display="flex" alignItems="center" gap={2} mb={2}>
-        <IconButton data-testid="import-export-back" onClick={() => navigate('/')} size="large" color="primary">
+        <IconButton
+          data-testid="import-export-back"
+          onClick={() => navigate('/')}
+          size="large"
+          color="primary"
+        >
           <ArrowBackIcon />
-          </IconButton>
+        </IconButton>
         <Typography variant="body2" color="text.secondary">
           {t('importExport.description')}
         </Typography>
@@ -221,12 +226,7 @@ const ImportExport = () => {
           disabled={loading}
         >
           {t('importExport.importButton')}
-          <input
-            type="file"
-            accept=".json"
-            hidden
-            onChange={handleFileSelect}
-          />
+          <input type="file" accept=".json" hidden onChange={handleFileSelect} />
         </Button>
       </Box>
 
@@ -238,12 +238,7 @@ const ImportExport = () => {
       </Alert>
 
       {/* Preview Dialog */}
-      <Dialog
-        open={showPreviewDialog}
-        onClose={handleCancelImport}
-        maxWidth="sm"
-        fullWidth
-      >
+      <Dialog open={showPreviewDialog} onClose={handleCancelImport} maxWidth="sm" fullWidth>
         <DialogTitle>{t('importExport.previewTitle')}</DialogTitle>
         <DialogContent>
           {preview?.valid ? (
@@ -254,10 +249,7 @@ const ImportExport = () => {
               <List dense>
                 {preview.version && (
                   <ListItem>
-                    <ListItemText
-                      primary={t('importExport.version')}
-                      secondary={preview.version}
-                    />
+                    <ListItemText primary={t('importExport.version')} secondary={preview.version} />
                   </ListItem>
                 )}
                 {preview.export_date && (
@@ -306,15 +298,11 @@ const ImportExport = () => {
               </Alert>
             </>
           ) : (
-            <Alert severity="error">
-              {preview?.error || t('importExport.invalidConfig')}
-            </Alert>
+            <Alert severity="error">{preview?.error || t('importExport.invalidConfig')}</Alert>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelImport}>
-            {t('common.cancel')}
-          </Button>
+          <Button onClick={handleCancelImport}>{t('common.cancel')}</Button>
           <Button
             onClick={handleConfirmImport}
             variant="contained"

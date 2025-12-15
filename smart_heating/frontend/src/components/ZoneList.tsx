@@ -1,11 +1,4 @@
-import {
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Button,
-  Chip,
-} from '@mui/material'
+import { Box, Typography, CircularProgress, Alert, Button, Chip } from '@mui/material'
 import {
   DndContext,
   closestCenter,
@@ -36,7 +29,14 @@ interface ZoneListProps {
   onAreasReorder: (areas: Zone[]) => void
 }
 
-const ZoneList = ({ areas, loading, onUpdate, showHidden, onToggleShowHidden, onAreasReorder }: ZoneListProps) => {
+const ZoneList = ({
+  areas,
+  loading,
+  onUpdate,
+  showHidden,
+  onToggleShowHidden,
+  onAreasReorder,
+}: ZoneListProps) => {
   const { t } = useTranslation()
 
   const sensors = useSensors(
@@ -50,8 +50,8 @@ const ZoneList = ({ areas, loading, onUpdate, showHidden, onToggleShowHidden, on
     const { active, over } = event
 
     if (over && active.id !== over.id) {
-      const oldIndex = visibleAreas.findIndex((area) => area.id === active.id)
-      const newIndex = visibleAreas.findIndex((area) => area.id === over.id)
+      const oldIndex = visibleAreas.findIndex(area => area.id === active.id)
+      const newIndex = visibleAreas.findIndex(area => area.id === over.id)
 
       const reorderedAreas = arrayMove(visibleAreas, oldIndex, newIndex)
 
@@ -71,8 +71,7 @@ const ZoneList = ({ areas, loading, onUpdate, showHidden, onToggleShowHidden, on
   }
 
   const hiddenCount = areas.filter(a => a.hidden).length
-  const visibleAreas = areas
-    .filter(area => showHidden || !area.hidden)
+  const visibleAreas = areas.filter(area => showHidden || !area.hidden)
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -113,9 +112,7 @@ const ZoneList = ({ areas, loading, onUpdate, showHidden, onToggleShowHidden, on
         </Box>
 
         {visibleAreas.length === 0 ? (
-          <Alert severity="info">
-            {t('dashboard.noAreasFound')}
-          </Alert>
+          <Alert severity="info">{t('dashboard.noAreasFound')}</Alert>
         ) : (
           <SortableContext items={visibleAreas.map(a => a.id)} strategy={rectSortingStrategy}>
             <Box
@@ -133,7 +130,7 @@ const ZoneList = ({ areas, loading, onUpdate, showHidden, onToggleShowHidden, on
                 p: 0.5,
               }}
             >
-              {visibleAreas.map((area) => (
+              {visibleAreas.map(area => (
                 <ZoneCard key={area.id} area={area} onUpdate={onUpdate} />
               ))}
             </Box>

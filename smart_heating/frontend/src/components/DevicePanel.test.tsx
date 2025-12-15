@@ -1,17 +1,22 @@
-/// <reference types="vitest" />
 import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 import DevicePanel from './DevicePanel'
 
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, v?: any) => {
-  if (v && v.count !== undefined) return `${v.count}`
-  if (k.startsWith('devices.')) return k
-  return k
-} }) }))
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (k: string, v?: any) => {
+      if (v && v.count !== undefined) return `${v.count}`
+      if (k.startsWith('devices.')) return k
+      return k
+    },
+  }),
+}))
 
 vi.mock('../api/devices', () => ({
-  refreshDevices: vi.fn().mockResolvedValue({ success: true, updated: 0, available: 0, message: 'ok' })
+  refreshDevices: vi
+    .fn()
+    .mockResolvedValue({ success: true, updated: 0, available: 0, message: 'ok' }),
 }))
 
 describe('DevicePanel', () => {
@@ -40,8 +45,20 @@ describe('DevicePanel', () => {
 
   it('filters devices by search and type', async () => {
     const devices = [
-      { id: 'd1', name: 'Thermostat', type: 'thermostat', subtype: 'climate', ha_area_name: 'Living Room' },
-      { id: 'd2', name: 'Sensor', type: 'temperature_sensor', subtype: 'temperature', ha_area_name: 'Bedroom' },
+      {
+        id: 'd1',
+        name: 'Thermostat',
+        type: 'thermostat',
+        subtype: 'climate',
+        ha_area_name: 'Living Room',
+      },
+      {
+        id: 'd2',
+        name: 'Sensor',
+        type: 'temperature_sensor',
+        subtype: 'temperature',
+        ha_area_name: 'Bedroom',
+      },
       { id: 'd3', name: 'Other', type: 'unknown', subtype: 'other', ha_area_name: 'Kitchen' },
     ]
 

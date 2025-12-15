@@ -9,10 +9,7 @@ export const addWindowSensor = async (
   await axios.post(`${API_BASE}/areas/${areaId}/window_sensors`, config)
 }
 
-export const removeWindowSensor = async (
-  areaId: string,
-  sensorEntityId: string
-): Promise<void> => {
+export const removeWindowSensor = async (areaId: string, sensorEntityId: string): Promise<void> => {
   await axios.delete(`${API_BASE}/areas/${areaId}/window_sensors/${sensorEntityId}`)
 }
 
@@ -39,10 +36,7 @@ export const setGlobalPresence = async (sensors: PresenceSensorConfig[]): Promis
   await axios.post(`${API_BASE}/global_presence`, { sensors })
 }
 
-export const setAreaPresenceConfig = async (
-  areaId: string,
-  useGlobal: boolean
-): Promise<void> => {
+export const setAreaPresenceConfig = async (areaId: string, useGlobal: boolean): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/preset_config`, { use_global_presence: useGlobal })
 }
 

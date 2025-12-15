@@ -4,12 +4,25 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 import OpenThermLogger from './OpenThermLogger'
 import * as openthermApi from '../api/opentherm'
 
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, v?: any) => k }) }))
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, _v?: any) => k }) }))
 
 vi.mock('../api/opentherm', () => ({
-  getOpenThermLogs: vi.fn().mockResolvedValue({ logs: [{ timestamp: '2024-01-01T00:00:00Z', event_type: 'gateway_info', data: {}, message: 'ok' }] }),
+  getOpenThermLogs: vi.fn().mockResolvedValue({
+    logs: [
+      { timestamp: '2024-01-01T00:00:00Z', event_type: 'gateway_info', data: {}, message: 'ok' },
+    ],
+  }),
   getOpenthermGateways: vi.fn().mockResolvedValue([{ gateway_id: 'g1', title: 'G1' }]),
-  getOpenThermSensorStates: vi.fn().mockResolvedValue({ control_setpoint: 21.5, modulation_level: 35, ch_water_temp: 45, return_water_temp: 30.5, ch_pressure: 1.95, room_temp: 21, ch_active: true, flame_on: true }),
+  getOpenThermSensorStates: vi.fn().mockResolvedValue({
+    control_setpoint: 21.5,
+    modulation_level: 35,
+    ch_water_temp: 45,
+    return_water_temp: 30.5,
+    ch_pressure: 1.95,
+    room_temp: 21,
+    ch_active: true,
+    flame_on: true,
+  }),
   getOpenThermCapabilities: vi.fn().mockResolvedValue({ capabilities: {} }),
   discoverOpenThermCapabilities: vi.fn().mockResolvedValue({ capabilities: {} }),
   clearOpenThermLogs: vi.fn().mockResolvedValue({ success: true }),

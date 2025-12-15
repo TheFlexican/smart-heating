@@ -57,7 +57,10 @@ export const VacationModeBanner: React.FC = () => {
         <Typography variant="body2">
           {t('vacation.allAreasSet', { preset: vacationMode.preset_mode })}
           {vacationMode.end_date && (
-            <> {t('vacation.until', { date: new Date(vacationMode.end_date).toLocaleDateString() })}</>
+            <>
+              {' '}
+              {t('vacation.until', { date: new Date(vacationMode.end_date).toLocaleDateString() })}
+            </>
           )}
         </Typography>
       </Box>

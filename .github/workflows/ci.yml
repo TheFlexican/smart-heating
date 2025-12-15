@@ -41,6 +41,26 @@ jobs:
           rm -rf node_modules package-lock.json
           npm install
 
+      - name: TypeScript type checking
+        run: |
+          cd smart_heating/frontend
+          npm run type-check
+
+      - name: Frontend linting
+        run: |
+          cd smart_heating/frontend
+          npm run lint
+
+      - name: Frontend formatting check
+        run: |
+          cd smart_heating/frontend
+          npm run format:check
+
+      - name: Run frontend tests with coverage
+        run: |
+          cd smart_heating/frontend
+          npm run test:coverage
+
       - name: Build frontend
         run: |
           cd smart_heating/frontend
@@ -61,7 +81,7 @@ jobs:
         # Note: sonar-project.properties is automatically detected and used
 
   lint:
-    name: Lint Python Code
+    name: Lint Code
     runs-on: ubuntu-latest
 
     steps:
@@ -73,13 +93,38 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Install dependencies
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python dependencies
         run: |
           pip install flake8
 
-      - name: Lint with flake8
+      - name: Lint Python with flake8
         run: |
           # Stop on syntax errors or undefined names
           flake8 smart_heating --count --select=E9,F63,F7,F82 --show-source --statistics
           # Exit-zero treats all errors as warnings
           flake8 smart_heating --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Install frontend dependencies
+        run: |
+          cd smart_heating/frontend
+          npm ci
+
+      - name: Lint frontend with ESLint
+        run: |
+          cd smart_heating/frontend
+          npm run lint
+
+      - name: Check frontend formatting
+        run: |
+          cd smart_heating/frontend
+          npm run format:check
+
+      - name: TypeScript type checking
+        run: |
+          cd smart_heating/frontend
+          npm run type-check

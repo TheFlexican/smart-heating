@@ -45,11 +45,21 @@ const DeviceOverview = ({ areas }: DeviceOverviewProps) => {
         return <ThermostatIcon fontSize="small" sx={{ color: 'text.secondary' }} />
       }
     } else if (device.type === 'valve') {
-      return <TuneIcon fontSize="small" sx={{ color: device.position > 0 ? 'warning.main' : 'text.secondary' }} />
+      return (
+        <TuneIcon
+          fontSize="small"
+          sx={{ color: device.position > 0 ? 'warning.main' : 'text.secondary' }}
+        />
+      )
     } else if (device.type === 'temperature_sensor') {
       return <SensorsIcon fontSize="small" sx={{ color: 'success.main' }} />
     } else {
-      return <PowerSettingsNewIcon fontSize="small" sx={{ color: device.state === 'on' ? 'success.main' : 'text.secondary' }} />
+      return (
+        <PowerSettingsNewIcon
+          fontSize="small"
+          sx={{ color: device.state === 'on' ? 'success.main' : 'text.secondary' }}
+        />
+      )
     }
   }
 
@@ -97,7 +107,7 @@ const DeviceOverview = ({ areas }: DeviceOverviewProps) => {
       ...device,
       areaName: area.name,
       areaId: area.id,
-      areaTarget: area.target_temperature
+      areaTarget: area.target_temperature,
     }))
   )
 
@@ -136,14 +146,12 @@ const DeviceOverview = ({ areas }: DeviceOverviewProps) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {allDevices.map((device) => (
+            {allDevices.map(device => (
               <TableRow key={`${device.areaId}-${device.id}`} hover>
                 <TableCell>
                   <Box display="flex" alignItems="center" gap={1}>
                     {getDeviceStatusIcon(device)}
-                    <Typography variant="body2">
-                      {device.name || device.id}
-                    </Typography>
+                    <Typography variant="body2">{device.name || device.id}</Typography>
                   </Box>
                 </TableCell>
                 <TableCell>
@@ -152,11 +160,7 @@ const DeviceOverview = ({ areas }: DeviceOverviewProps) => {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Chip
-                    label={device.type.replace(/_/g, ' ')}
-                    size="small"
-                    variant="outlined"
-                  />
+                  <Chip label={device.type.replace(/_/g, ' ')} size="small" variant="outlined" />
                 </TableCell>
                 <TableCell>
                   <Chip

@@ -4,7 +4,16 @@ import { vi, describe, it, beforeEach, expect } from 'vitest'
 import ZoneCard from './ZoneCard'
 
 // Mock hooks and APIs
-vi.mock('@dnd-kit/sortable', () => ({ useSortable: () => ({ attributes: {}, listeners: {}, setNodeRef: () => {}, transform: null, transition: '', isDragging: false, }) }))
+vi.mock('@dnd-kit/sortable', () => ({
+  useSortable: () => ({
+    attributes: {},
+    listeners: {},
+    setNodeRef: () => {},
+    transform: null,
+    transition: '',
+    isDragging: false,
+  }),
+}))
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
 vi.mock('../api/areas', () => ({
@@ -24,8 +33,20 @@ describe('ZoneCard extended behaviors', () => {
   it('shows presence and toggles boost and manual override', async () => {
     const onUpdate = vi.fn()
     const area: any = {
-      id: 'a1', name: 'Living Room', enabled: true, state: 'heating', manual_override: false,
-      target_temperature: 22, effective_target_temperature: 22, preset_mode: 'none', presence_sensors: [{ entity_id: 'binary_sensor.presence' }], devices: [], boost_mode_active: false, boost_temp: 24, boost_duration: 30, hidden: false
+      id: 'a1',
+      name: 'Living Room',
+      enabled: true,
+      state: 'heating',
+      manual_override: false,
+      target_temperature: 22,
+      effective_target_temperature: 22,
+      preset_mode: 'none',
+      presence_sensors: [{ entity_id: 'binary_sensor.presence' }],
+      devices: [],
+      boost_mode_active: false,
+      boost_temp: 24,
+      boost_duration: 30,
+      hidden: false,
     }
     render(<ZoneCard area={area} onUpdate={onUpdate} />)
 
@@ -33,7 +54,9 @@ describe('ZoneCard extended behaviors', () => {
     await waitFor(() => expect(screen.getByText(/PRESETS.HOME/i)).toBeInTheDocument())
 
     // toggle boost (should call setBoostMode)
-    const boostBtn = screen.getByRole('button', { name: /boost.quickBoostInactive|boost.quickBoostActive/ })
+    const boostBtn = screen.getByRole('button', {
+      name: /boost.quickBoostInactive|boost.quickBoostActive/,
+    })
     await userEvent.click(boostBtn)
     expect((await import('../api/areas')).setBoostMode).toHaveBeenCalled()
     expect(onUpdate).toHaveBeenCalled()
@@ -47,11 +70,30 @@ describe('ZoneCard extended behaviors', () => {
   it('renders devices and allows removing', async () => {
     const onUpdate = vi.fn()
     const area: any = {
-      id: 'a2', name: 'Bedroom', enabled: true, state: 'idle', manual_override: false,
-      target_temperature: 20, effective_target_temperature: 20, preset_mode: 'none', presence_sensors: [], devices: [
+      id: 'a2',
+      name: 'Bedroom',
+      enabled: true,
+      state: 'idle',
+      manual_override: false,
+      target_temperature: 20,
+      effective_target_temperature: 20,
+      preset_mode: 'none',
+      presence_sensors: [],
+      devices: [
         { id: 'd1', name: 'Sensor', type: 'temperature_sensor', temperature: 18, state: 'on' },
-        { id: 'd2', name: 'Thermostat', type: 'thermostat', current_temperature: 18, hvac_action: 'heating', state: 'on' }
-      ], boost_mode_active: false, boost_temp: 0, boost_duration: 0, hidden: false
+        {
+          id: 'd2',
+          name: 'Thermostat',
+          type: 'thermostat',
+          current_temperature: 18,
+          hvac_action: 'heating',
+          state: 'on',
+        },
+      ],
+      boost_mode_active: false,
+      boost_temp: 0,
+      boost_duration: 0,
+      hidden: false,
     }
     render(<ZoneCard area={area} onUpdate={onUpdate} />)
 
@@ -62,7 +104,9 @@ describe('ZoneCard extended behaviors', () => {
     // click remove on first device
     const removeButtons = screen.getAllByRole('button', { hidden: true })
     // removeButtons includes many icons; find the one containing RemoveCircleOutlineIcon
-    const removeBtn = removeButtons.find(b => b.querySelector('svg')?.dataset?.testid === 'RemoveCircleOutlineIcon')
+    const removeBtn = removeButtons.find(
+      b => b.querySelector('svg')?.dataset?.testid === 'RemoveCircleOutlineIcon'
+    )
     if (removeBtn) await userEvent.click(removeBtn)
     expect((await import('../api/areas')).removeDeviceFromZone).toHaveBeenCalled()
     expect(onUpdate).toHaveBeenCalled()
@@ -70,12 +114,29 @@ describe('ZoneCard extended behaviors', () => {
 
   it('hide/unhide via menu calls hideZone/unhideZone', async () => {
     const onUpdate = vi.fn()
-    const area: any = { id: 'a3', name: 'Hall', enabled: true, state: 'idle', manual_override: false, target_temperature: 20, effective_target_temperature: 20, preset_mode: 'none', presence_sensors: [], devices: [], boost_mode_active: false, boost_temp: 0, boost_duration: 0, hidden: false }
+    const area: any = {
+      id: 'a3',
+      name: 'Hall',
+      enabled: true,
+      state: 'idle',
+      manual_override: false,
+      target_temperature: 20,
+      effective_target_temperature: 20,
+      preset_mode: 'none',
+      presence_sensors: [],
+      devices: [],
+      boost_mode_active: false,
+      boost_temp: 0,
+      boost_duration: 0,
+      hidden: false,
+    }
     render(<ZoneCard area={area} onUpdate={onUpdate} />)
 
     // open menu
     const menuButtons = screen.getAllByRole('button')
-    const moreBtn = menuButtons.find(b => b.querySelector('svg')?.dataset?.testid === 'MoreVertIcon')
+    const moreBtn = menuButtons.find(
+      b => b.querySelector('svg')?.dataset?.testid === 'MoreVertIcon'
+    )
     if (moreBtn) await userEvent.click(moreBtn)
 
     const hideOption = screen.getByText('area.hideArea')

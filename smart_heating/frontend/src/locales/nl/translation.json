@@ -113,7 +113,9 @@
     "tabs": {
       "temperature": "Temperatuur",
       "sensors": "Sensoren",
-      "vacation": "Vakantie",      "users": "Gebruikersbeheer",      "safety": "Veiligheid",
+      "vacation": "Vakantie",
+      "users": "Gebruikersbeheer",
+      "safety": "Veiligheid",
       "advanced": "Geavanceerd",
       "importExport": "Importeren/Exporteren",
       "opentherm": "OpenTherm"
@@ -194,10 +196,9 @@
       "findId": "Vind de gateway-integratie in: Instellingen → Apparaten & Diensten → OpenTherm Gateway → Klik \"Configureren\" en bekijk het ID-veld.",
       "gatewayId": "Gateway Integratie-ID (slug)",
       "gatewayIdHelp": "Selecteer het gateway-integratie-ID uit de geconfigureerde OpenTherm gateways.",
-      "save": "Configuratie Opslaan"
-    ,
-    "noGateways": "Geen OpenTherm gateways gevonden. Voeg eerst de OpenTherm Gateway-integratie toe in Home Assistant.",
-    "openIntegrations": "Open Integraties"
+      "save": "Configuratie Opslaan",
+      "noGateways": "Geen OpenTherm gateways gevonden. Voeg eerst de OpenTherm Gateway-integratie toe in Home Assistant.",
+      "openIntegrations": "Open Integraties"
     }
   },
   "advanced": {

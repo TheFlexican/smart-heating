@@ -33,7 +33,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const reconnectAttempts = useRef(0)
-  const maxReconnectAttempts = 10  // Increased for mobile
+  const maxReconnectAttempts = 10 // Increased for mobile
   const messageIdRef = useRef(1)
   const isAuthenticatedRef = useRef(false)
   const pingIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
@@ -48,7 +48,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         console.log('[WebSocket] Using auth token from URL parameter')
         return urlToken
       }
-    } catch (e) {
+    } catch {
       console.debug('[WebSocket] No token in URL parameters')
     }
 
@@ -62,7 +62,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
           return parentConnection.auth.data.access_token
         }
       }
-    } catch (e) {
+    } catch {
       // Cross-origin error is expected and OK - we're in an iframe
       console.debug('[WebSocket] Cannot access parent window (expected in iframe)')
     }
@@ -88,7 +88,11 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const connect = () => {
     try {
       // Don't create new connection if one already exists and is open/connecting
-      if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+      if (
+        wsRef.current &&
+        (wsRef.current.readyState === WebSocket.OPEN ||
+          wsRef.current.readyState === WebSocket.CONNECTING)
+      ) {
         console.log('[WebSocket] Already connected or connecting')
         return
       }
@@ -106,7 +110,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         console.log('[WebSocket] Connection opened')
       }
 
-      ws.onmessage = (event) => {
+      ws.onmessage = event => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data)
 
@@ -123,10 +127,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
               return
             }
 
-            ws.send(JSON.stringify({
-              type: 'auth',
-              access_token: token
-            }))
+            ws.send(
+              JSON.stringify({
+                type: 'auth',
+                access_token: token,
+              })
+            )
             return
           }
 
@@ -144,18 +150,22 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             }
             pingIntervalRef.current = setInterval(() => {
               if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                  id: messageIdRef.current++,
-                  type: 'ping'
-                }))
+                ws.send(
+                  JSON.stringify({
+                    id: messageIdRef.current++,
+                    type: 'ping',
+                  })
+                )
               }
             }, 30000)
 
             // Now subscribe to our custom events
-            ws.send(JSON.stringify({
-              id: messageIdRef.current++,
-              type: 'smart_heating/subscribe'
-            }))
+            ws.send(
+              JSON.stringify({
+                id: messageIdRef.current++,
+                type: 'smart_heating/subscribe',
+              })
+            )
             return
           }
 
@@ -226,7 +236,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         }
       }
 
-      ws.onerror = (event) => {
+      ws.onerror = event => {
         console.error('[WebSocket] Error:', event)
         setError('WebSocket connection error')
         options.onError?.('Connection error')
@@ -254,7 +264,9 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         // Attempt to reconnect with exponential backoff
         if (reconnectAttempts.current < maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000)
-          console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`)
+          console.log(
+            `[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`
+          )
 
           reconnectTimeoutRef.current = setTimeout(() => {
             reconnectAttempts.current++

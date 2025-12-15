@@ -8,15 +8,15 @@ import * as presetsApi from '../api/presets'
 import * as openthermApi from '../api/opentherm'
 import * as configApi from '../api/config'
 
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, v?: any) => k }) }))
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, _v?: any) => k }) }))
 
 vi.mock('../api/presets', () => ({
   getGlobalPresets: vi.fn().mockResolvedValue({ away_temp: 16, home_temp: 20 }),
-  setGlobalPresets: vi.fn().mockResolvedValue({})
+  setGlobalPresets: vi.fn().mockResolvedValue({}),
 }))
 vi.mock('../api/opentherm', () => ({
   getOpenthermGateways: vi.fn().mockResolvedValue([{ gateway_id: 'g1', title: 'G1' }]),
-  setOpenthermGateway: vi.fn().mockResolvedValue({})
+  setOpenthermGateway: vi.fn().mockResolvedValue({}),
 }))
 vi.mock('../api/config', () => ({
   getConfig: vi.fn().mockResolvedValue({ hide_devices_panel: false, opentherm_gateway_id: '' }),
@@ -28,13 +28,13 @@ vi.mock('../api/users', () => ({
   getUsers: vi.fn().mockResolvedValue({ users: {} }),
 }))
 vi.mock('../api/sensors', () => ({
-  getGlobalPresence: vi.fn().mockResolvedValue({ sensors: [] })
+  getGlobalPresence: vi.fn().mockResolvedValue({ sensors: [] }),
 }))
 vi.mock('../api/logs', () => ({
-  getHysteresis: vi.fn().mockResolvedValue(0.5)
+  getHysteresis: vi.fn().mockResolvedValue(0.5),
 }))
 vi.mock('../api/safety', () => ({
-  getSafetySensor: vi.fn().mockResolvedValue({ sensors: [] })
+  getSafetySensor: vi.fn().mockResolvedValue({ sensors: [] }),
 }))
 
 describe('GlobalSettings', () => {
@@ -129,8 +129,18 @@ describe('GlobalSettings', () => {
       return (
         <div data-testid="heating-curve-control">
           <div>Default heating curve coefficient</div>
-          <input data-testid="heating-curve-control-input" type="number" step={0.1} disabled={!enabled} />
-          <input data-testid="heating-curve-control-toggle" type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+          <input
+            data-testid="heating-curve-control-input"
+            type="number"
+            step={0.1}
+            disabled={!enabled}
+          />
+          <input
+            data-testid="heating-curve-control-toggle"
+            type="checkbox"
+            checked={enabled}
+            onChange={e => setEnabled(e.target.checked)}
+          />
         </div>
       )
     }

@@ -13,24 +13,15 @@ export const getZone = async (areaId: string): Promise<Area> => {
   return response.data
 }
 
-export const addDeviceToZone = async (
-  areaId: string,
-  device: DeviceAdd
-): Promise<void> => {
+export const addDeviceToZone = async (areaId: string, device: DeviceAdd): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/devices`, device)
 }
 
-export const removeDeviceFromZone = async (
-  areaId: string,
-  deviceId: string
-): Promise<void> => {
+export const removeDeviceFromZone = async (areaId: string, deviceId: string): Promise<void> => {
   await axios.delete(`${API_BASE}/areas/${areaId}/devices/${deviceId}`)
 }
 
-export const setZoneTemperature = async (
-  areaId: string,
-  temperature: number
-): Promise<void> => {
+export const setZoneTemperature = async (areaId: string, temperature: number): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/temperature`, { temperature })
 }
 
@@ -57,10 +48,7 @@ export const addScheduleToZone = async (
   await axios.post(`${API_BASE}/areas/${areaId}/schedules`, schedule)
 }
 
-export const removeScheduleFromZone = async (
-  areaId: string,
-  scheduleId: string
-): Promise<void> => {
+export const removeScheduleFromZone = async (areaId: string, scheduleId: string): Promise<void> => {
   await axios.delete(`${API_BASE}/areas/${areaId}/schedules/${scheduleId}`)
 }
 
@@ -78,10 +66,7 @@ export const getLearningStats = async (areaId: string): Promise<LearningStats> =
 }
 
 // Preset Modes
-export const setPresetMode = async (
-  areaId: string,
-  presetMode: string
-): Promise<void> => {
+export const setPresetMode = async (areaId: string, presetMode: string): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/preset_mode`, { preset_mode: presetMode })
 }
 
@@ -102,21 +87,15 @@ export const cancelBoost = async (areaId: string): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/cancel_boost`)
 }
 
-export const setHvacMode = async (
-  areaId: string,
-  hvacMode: string
-): Promise<void> => {
+export const setHvacMode = async (areaId: string, hvacMode: string): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/hvac_mode`, {
-    hvac_mode: hvacMode
+    hvac_mode: hvacMode,
   })
 }
 
-export const setSwitchShutdown = async (
-  areaId: string,
-  shutdown: boolean
-): Promise<void> => {
+export const setSwitchShutdown = async (areaId: string, shutdown: boolean): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/switch_shutdown`, {
-    shutdown
+    shutdown,
   })
 }
 
@@ -128,7 +107,7 @@ export const copySchedule = async (
 ): Promise<void> => {
   const data: any = {
     source_area_id: sourceAreaId,
-    target_area_id: targetAreaId
+    target_area_id: targetAreaId,
   }
   if (sourceDays) {
     data.source_days = sourceDays
@@ -151,10 +130,7 @@ export const setHeatingType = async (
   await axios.post(`${API_BASE}/areas/${areaId}/heating_type`, data)
 }
 
-export const setAreaPresetConfig = async (
-  areaId: string,
-  config: Partial<any>
-): Promise<void> => {
+export const setAreaPresetConfig = async (areaId: string, config: Partial<any>): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/preset_config`, config)
 }
 
@@ -163,7 +139,11 @@ export const getAreaPresetConfig = async (areaId: string): Promise<any> => {
   return response.data
 }
 
-export const setAreaHeatingCurve = async (areaId: string, useGlobal: boolean, coefficient?: number): Promise<void> => {
+export const setAreaHeatingCurve = async (
+  areaId: string,
+  useGlobal: boolean,
+  coefficient?: number
+): Promise<void> => {
   const data: any = { use_global: useGlobal }
   if (coefficient !== undefined) {
     data.coefficient = coefficient
@@ -171,10 +151,7 @@ export const setAreaHeatingCurve = async (areaId: string, useGlobal: boolean, co
   await axios.post(`${API_BASE}/areas/${areaId}/heating_curve`, data)
 }
 
-export const setManualOverride = async (
-  areaId: string,
-  enabled: boolean
-): Promise<void> => {
+export const setManualOverride = async (areaId: string, enabled: boolean): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/manual_override`, { enabled })
 }
 

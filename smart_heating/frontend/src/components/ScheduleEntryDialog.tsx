@@ -33,22 +33,9 @@ interface ScheduleEntryDialogProps {
   editingEntry: ScheduleEntry | null
 }
 
-const DAYS_OF_WEEK = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-]
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
-const ScheduleEntryDialog = ({
-  open,
-  onClose,
-  onSave,
-  editingEntry,
-}: ScheduleEntryDialogProps) => {
+const ScheduleEntryDialog = ({ open, onClose, onSave, editingEntry }: ScheduleEntryDialogProps) => {
   const { t } = useTranslation()
 
   // Schedule type: 'weekly' for recurring, 'date' for specific date
@@ -99,9 +86,7 @@ const ScheduleEntryDialog = ({
 
   const handleDayToggle = (dayIndex: number) => {
     setSelectedDays(prev =>
-      prev.includes(dayIndex)
-        ? prev.filter(d => d !== dayIndex)
-        : [...prev, dayIndex]
+      prev.includes(dayIndex) ? prev.filter(d => d !== dayIndex) : [...prev, dayIndex]
     )
   }
 
@@ -165,10 +150,12 @@ const ScheduleEntryDialog = ({
               onChange={(_, value) => value && setScheduleType(value)}
               fullWidth
             >
-              <ToggleButton value="weekly">
-                {t('scheduleDialog.weeklyRecurring')}
-              </ToggleButton>
-              <ToggleButton data-testid="schedule-type-weekly" value="weekly" sx={{ display: 'none' }}>
+              <ToggleButton value="weekly">{t('scheduleDialog.weeklyRecurring')}</ToggleButton>
+              <ToggleButton
+                data-testid="schedule-type-weekly"
+                value="weekly"
+                sx={{ display: 'none' }}
+              >
                 {/* hidden duplicate to provide a stable testid for weekly toggle */}
               </ToggleButton>
               <ToggleButton data-testid="schedule-type-date" value="date">
@@ -186,7 +173,12 @@ const ScheduleEntryDialog = ({
               <Paper variant="outlined" sx={{ p: 2 }}>
                 {/* Quick selection buttons */}
                 <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                  <Button data-testid="schedule-weekdays" size="small" variant="outlined" onClick={handleSelectAllWeekdays}>
+                  <Button
+                    data-testid="schedule-weekdays"
+                    size="small"
+                    variant="outlined"
+                    onClick={handleSelectAllWeekdays}
+                  >
                     {t('scheduleDialog.weekdays')}
                   </Button>
                   <Button
@@ -217,8 +209,15 @@ const ScheduleEntryDialog = ({
 
                 {/* Day checkboxes */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      {DAYS_OF_WEEK.map((day, idx) => {
-                    const dayKey = day.toLowerCase() as 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+                  {DAYS_OF_WEEK.map((day, idx) => {
+                    const dayKey = day.toLowerCase() as
+                      | 'monday'
+                      | 'tuesday'
+                      | 'wednesday'
+                      | 'thursday'
+                      | 'friday'
+                      | 'saturday'
+                      | 'sunday'
                     return (
                       <FormControlLabel
                         key={day}
@@ -243,7 +242,12 @@ const ScheduleEntryDialog = ({
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 1 }}>
                       {selectedDays.map(dayIdx => (
-                        <Chip key={dayIdx} label={DAYS_OF_WEEK[dayIdx]} size="small" color="primary" />
+                        <Chip
+                          key={dayIdx}
+                          label={DAYS_OF_WEEK[dayIdx]}
+                          size="small"
+                          color="primary"
+                        />
                       ))}
                     </Box>
                   </Box>
@@ -259,11 +263,11 @@ const ScheduleEntryDialog = ({
                 <DatePicker
                   label={t('scheduleDialog.date')}
                   value={selectedDate}
-                  onChange={(newValue) => setSelectedDate(newValue)}
+                  onChange={newValue => setSelectedDate(newValue)}
                   slotProps={{
                     textField: {
                       fullWidth: true,
-                      helperText: t('scheduleDialog.dateHelperText')
+                      helperText: t('scheduleDialog.dateHelperText'),
                     },
                   }}
                 />
@@ -278,7 +282,7 @@ const ScheduleEntryDialog = ({
               label={t('scheduleDialog.startTime')}
               type="time"
               value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
+              onChange={e => setStartTime(e.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
               fullWidth
               helperText={t('scheduleDialog.spanHelperText')}
@@ -289,7 +293,7 @@ const ScheduleEntryDialog = ({
               label={t('scheduleDialog.endTime')}
               type="time"
               value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
+              onChange={e => setEndTime(e.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
               fullWidth
             />
@@ -301,7 +305,7 @@ const ScheduleEntryDialog = ({
             <Select
               value={usePreset ? 'preset' : 'temperature'}
               label={t('scheduleDialog.mode')}
-              onChange={(e) => setUsePreset(e.target.value === 'preset')}
+              onChange={e => setUsePreset(e.target.value === 'preset')}
             >
               <MenuItem value="temperature">{t('scheduleDialog.fixedTemperature')}</MenuItem>
               <MenuItem value="preset">{t('scheduleDialog.presetMode')}</MenuItem>
@@ -314,7 +318,7 @@ const ScheduleEntryDialog = ({
               <Select
                 value={presetMode}
                 label={t('scheduleDialog.preset')}
-                onChange={(e) => setPresetMode(e.target.value)}
+                onChange={e => setPresetMode(e.target.value)}
               >
                 <MenuItem value="none">{t('scheduleDialog.presetNone')}</MenuItem>
                 <MenuItem value="eco">{t('scheduleDialog.presetEco')}</MenuItem>
@@ -331,10 +335,10 @@ const ScheduleEntryDialog = ({
               label={t('scheduleDialog.temperature')}
               type="number"
               value={temperature}
-              onChange={(e) => setTemperature(Number.parseFloat(e.target.value))}
+              onChange={e => setTemperature(Number.parseFloat(e.target.value))}
               slotProps={{
                 inputLabel: { shrink: true },
-                htmlInput: { min: 5, max: 30, step: 0.5 }
+                htmlInput: { min: 5, max: 30, step: 0.5 },
               }}
               fullWidth
             />
@@ -342,8 +346,15 @@ const ScheduleEntryDialog = ({
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button data-testid="schedule-cancel" onClick={onClose}>{t('common.cancel')}</Button>
-        <Button data-testid="schedule-save" onClick={handleSave} variant="contained" disabled={!isValid()}>
+        <Button data-testid="schedule-cancel" onClick={onClose}>
+          {t('common.cancel')}
+        </Button>
+        <Button
+          data-testid="schedule-save"
+          onClick={handleSave}
+          variant="contained"
+          disabled={!isValid()}
+        >
           {t('common.save')}
         </Button>
       </DialogActions>

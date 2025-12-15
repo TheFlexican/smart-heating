@@ -1,254 +1,240 @@
 # Smart Heating Frontend
 
-This is the React-based frontend for the Smart Heating Home Assistant integration.
+React + TypeScript frontend for the Smart Heating system with Material-UI components.
 
-## Features
-
-- 🎨 **Material-UI v6** - Beautiful, responsive design matching Home Assistant theme
-- ⚡ **Vite 6** - Lightning-fast development and build
-- 🔄 **Real-time Updates** - WebSocket integration for instant feedback
-- 🖱️ **Drag & Drop** - Easy device assignment with react-beautiful-dnd
-- 📊 **Interactive Charts** - Temperature history visualization with Recharts
-- 📱 **Responsive** - Works on desktop, tablet, and mobile
-- 🌙 **Dark Theme** - Matches Home Assistant's native dark theme
-- 🔒 **TypeScript** - Type-safe development
-
-## Development
-
-### Prerequisites
-
-- Node.js 18 or higher
-- npm or yarn
-
-### Setup
+## 🚀 Quick Start
 
 ```bash
-cd smart_heating/frontend
+# Install dependencies
 npm install
-```
 
-### Development Server
-
-```bash
+# Start development server
 npm run dev
-```
 
-This will start a development server at `http://localhost:5173` with hot reloading enabled.
-
-The Vite dev server is configured to proxy API requests to your Home Assistant instance.
-
-### Building for Production
-
-```bash
+# Build for production
 npm run build
 ```
 
-This creates an optimized production build in the `dist/` directory, which will be served by Home Assistant.
+## 🛠 Development
 
-### Type Checking
+### Available Scripts
+
+- `npm run dev` - Start development server (http://localhost:5173)
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run test` - Run unit tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Run tests with coverage report
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Run ESLint with auto-fix
+- `npm run format` - Format code with Prettier
+- `npm run format:check` - Check code formatting
+- `npm run type-check` - TypeScript type checking
+
+### Tech Stack
+
+- **React 19** with TypeScript
+- **Material-UI v7** for components
+- **Vite** for build tooling
+- **Vitest** for testing
+- **React Router** for navigation
+- **i18next** for internationalization
+- **Recharts** for data visualization
+- **ESLint + Prettier** for code quality
+
+### Code Quality
+
+The project enforces code quality through:
+
+- **ESLint** - Static code analysis with React and TypeScript rules
+- **Prettier** - Consistent code formatting
+- **TypeScript** - Static type checking
+- **Vitest** - Unit testing with coverage reporting
+- **Pre-commit hooks** - Automatic linting and formatting
+
+#### ESLint Configuration
+
+- TypeScript and React rules enabled
+- No unused variables (except `_` prefixed)
+- Console warnings (not errors)
+- Single quotes and no semicolons
+- React 17+ JSX transform
+
+#### Prettier Configuration
+
+- 100 character line width
+- Single quotes for strings
+- No semicolons
+- Trailing commas for multiline
+- 2 space indentation
+
+### Testing
+
+Unit tests use Vitest and React Testing Library with comprehensive coverage:
 
 ```bash
-npm run type-check
+# Run tests once
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run with coverage (70% threshold)
+npm run test:coverage
 ```
 
-## Testing IDs
+#### Coverage Thresholds
 
-Any new or modified frontend UI elements that are interactive or important for tests MUST include a `data-testid` attribute. This makes tests more reliable and easier to maintain by providing stable selectors that are resilient to cosmetic changes.
+- **Lines:** 70%
+- **Functions:** 70%
+- **Branches:** 70%
+- **Statements:** 70%
 
-Examples:
+#### Test Structure
 
-- Button: `<button data-testid="zonecard-save">Save</button>`
-- Input: `<input data-testid="schedule-start-time" />`
-- Component root: `<ZoneCard data-testid="zonecard-<id>" />`
+- Component tests in `__tests__` directories
+- API tests for client functions
+- Hook tests for custom hooks
+- Mock external dependencies
+- Use `data-testid` for reliable selectors
 
-Recommended naming conventions:
+### API Integration
 
-- `component-action` (e.g., `zonecard-toggle`, `schedule-submit`)
-- `page-element-action` (e.g., `area-detail-save`, `header-logout`)
+The frontend connects to the Home Assistant API through the Smart Heating integration:
 
-Enforcement suggestion:
+- Base URL: `http://homeassistant.local:8123`
+- API endpoints: `/api/smart_heating/*`
+- WebSocket for real-time updates
 
-- Add a PR checklist item to remind contributors to include `data-testid` on interactive/test-important elements (see `docs/frontend-testing-guidelines.md` for examples and scripts).
+## 🏗 Architecture
 
-See `docs/frontend-testing-guidelines.md` for more guidance and sample lint/pre-commit checks.
+### Component Structure
 
+```
+src/
+├── components/     # Reusable UI components
+├── pages/         # Route components
+├── hooks/         # Custom React hooks
+├── api/          # API client functions
+├── types/        # TypeScript type definitions
+└── locales/      # Translation files
+```
 
-## Architecture
+### Key Features
 
-### Components
+- **Responsive design** - Works on desktop and mobile
+- **Dark/light theme** - User preference with system detection
+- **Internationalization** - English and Dutch support
+- **Real-time updates** - WebSocket integration
+- **Data visualization** - Temperature charts and metrics
+- **Accessibility** - ARIA labels and keyboard navigation
+- **Test coverage** - Comprehensive `data-testid` attributes
 
-**Main Pages:**
-- **App** - Main application with routing and drag-drop context
-- **AreaDetail** - Detailed area page with 6 tabs (Overview, Devices, Schedule, History, Settings, Learning)
+### State Management
 
-**Components:**
-- **Header** - Top app bar with WebSocket connection status
-- **ZoneList** - Grid display of all areas with drag-drop
-- **ZoneCard** - Individual area control (droppable target)
-- **CreateZoneDialog** - Modal dialog for creating new areas
-- **DevicePanel** - Sidebar with draggable Zigbee2MQTT devices
-- **ScheduleEditor** - Time-based temperature schedule management
-- **HistoryChart** - Interactive Recharts visualization with configurable time ranges
-  - Preset buttons: 6h, 12h, 24h, 3d, 7d, 30d, Custom
-  - Custom date/time range picker with start/end inputs
-  - Auto-refresh every 5 minutes
-  - Visual indicators for heating periods
+- React hooks for local state
+- Context API for theme and language
+- WebSocket for real-time data sync
+- No external state management library needed
 
-### Hooks
+## 🎯 Development Guidelines
 
-- **useWebSocket** - Custom hook for real-time WebSocket communication
+### Code Style
 
-### API Client
+- Use TypeScript strict mode
+- Follow React best practices
+- Implement proper error boundaries
+- Add comprehensive test coverage
+- Use semantic HTML and ARIA labels
+- Include `data-testid` for all interactive elements
 
-The `src/api.ts` file contains all API interaction functions:
-- `getZones()` - Fetch all areas
-- `createZone()` - Create a new area
-- `deleteZone()` - Delete a area
-- `setZoneTemperature()` - Update area target temperature
-- `enableZone()` / `disableZone()` - Control area state
-- `addDeviceToZone()` / `removeDeviceFromZone()` - Manage area devices
-- `getDevices()` - Fetch available Zigbee2MQTT devices
-- `getLearningStats()` - Get adaptive learning statistics for an area
-- `getHistoryConfig()` - Fetch history retention settings
-- `setHistoryRetention(days)` - Update retention period (1-365 days)
-- `getHistory(areaId, options)` - Flexible history queries with hours, startTime, endTime
-- Plus schedule, preset modes, boost mode, window/presence sensors, and HVAC mode endpoints
+### Testing Strategy
 
-### TypeScript Types
+- Unit tests for all components
+- Integration tests for user flows
+- Mock external dependencies
+- Aim for >70% code coverage
+- Use reliable test selectors (`data-testid`)
 
-See `src/types.ts` for all interface definitions:
-- `Zone` - Area configuration, state, schedules, night boost, smart learning
-- `Device` - Zigbee2MQTT device information
-- `ScheduleEntry` - Time-based schedule data
-- `HistoryEntry` - Temperature history record
-- `LearningStats` - Adaptive learning statistics
+### Performance
 
-## Key Features
+- Lazy load route components
+- Optimize bundle size
+- Use React.memo for expensive components
+- Implement proper loading states
 
-### Smart Scheduling
-- Time-based temperature profiles
-- Day-of-week selection
-- Multiple schedules per area
-- Enable/disable individual schedules
+### Pre-commit Quality Checks
 
-### Night Boost
-- Configurable temperature increase during night hours
-- Customizable start and end times (default: 22:00-06:00)
-- Adjustable offset (0-3°C)
-- Per-area enable/disable
-- Supports periods crossing midnight (e.g., 23:00-07:00)
+The project uses pre-commit hooks to ensure code quality:
 
-### Smart Night Boost (Adaptive Learning)
-- Machine learning system that predicts optimal heating start times
-- Learns heating patterns from historical data
-- Weather correlation with outdoor temperature sensors
-- Configurable target wake-up time
-- Automatic prediction improvement over time
-- Real-time learning statistics and progress tracking
-- Dedicated Learning tab showing:
-  - Learning status and configuration
-  - Learning process explanation
-  - API endpoint information
+- ESLint with auto-fix
+- Prettier formatting
+- TypeScript type checking
+- Python linting (ruff)
 
-### Development Logs (v0.5.4+)
-- **Per-Area Logging System**: Complete visibility into heating strategy decisions
-- **Dedicated Logs Tab**: Chronological log of all heating events
-- **Event Types Tracked**:
-  - Temperature: Target calculations and effective temperature changes
-  - Heating: State changes with current/target temperatures
-  - Schedule: Activations with preset modes or temperatures
-  - Smart Boost: Predictions, start times, duration estimates
-  - Sensor: Window and presence sensor state changes
-  - Mode: Manual override mode changes
-- **Interactive Features**:
-  - Filter dropdown for specific event types or all events
-  - Refresh button for on-demand log updates
-  - Color-coded event type badges (heating=red, temperature=blue, schedule=green, etc.)
-  - Detailed JSON data display for each event
-  - Timestamps with date and time
-- **Memory-Efficient**: 500-entry limit per area using deque
-- **API Integration**: `GET /api/smart_heating/areas/{area_id}/logs?limit=N&type=EVENT_TYPE`
-
-### Temperature History
-- **Configurable Retention**: 1-365 days (default: 30 days)
-- **Recording Interval**: Every 5 minutes (fixed)
-- **No Aggregation**: Raw data points preserved at full resolution
-- **Preset Time Ranges**: 6h, 12h, 24h, 3d, 7d, 30d
-- **Custom Date/Time Picker**: Select specific analysis periods
-- **Automatic Cleanup**: Hourly background task removes expired data
-- **Interactive Charts**: Color-coded visualization
-  - Current temperature (blue line)
-  - Target temperature (yellow dashed line)
-  - Heating active (red dots)
-  - Average target (green dashed line)
-- **History Management UI**:
-  - Settings tab panel for retention configuration
-  - Slider with visual markers (1d, 7d, 30d, 90d, 180d, 365d)
-  - Save button with immediate cleanup
-  - Display of recording interval and current settings
-- **Flexible Querying**:
-  - Toggle buttons for preset ranges
-  - Custom mode with start/end datetime inputs
-  - Apply button for custom queries
-  - Auto-refresh every 5 minutes
-
-### Advanced Settings
-- Global hysteresis control (0.1-2.0°C)
-- Temperature limits display
-- Real-time service calls
-
-### Device Status Display
-- **Thermostats**: Show "20.0°C → 22.0°C" when heating (target > current)
-- **Temperature Sensors**: Show "19.5°C" from temperature attribute
-- **Valves**: Show "45%" position without redundant state
-- **Fallback**: Shows "unavailable" when no data available
-- Color-coded icons for instant visual feedback
-- Real-time updates via WebSocket and coordinator (30s)
-
-### Drag & Drop
-- Drag devices from panel to area cards
-- Visual feedback on drop targets
-- Automatic refresh after assignment
-
-## Accessing the Frontend
-
-Once built and deployed, access the frontend through:
-
-1. **Home Assistant Panel**: Navigate to the "Smart Heating" panel in the sidebar (🔥 icon)
-2. **Direct URL**: `http://your-ha-instance:8123/smart_heating/`
-
-## Troubleshooting
-
-### API Calls Failing
-
-Make sure your Home Assistant instance is running and the Smart Heating integration is installed and configured.
-
-### Build Errors
-
-Clear node_modules and reinstall:
+Install pre-commit hooks:
 ```bash
-rm -rf node_modules package-lock.json
-npm install
+pip install pre-commit
+pre-commit install
 ```
 
-### Hot Reload Not Working
+## 📱 Mobile Support
 
-Make sure you're accessing the dev server directly at `localhost:5173`, not through Home Assistant.
+The frontend is fully responsive and optimized for mobile devices:
 
-### WebSocket Not Connecting
+- Touch-friendly interface
+- Responsive Material-UI components
+- Mobile-first CSS approach
+- Progressive Web App ready
 
-Check that Home Assistant is running and the integration is loaded. Check browser console for connection errors.
+## 🔧 CI/CD
 
-## Performance
+### GitHub Actions
 
-- Code splitting with lazy loading (planned)
-- Optimized re-renders with React.memo
-- Debounced slider updates
-- Efficient WebSocket updates
-- Responsive chart rendering
+The project includes comprehensive CI/CD workflows:
 
-## Browser Support
+- **Main CI** (`ci.yml`) - Full test suite for all code
+- **Frontend Quality** (`frontend.yml`) - Frontend-specific checks
+- **Release** (`release.yml`) - Automated releases
 
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
+### Quality Checks
+
+- TypeScript compilation
+- ESLint linting
+- Prettier formatting
+- Unit test execution
+- Coverage reporting
+- Build verification
+
+## 🚀 Getting Started
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd smart_heating
+   ```
+
+2. **Install dependencies**
+   ```bash
+   cd smart_heating/frontend
+   npm install
+   ```
+
+3. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Run tests**
+   ```bash
+   npm run test:coverage
+   ```
+
+5. **Check code quality**
+   ```bash
+   npm run lint
+   npm run format:check
+   npm run type-check
+   ```
+
+The frontend will be available at `http://localhost:5173` and proxy API requests to your Home Assistant instance.

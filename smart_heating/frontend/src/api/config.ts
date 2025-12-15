@@ -20,13 +20,10 @@ export const setAdvancedControlConfig = async (config: any): Promise<void> => {
   await axios.post(`${API_BASE}/config/advanced_control`, config)
 }
 
-export const setFrostProtection = async (
-  enabled: boolean,
-  temperature: number
-): Promise<void> => {
+export const setFrostProtection = async (enabled: boolean, temperature: number): Promise<void> => {
   await axios.post(`${API_BASE}/frost_protection`, {
     enabled,
-    temperature
+    temperature,
   })
 }
 
@@ -48,9 +45,7 @@ export const getWeatherEntities = async (): Promise<any[]> => {
 export const getPersonEntities = async (): Promise<any[]> => {
   // Person entities are included in binary_sensor endpoint with device_class: presence
   const response = await axios.get(`${API_BASE}/entities/binary_sensor`)
-  return response.data.entities.filter((entity: any) =>
-    entity.entity_id.startsWith('person.')
-  )
+  return response.data.entities.filter((entity: any) => entity.entity_id.startsWith('person.'))
 }
 
 export default {}

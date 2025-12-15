@@ -45,7 +45,14 @@ import SpeedIcon from '@mui/icons-material/Speed'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
 import ArticleIcon from '@mui/icons-material/Article'
 import { useTranslation } from 'react-i18next'
-import { Zone, WindowSensorConfig, PresenceSensorConfig, Device, GlobalPresets, HassEntity } from '../types'
+import {
+  Zone,
+  WindowSensorConfig,
+  PresenceSensorConfig,
+  Device,
+  GlobalPresets,
+  HassEntity,
+} from '../types'
 import {
   getZones,
   setZoneTemperature,
@@ -71,7 +78,12 @@ import {
   setAreaPresenceConfig,
 } from '../api/sensors'
 import { getAreaLogs, AreaLogEntry } from '../api/logs'
-import { getHistoryConfig, setHistoryRetention as updateHistoryRetention, migrateHistoryStorage, getDatabaseStats } from '../api/history'
+import {
+  getHistoryConfig,
+  setHistoryRetention as updateHistoryRetention,
+  migrateHistoryStorage,
+  getDatabaseStats,
+} from '../api/history'
 import { getDevices } from '../api/devices'
 import { getGlobalPresets } from '../api/presets'
 import { getEntityState, getWeatherEntities } from '../api/config'
@@ -129,31 +141,39 @@ const ZoneDetail = () => {
   const [logFilter, setLogFilter] = useState<string>('all')
   const [weatherEntities, setWeatherEntities] = useState<HassEntity[]>([])
   const [weatherEntitiesLoading, setWeatherEntitiesLoading] = useState(false)
-  const [areaHeatingCurveCoefficient, setAreaHeatingCurveCoefficient] = useState<number | null>(null)
+  const [areaHeatingCurveCoefficient, setAreaHeatingCurveCoefficient] = useState<number | null>(
+    null
+  )
   const [useGlobalHeatingCurve, setUseGlobalHeatingCurve] = useState<boolean>(true)
 
   // WebSocket for real-time updates
   useWebSocket({
-    onZoneUpdate: (updatedZone) => {
+    onZoneUpdate: updatedZone => {
       if (updatedZone.id === areaId) {
         setArea(updatedZone)
-        const displayTemp = (!updatedZone.enabled || updatedZone.state === 'off')
-          ? updatedZone.target_temperature
-          : (updatedZone.preset_mode && updatedZone.preset_mode !== 'none' && updatedZone.effective_target_temperature != null
-            ? updatedZone.effective_target_temperature
-            : updatedZone.target_temperature)
+        const displayTemp =
+          !updatedZone.enabled || updatedZone.state === 'off'
+            ? updatedZone.target_temperature
+            : updatedZone.preset_mode &&
+                updatedZone.preset_mode !== 'none' &&
+                updatedZone.effective_target_temperature != null
+              ? updatedZone.effective_target_temperature
+              : updatedZone.target_temperature
         setTemperature(displayTemp)
       }
     },
-    onZonesUpdate: (areas) => {
+    onZonesUpdate: areas => {
       const currentZone = areas.find(z => z.id === areaId)
       if (currentZone) {
         setArea(currentZone)
-        const displayTemp = (!currentZone.enabled || currentZone.state === 'off')
-          ? currentZone.target_temperature
-          : (currentZone.preset_mode && currentZone.preset_mode !== 'none' && currentZone.effective_target_temperature != null
-            ? currentZone.effective_target_temperature
-            : currentZone.target_temperature)
+        const displayTemp =
+          !currentZone.enabled || currentZone.state === 'off'
+            ? currentZone.target_temperature
+            : currentZone.preset_mode &&
+                currentZone.preset_mode !== 'none' &&
+                currentZone.effective_target_temperature != null
+              ? currentZone.effective_target_temperature
+              : currentZone.target_temperature
         setTemperature(displayTemp)
       }
     },
@@ -180,11 +200,14 @@ const ZoneDetail = () => {
       // Removed noisy debug log to reduce console spam in production
       setArea(currentZone)
       // If preset is active, show effective temperature, otherwise base target
-      const displayTemp = (!currentZone.enabled || currentZone.state === 'off')
-        ? currentZone.target_temperature
-        : (currentZone.preset_mode && currentZone.preset_mode !== 'none' && currentZone.effective_target_temperature != null
-          ? currentZone.effective_target_temperature
-          : currentZone.target_temperature)
+      const displayTemp =
+        !currentZone.enabled || currentZone.state === 'off'
+          ? currentZone.target_temperature
+          : currentZone.preset_mode &&
+              currentZone.preset_mode !== 'none' &&
+              currentZone.effective_target_temperature != null
+            ? currentZone.effective_target_temperature
+            : currentZone.target_temperature
       setTemperature(displayTemp)
 
       // Load global presets for preset configuration section
@@ -196,7 +219,10 @@ const ZoneDetail = () => {
       }
 
       // Set area heating curve coefficient state if present
-      if (currentZone.heating_curve_coefficient !== undefined && currentZone.heating_curve_coefficient !== null) {
+      if (
+        currentZone.heating_curve_coefficient !== undefined &&
+        currentZone.heating_curve_coefficient !== null
+      ) {
         setAreaHeatingCurveCoefficient(currentZone.heating_curve_coefficient)
         setUseGlobalHeatingCurve(false)
       } else {
@@ -273,8 +299,8 @@ const ZoneDetail = () => {
       // 2. Must NOT already be assigned to this zone
       const available = allDevices.filter(device => {
         // Check if already assigned
-        const alreadyAssigned = currentZone.devices.some(d =>
-          (d.entity_id || d.id) === (device.entity_id || device.id)
+        const alreadyAssigned = currentZone.devices.some(
+          d => (d.entity_id || d.id) === (device.entity_id || device.id)
         )
         if (alreadyAssigned) return false
 
@@ -341,7 +367,8 @@ const ZoneDetail = () => {
 
   // Load logs when tab is switched to Logs tab
   useEffect(() => {
-    if (tabValue === 6) { // Logs tab index
+    if (tabValue === 6) {
+      // Logs tab index
       loadLogs()
     }
   }, [tabValue, logFilter])
@@ -369,7 +396,10 @@ const ZoneDetail = () => {
     setTemperature(value as number)
   }
 
-  const handleTemperatureCommit = async (_event: Event | React.SyntheticEvent, value: number | number[]) => {
+  const handleTemperatureCommit = async (
+    _event: Event | React.SyntheticEvent,
+    value: number | number[]
+  ) => {
     if (!area) return
 
     try {
@@ -383,9 +413,10 @@ const ZoneDetail = () => {
   const getDeviceStatusIcon = (device: any) => {
     if (device.type === 'thermostat') {
       // Check if should be heating based on area target temperature (not device's stale target)
-      const shouldHeat = area?.target_temperature !== undefined &&
-                        device.current_temperature !== undefined &&
-                        area.target_temperature > device.current_temperature
+      const shouldHeat =
+        area?.target_temperature !== undefined &&
+        device.current_temperature !== undefined &&
+        area.target_temperature > device.current_temperature
 
       if (shouldHeat) {
         return <LocalFireDepartmentIcon fontSize="small" sx={{ color: 'error.main' }} />
@@ -395,11 +426,21 @@ const ZoneDetail = () => {
         return <AcUnitIcon fontSize="small" sx={{ color: 'info.main' }} />
       }
     } else if (device.type === 'valve') {
-      return <TuneIcon fontSize="small" sx={{ color: device.position > 0 ? 'warning.main' : 'text.secondary' }} />
+      return (
+        <TuneIcon
+          fontSize="small"
+          sx={{ color: device.position > 0 ? 'warning.main' : 'text.secondary' }}
+        />
+      )
     } else if (device.type === 'temperature_sensor') {
       return <SensorsIcon fontSize="small" sx={{ color: 'success.main' }} />
     } else {
-      return <PowerSettingsNewIcon fontSize="small" sx={{ color: device.state === 'on' ? 'success.main' : 'text.secondary' }} />
+      return (
+        <PowerSettingsNewIcon
+          fontSize="small"
+          sx={{ color: device.state === 'on' ? 'success.main' : 'text.secondary' }}
+        />
+      )
     }
   }
 
@@ -410,9 +451,13 @@ const ZoneDetail = () => {
         parts.push(`${device.current_temperature.toFixed(1)}°C`)
       }
       // Use area target temperature instead of device's stale target
-      if (area?.target_temperature !== undefined && area.target_temperature !== null &&
-          device.current_temperature !== undefined && device.current_temperature !== null &&
-          area.target_temperature > device.current_temperature) {
+      if (
+        area?.target_temperature !== undefined &&
+        area.target_temperature !== null &&
+        device.current_temperature !== undefined &&
+        device.current_temperature !== null &&
+        area.target_temperature > device.current_temperature
+      ) {
         parts.push(`→ ${area.target_temperature.toFixed(1)}°C`)
       }
       return parts.length > 0 ? parts.join(' · ') : device.state || 'unknown'
@@ -449,7 +494,11 @@ const ZoneDetail = () => {
   }
 
   // Helper function to get effective preset temperature (global or custom)
-  const getPresetTemp = (presetKey: string, customTemp: number | undefined, fallback: number): string => {
+  const getPresetTemp = (
+    presetKey: string,
+    customTemp: number | undefined,
+    fallback: number
+  ): string => {
     if (!area) return `${fallback}°C`
 
     const useGlobalKey = `use_global_${presetKey}` as keyof Zone
@@ -472,7 +521,10 @@ const ZoneDetail = () => {
         title: t('settingsCards.presetModesTitle'),
         description: t('settingsCards.presetModesDescription'),
         icon: <BookmarkIcon />,
-        badge: (!area.enabled || area.state === 'off' || area.preset_mode === 'none') ? undefined : t(`presets.${area.preset_mode}`),
+        badge:
+          !area.enabled || area.state === 'off' || area.preset_mode === 'none'
+            ? undefined
+            : t(`presets.${area.preset_mode}`),
         defaultExpanded: false,
         content: (
           <>
@@ -483,7 +535,7 @@ const ZoneDetail = () => {
                 disabled={!area.enabled || area.state === 'off'}
                 value={area.preset_mode || 'none'}
                 label={t('settingsCards.currentPreset')}
-                onChange={async (e) => {
+                onChange={async e => {
                   try {
                     await setPresetMode(area.id, e.target.value)
                     loadData()
@@ -493,23 +545,49 @@ const ZoneDetail = () => {
                 }}
               >
                 <MenuItem value="none">{t('settingsCards.presetNoneManual')}</MenuItem>
-                <MenuItem value="away">{t('settingsCards.presetAwayTemp', { temp: getPresetTemp('away', area.away_temp, 16) })}</MenuItem>
-                <MenuItem value="eco">{t('settingsCards.presetEcoTemp', { temp: getPresetTemp('eco', area.eco_temp, 18) })}</MenuItem>
-                <MenuItem value="comfort">{t('settingsCards.presetComfortTemp', { temp: getPresetTemp('comfort', area.comfort_temp, 22) })}</MenuItem>
-                <MenuItem value="home">{t('settingsCards.presetHomeTemp', { temp: getPresetTemp('home', area.home_temp, 21) })}</MenuItem>
-                <MenuItem value="sleep">{t('settingsCards.presetSleepTemp', { temp: getPresetTemp('sleep', area.sleep_temp, 19) })}</MenuItem>
-                <MenuItem value="activity">{t('settingsCards.presetActivityTemp', { temp: getPresetTemp('activity', area.activity_temp, 23) })}</MenuItem>
+                <MenuItem value="away">
+                  {t('settingsCards.presetAwayTemp', {
+                    temp: getPresetTemp('away', area.away_temp, 16),
+                  })}
+                </MenuItem>
+                <MenuItem value="eco">
+                  {t('settingsCards.presetEcoTemp', {
+                    temp: getPresetTemp('eco', area.eco_temp, 18),
+                  })}
+                </MenuItem>
+                <MenuItem value="comfort">
+                  {t('settingsCards.presetComfortTemp', {
+                    temp: getPresetTemp('comfort', area.comfort_temp, 22),
+                  })}
+                </MenuItem>
+                <MenuItem value="home">
+                  {t('settingsCards.presetHomeTemp', {
+                    temp: getPresetTemp('home', area.home_temp, 21),
+                  })}
+                </MenuItem>
+                <MenuItem value="sleep">
+                  {t('settingsCards.presetSleepTemp', {
+                    temp: getPresetTemp('sleep', area.sleep_temp, 19),
+                  })}
+                </MenuItem>
+                <MenuItem value="activity">
+                  {t('settingsCards.presetActivityTemp', {
+                    temp: getPresetTemp('activity', area.activity_temp, 23),
+                  })}
+                </MenuItem>
                 <MenuItem value="boost">{t('settingsCards.presetBoost')}</MenuItem>
-                </Select>
+              </Select>
             </FormControl>
 
             {area.enabled && area.state !== 'off' && (
               <Alert severity="info">
-                {t('settingsCards.currentPresetInfo', { preset: t(`presets.${area.preset_mode || 'none'}`) })}
+                {t('settingsCards.currentPresetInfo', {
+                  preset: t(`presets.${area.preset_mode || 'none'}`),
+                })}
               </Alert>
             )}
           </>
-        )
+        ),
       },
       {
         id: 'preset-config',
@@ -519,90 +597,120 @@ const ZoneDetail = () => {
         defaultExpanded: false,
         content: (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {globalPresets && [
-              { key: 'away', label: 'Away', global: globalPresets.away_temp, custom: area.away_temp },
-              { key: 'eco', label: 'Eco', global: globalPresets.eco_temp, custom: area.eco_temp },
-              { key: 'comfort', label: 'Comfort', global: globalPresets.comfort_temp, custom: area.comfort_temp },
-              { key: 'home', label: 'Home', global: globalPresets.home_temp, custom: area.home_temp },
-              { key: 'sleep', label: 'Sleep', global: globalPresets.sleep_temp, custom: area.sleep_temp },
-              { key: 'activity', label: 'Activity', global: globalPresets.activity_temp, custom: area.activity_temp },
-            ].map(preset => {
-              const useGlobalKey = `use_global_${preset.key}` as keyof Zone
-              const useGlobal = (area[useGlobalKey] as boolean | undefined) ?? true
-              const effectiveTemp = useGlobal ? preset.global : preset.custom
+            {globalPresets &&
+              [
+                {
+                  key: 'away',
+                  label: 'Away',
+                  global: globalPresets.away_temp,
+                  custom: area.away_temp,
+                },
+                { key: 'eco', label: 'Eco', global: globalPresets.eco_temp, custom: area.eco_temp },
+                {
+                  key: 'comfort',
+                  label: 'Comfort',
+                  global: globalPresets.comfort_temp,
+                  custom: area.comfort_temp,
+                },
+                {
+                  key: 'home',
+                  label: 'Home',
+                  global: globalPresets.home_temp,
+                  custom: area.home_temp,
+                },
+                {
+                  key: 'sleep',
+                  label: 'Sleep',
+                  global: globalPresets.sleep_temp,
+                  custom: area.sleep_temp,
+                },
+                {
+                  key: 'activity',
+                  label: 'Activity',
+                  global: globalPresets.activity_temp,
+                  custom: area.activity_temp,
+                },
+              ].map(preset => {
+                const useGlobalKey = `use_global_${preset.key}` as keyof Zone
+                const useGlobal = (area[useGlobalKey] as boolean | undefined) ?? true
+                const effectiveTemp = useGlobal ? preset.global : preset.custom
 
-              return (
-                <Box key={preset.key}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={useGlobal}
-                        onChange={async (e) => {
-                          e.stopPropagation()
-                          const newValue = e.target.checked
-                          try {
-                            await setAreaPresetConfig(area.id, { [useGlobalKey]: newValue })
-                            await loadData()
-                          } catch (error) {
-                            console.error('Failed to update preset config:', error)
-                            alert(`Failed to update preset: ${error}`)
-                          }
-                        }}
-                      />
-                    }
-                    label={
-                      <Box>
-                        <Typography variant="body1">
-                          {useGlobal ? t('settingsCards.presetUseGlobal', { preset: preset.label }) : t('settingsCards.presetUseCustom', { preset: preset.label })}
+                return (
+                  <Box key={preset.key}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={useGlobal}
+                          onChange={async e => {
+                            e.stopPropagation()
+                            const newValue = e.target.checked
+                            try {
+                              await setAreaPresetConfig(area.id, { [useGlobalKey]: newValue })
+                              await loadData()
+                            } catch (error) {
+                              console.error('Failed to update preset config:', error)
+                              alert(`Failed to update preset: ${error}`)
+                            }
+                          }}
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="body1">
+                            {useGlobal
+                              ? t('settingsCards.presetUseGlobal', { preset: preset.label })
+                              : t('settingsCards.presetUseCustom', { preset: preset.label })}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {useGlobal
+                              ? t('settingsCards.usingGlobalSetting', { temp: preset.global })
+                              : t('settingsCards.usingCustomSetting', {
+                                  temp: preset.custom ?? 'not set',
+                                })}
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                    {!useGlobal && (
+                      <Box sx={{ mt: 2, pl: 2 }}>
+                        <Typography variant="body2" gutterBottom>
+                          {t('settingsCards.customTemperature')}:{' '}
+                          {preset.custom?.toFixed(1) ?? effectiveTemp?.toFixed(1)}°C
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {useGlobal
-                            ? t('settingsCards.usingGlobalSetting', { temp: preset.global })
-                            : t('settingsCards.usingCustomSetting', { temp: preset.custom ?? 'not set' })
-                          }
-                        </Typography>
+                        <Slider
+                          value={preset.custom ?? effectiveTemp ?? 20}
+                          min={10}
+                          max={30}
+                          step={0.5}
+                          marks={[
+                            { value: 15, label: '15°C' },
+                            { value: 20, label: '20°C' },
+                            { value: 25, label: '25°C' },
+                          ]}
+                          valueLabelDisplay="auto"
+                          onChange={async (_, newValue) => {
+                            const tempValue = newValue as number
+                            const tempKey = `${preset.key}_temp` as keyof Zone
+                            try {
+                              await setAreaPresetConfig(area.id, { [tempKey]: tempValue })
+                              await loadData()
+                            } catch (error) {
+                              console.error('Failed to update custom temperature:', error)
+                              alert(`Failed to update temperature: ${error}`)
+                            }
+                          }}
+                        />
                       </Box>
-                    }
-                  />
-                  {!useGlobal && (
-                    <Box sx={{ mt: 2, pl: 2 }}>
-                      <Typography variant="body2" gutterBottom>
-                        {t('settingsCards.customTemperature')}: {preset.custom?.toFixed(1) ?? effectiveTemp?.toFixed(1)}°C
-                      </Typography>
-                      <Slider
-                        value={preset.custom ?? effectiveTemp ?? 20}
-                        min={10}
-                        max={30}
-                        step={0.5}
-                        marks={[
-                          { value: 15, label: '15°C' },
-                          { value: 20, label: '20°C' },
-                          { value: 25, label: '25°C' },
-                        ]}
-                        valueLabelDisplay="auto"
-                        onChange={async (_, newValue) => {
-                          const tempValue = newValue as number
-                          const tempKey = `${preset.key}_temp` as keyof Zone
-                          try {
-                            await setAreaPresetConfig(area.id, { [tempKey]: tempValue })
-                            await loadData()
-                          } catch (error) {
-                            console.error('Failed to update custom temperature:', error)
-                            alert(`Failed to update temperature: ${error}`)
-                          }
-                        }}
-                      />
-                    </Box>
-                  )}
-                </Box>
-              )
-            })}
+                    )}
+                  </Box>
+                )
+              })}
 
             <Alert severity="info" sx={{ mt: 2 }}>
               {t('settingsCards.presetConfigInfo')}
             </Alert>
           </Box>
-        )
+        ),
       },
       {
         id: 'boost-mode',
@@ -614,7 +722,8 @@ const ZoneDetail = () => {
         content: area.boost_mode_active ? (
           <Box data-testid="boost-mode-active">
             <Alert severity="warning" sx={{ mb: 2 }}>
-              Boost mode is <strong>ACTIVE</strong>! Temperature: {area.boost_temp}°C, Duration: {area.boost_duration} minutes
+              Boost mode is <strong>ACTIVE</strong>! Temperature: {area.boost_temp}°C, Duration:{' '}
+              {area.boost_duration} minutes
             </Alert>
             <Button
               variant="outlined"
@@ -657,7 +766,9 @@ const ZoneDetail = () => {
               onClick={async () => {
                 try {
                   const tempInput = document.getElementById('boost-temp-input') as HTMLInputElement
-                  const durationInput = document.getElementById('boost-duration-input') as HTMLInputElement
+                  const durationInput = document.getElementById(
+                    'boost-duration-input'
+                  ) as HTMLInputElement
                   const temp = Number.parseFloat(tempInput.value)
                   const duration = Number.parseInt(durationInput.value)
                   await setBoostMode(area.id, duration, temp)
@@ -670,7 +781,7 @@ const ZoneDetail = () => {
               Activate Boost
             </Button>
           </Box>
-        )
+        ),
       },
       {
         id: 'hvac-mode',
@@ -686,7 +797,7 @@ const ZoneDetail = () => {
               data-testid="hvac-mode-select"
               value={area.hvac_mode || 'heat'}
               label="HVAC Mode"
-              onChange={async (e) => {
+              onChange={async e => {
                 try {
                   await setHvacMode(area.id, e.target.value)
                   loadData()
@@ -701,14 +812,22 @@ const ZoneDetail = () => {
               <MenuItem value="off">Off</MenuItem>
             </Select>
           </FormControl>
-        )
+        ),
       },
       {
         id: 'heating-type',
         title: t('settingsCards.heatingTypeTitle', 'Heating Type'),
-        description: t('settingsCards.heatingTypeDescription', 'Select radiator or floor heating to optimize temperature control'),
+        description: t(
+          'settingsCards.heatingTypeDescription',
+          'Select radiator or floor heating to optimize temperature control'
+        ),
         icon: <LocalFireDepartmentIcon />,
-        badge: area.heating_type === 'floor_heating' ? t('settingsCards.floorHeating', 'Floor Heating') : (area.heating_type === 'airco' ? t('settingsCards.airConditioner', 'Air Conditioner') : t('settingsCards.radiator', 'Radiator')),
+        badge:
+          area.heating_type === 'floor_heating'
+            ? t('settingsCards.floorHeating', 'Floor Heating')
+            : area.heating_type === 'airco'
+              ? t('settingsCards.airConditioner', 'Air Conditioner')
+              : t('settingsCards.radiator', 'Radiator'),
         defaultExpanded: false,
         content: (
           <Box>
@@ -716,9 +835,12 @@ const ZoneDetail = () => {
               data-testid="heating-type-control"
               aria-label={t('settingsCards.heatingTypeTitle', 'Heating Type')}
               value={area.heating_type || 'radiator'}
-              onChange={async (e) => {
+              onChange={async e => {
                 try {
-                  await setHeatingType(area.id, e.target.value as 'radiator' | 'floor_heating' | 'airco')
+                  await setHeatingType(
+                    area.id,
+                    e.target.value as 'radiator' | 'floor_heating' | 'airco'
+                  )
                   loadData()
                 } catch (error) {
                   console.error('Failed to update heating type:', error)
@@ -730,9 +852,14 @@ const ZoneDetail = () => {
                 control={<Radio />}
                 label={
                   <Box>
-                    <Typography variant="body1">{t('settingsCards.radiator', 'Radiator')}</Typography>
+                    <Typography variant="body1">
+                      {t('settingsCards.radiator', 'Radiator')}
+                    </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {t('settingsCards.radiatorDescription', 'Fast response, higher overhead temperature (default: +20°C)')}
+                      {t(
+                        'settingsCards.radiatorDescription',
+                        'Fast response, higher overhead temperature (default: +20°C)'
+                      )}
                     </Typography>
                   </Box>
                 }
@@ -742,9 +869,14 @@ const ZoneDetail = () => {
                 control={<Radio />}
                 label={
                   <Box>
-                    <Typography variant="body1">{t('settingsCards.floorHeating', 'Floor Heating')}</Typography>
+                    <Typography variant="body1">
+                      {t('settingsCards.floorHeating', 'Floor Heating')}
+                    </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {t('settingsCards.floorHeatingDescription', 'Slow response, lower overhead temperature (default: +5°C)')}
+                      {t(
+                        'settingsCards.floorHeatingDescription',
+                        'Slow response, lower overhead temperature (default: +5°C)'
+                      )}
                     </Typography>
                   </Box>
                 }
@@ -754,9 +886,14 @@ const ZoneDetail = () => {
                 control={<Radio />}
                 label={
                   <Box>
-                    <Typography variant="body1">{t('settingsCards.airConditioner', 'Air Conditioner')}</Typography>
+                    <Typography variant="body1">
+                      {t('settingsCards.airConditioner', 'Air Conditioner')}
+                    </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {t('settingsCards.aircoDescription', 'Use air conditioner (cooling/heating). Radiator/floor-specific settings are disabled.')}
+                      {t(
+                        'settingsCards.aircoDescription',
+                        'Use air conditioner (cooling/heating). Radiator/floor-specific settings are disabled.'
+                      )}
                     </Typography>
                   </Box>
                 }
@@ -764,44 +901,79 @@ const ZoneDetail = () => {
             </RadioGroup>
 
             <Alert severity="info" sx={{ mt: 2 }}>
-              {t('settingsCards.heatingTypeInfo', 'Heating type affects the boiler setpoint temperature. Radiators use higher temperature for faster heating, floor heating uses lower temperature for gradual heating.')}
+              {t(
+                'settingsCards.heatingTypeInfo',
+                'Heating type affects the boiler setpoint temperature. Radiators use higher temperature for faster heating, floor heating uses lower temperature for gradual heating.'
+              )}
             </Alert>
 
             {/* Per-area heating curve coefficient */}
             <Box sx={{ mt: 2 }} data-testid="heating-curve-control">
-              <Typography variant="subtitle1">{t('settingsCards.heatingCurveTitle', 'Heating Curve Coefficient')}</Typography>
+              <Typography variant="subtitle1">
+                {t('settingsCards.heatingCurveTitle', 'Heating Curve Coefficient')}
+              </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('settingsCards.heatingCurveDescription', 'Optional per-area coefficient used in heating curve calculations. Leave blank to use the global coefficient.')}
+                {t(
+                  'settingsCards.heatingCurveDescription',
+                  'Optional per-area coefficient used in heating curve calculations. Leave blank to use the global coefficient.'
+                )}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <FormControlLabel
-                  control={<Switch data-testid="heating-curve-override-switch" checked={!useGlobalHeatingCurve} onChange={(e) => setUseGlobalHeatingCurve(!e.target.checked)} />}
+                  control={
+                    <Switch
+                      data-testid="heating-curve-override-switch"
+                      checked={!useGlobalHeatingCurve}
+                      onChange={e => setUseGlobalHeatingCurve(!e.target.checked)}
+                    />
+                  }
                   label={t('settingsCards.heatingCurveUseArea', 'Use area-specific coefficient')}
                 />
                 <TextField
                   label="Coefficient"
                   type="number"
                   value={areaHeatingCurveCoefficient ?? ''}
-                  onChange={(e) => setAreaHeatingCurveCoefficient(e.target.value ? Number(e.target.value) : null)}
+                  onChange={e =>
+                    setAreaHeatingCurveCoefficient(e.target.value ? Number(e.target.value) : null)
+                  }
                   disabled={useGlobalHeatingCurve || area.heating_type === 'airco'}
                   slotProps={{ htmlInput: { step: 0.1, min: 0.1, max: 10 } }}
                   inputProps={{ 'data-testid': 'heating-curve-control' }}
-                  helperText={area.heating_type === 'airco' ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner') : (useGlobalHeatingCurve ? t('settingsCards.heatingCurveHelper.usingGlobal', 'Using global coefficient') : t('settingsCards.heatingCurveHelper.overrideActive', 'Per-area override active'))}
-                />
-                <Button variant="contained" onClick={async () => {
-                  try {
-                    await setAreaHeatingCurve(area.id, useGlobalHeatingCurve, areaHeatingCurveCoefficient ?? undefined)
-                    await loadData()
-                  } catch (err) {
-                    console.error('Failed to save heating curve coefficient', err)
+                  helperText={
+                    area.heating_type === 'airco'
+                      ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')
+                      : useGlobalHeatingCurve
+                        ? t(
+                            'settingsCards.heatingCurveHelper.usingGlobal',
+                            'Using global coefficient'
+                          )
+                        : t(
+                            'settingsCards.heatingCurveHelper.overrideActive',
+                            'Per-area override active'
+                          )
                   }
-                }}>
+                />
+                <Button
+                  variant="contained"
+                  onClick={async () => {
+                    try {
+                      await setAreaHeatingCurve(
+                        area.id,
+                        useGlobalHeatingCurve,
+                        areaHeatingCurveCoefficient ?? undefined
+                      )
+                      await loadData()
+                    } catch (err) {
+                      console.error('Failed to save heating curve coefficient', err)
+                    }
+                  }}
+                >
                   {t('common.save', 'Save')}
                 </Button>
               </Box>
             </Box>
           </Box>
-        )
+        ),
       },
       {
         id: 'switch-control',
@@ -818,7 +990,7 @@ const ZoneDetail = () => {
                   data-testid="shutdown-switches-input"
                   checked={area.shutdown_switches_when_idle ?? true}
                   disabled={area.heating_type === 'airco'}
-                  onChange={async (e) => {
+                  onChange={async e => {
                     try {
                       await setSwitchShutdown(area.id, e.target.checked)
                       loadData()
@@ -830,11 +1002,18 @@ const ZoneDetail = () => {
               }
               label={t('settingsCards.shutdownSwitchesPumps')}
             />
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1, ml: 4 }}>
-              {area.heating_type === 'airco' ? t('settingsCards.disabledForAirco') : t('settingsCards.shutdownSwitchesDescription')}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              display="block"
+              sx={{ mt: 1, ml: 4 }}
+            >
+              {area.heating_type === 'airco'
+                ? t('settingsCards.disabledForAirco')
+                : t('settingsCards.shutdownSwitchesDescription')}
             </Typography>
           </Box>
-        )
+        ),
       },
       {
         id: 'window-sensors',
@@ -847,10 +1026,11 @@ const ZoneDetail = () => {
           <>
             {area.window_sensors && area.window_sensors.length > 0 ? (
               <List dense>
-                {area.window_sensors.map((sensor) => {
-                  const sensorConfig = typeof sensor === 'string'
-                    ? { entity_id: sensor, action_when_open: 'reduce_temperature', temp_drop: 5 }
-                    : sensor
+                {area.window_sensors.map(sensor => {
+                  const sensorConfig =
+                    typeof sensor === 'string'
+                      ? { entity_id: sensor, action_when_open: 'reduce_temperature', temp_drop: 5 }
+                      : sensor
 
                   let secondaryText = ''
                   if (sensorConfig.action_when_open === 'turn_off') {
@@ -881,10 +1061,7 @@ const ZoneDetail = () => {
                         </IconButton>
                       }
                     >
-                      <ListItemText
-                        primary={sensorConfig.entity_id}
-                        secondary={secondaryText}
-                      />
+                      <ListItemText primary={sensorConfig.entity_id} secondary={secondaryText} />
                     </ListItem>
                   )
                 })}
@@ -906,7 +1083,7 @@ const ZoneDetail = () => {
               Add Window Sensor
             </Button>
           </>
-        )
+        ),
       },
       {
         id: 'presence-config',
@@ -920,7 +1097,7 @@ const ZoneDetail = () => {
               control={
                 <Switch
                   checked={area.use_global_presence ?? false}
-                  onChange={async (e) => {
+                  onChange={async e => {
                     e.stopPropagation()
                     const newValue = e.target.checked
                     console.log('Setting use_global_presence to:', newValue)
@@ -938,23 +1115,22 @@ const ZoneDetail = () => {
               label={
                 <Box>
                   <Typography variant="body1">
-                    {area.use_global_presence ? t('settingsCards.useGlobalPresence') : t('settingsCards.useAreaSpecificSensors')}
+                    {area.use_global_presence
+                      ? t('settingsCards.useGlobalPresence')
+                      : t('settingsCards.useAreaSpecificSensors')}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {area.use_global_presence
                       ? t('settingsCards.useGlobalPresenceDescription')
-                      : t('settingsCards.useAreaSpecificDescription')
-                    }
+                      : t('settingsCards.useAreaSpecificDescription')}
                   </Typography>
                 </Box>
               }
             />
 
-            <Alert severity="info">
-              {t('settingsCards.presenceToggleInfo')}
-            </Alert>
+            <Alert severity="info">{t('settingsCards.presenceToggleInfo')}</Alert>
           </Box>
-        )
+        ),
       },
       {
         id: 'presence-sensors',
@@ -967,7 +1143,7 @@ const ZoneDetail = () => {
           <>
             {area.presence_sensors && area.presence_sensors.length > 0 ? (
               <List dense>
-                {area.presence_sensors.map((sensor) => {
+                {area.presence_sensors.map(sensor => {
                   const entity_id = typeof sensor === 'string' ? sensor : sensor.entity_id
 
                   const entityState = entityStates[entity_id]
@@ -1002,7 +1178,9 @@ const ZoneDetail = () => {
                             <Typography>{friendlyName}</Typography>
                             {isActive && (
                               <Chip
-                                label={isAway ? t('settingsCards.awayChip') : t('settingsCards.homeChip')}
+                                label={
+                                  isAway ? t('settingsCards.awayChip') : t('settingsCards.homeChip')
+                                }
                                 size="small"
                                 color={isAway ? 'warning' : 'success'}
                                 sx={{ height: '20px', fontSize: '0.7rem' }}
@@ -1037,7 +1215,7 @@ const ZoneDetail = () => {
               {t('settingsCards.addPresenceSensor')}
             </Button>
           </>
-        )
+        ),
       },
       {
         id: 'auto-preset',
@@ -1048,7 +1226,9 @@ const ZoneDetail = () => {
         defaultExpanded: false,
         content: (
           <>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box
+              sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}
+            >
               <Box>
                 <Typography variant="body1" color="text.primary">
                   {t('settingsCards.enableAutoPreset')}
@@ -1060,14 +1240,14 @@ const ZoneDetail = () => {
               <Switch
                 data-testid="auto-preset-toggle"
                 checked={area.auto_preset_enabled ?? false}
-                onChange={async (e) => {
+                onChange={async e => {
                   try {
                     await fetch(`/api/smart_heating/areas/${area.id}/auto_preset`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
-                        auto_preset_enabled: e.target.checked
-                      })
+                        auto_preset_enabled: e.target.checked,
+                      }),
                     })
                     loadData()
                   } catch (error) {
@@ -1089,14 +1269,14 @@ const ZoneDetail = () => {
                     <Select
                       value={area.auto_preset_home || 'home'}
                       label={t('settingsCards.presetWhenHome')}
-                      onChange={async (e) => {
+                      onChange={async e => {
                         try {
                           await fetch(`/api/smart_heating/areas/${area.id}/auto_preset`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                              auto_preset_home: e.target.value
-                            })
+                              auto_preset_home: e.target.value,
+                            }),
                           })
                           loadData()
                         } catch (error) {
@@ -1115,14 +1295,14 @@ const ZoneDetail = () => {
                     <Select
                       value={area.auto_preset_away || 'away'}
                       label={t('settingsCards.presetWhenAway')}
-                      onChange={async (e) => {
+                      onChange={async e => {
                         try {
                           await fetch(`/api/smart_heating/areas/${area.id}/auto_preset`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                              auto_preset_away: e.target.value
-                            })
+                              auto_preset_away: e.target.value,
+                            }),
                           })
                           loadData()
                         } catch (error) {
@@ -1139,18 +1319,17 @@ const ZoneDetail = () => {
             )}
 
             {!area.auto_preset_enabled && (
-              <Alert severity="warning">
-                {t('settingsCards.autoPresetDisabled')}
-              </Alert>
+              <Alert severity="warning">{t('settingsCards.autoPresetDisabled')}</Alert>
             )}
 
-            {(!area.presence_sensors || area.presence_sensors.length === 0) && !area.use_global_presence && (
-              <Alert severity="warning" sx={{ mt: 2 }}>
-                {t('settingsCards.autoPresetNeedsSensors')}
-              </Alert>
-            )}
+            {(!area.presence_sensors || area.presence_sensors.length === 0) &&
+              !area.use_global_presence && (
+                <Alert severity="warning" sx={{ mt: 2 }}>
+                  {t('settingsCards.autoPresetNeedsSensors')}
+                </Alert>
+              )}
           </>
-        )
+        ),
       },
       {
         id: 'night-boost',
@@ -1161,7 +1340,9 @@ const ZoneDetail = () => {
         defaultExpanded: false,
         content: (
           <>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box
+              sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}
+            >
               <Box>
                 <Typography variant="body1" color="text.primary">
                   {t('settingsCards.enableNightBoost')}
@@ -1172,7 +1353,7 @@ const ZoneDetail = () => {
               </Box>
               <Switch
                 checked={area.night_boost_enabled ?? true}
-                onChange={async (e) => {
+                onChange={async e => {
                   try {
                     await fetch('/api/smart_heating/call_service', {
                       method: 'POST',
@@ -1180,8 +1361,8 @@ const ZoneDetail = () => {
                       body: JSON.stringify({
                         service: 'set_night_boost',
                         area_id: area.id,
-                        night_boost_enabled: e.target.checked
-                      })
+                        night_boost_enabled: e.target.checked,
+                      }),
                     })
                     loadData()
                   } catch (error) {
@@ -1199,7 +1380,7 @@ const ZoneDetail = () => {
                 label={t('settingsCards.startTime')}
                 type="time"
                 value={area.night_boost_start_time ?? '22:00'}
-                onChange={async (e) => {
+                onChange={async e => {
                   try {
                     await fetch('/api/smart_heating/call_service', {
                       method: 'POST',
@@ -1207,8 +1388,8 @@ const ZoneDetail = () => {
                       body: JSON.stringify({
                         service: 'set_night_boost',
                         area_id: area.id,
-                        night_boost_start_time: e.target.value
-                      })
+                        night_boost_start_time: e.target.value,
+                      }),
                     })
                     loadData()
                   } catch (error) {
@@ -1223,7 +1404,7 @@ const ZoneDetail = () => {
                 label={t('settingsCards.endTime')}
                 type="time"
                 value={area.night_boost_end_time ?? '06:00'}
-                onChange={async (e) => {
+                onChange={async e => {
                   try {
                     await fetch('/api/smart_heating/call_service', {
                       method: 'POST',
@@ -1231,8 +1412,8 @@ const ZoneDetail = () => {
                       body: JSON.stringify({
                         service: 'set_night_boost',
                         area_id: area.id,
-                        night_boost_end_time: e.target.value
-                      })
+                        night_boost_end_time: e.target.value,
+                      }),
                     })
                     loadData()
                   } catch (error) {
@@ -1259,8 +1440,8 @@ const ZoneDetail = () => {
                       body: JSON.stringify({
                         service: 'set_night_boost',
                         area_id: area.id,
-                        night_boost_offset: value
-                      })
+                        night_boost_offset: value,
+                      }),
                     })
                     loadData()
                   } catch (error) {
@@ -1273,10 +1454,10 @@ const ZoneDetail = () => {
                 marks={[
                   { value: 0, label: '0°C' },
                   { value: 1.5, label: '1.5°C' },
-                  { value: 3, label: '3°C' }
+                  { value: 3, label: '3°C' },
                 ]}
                 valueLabelDisplay="auto"
-                valueLabelFormat={(value) => `+${value}°C`}
+                valueLabelFormat={value => `+${value}°C`}
                 disabled={!area.night_boost_enabled}
                 sx={{ flexGrow: 1 }}
               />
@@ -1285,7 +1466,7 @@ const ZoneDetail = () => {
               </Typography>
             </Box>
           </>
-        )
+        ),
       },
       {
         id: 'smart-night-boost',
@@ -1300,7 +1481,9 @@ const ZoneDetail = () => {
               {t('settingsCards.smartNightBoostIntro')}
             </Typography>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box
+              sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}
+            >
               <Box>
                 <Typography variant="body1" color="text.primary">
                   {t('settingsCards.enableSmartNightBoost')}
@@ -1311,7 +1494,7 @@ const ZoneDetail = () => {
               </Box>
               <Switch
                 checked={area.smart_night_boost_enabled ?? false}
-                onChange={async (e) => {
+                onChange={async e => {
                   try {
                     await fetch('/api/smart_heating/call_service', {
                       method: 'POST',
@@ -1319,8 +1502,8 @@ const ZoneDetail = () => {
                       body: JSON.stringify({
                         service: 'set_night_boost',
                         area_id: area.id,
-                        smart_night_boost_enabled: e.target.checked
-                      })
+                        smart_night_boost_enabled: e.target.checked,
+                      }),
                     })
                     loadData()
                   } catch (error) {
@@ -1334,7 +1517,7 @@ const ZoneDetail = () => {
               label={t('settingsCards.targetWakeupTime')}
               type="time"
               value={area.smart_night_boost_target_time ?? '06:00'}
-              onChange={async (e) => {
+              onChange={async e => {
                 try {
                   await fetch('/api/smart_heating/call_service', {
                     method: 'POST',
@@ -1342,8 +1525,8 @@ const ZoneDetail = () => {
                     body: JSON.stringify({
                       service: 'set_night_boost',
                       area_id: area.id,
-                      smart_night_boost_target_time: e.target.value
-                    })
+                      smart_night_boost_target_time: e.target.value,
+                    }),
                   })
                   loadData()
                 } catch (error) {
@@ -1361,22 +1544,25 @@ const ZoneDetail = () => {
               <InputLabel>{t('settingsCards.outdoorTemperatureSensor')}</InputLabel>
               <Select
                 value={area.weather_entity_id || ''}
-                onChange={async (e) => {
-                  const newValue = e.target.value || null  // Convert empty string to null
+                onChange={async e => {
+                  const newValue = e.target.value || null // Convert empty string to null
                   console.log('Weather sensor onChange - Selected value:', newValue)
-                  console.log('Weather sensor onChange - Current area.weather_entity_id:', area.weather_entity_id)
+                  console.log(
+                    'Weather sensor onChange - Current area.weather_entity_id:',
+                    area.weather_entity_id
+                  )
                   try {
                     const serviceCallBody = {
                       service: 'set_night_boost',
                       area_id: area.id,
-                      weather_entity_id: newValue
+                      weather_entity_id: newValue,
                     }
                     console.log('Weather sensor onChange - Service call body:', serviceCallBody)
 
                     const response = await fetch('/api/smart_heating/call_service', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(serviceCallBody)
+                      body: JSON.stringify(serviceCallBody),
                     })
                     const result = await response.json()
                     console.log('Weather sensor onChange - Service call response:', result)
@@ -1406,7 +1592,7 @@ const ZoneDetail = () => {
                     Loading...
                   </MenuItem>
                 ) : (
-                  weatherEntities.map((entity) => (
+                  weatherEntities.map(entity => (
                     <MenuItem key={entity.entity_id} value={entity.entity_id}>
                       {entity.attributes?.friendly_name || entity.entity_id}
                     </MenuItem>
@@ -1424,15 +1610,15 @@ const ZoneDetail = () => {
                   <strong>{t('settingsCards.smartNightBoostHowItWorksTitle')}</strong>
                 </Typography>
                 <Typography variant="caption" color="text.secondary" component="div">
-                  • {t('settingsCards.smartNightBoostBullet1')}<br/>
-                  • {t('settingsCards.smartNightBoostBullet2')}<br/>
-                  • {t('settingsCards.smartNightBoostBullet3')}<br/>
-                  • {t('settingsCards.smartNightBoostBullet4')}
+                  • {t('settingsCards.smartNightBoostBullet1')}
+                  <br />• {t('settingsCards.smartNightBoostBullet2')}
+                  <br />• {t('settingsCards.smartNightBoostBullet3')}
+                  <br />• {t('settingsCards.smartNightBoostBullet4')}
                 </Typography>
               </Box>
             )}
           </>
-        )
+        ),
       },
       {
         id: 'heating-control',
@@ -1452,26 +1638,31 @@ const ZoneDetail = () => {
             <FormControlLabel
               control={
                 <Switch
-                  checked={area.hysteresis_override === null || area.hysteresis_override === undefined}
-                  onChange={async (e) => {
+                  checked={
+                    area.hysteresis_override === null || area.hysteresis_override === undefined
+                  }
+                  onChange={async e => {
                     const useGlobal = e.target.checked
 
                     // Optimistic update
                     const updatedArea = {
                       ...area,
-                      hysteresis_override: useGlobal ? null : 0.5
+                      hysteresis_override: useGlobal ? null : 0.5,
                     }
                     setArea(updatedArea)
 
                     try {
-                      const response = await fetch(`/api/smart_heating/areas/${area.id}/hysteresis`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          use_global: useGlobal,
-                          hysteresis: useGlobal ? null : 0.5
-                        })
-                      })
+                      const response = await fetch(
+                        `/api/smart_heating/areas/${area.id}/hysteresis`,
+                        {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            use_global: useGlobal,
+                            hysteresis: useGlobal ? null : 0.5,
+                          }),
+                        }
+                      )
                       if (!response.ok) {
                         const errorText = await response.text()
                         console.error('Failed to update hysteresis setting:', errorText)
@@ -1490,7 +1681,7 @@ const ZoneDetail = () => {
               sx={{ mb: 2 }}
             />
 
-            {(area.hysteresis_override === null || area.hysteresis_override === undefined) ? (
+            {area.hysteresis_override === null || area.hysteresis_override === undefined ? (
               <Alert severity="info" sx={{ mb: 2 }}>
                 {t('settingsCards.usingGlobalHysteresis')}
               </Alert>
@@ -1506,19 +1697,22 @@ const ZoneDetail = () => {
                       // Optimistic update
                       const updatedArea = {
                         ...area,
-                        hysteresis_override: typeof value === 'number' ? value : 0.5
+                        hysteresis_override: typeof value === 'number' ? value : 0.5,
                       }
                       setArea(updatedArea)
 
                       try {
-                        const response = await fetch(`/api/smart_heating/areas/${area.id}/hysteresis`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            use_global: false,
-                            hysteresis: value
-                          })
-                        })
+                        const response = await fetch(
+                          `/api/smart_heating/areas/${area.id}/hysteresis`,
+                          {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              use_global: false,
+                              hysteresis: value,
+                            }),
+                          }
+                        )
                         if (!response.ok) {
                           const errorText = await response.text()
                           console.error('Failed to update hysteresis:', errorText)
@@ -1537,10 +1731,10 @@ const ZoneDetail = () => {
                     marks={[
                       { value: 0.1, label: '0.1°C' },
                       { value: 1, label: '1.0°C' },
-                      { value: 2, label: '2.0°C' }
+                      { value: 2, label: '2.0°C' },
                     ]}
                     valueLabelDisplay="on"
-                    valueLabelFormat={(value) => `${value}°C`}
+                    valueLabelFormat={value => `${value}°C`}
                     sx={{ flexGrow: 1 }}
                   />
                 </Box>
@@ -1572,7 +1766,7 @@ const ZoneDetail = () => {
               </Box>
             </Box>
           </>
-        )
+        ),
       },
       {
         id: 'history-management',
@@ -1593,7 +1787,9 @@ const ZoneDetail = () => {
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Chip
-                  label={storageBackend === 'database' ? 'Database (MariaDB/PostgreSQL)' : 'JSON (File)'}
+                  label={
+                    storageBackend === 'database' ? 'Database (MariaDB/PostgreSQL)' : 'JSON (File)'
+                  }
                   color={storageBackend === 'database' ? 'primary' : 'default'}
                   size="small"
                 />
@@ -1612,12 +1808,19 @@ const ZoneDetail = () => {
                     size="small"
                     disabled={migrating}
                     onClick={async () => {
-                      if (!confirm('Migrate history data to database? This requires MariaDB, MySQL, or PostgreSQL. SQLite is not supported.')) return
+                      if (
+                        !confirm(
+                          'Migrate history data to database? This requires MariaDB, MySQL, or PostgreSQL. SQLite is not supported.'
+                        )
+                      )
+                        return
                       setMigrating(true)
                       try {
                         const result = await migrateHistoryStorage('database')
                         if (result.success) {
-                          alert(`Successfully migrated ${result.migrated_entries} entries to database!`)
+                          alert(
+                            `Successfully migrated ${result.migrated_entries} entries to database!`
+                          )
                           await loadHistoryConfig()
                         } else {
                           alert(`Migration failed: ${result.message}`)
@@ -1662,8 +1865,9 @@ const ZoneDetail = () => {
 
               <Alert severity="info" sx={{ mt: 2 }} icon={false}>
                 <Typography variant="caption">
-                  <strong>Database storage</strong> requires MariaDB ≥10.3, MySQL ≥8.0, or PostgreSQL ≥12.
-                  SQLite is not supported and will automatically fall back to JSON storage.
+                  <strong>Database storage</strong> requires MariaDB ≥10.3, MySQL ≥8.0, or
+                  PostgreSQL ≥12. SQLite is not supported and will automatically fall back to JSON
+                  storage.
                 </Typography>
               </Alert>
             </Box>
@@ -1684,10 +1888,10 @@ const ZoneDetail = () => {
                   { value: 30, label: '30d' },
                   { value: 90, label: '90d' },
                   { value: 180, label: '180d' },
-                  { value: 365, label: '365d' }
+                  { value: 365, label: '365d' },
                 ]}
                 valueLabelDisplay="auto"
-                valueLabelFormat={(value) => `${value}d`}
+                valueLabelFormat={value => `${value}d`}
                 sx={{ flexGrow: 1 }}
               />
               <Button
@@ -1710,14 +1914,16 @@ const ZoneDetail = () => {
               <strong>Note:</strong> {t('settingsCards.historyNote', { interval: recordInterval })}
             </Alert>
           </>
-        )
+        ),
       },
     ]
   }
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Box
+        sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
+      >
         <CircularProgress />
       </Box>
     )
@@ -1735,7 +1941,14 @@ const ZoneDetail = () => {
   }
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
+    <Box
+      sx={{
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: 'background.default',
+      }}
+    >
       {/* Header */}
       <Paper
         elevation={0}
@@ -1746,13 +1959,30 @@ const ZoneDetail = () => {
           bgcolor: 'background.paper',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1,
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
-            <IconButton data-testid="area-top-back-button" onClick={() => navigate('/')} edge="start" sx={{ p: { xs: 0.5, sm: 1 } }}>
+            <IconButton
+              data-testid="area-top-back-button"
+              onClick={() => navigate('/')}
+              edge="start"
+              sx={{ p: { xs: 0.5, sm: 1 } }}
+            >
               <ArrowBackIcon />
             </IconButton>
             <Box>
-              <Typography variant="h5" color="text.primary" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+              <Typography
+                variant="h5"
+                color="text.primary"
+                sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}
+              >
                 {area.name}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
@@ -1771,7 +2001,14 @@ const ZoneDetail = () => {
               </Box>
             </Box>
           </Box>
-          <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, alignItems: 'center', mr: { xs: 0, sm: 2 } }}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: { xs: 1, sm: 2 },
+              alignItems: 'center',
+              mr: { xs: 0, sm: 2 },
+            }}
+          >
             <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
               <Typography variant="body2" color="text.primary">
                 {area.enabled ? 'Heating Active' : 'Heating Disabled'}
@@ -1780,7 +2017,12 @@ const ZoneDetail = () => {
                 {area.enabled ? 'Area is being controlled' : 'No temperature control'}
               </Typography>
             </Box>
-            <Switch data-testid="area-enable-switch" checked={area.enabled} onChange={handleToggle} color="primary" />
+            <Switch
+              data-testid="area-enable-switch"
+              checked={area.enabled}
+              onChange={handleToggle}
+              color="primary"
+            />
           </Box>
         </Box>
       </Paper>
@@ -1803,8 +2045,8 @@ const ZoneDetail = () => {
             '& .MuiTab-root': {
               fontSize: { xs: '0.75rem', sm: '0.875rem' },
               minWidth: { xs: 'auto', sm: 160 },
-              px: { xs: 1, sm: 2 }
-            }
+              px: { xs: 1, sm: 2 },
+            },
           }}
         >
           <Tab data-testid="area-detail-tab-overview" label={t('tabs.overview')} />
@@ -1813,7 +2055,12 @@ const ZoneDetail = () => {
           <Tab data-testid="area-detail-tab-history" label={t('tabs.history')} />
           <Tab data-testid="area-detail-tab-settings" label={t('tabs.settings')} />
           <Tab data-testid="area-detail-tab-learning" label={t('tabs.learning')} />
-          <Tab data-testid="tab-logs" label={t('tabs.logs')} icon={<ArticleIcon />} iconPosition="start" />
+          <Tab
+            data-testid="tab-logs"
+            label={t('tabs.logs')}
+            icon={<ArticleIcon />}
+            iconPosition="start"
+          />
         </Tabs>
       </Paper>
 
@@ -1823,14 +2070,27 @@ const ZoneDetail = () => {
         <TabPanel value={tabValue} index={0}>
           <Box sx={{ maxWidth: 800, mx: 'auto', px: { xs: 0, sm: 0 } }}>
             <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
-              <Typography variant="h6" gutterBottom color="text.primary" sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+              <Typography
+                variant="h6"
+                gutterBottom
+                color="text.primary"
+                sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
+              >
                 {t('areaDetail.temperatureControl')}
               </Typography>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+                >
                   {t('areaDetail.targetTemperature')}
                 </Typography>
-                <Typography variant="h4" color="primary" sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}>
+                <Typography
+                  variant="h4"
+                  color="primary"
+                  sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}
+                >
                   {temperature}°C
                 </Typography>
               </Box>
@@ -1848,7 +2108,6 @@ const ZoneDetail = () => {
                     height: { xs: 6, sm: 4 },
                   },
                 }}
-
                 onChange={handleTemperatureChange}
                 onChangeCommitted={handleTemperatureCommit}
                 min={5}
@@ -1859,19 +2118,28 @@ const ZoneDetail = () => {
                   { value: 15, label: '15°' },
                   { value: 20, label: '20°' },
                   { value: 25, label: '25°' },
-                  { value: 30, label: '30°' }
+                  { value: 30, label: '30°' },
                 ]}
                 valueLabelDisplay="auto"
                 disabled={!area.enabled || !!(area.preset_mode && area.preset_mode !== 'none')}
               />
-                {area.enabled && area.state !== 'off' && area.preset_mode && area.preset_mode !== 'none' && (
-                <Box mt={1} display="flex" alignItems="center" gap={1}>
-                  <BookmarkIcon fontSize="small" color="secondary" />
-                  <Typography variant="caption" color="text.secondary" dangerouslySetInnerHTML={{
-                    __html: t('areaDetail.presetModeActive', { mode: t(`presets.${area.preset_mode}`).toUpperCase() })
-                  }} />
-                </Box>
-              )}
+              {area.enabled &&
+                area.state !== 'off' &&
+                area.preset_mode &&
+                area.preset_mode !== 'none' && (
+                  <Box mt={1} display="flex" alignItems="center" gap={1}>
+                    <BookmarkIcon fontSize="small" color="secondary" />
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      dangerouslySetInnerHTML={{
+                        __html: t('areaDetail.presetModeActive', {
+                          mode: t(`presets.${area.preset_mode}`).toUpperCase(),
+                        }),
+                      }}
+                    />
+                  </Box>
+                )}
 
               {area.current_temperature !== undefined && (
                 <>
@@ -1900,16 +2168,10 @@ const ZoneDetail = () => {
                   />
                 </ListItem>
                 <ListItem>
-                  <ListItemText
-                    primary={t('areaDetail.status')}
-                    secondary={area.state}
-                  />
+                  <ListItemText primary={t('areaDetail.status')} secondary={area.state} />
                 </ListItem>
                 <ListItem>
-                  <ListItemText
-                    primary={t('areaDetail.zoneId')}
-                    secondary={area.id}
-                  />
+                  <ListItemText primary={t('areaDetail.zoneId')} secondary={area.id} />
                 </ListItem>
               </List>
             </Paper>
@@ -1932,7 +2194,7 @@ const ZoneDetail = () => {
                 <Select
                   value={area.primary_temperature_sensor || 'auto'}
                   label={t('areaDetail.temperatureSensor')}
-                  onChange={async (e) => {
+                  onChange={async e => {
                     try {
                       const value = e.target.value === 'auto' ? null : e.target.value
                       console.log('Setting primary temperature sensor:', value)
@@ -1954,7 +2216,11 @@ const ZoneDetail = () => {
                       const deviceId = device.entity_id || device.id
                       return (
                         <MenuItem key={deviceId} value={deviceId}>
-                          {device.name || deviceId} ({device.type === 'thermostat' ? t('areaDetail.thermostat') : t('areaDetail.tempSensor')})
+                          {device.name || deviceId} (
+                          {device.type === 'thermostat'
+                            ? t('areaDetail.thermostat')
+                            : t('areaDetail.tempSensor')}
+                          )
                         </MenuItem>
                       )
                     })}
@@ -1972,12 +2238,10 @@ const ZoneDetail = () => {
               </Typography>
 
               {area.devices.length === 0 ? (
-                <Alert severity="info">
-                  {t('areaDetail.noDevicesAssigned')}
-                </Alert>
+                <Alert severity="info">{t('areaDetail.noDevicesAssigned')}</Alert>
               ) : (
                 <List>
-                  {area.devices.map((device) => (
+                  {area.devices.map(device => (
                     <ListItem
                       data-testid={`assigned-device-${device.id}`}
                       key={device.id}
@@ -2005,43 +2269,47 @@ const ZoneDetail = () => {
                         </IconButton>
                       }
                     >
-                      <ListItemIcon>
-                        {getDeviceStatusIcon(device)}
-                      </ListItemIcon>
+                      <ListItemIcon>{getDeviceStatusIcon(device)}</ListItemIcon>
                       <ListItemText
                         primary={
                           <Box display="flex" alignItems="center" gap={1}>
                             <Typography variant="body1" color="text.primary">
                               {device.name || device.id}
                             </Typography>
-                            {device.type === 'thermostat' && area?.target_temperature !== undefined &&
-                             device.current_temperature !== undefined &&
-                             area.target_temperature > device.current_temperature && (
-                              <Chip
-                                data-testid={`device-heating-chip-${device.id}`}
-                                label="heating"
-                                size="small"
-                                color="error"
-                                sx={{ height: 20, fontSize: '0.7rem' }}
-                              />
-                            )}
+                            {device.type === 'thermostat' &&
+                              area?.target_temperature !== undefined &&
+                              device.current_temperature !== undefined &&
+                              area.target_temperature > device.current_temperature && (
+                                <Chip
+                                  data-testid={`device-heating-chip-${device.id}`}
+                                  label="heating"
+                                  size="small"
+                                  color="error"
+                                  sx={{ height: 20, fontSize: '0.7rem' }}
+                                />
+                              )}
                           </Box>
                         }
                         secondary={
-                              <Box>
-                                <Typography variant="caption" color="text.secondary" display="block">
-                                  {String(device.type).replaceAll('_', ' ')}
-                                </Typography>
-                                <Typography variant="body2" color="text.primary" sx={{ mt: 0.5 }}>
-                                  {getDeviceStatus(device)}
-                                </Typography>
-                                {device.type === 'valve' && area?.heating_type === 'airco' && (
-                                  <Typography data-testid={`device-disabled-airco-${device.id}`} variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-                                    {t('areaDetail.disabledForAirco', 'Disabled for Air Conditioner')}
-                                  </Typography>
-                                )}
-                              </Box>
-                            }
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {String(device.type).replaceAll('_', ' ')}
+                            </Typography>
+                            <Typography variant="body2" color="text.primary" sx={{ mt: 0.5 }}>
+                              {getDeviceStatus(device)}
+                            </Typography>
+                            {device.type === 'valve' && area?.heating_type === 'airco' && (
+                              <Typography
+                                data-testid={`device-disabled-airco-${device.id}`}
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ mt: 0.5 }}
+                              >
+                                {t('areaDetail.disabledForAirco', 'Disabled for Air Conditioner')}
+                              </Typography>
+                            )}
+                          </Box>
+                        }
                       />
                     </ListItem>
                   ))}
@@ -2051,23 +2319,38 @@ const ZoneDetail = () => {
 
             {/* Available Devices */}
             <Paper sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 2,
+                }}
+              >
                 <Typography variant="h6" color="text.primary">
-                  {t('areaDetail.availableDevices', { count: availableDevices.filter(device => {
-                    const typeMatch = !showOnlyHeating || ['climate', 'temperature'].includes(device.subtype || '')
-                    if (!deviceSearch) return typeMatch
-                    const searchLower = deviceSearch.toLowerCase()
-                    const nameMatch = (device.name || '').toLowerCase().includes(searchLower)
-                    const entityMatch = (device.entity_id || device.id || '').toLowerCase().includes(searchLower)
-                    const areaMatch = (device.ha_area_name || '').toLowerCase().includes(searchLower)
-                    return typeMatch && (nameMatch || entityMatch || areaMatch)
-                  }).length })}
+                  {t('areaDetail.availableDevices', {
+                    count: availableDevices.filter(device => {
+                      const typeMatch =
+                        !showOnlyHeating ||
+                        ['climate', 'temperature'].includes(device.subtype || '')
+                      if (!deviceSearch) return typeMatch
+                      const searchLower = deviceSearch.toLowerCase()
+                      const nameMatch = (device.name || '').toLowerCase().includes(searchLower)
+                      const entityMatch = (device.entity_id || device.id || '')
+                        .toLowerCase()
+                        .includes(searchLower)
+                      const areaMatch = (device.ha_area_name || '')
+                        .toLowerCase()
+                        .includes(searchLower)
+                      return typeMatch && (nameMatch || entityMatch || areaMatch)
+                    }).length,
+                  })}
                 </Typography>
                 <FormControlLabel
                   control={
                     <Switch
                       checked={showOnlyHeating}
-                      onChange={(e) => setShowOnlyHeating(e.target.checked)}
+                      onChange={e => setShowOnlyHeating(e.target.checked)}
                       color="primary"
                     />
                   }
@@ -2084,22 +2367,26 @@ const ZoneDetail = () => {
                 size="small"
                 placeholder={t('areaDetail.searchPlaceholder')}
                 value={deviceSearch}
-                onChange={(e) => setDeviceSearch(e.target.value)}
+                onChange={e => setDeviceSearch(e.target.value)}
                 sx={{ mb: 2 }}
               />
 
               {availableDevices.filter(device => {
-                const typeMatch = !showOnlyHeating || ['climate', 'temperature'].includes(device.subtype || '')
+                const typeMatch =
+                  !showOnlyHeating || ['climate', 'temperature'].includes(device.subtype || '')
                 if (!deviceSearch) return typeMatch
                 const searchLower = deviceSearch.toLowerCase()
                 const nameMatch = (device.name || '').toLowerCase().includes(searchLower)
-                const entityMatch = (device.entity_id || device.id || '').toLowerCase().includes(searchLower)
+                const entityMatch = (device.entity_id || device.id || '')
+                  .toLowerCase()
+                  .includes(searchLower)
                 const areaMatch = (device.ha_area_name || '').toLowerCase().includes(searchLower)
                 return typeMatch && (nameMatch || entityMatch || areaMatch)
               }).length === 0 ? (
                 <Alert severity="info">
                   {(() => {
-                    if (deviceSearch) return t('areaDetail.noDevicesMatch', { search: deviceSearch })
+                    if (deviceSearch)
+                      return t('areaDetail.noDevicesMatch', { search: deviceSearch })
                     if (showOnlyHeating) return t('areaDetail.noClimateDevices')
                     return t('areaDetail.noAdditionalDevices')
                   })()}
@@ -2108,71 +2395,86 @@ const ZoneDetail = () => {
                 <List>
                   {availableDevices
                     .filter(device => {
-                      const typeMatch = !showOnlyHeating || ['climate', 'temperature'].includes(device.subtype || '')
+                      const typeMatch =
+                        !showOnlyHeating ||
+                        ['climate', 'temperature'].includes(device.subtype || '')
                       if (!deviceSearch) return typeMatch
                       const searchLower = deviceSearch.toLowerCase()
                       const nameMatch = (device.name || '').toLowerCase().includes(searchLower)
-                      const entityMatch = (device.entity_id || device.id || '').toLowerCase().includes(searchLower)
-                      const areaMatch = (device.ha_area_name || '').toLowerCase().includes(searchLower)
+                      const entityMatch = (device.entity_id || device.id || '')
+                        .toLowerCase()
+                        .includes(searchLower)
+                      const areaMatch = (device.ha_area_name || '')
+                        .toLowerCase()
+                        .includes(searchLower)
                       return typeMatch && (nameMatch || entityMatch || areaMatch)
                     })
-                    .map((device) => (
-                    <ListItem
-                      data-testid={`available-device-${(device.entity_id || device.id).toLowerCase().replaceAll(' ', '-')}`}
-                      key={device.entity_id || device.id}
-                      sx={{
-                        border: 1,
-                        borderColor: 'divider',
-                        borderRadius: 1,
-                        mb: 1,
-                      }}
-                      secondaryAction={
-                        <Button
-                          data-testid={`add-available-device-${(device.entity_id || device.id).toLowerCase().replaceAll(' ', '-')}`}
-                          variant="contained"
-                          size="small"
-                          disabled={device.type === 'valve' && area?.heating_type === 'airco'}
-                          title={device.type === 'valve' && area?.heating_type === 'airco' ? t('areaDetail.disabledForAirco', 'Disabled for Air Conditioner') : undefined}
-                          onClick={async () => {
-                            try {
-                              await addDeviceToZone(area.id, {
-                                device_id: device.entity_id || device.id,
-                                device_type: device.type,
-                                mqtt_topic: device.mqtt_topic
-                              })
-                              await loadData()
-                            } catch (error) {
-                              console.error('Failed to add device:', error)
+                    .map(device => (
+                      <ListItem
+                        data-testid={`available-device-${(device.entity_id || device.id).toLowerCase().replaceAll(' ', '-')}`}
+                        key={device.entity_id || device.id}
+                        sx={{
+                          border: 1,
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                          mb: 1,
+                        }}
+                        secondaryAction={
+                          <Button
+                            data-testid={`add-available-device-${(device.entity_id || device.id).toLowerCase().replaceAll(' ', '-')}`}
+                            variant="contained"
+                            size="small"
+                            disabled={device.type === 'valve' && area?.heating_type === 'airco'}
+                            title={
+                              device.type === 'valve' && area?.heating_type === 'airco'
+                                ? t('areaDetail.disabledForAirco', 'Disabled for Air Conditioner')
+                                : undefined
                             }
-                          }}
-                        >
-                          Add
-                        </Button>
-                      }
-                    >
-                      <ListItemIcon>
-                        <ThermostatIcon color="action" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Typography variant="body1" color="text.primary">
-                            {device.name || device.entity_id || device.id}
-                          </Typography>
+                            onClick={async () => {
+                              try {
+                                await addDeviceToZone(area.id, {
+                                  device_id: device.entity_id || device.id,
+                                  device_type: device.type,
+                                  mqtt_topic: device.mqtt_topic,
+                                })
+                                await loadData()
+                              } catch (error) {
+                                console.error('Failed to add device:', error)
+                              }
+                            }}
+                          >
+                            Add
+                          </Button>
                         }
-                        secondary={
-                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
-                            <Chip label={String(device.type).replaceAll('_', ' ')} size="small" />
-                            {device.subtype && (
-                              <Chip label={device.subtype} size="small" color="primary" variant="outlined" />
-                            )}
-                            <Typography variant="caption" color="text.secondary">
-                              {device.entity_id || device.id}
+                      >
+                        <ListItemIcon>
+                          <ThermostatIcon color="action" />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            <Typography variant="body1" color="text.primary">
+                              {device.name || device.entity_id || device.id}
                             </Typography>
-                          </Box>
-                        }
-                      />
-                    </ListItem>
-                  ))}
+                          }
+                          secondary={
+                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
+                              <Chip label={String(device.type).replaceAll('_', ' ')} size="small" />
+                              {device.subtype && (
+                                <Chip
+                                  label={device.subtype}
+                                  size="small"
+                                  color="primary"
+                                  variant="outlined"
+                                />
+                              )}
+                              <Typography variant="caption" color="text.secondary">
+                                {device.entity_id || device.id}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                      </ListItem>
+                    ))}
                 </List>
               )}
             </Paper>
@@ -2197,9 +2499,7 @@ const ZoneDetail = () => {
                 {t('areaDetail.historyDescription')}
               </Typography>
 
-              {area.id && (
-                <HistoryChart areaId={area.id} />
-              )}
+              {area.id && <HistoryChart areaId={area.id} />}
             </Paper>
           </Box>
         </TabPanel>
@@ -2221,7 +2521,7 @@ const ZoneDetail = () => {
         <SensorConfigDialog
           open={sensorDialogOpen}
           onClose={() => setSensorDialogOpen(false)}
-          onAdd={async (config) => {
+          onAdd={async config => {
             if (!area) return
             try {
               if (sensorDialogType === 'window') {
@@ -2255,7 +2555,12 @@ const ZoneDetail = () => {
                   <Typography variant="body2" color="success.main" gutterBottom>
                     ✓ {t('areaDetail.smartNightBoostActive')}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 3 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                    sx={{ mb: 3 }}
+                  >
                     {t('areaDetail.learningSystemText')}
                   </Typography>
 
@@ -2270,13 +2575,23 @@ const ZoneDetail = () => {
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">{t('areaDetail.targetWakeupTime')}</Typography>
-                      <Typography variant="body2" color="text.primary"><strong>{area.smart_night_boost_target_time ?? '06:00'}</strong></Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {t('areaDetail.targetWakeupTime')}
+                      </Typography>
+                      <Typography variant="body2" color="text.primary">
+                        <strong>{area.smart_night_boost_target_time ?? '06:00'}</strong>
+                      </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">{t('areaDetail.weatherSensor')}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {t('areaDetail.weatherSensor')}
+                      </Typography>
                       <Typography variant="body2" color="text.primary">
-                        {area.weather_entity_id ? <strong>{area.weather_entity_id}</strong> : <em>{t('areaDetail.notConfigured')}</em>}
+                        {area.weather_entity_id ? (
+                          <strong>{area.weather_entity_id}</strong>
+                        ) : (
+                          <em>{t('areaDetail.notConfigured')}</em>
+                        )}
                       </Typography>
                     </Box>
                   </Box>
@@ -2285,16 +2600,36 @@ const ZoneDetail = () => {
                     {t('areaDetail.learningProcessTitle')}
                   </Typography>
                   <Box component="ol" sx={{ pl: 2, mt: 1 }}>
-                    <Typography component="li" variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    <Typography
+                      component="li"
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 1 }}
+                    >
                       {t('settingsCards.learningStep1')}
                     </Typography>
-                    <Typography component="li" variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    <Typography
+                      component="li"
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 1 }}
+                    >
                       {t('settingsCards.learningStep2')}
                     </Typography>
-                    <Typography component="li" variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    <Typography
+                      component="li"
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 1 }}
+                    >
                       {t('settingsCards.learningStep3')}
                     </Typography>
-                    <Typography component="li" variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    <Typography
+                      component="li"
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 1 }}
+                    >
                       {t('settingsCards.learningStep4')}
                     </Typography>
                     <Typography component="li" variant="body2" color="text.secondary">
@@ -2325,16 +2660,18 @@ const ZoneDetail = () => {
         <TabPanel value={tabValue} index={6}>
           <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
             <Paper sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 2,
+                }}
+              >
                 <Typography variant="h6" color="text.primary">
                   {t('areaDetail.heatingStrategyLogs')}
                 </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={loadLogs}
-                  disabled={logsLoading}
-                >
+                <Button variant="outlined" size="small" onClick={loadLogs} disabled={logsLoading}>
                   {logsLoading ? 'Loading...' : t('areaDetail.refresh')}
                 </Button>
               </Box>
@@ -2417,74 +2754,92 @@ const ZoneDetail = () => {
                 return (
                   <List sx={{ bgcolor: 'background.paper' }}>
                     {logs.map((log, index) => {
-                    const timestamp = new Date(log.timestamp)
-                    const timeStr = timestamp.toLocaleTimeString('nl-NL', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit'
-                    })
-                    const dateStr = timestamp.toLocaleDateString('nl-NL')
+                      const timestamp = new Date(log.timestamp)
+                      const timeStr = timestamp.toLocaleTimeString('nl-NL', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                      })
+                      const dateStr = timestamp.toLocaleDateString('nl-NL')
 
-                    // Color coding by event type
-                    const getEventColor = (type: string) => {
-                      switch (type) {
-                        case 'heating': return 'error'
-                        case 'temperature': return 'info'
-                        case 'schedule': return 'success'
-                        case 'smart_boost': return 'secondary'
-                        case 'sensor': return 'warning'
-                        case 'mode': return 'primary'
-                        default: return 'default'
+                      // Color coding by event type
+                      const getEventColor = (type: string) => {
+                        switch (type) {
+                          case 'heating':
+                            return 'error'
+                          case 'temperature':
+                            return 'info'
+                          case 'schedule':
+                            return 'success'
+                          case 'smart_boost':
+                            return 'secondary'
+                          case 'sensor':
+                            return 'warning'
+                          case 'mode':
+                            return 'primary'
+                          default:
+                            return 'default'
+                        }
                       }
-                    }
 
-                    return (
-                      <Box key={`${log.timestamp}-${index}`}>
-                        {index > 0 && <Divider />}
-                        <ListItem alignItems="flex-start" sx={{ py: 2 }}>
-                          <ListItemIcon sx={{ minWidth: 40, mt: 0.5 }}>
-                            <Chip
-                              label={log.type}
-                              color={getEventColor(log.type)}
-                              size="small"
-                              sx={{ fontSize: '0.7rem', height: 20 }}
-                            />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="body2" color="text.primary">
-                                  {log.message}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
-                                  {dateStr} {timeStr}
-                                </Typography>
-                              </Box>
-                            }
-                            secondary={
-                              log.details && Object.keys(log.details).length > 0 && (
+                      return (
+                        <Box key={`${log.timestamp}-${index}`}>
+                          {index > 0 && <Divider />}
+                          <ListItem alignItems="flex-start" sx={{ py: 2 }}>
+                            <ListItemIcon sx={{ minWidth: 40, mt: 0.5 }}>
+                              <Chip
+                                label={log.type}
+                                color={getEventColor(log.type)}
+                                size="small"
+                                sx={{ fontSize: '0.7rem', height: 20 }}
+                              />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={
                                 <Box
-                                  component="pre"
                                   sx={{
-                                    mt: 1,
-                                    p: 1,
-                                    bgcolor: 'action.hover',
-                                    borderRadius: 1,
-                                    fontSize: '0.75rem',
-                                    overflow: 'auto',
-                                    fontFamily: 'monospace'
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
                                   }}
                                 >
-                                  {JSON.stringify(log.details, null, 2)}
+                                  <Typography variant="body2" color="text.primary">
+                                    {log.message}
+                                  </Typography>
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    sx={{ ml: 2 }}
+                                  >
+                                    {dateStr} {timeStr}
+                                  </Typography>
                                 </Box>
-                              )
-                            }
-                          />
-                        </ListItem>
-                      </Box>
-                    )
-                  })}
-                </List>
+                              }
+                              secondary={
+                                log.details &&
+                                Object.keys(log.details).length > 0 && (
+                                  <Box
+                                    component="pre"
+                                    sx={{
+                                      mt: 1,
+                                      p: 1,
+                                      bgcolor: 'action.hover',
+                                      borderRadius: 1,
+                                      fontSize: '0.75rem',
+                                      overflow: 'auto',
+                                      fontFamily: 'monospace',
+                                    }}
+                                  >
+                                    {JSON.stringify(log.details, null, 2)}
+                                  </Box>
+                                )
+                              }
+                            />
+                          </ListItem>
+                        </Box>
+                      )
+                    })}
+                  </List>
                 )
               })()}
             </Paper>

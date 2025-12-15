@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
@@ -9,14 +8,28 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }
 // Mock nested ScheduleEntryDialog to avoid MUI DatePicker complexity
 vi.mock('./ScheduleEntryDialog', () => ({
   __esModule: true,
-  default: ({ open, onClose, onSave, editingEntry }: any) => (
+  default: ({ open, onClose, onSave, editingEntry: _editingEntry }: any) =>
     open ? (
       <div>
-        <button data-testid="schedule-save" onClick={() => onSave({ id: 'from-test', start_time: '06:00', end_time: '07:00', days: ['Monday'], temperature: 20 })}>Save</button>
-        <button data-testid="schedule-cancel" onClick={onClose}>Close</button>
+        <button
+          data-testid="schedule-save"
+          onClick={() =>
+            onSave({
+              id: 'from-test',
+              start_time: '06:00',
+              end_time: '07:00',
+              days: ['Monday'],
+              temperature: 20,
+            })
+          }
+        >
+          Save
+        </button>
+        <button data-testid="schedule-cancel" onClick={onClose}>
+          Close
+        </button>
       </div>
-    ) : null
-  )
+    ) : null,
 }))
 
 vi.mock('../api/areas', () => ({
@@ -38,8 +51,20 @@ describe('ScheduleEditor', () => {
   })
 
   it('renders weekly and date schedules and can delete', async () => {
-    const weeklySchedule = { id: 's2', days: [0, 1], start_time: '06:00', end_time: '07:00', temperature: 21 }
-    const dateSchedule = { id: 's3', date: '2024-04-01', start_time: '08:00', end_time: '09:00', temperature: 19 }
+    const weeklySchedule = {
+      id: 's2',
+      days: [0, 1],
+      start_time: '06:00',
+      end_time: '07:00',
+      temperature: 21,
+    }
+    const dateSchedule = {
+      id: 's3',
+      date: '2024-04-01',
+      start_time: '08:00',
+      end_time: '09:00',
+      temperature: 19,
+    }
     const area = { id: 'a1', name: 'Test Area', schedules: [weeklySchedule, dateSchedule] }
     const onUpdate = vi.fn()
     render(<ScheduleEditor area={area as any} onUpdate={onUpdate} />)
@@ -75,7 +100,7 @@ describe('ScheduleEditor', () => {
         days: [0, 1, 2], // Monday, Tuesday, Wednesday
         start_time: '08:00',
         end_time: '09:00',
-        temperature: 21
+        temperature: 21,
       }
       const area = { id: 'a1', name: 'Test Area', schedules: [multiDaySchedule] }
       const onUpdate = vi.fn()
@@ -105,7 +130,7 @@ describe('ScheduleEditor', () => {
         days: [3, 4], // Thursday, Friday
         start_time: '10:00',
         end_time: '11:00',
-        temperature: 22
+        temperature: 22,
       }
       const area = { id: 'a1', name: 'Test Area', schedules: [twoDaySchedule] }
 
@@ -130,7 +155,7 @@ describe('ScheduleEditor', () => {
         days: [5], // Saturday only
         start_time: '12:00',
         end_time: '13:00',
-        temperature: 23
+        temperature: 23,
       }
       const area = { id: 'a1', name: 'Test Area', schedules: [singleDaySchedule] }
 
@@ -149,7 +174,7 @@ describe('ScheduleEditor', () => {
         day: 2, // Old format: single 'day' field (Wednesday)
         start_time: '16:00',
         end_time: '17:00',
-        temperature: 24
+        temperature: 24,
       }
       const area = { id: 'a1', name: 'Test Area', schedules: [legacySchedule] }
 
@@ -165,7 +190,13 @@ describe('ScheduleEditor', () => {
   // Coverage tests for other functionality
   describe('Additional coverage', () => {
     it('toggles day expansion state', async () => {
-      const schedule = { id: 's1', days: [0], start_time: '06:00', end_time: '07:00', temperature: 20 }
+      const schedule = {
+        id: 's1',
+        days: [0],
+        start_time: '06:00',
+        end_time: '07:00',
+        temperature: 20,
+      }
       const area = { id: 'a1', name: 'Test Area', schedules: [schedule] }
       const user = userEvent.setup()
 
@@ -177,7 +208,13 @@ describe('ScheduleEditor', () => {
     })
 
     it('toggles date expansion state', async () => {
-      const dateSchedule = { id: 's1', date: '2024-12-25', start_time: '08:00', end_time: '09:00', temperature: 21 }
+      const dateSchedule = {
+        id: 's1',
+        date: '2024-12-25',
+        start_time: '08:00',
+        end_time: '09:00',
+        temperature: 21,
+      }
       const area = { id: 'a1', name: 'Test Area', schedules: [dateSchedule] }
       const user = userEvent.setup()
 
@@ -189,7 +226,13 @@ describe('ScheduleEditor', () => {
     })
 
     it('edits schedule when clicking on chip', async () => {
-      const schedule = { id: 's1', days: [0], start_time: '06:00', end_time: '07:00', temperature: 20 }
+      const schedule = {
+        id: 's1',
+        days: [0],
+        start_time: '06:00',
+        end_time: '07:00',
+        temperature: 20,
+      }
       const area = { id: 'a1', name: 'Test Area', schedules: [schedule] }
       const user = userEvent.setup()
 
@@ -238,7 +281,13 @@ describe('ScheduleEditor', () => {
 
     it('handles delete errors gracefully', async () => {
       // This test verifies error handling exists
-      const schedule = { id: 's1', days: [0], start_time: '06:00', end_time: '07:00', temperature: 20 }
+      const schedule = {
+        id: 's1',
+        days: [0],
+        start_time: '06:00',
+        end_time: '07:00',
+        temperature: 20,
+      }
       const area = { id: 'a1', name: 'Test Area', schedules: [schedule] }
 
       render(<ScheduleEditor area={area as any} onUpdate={vi.fn()} />)
@@ -251,7 +300,13 @@ describe('ScheduleEditor', () => {
     })
 
     it('updates schedule when editing', () => {
-      const existingSchedule = { id: 's1', days: [0], start_time: '06:00', end_time: '07:00', temperature: 20 }
+      const existingSchedule = {
+        id: 's1',
+        days: [0],
+        start_time: '06:00',
+        end_time: '07:00',
+        temperature: 20,
+      }
       const area = { id: 'a1', name: 'Test Area', schedules: [existingSchedule] }
 
       render(<ScheduleEditor area={area as any} onUpdate={vi.fn()} />)
@@ -267,7 +322,7 @@ describe('ScheduleEditor', () => {
       const schedules = [
         { id: 's1', days: [0, 1], start_time: '06:00', end_time: '07:00', temperature: 20 },
         { id: 's2', days: [1, 2], start_time: '08:00', end_time: '09:00', temperature: 21 },
-        { id: 's3', days: [0], start_time: '10:00', end_time: '11:00', temperature: 22 }
+        { id: 's3', days: [0], start_time: '10:00', end_time: '11:00', temperature: 22 },
       ]
       const area = { id: 'a1', name: 'Test Area', schedules }
 
@@ -286,7 +341,7 @@ describe('ScheduleEditor', () => {
       const schedules = [
         { id: 's1', days: [0], start_time: '06:00', end_time: '07:00', temperature: 20 },
         { id: 's2', days: [0], start_time: '08:00', end_time: '09:00', temperature: 21 },
-        { id: 's3', days: [0], start_time: '10:00', end_time: '11:00', temperature: 22 }
+        { id: 's3', days: [0], start_time: '10:00', end_time: '11:00', temperature: 22 },
       ]
       const area = { id: 'a1', name: 'Test Area', schedules }
 

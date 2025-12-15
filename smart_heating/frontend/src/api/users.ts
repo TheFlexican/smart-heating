@@ -30,7 +30,9 @@ export const deleteUser = async (userId: string): Promise<{ message: string }> =
   return response.data
 }
 
-export const updateUserSettings = async (settings: Partial<MultiUserSettings>): Promise<{ settings: MultiUserSettings }> => {
+export const updateUserSettings = async (
+  settings: Partial<MultiUserSettings>
+): Promise<{ settings: MultiUserSettings }> => {
   const response = await axios.post(`${API_BASE}/users/settings`, settings)
   return response.data
 }
