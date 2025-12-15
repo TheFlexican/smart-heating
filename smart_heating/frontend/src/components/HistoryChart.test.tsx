@@ -18,4 +18,18 @@ it('shows cooling series when history contains cooling state', async () => {
 
   // Wait for chart to render data and indicate cooling presence
   await waitFor(() => expect(screen.getByTestId('history-has-cooling').textContent).toBe('1'))
+
+  // Chart container should be present
+  expect(screen.getByTestId('history-chart')).toBeInTheDocument()
+
+  // Toggles for cooling should be present
+  expect(screen.getByTestId('history-toggle-cooling')).toBeInTheDocument()
+
+  // Legend items should render with testids (use the descriptive legend list)
+  await waitFor(() => expect(screen.getByTestId('history-legend-item-temp')).toBeInTheDocument())
+  await waitFor(() => expect(screen.getByTestId('history-legend-item-target')).toBeInTheDocument())
+  await waitFor(() => expect(screen.getByTestId('history-legend-item-redDots')).toBeInTheDocument())
+
+  // Cooling toggle should be present
+  await waitFor(() => expect(screen.getByTestId('history-toggle-cooling')).toBeInTheDocument())
 })

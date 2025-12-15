@@ -203,6 +203,7 @@ const ImportExport = () => {
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         {/* Export Button */}
         <Button
+          data-testid="import-export-button"
           variant="contained"
           startIcon={loading ? <CircularProgress size={20} /> : <DownloadIcon />}
           onClick={handleExport}
