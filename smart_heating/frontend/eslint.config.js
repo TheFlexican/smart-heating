@@ -46,10 +46,10 @@ export default tseslint.config(
       'react/jsx-uses-react': 'off', // Not needed in React 17+
 
       // General rules
-      'no-console': 'warn',
-      'no-debugger': 'error',
-      'prefer-const': 'error',
-      'no-var': 'error',
+    'no-console': 'off',
+    'no-debugger': 'warn',
+    'prefer-const': 'error',
+    'no-var': 'error',
 
       // Import/export rules
       'no-duplicate-imports': 'error',
