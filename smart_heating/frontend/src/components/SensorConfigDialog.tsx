@@ -108,7 +108,7 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
+      <DialogTitle data-testid="sensor-dialog-title">
         {sensorType === 'window' ? 'Add Window Sensor' : 'Add Presence Sensor'}
       </DialogTitle>
       <DialogContent>
@@ -158,7 +158,7 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
                 </Alert>
               )}
 
-              {sensorType === 'window' ? (
+                {sensorType === 'window' ? (
                 // Window Sensor Configuration
                 <>
                   <FormControl fullWidth>
@@ -191,7 +191,7 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
               ) : (
                 // Presence Sensor Configuration
                 <>
-                  <Alert severity="info">
+                  <Alert severity="info" data-testid="sensor-info">
                     <Typography variant="body2">
                       <strong>Preset Mode Control</strong>
                     </Typography>

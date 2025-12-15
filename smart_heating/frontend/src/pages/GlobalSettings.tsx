@@ -613,6 +613,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                     data-testid="presence-sensor-item"
                     secondaryAction={
                       <IconButton
+                        data-testid={`presence-remove-${sensor.entity_id}`}
                         edge="end"
                         onClick={() => handleRemovePresenceSensor(sensor.entity_id)}
                       >
@@ -636,6 +637,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
             <Button
               variant="outlined"
               fullWidth
+              data-testid="global-add-presence-sensor"
               onClick={() => setSensorDialogOpen(true)}
               sx={{ mt: 2 }}
             >
@@ -706,8 +708,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                     >
                       <ListItemText
                         primary={sensor.sensor_id}
-                        secondary={
-                          <>
+                          secondary={
                             <Typography component="span" variant="body2">
                               {t('globalSettings.safety.attribute', 'Attribute')}: {sensor.attribute} | {' '}
                               {t('globalSettings.safety.status', 'Status')}: {
@@ -716,8 +717,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                                   : t('globalSettings.safety.disabled', '✗ Disabled')
                               }
                             </Typography>
-                          </>
-                        }
+                          }
                       />
                     </ListItem>
                   ))}
@@ -726,6 +726,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                 <Button
                   variant="outlined"
                   fullWidth
+                  data-testid="global-add-safety-sensor"
                   onClick={() => setSafetySensorDialogOpen(true)}
                   startIcon={<SecurityIcon />}
                   sx={{ mb: 2 }}
@@ -742,7 +743,8 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                 <Button
                   variant="outlined"
                   fullWidth
-                  onClick={() => setSafetySensorDialogOpen(true)}
+                    data-testid="global-add-safety-sensor"
+                    onClick={() => setSafetySensorDialogOpen(true)}
                   startIcon={<SecurityIcon />}
                 >
                   {t('globalSettings.safety.addButton', 'Add Safety Sensor')}
@@ -844,18 +846,18 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               </Typography>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1 }}>
-                <Slider
+                  <Slider
                   data-testid="global-hysteresis-slider"
                   value={hysteresis}
                   onChange={handleHysteresisChange}
                   min={0.1}
-                  max={2.0}
+                  max={2}
                   step={0.1}
                   marks={[
                     { value: 0.1, label: '0.1°C' },
                     { value: 0.5, label: '0.5°C' },
-                    { value: 1.0, label: '1.0°C' },
-                    { value: 2.0, label: '2.0°C' },
+                    { value: 1, label: '1°C' },
+                    { value: 2, label: '2°C' },
                   ]}
                   valueLabelDisplay="on"
                   valueLabelFormat={(v) => `${v.toFixed(1)}°C`}
@@ -933,7 +935,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }} data-testid="heating-curve-control">
                   <Typography>{t('globalSettings.advanced.defaultCoefficient', 'Default heating curve coefficient')}</Typography>
-                  <input data-testid="heating-curve-control" type='number' value={defaultCoefficient as any} onChange={(e) => handleToggleAdvancedControl('default_heating_curve_coefficient', Number(e.target.value))} step={0.1} disabled={!advancedControlEnabled} />
+                  <input data-testid="global-settings-default-coefficient" type='number' value={defaultCoefficient as any} onChange={(e) => handleToggleAdvancedControl('default_heating_curve_coefficient', Number(e.target.value))} step={0.1} disabled={!advancedControlEnabled} />
                   <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
                     {t('globalSettings.advanced.defaultCoefficientHelper', 'Default coefficient used when Heating Curve is enabled')}
                   </Typography>
@@ -999,13 +1001,13 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                     </a>
                   </Alert>
                 )}
-                <FormControl fullWidth>
+                  <FormControl fullWidth>
                   <InputLabel id="opentherm-gateway-select-label">{t('globalSettings.opentherm.gatewayId', 'Gateway Integration ID (ID or slug)')}</InputLabel>
                   <Select
                     labelId="opentherm-gateway-select-label"
                     value={openthermGatewayId}
                     label={t('globalSettings.opentherm.gatewayId', 'Gateway Integration ID (ID or slug)')}
-                    onChange={(e) => setOpenthermGatewayId(e.target.value as string)}
+                    onChange={(e) => setOpenthermGatewayId(e.target.value)}
                   >
                     <MenuItem value="">None (Disabled)</MenuItem>
                     {openthermGateways.map((g) => (
