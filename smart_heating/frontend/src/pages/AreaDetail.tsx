@@ -715,73 +715,83 @@ const ZoneDetail = () => {
       {
         id: 'boost-mode',
         title: t('settingsCards.boostModeTitle'),
-        description: t('settingsCards.boostModeDescription'),
+        description:
+          area.heating_type === 'airco'
+            ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')
+            : t('settingsCards.boostModeDescription'),
         icon: <SpeedIcon />,
         badge: area.boost_mode_active ? 'ACTIVE' : undefined,
         defaultExpanded: area.boost_mode_active,
-        content: area.boost_mode_active ? (
-          <Box data-testid="boost-mode-active">
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              Boost mode is <strong>ACTIVE</strong>! Temperature: {area.boost_temp}°C, Duration:{' '}
-              {area.boost_duration} minutes
+        content:
+          area.heating_type === 'airco' ? (
+            <Alert severity="info" data-testid="boost-mode-disabled-airco">
+              {t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')}
             </Alert>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={async () => {
-                try {
-                  await cancelBoost(area.id)
-                  loadData()
-                } catch (error) {
-                  console.error('Failed to cancel boost:', error)
-                }
-              }}
-            >
-              Cancel Boost Mode
-            </Button>
-          </Box>
-        ) : (
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
-            <TextField
-              data-testid="boost-temperature-input"
-              label="Boost Temperature"
-              type="number"
-              defaultValue={25}
-              slotProps={{ htmlInput: { min: 15, max: 30, step: 0.5 } }}
-              sx={{ flex: 1 }}
-              id="boost-temp-input"
-            />
-            <TextField
-              data-testid="boost-duration-input"
-              label="Duration (minutes)"
-              type="number"
-              defaultValue={60}
-              slotProps={{ htmlInput: { min: 5, max: 180, step: 5 } }}
-              sx={{ flex: 1 }}
-              id="boost-duration-input"
-            />
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={async () => {
-                try {
-                  const tempInput = document.getElementById('boost-temp-input') as HTMLInputElement
-                  const durationInput = document.getElementById(
-                    'boost-duration-input',
-                  ) as HTMLInputElement
-                  const temp = Number.parseFloat(tempInput.value)
-                  const duration = Number.parseInt(durationInput.value)
-                  await setBoostMode(area.id, duration, temp)
-                  loadData()
-                } catch (error) {
-                  console.error('Failed to activate boost:', error)
-                }
-              }}
-            >
-              Activate Boost
-            </Button>
-          </Box>
-        ),
+          ) : area.boost_mode_active ? (
+            <Box data-testid="boost-mode-active">
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                Boost mode is <strong>ACTIVE</strong>! Temperature: {area.boost_temp}°C, Duration:{' '}
+                {area.boost_duration} minutes
+              </Alert>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={async () => {
+                  try {
+                    await cancelBoost(area.id)
+                    loadData()
+                  } catch (error) {
+                    console.error('Failed to cancel boost:', error)
+                  }
+                }}
+              >
+                Cancel Boost Mode
+              </Button>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
+              <TextField
+                data-testid="boost-temperature-input"
+                label="Boost Temperature"
+                type="number"
+                defaultValue={25}
+                slotProps={{ htmlInput: { min: 15, max: 30, step: 0.5 } }}
+                sx={{ flex: 1 }}
+                id="boost-temp-input"
+              />
+              <TextField
+                data-testid="boost-duration-input"
+                label="Duration (minutes)"
+                type="number"
+                defaultValue={60}
+                slotProps={{ htmlInput: { min: 5, max: 180, step: 5 } }}
+                sx={{ flex: 1 }}
+                id="boost-duration-input"
+              />
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={async () => {
+                  try {
+                    const tempInput = document.getElementById(
+                      'boost-temp-input',
+                    ) as HTMLInputElement
+                    const durationInput = document.getElementById(
+                      'boost-duration-input',
+                    ) as HTMLInputElement
+                    const temp = Number.parseFloat(tempInput.value)
+                    const duration = Number.parseInt(durationInput.value)
+                    await setBoostMode(area.id, duration, temp)
+                    loadData()
+                  } catch (error) {
+                    console.error('Failed to activate boost:', error)
+                  }
+                }}
+              >
+                Activate Boost
+              </Button>
+            </Box>
+          ),
       },
       {
         id: 'hvac-mode',
@@ -1334,166 +1344,215 @@ const ZoneDetail = () => {
       {
         id: 'night-boost',
         title: t('settingsCards.nightBoostTitle'),
-        description: t('settingsCards.nightBoostDescription'),
+        description:
+          area.heating_type === 'airco'
+            ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')
+            : t('settingsCards.nightBoostDescription'),
         icon: <NightsStayIcon />,
         badge: area.night_boost_enabled ? 'ON' : 'OFF',
         defaultExpanded: false,
-        content: (
-          <>
-            <Box
-              sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}
-            >
-              <Box>
-                <Typography variant="body1" color="text.primary">
-                  {t('settingsCards.enableNightBoost')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {t('settingsCards.enableNightBoostDescription')}
+        content:
+          area.heating_type === 'airco' ? (
+            <Alert severity="info" data-testid="night-boost-disabled-airco">
+              {t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')}
+            </Alert>
+          ) : (
+            <>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 3,
+                }}
+              >
+                <Box>
+                  <Typography variant="body1" color="text.primary">
+                    {t('settingsCards.enableNightBoost')}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {t('settingsCards.enableNightBoostDescription')}
+                  </Typography>
+                </Box>
+                <Switch
+                  checked={area.night_boost_enabled ?? true}
+                  onChange={async e => {
+                    try {
+                      await fetch('/api/smart_heating/call_service', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          service: 'set_night_boost',
+                          area_id: area.id,
+                          night_boost_enabled: e.target.checked,
+                        }),
+                      })
+                      loadData()
+                    } catch (error) {
+                      console.error('Failed to update night boost:', error)
+                    }
+                  }}
+                />
+              </Box>
+
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {t('settingsCards.nightBoostPeriod')}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+                <TextField
+                  label={t('settingsCards.startTime')}
+                  type="time"
+                  value={area.night_boost_start_time ?? '22:00'}
+                  onChange={async e => {
+                    try {
+                      await fetch('/api/smart_heating/call_service', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          service: 'set_night_boost',
+                          area_id: area.id,
+                          night_boost_start_time: e.target.value,
+                        }),
+                      })
+                      loadData()
+                    } catch (error) {
+                      console.error('Failed to update night boost start time:', error)
+                    }
+                  }}
+                  disabled={!area.night_boost_enabled}
+                  slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 300 } }}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  label={t('settingsCards.endTime')}
+                  type="time"
+                  value={area.night_boost_end_time ?? '06:00'}
+                  onChange={async e => {
+                    try {
+                      await fetch('/api/smart_heating/call_service', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          service: 'set_night_boost',
+                          area_id: area.id,
+                          night_boost_end_time: e.target.value,
+                        }),
+                      })
+                      loadData()
+                    } catch (error) {
+                      console.error('Failed to update night boost end time:', error)
+                    }
+                  }}
+                  disabled={!area.night_boost_enabled}
+                  slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 300 } }}
+                  sx={{ flex: 1 }}
+                />
+              </Box>
+
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {t('settingsCards.nightBoostOffset')}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Slider
+                  value={area.night_boost_offset ?? 0.5}
+                  onChange={async (_e, value) => {
+                    try {
+                      await fetch('/api/smart_heating/call_service', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          service: 'set_night_boost',
+                          area_id: area.id,
+                          night_boost_offset: value,
+                        }),
+                      })
+                      loadData()
+                    } catch (error) {
+                      console.error('Failed to update night boost offset:', error)
+                    }
+                  }}
+                  min={0}
+                  max={3}
+                  step={0.1}
+                  marks={[
+                    { value: 0, label: '0°C' },
+                    { value: 1.5, label: '1.5°C' },
+                    { value: 3, label: '3°C' },
+                  ]}
+                  valueLabelDisplay="auto"
+                  valueLabelFormat={value => `+${value}°C`}
+                  disabled={!area.night_boost_enabled}
+                  sx={{ flexGrow: 1 }}
+                />
+                <Typography variant="h6" color="primary" sx={{ minWidth: 60 }}>
+                  +{area.night_boost_offset ?? 0.5}°C
                 </Typography>
               </Box>
-              <Switch
-                checked={area.night_boost_enabled ?? true}
-                onChange={async e => {
-                  try {
-                    await fetch('/api/smart_heating/call_service', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        service: 'set_night_boost',
-                        area_id: area.id,
-                        night_boost_enabled: e.target.checked,
-                      }),
-                    })
-                    loadData()
-                  } catch (error) {
-                    console.error('Failed to update night boost:', error)
-                  }
-                }}
-              />
-            </Box>
-
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {t('settingsCards.nightBoostPeriod')}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              <TextField
-                label={t('settingsCards.startTime')}
-                type="time"
-                value={area.night_boost_start_time ?? '22:00'}
-                onChange={async e => {
-                  try {
-                    await fetch('/api/smart_heating/call_service', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        service: 'set_night_boost',
-                        area_id: area.id,
-                        night_boost_start_time: e.target.value,
-                      }),
-                    })
-                    loadData()
-                  } catch (error) {
-                    console.error('Failed to update night boost start time:', error)
-                  }
-                }}
-                disabled={!area.night_boost_enabled}
-                slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 300 } }}
-                sx={{ flex: 1 }}
-              />
-              <TextField
-                label={t('settingsCards.endTime')}
-                type="time"
-                value={area.night_boost_end_time ?? '06:00'}
-                onChange={async e => {
-                  try {
-                    await fetch('/api/smart_heating/call_service', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        service: 'set_night_boost',
-                        area_id: area.id,
-                        night_boost_end_time: e.target.value,
-                      }),
-                    })
-                    loadData()
-                  } catch (error) {
-                    console.error('Failed to update night boost end time:', error)
-                  }
-                }}
-                disabled={!area.night_boost_enabled}
-                slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 300 } }}
-                sx={{ flex: 1 }}
-              />
-            </Box>
-
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {t('settingsCards.nightBoostOffset')}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Slider
-                value={area.night_boost_offset ?? 0.5}
-                onChange={async (_e, value) => {
-                  try {
-                    await fetch('/api/smart_heating/call_service', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        service: 'set_night_boost',
-                        area_id: area.id,
-                        night_boost_offset: value,
-                      }),
-                    })
-                    loadData()
-                  } catch (error) {
-                    console.error('Failed to update night boost offset:', error)
-                  }
-                }}
-                min={0}
-                max={3}
-                step={0.1}
-                marks={[
-                  { value: 0, label: '0°C' },
-                  { value: 1.5, label: '1.5°C' },
-                  { value: 3, label: '3°C' },
-                ]}
-                valueLabelDisplay="auto"
-                valueLabelFormat={value => `+${value}°C`}
-                disabled={!area.night_boost_enabled}
-                sx={{ flexGrow: 1 }}
-              />
-              <Typography variant="h6" color="primary" sx={{ minWidth: 60 }}>
-                +{area.night_boost_offset ?? 0.5}°C
-              </Typography>
-            </Box>
-          </>
-        ),
+            </>
+          ),
       },
       {
         id: 'smart-night-boost',
         title: t('settingsCards.smartNightBoostTitle'),
-        description: t('settingsCards.smartNightBoostDescription'),
+        description:
+          area.heating_type === 'airco'
+            ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')
+            : t('settingsCards.smartNightBoostDescription'),
         icon: <PsychologyIcon />,
         badge: area.smart_night_boost_enabled ? 'LEARNING' : 'OFF',
         defaultExpanded: false,
-        content: (
-          <>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              {t('settingsCards.smartNightBoostIntro')}
-            </Typography>
+        content:
+          area.heating_type === 'airco' ? (
+            <Alert severity="info" data-testid="smart-night-boost-disabled-airco">
+              {t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')}
+            </Alert>
+          ) : (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {t('settingsCards.smartNightBoostIntro')}
+              </Typography>
 
-            <Box
-              sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}
-            >
-              <Box>
-                <Typography variant="body1" color="text.primary">
-                  {t('settingsCards.enableSmartNightBoost')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {t('settingsCards.enableSmartNightBoostDescription')}
-                </Typography>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 3,
+                }}
+              >
+                <Box>
+                  <Typography variant="body1" color="text.primary">
+                    {t('settingsCards.enableSmartNightBoost')}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {t('settingsCards.enableSmartNightBoostDescription')}
+                  </Typography>
+                </Box>
+                <Switch
+                  checked={area.smart_night_boost_enabled ?? false}
+                  onChange={async e => {
+                    try {
+                      await fetch('/api/smart_heating/call_service', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          service: 'set_night_boost',
+                          area_id: area.id,
+                          smart_night_boost_enabled: e.target.checked,
+                        }),
+                      })
+                      loadData()
+                    } catch (error) {
+                      console.error('Failed to update smart night boost:', error)
+                    }
+                  }}
+                />
               </Box>
-              <Switch
-                checked={area.smart_night_boost_enabled ?? false}
+
+              <TextField
+                label={t('settingsCards.targetWakeupTime')}
+                type="time"
+                value={area.smart_night_boost_target_time ?? '06:00'}
                 onChange={async e => {
                   try {
                     await fetch('/api/smart_heating/call_service', {
@@ -1502,202 +1561,137 @@ const ZoneDetail = () => {
                       body: JSON.stringify({
                         service: 'set_night_boost',
                         area_id: area.id,
-                        smart_night_boost_enabled: e.target.checked,
+                        smart_night_boost_target_time: e.target.value,
                       }),
                     })
                     loadData()
                   } catch (error) {
-                    console.error('Failed to update smart night boost:', error)
+                    console.error('Failed to update target time:', error)
                   }
                 }}
+                disabled={!area.smart_night_boost_enabled}
+                fullWidth
+                helperText={t('settingsCards.targetWakeupTimeHelper')}
+                slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 300 } }}
+                sx={{ mb: 3 }}
               />
-            </Box>
 
-            <TextField
-              label={t('settingsCards.targetWakeupTime')}
-              type="time"
-              value={area.smart_night_boost_target_time ?? '06:00'}
-              onChange={async e => {
-                try {
-                  await fetch('/api/smart_heating/call_service', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      service: 'set_night_boost',
-                      area_id: area.id,
-                      smart_night_boost_target_time: e.target.value,
-                    }),
-                  })
-                  loadData()
-                } catch (error) {
-                  console.error('Failed to update target time:', error)
-                }
-              }}
-              disabled={!area.smart_night_boost_enabled}
-              fullWidth
-              helperText={t('settingsCards.targetWakeupTimeHelper')}
-              slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 300 } }}
-              sx={{ mb: 3 }}
-            />
+              <FormControl fullWidth sx={{ mb: 3 }} disabled={!area.smart_night_boost_enabled}>
+                <InputLabel>{t('settingsCards.outdoorTemperatureSensor')}</InputLabel>
+                <Select
+                  value={area.weather_entity_id || ''}
+                  onChange={async e => {
+                    const newValue = e.target.value || null // Convert empty string to null
+                    console.log('Weather sensor onChange - Selected value:', newValue)
+                    console.log(
+                      'Weather sensor onChange - Current area.weather_entity_id:',
+                      area.weather_entity_id,
+                    )
+                    try {
+                      const serviceCallBody = {
+                        service: 'set_night_boost',
+                        area_id: area.id,
+                        weather_entity_id: newValue,
+                      }
+                      console.log('Weather sensor onChange - Service call body:', serviceCallBody)
 
-            <FormControl fullWidth sx={{ mb: 3 }} disabled={!area.smart_night_boost_enabled}>
-              <InputLabel>{t('settingsCards.outdoorTemperatureSensor')}</InputLabel>
-              <Select
-                value={area.weather_entity_id || ''}
-                onChange={async e => {
-                  const newValue = e.target.value || null // Convert empty string to null
-                  console.log('Weather sensor onChange - Selected value:', newValue)
-                  console.log(
-                    'Weather sensor onChange - Current area.weather_entity_id:',
-                    area.weather_entity_id,
-                  )
-                  try {
-                    const serviceCallBody = {
-                      service: 'set_night_boost',
-                      area_id: area.id,
-                      weather_entity_id: newValue,
+                      const response = await fetch('/api/smart_heating/call_service', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(serviceCallBody),
+                      })
+                      const result = await response.json()
+                      console.log('Weather sensor onChange - Service call response:', result)
+
+                      // Wait a bit for the backend to save
+                      await new Promise(resolve => setTimeout(resolve, 500))
+
+                      await loadData()
+                      console.log('Weather sensor onChange - After loadData complete')
+                    } catch (error) {
+                      console.error('Weather sensor onChange - Failed to update:', error)
                     }
-                    console.log('Weather sensor onChange - Service call body:', serviceCallBody)
-
-                    const response = await fetch('/api/smart_heating/call_service', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(serviceCallBody),
-                    })
-                    const result = await response.json()
-                    console.log('Weather sensor onChange - Service call response:', result)
-
-                    // Wait a bit for the backend to save
-                    await new Promise(resolve => setTimeout(resolve, 500))
-
-                    await loadData()
-                    console.log('Weather sensor onChange - After loadData complete')
-                  } catch (error) {
-                    console.error('Weather sensor onChange - Failed to update:', error)
-                  }
-                }}
-                onOpen={() => {
-                  if (weatherEntities.length === 0) {
-                    loadWeatherEntities()
-                  }
-                }}
-                label={t('settingsCards.outdoorTemperatureSensor')}
-              >
-                <MenuItem value="">
-                  <em>{t('settingsCards.outdoorTemperatureSensorPlaceholder')}</em>
-                </MenuItem>
-                {weatherEntitiesLoading ? (
-                  <MenuItem disabled>
-                    <CircularProgress size={20} sx={{ mr: 1 }} />
-                    Loading...
+                  }}
+                  onOpen={() => {
+                    if (weatherEntities.length === 0) {
+                      loadWeatherEntities()
+                    }
+                  }}
+                  label={t('settingsCards.outdoorTemperatureSensor')}
+                >
+                  <MenuItem value="">
+                    <em>{t('settingsCards.outdoorTemperatureSensorPlaceholder')}</em>
                   </MenuItem>
-                ) : (
-                  weatherEntities.map(entity => (
-                    <MenuItem key={entity.entity_id} value={entity.entity_id}>
-                      {entity.attributes?.friendly_name || entity.entity_id}
+                  {weatherEntitiesLoading ? (
+                    <MenuItem disabled>
+                      <CircularProgress size={20} sx={{ mr: 1 }} />
+                      Loading...
                     </MenuItem>
-                  ))
-                )}
-              </Select>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-                {t('settingsCards.outdoorTemperatureSensorHelper')}
-              </Typography>
-            </FormControl>
+                  ) : (
+                    weatherEntities.map(entity => (
+                      <MenuItem key={entity.entity_id} value={entity.entity_id}>
+                        {entity.attributes?.friendly_name || entity.entity_id}
+                      </MenuItem>
+                    ))
+                  )}
+                </Select>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {t('settingsCards.outdoorTemperatureSensorHelper')}
+                </Typography>
+              </FormControl>
 
-            {area.smart_night_boost_enabled && (
-              <Box sx={{ mt: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  <strong>{t('settingsCards.smartNightBoostHowItWorksTitle')}</strong>
-                </Typography>
-                <Typography variant="caption" color="text.secondary" component="div">
-                  • {t('settingsCards.smartNightBoostBullet1')}
-                  <br />• {t('settingsCards.smartNightBoostBullet2')}
-                  <br />• {t('settingsCards.smartNightBoostBullet3')}
-                  <br />• {t('settingsCards.smartNightBoostBullet4')}
-                </Typography>
-              </Box>
-            )}
-          </>
-        ),
+              {area.smart_night_boost_enabled && (
+                <Box sx={{ mt: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    <strong>{t('settingsCards.smartNightBoostHowItWorksTitle')}</strong>
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" component="div">
+                    • {t('settingsCards.smartNightBoostBullet1')}
+                    <br />• {t('settingsCards.smartNightBoostBullet2')}
+                    <br />• {t('settingsCards.smartNightBoostBullet3')}
+                    <br />• {t('settingsCards.smartNightBoostBullet4')}
+                  </Typography>
+                </Box>
+              )}
+            </>
+          ),
       },
       {
         id: 'heating-control',
         title: t('settingsCards.heatingControlTitle'),
-        description: t('settingsCards.heatingControlDescription'),
+        description:
+          area.heating_type === 'airco'
+            ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')
+            : t('settingsCards.heatingControlDescription'),
         icon: <TuneIcon />,
         defaultExpanded: false,
-        content: (
-          <>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {t('settingsCards.temperatureHysteresis')}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-              {t('settingsCards.temperatureHysteresisDescription')}
-            </Typography>
+        content:
+          area.heating_type === 'airco' ? (
+            <Alert severity="info" data-testid="heating-control-disabled-airco">
+              {t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')}
+            </Alert>
+          ) : (
+            <>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {t('settingsCards.temperatureHysteresis')}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                {t('settingsCards.temperatureHysteresisDescription')}
+              </Typography>
 
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={
-                    area.hysteresis_override === null || area.hysteresis_override === undefined
-                  }
-                  onChange={async e => {
-                    const useGlobal = e.target.checked
-
-                    // Optimistic update
-                    const updatedArea = {
-                      ...area,
-                      hysteresis_override: useGlobal ? null : 0.5,
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={
+                      area.hysteresis_override === null || area.hysteresis_override === undefined
                     }
-                    setArea(updatedArea)
+                    onChange={async e => {
+                      const useGlobal = e.target.checked
 
-                    try {
-                      const response = await fetch(
-                        `/api/smart_heating/areas/${area.id}/hysteresis`,
-                        {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            use_global: useGlobal,
-                            hysteresis: useGlobal ? null : 0.5,
-                          }),
-                        },
-                      )
-                      if (!response.ok) {
-                        const errorText = await response.text()
-                        console.error('Failed to update hysteresis setting:', errorText)
-                        // Revert on error
-                        setArea(area)
-                      }
-                    } catch (error) {
-                      console.error('Failed to update hysteresis setting:', error)
-                      // Revert on error
-                      setArea(area)
-                    }
-                  }}
-                />
-              }
-              label={t('settingsCards.useGlobalHysteresis')}
-              sx={{ mb: 2 }}
-            />
-
-            {area.hysteresis_override === null || area.hysteresis_override === undefined ? (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                {t('settingsCards.usingGlobalHysteresis')}
-              </Alert>
-            ) : (
-              <>
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                  {t('settingsCards.usingAreaHysteresis')}
-                </Alert>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-                  <Slider
-                    value={area.hysteresis_override || 0.5}
-                    onChange={async (_e, value) => {
                       // Optimistic update
                       const updatedArea = {
                         ...area,
-                        hysteresis_override: typeof value === 'number' ? value : 0.5,
+                        hysteresis_override: useGlobal ? null : 0.5,
                       }
                       setArea(updatedArea)
 
@@ -1708,65 +1702,115 @@ const ZoneDetail = () => {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                              use_global: false,
-                              hysteresis: value,
+                              use_global: useGlobal,
+                              hysteresis: useGlobal ? null : 0.5,
                             }),
                           },
                         )
                         if (!response.ok) {
                           const errorText = await response.text()
-                          console.error('Failed to update hysteresis:', errorText)
+                          console.error('Failed to update hysteresis setting:', errorText)
                           // Revert on error
                           setArea(area)
                         }
                       } catch (error) {
-                        console.error('Failed to update hysteresis:', error)
+                        console.error('Failed to update hysteresis setting:', error)
                         // Revert on error
                         setArea(area)
                       }
                     }}
-                    min={0.1}
-                    max={2}
-                    step={0.1}
-                    marks={[
-                      { value: 0.1, label: '0.1°C' },
-                      { value: 1, label: '1.0°C' },
-                      { value: 2, label: '2.0°C' },
-                    ]}
-                    valueLabelDisplay="on"
-                    valueLabelFormat={value => `${value}°C`}
-                    sx={{ flexGrow: 1 }}
                   />
-                </Box>
-              </>
-            )}
+                }
+                label={t('settingsCards.useGlobalHysteresis')}
+                sx={{ mb: 2 }}
+              />
 
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {t('settingsCards.temperatureLimits')}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-              {t('settingsCards.temperatureLimitsDescription')}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 3 }}>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  {t('settingsCards.minimumTemperature')}
-                </Typography>
-                <Typography variant="h4" color="text.primary">
-                  5°C
-                </Typography>
+              {area.hysteresis_override === null || area.hysteresis_override === undefined ? (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  {t('settingsCards.usingGlobalHysteresis')}
+                </Alert>
+              ) : (
+                <>
+                  <Alert severity="warning" sx={{ mb: 2 }}>
+                    {t('settingsCards.usingAreaHysteresis')}
+                  </Alert>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+                    <Slider
+                      value={area.hysteresis_override || 0.5}
+                      onChange={async (_e, value) => {
+                        // Optimistic update
+                        const updatedArea = {
+                          ...area,
+                          hysteresis_override: typeof value === 'number' ? value : 0.5,
+                        }
+                        setArea(updatedArea)
+
+                        try {
+                          const response = await fetch(
+                            `/api/smart_heating/areas/${area.id}/hysteresis`,
+                            {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                use_global: false,
+                                hysteresis: value,
+                              }),
+                            },
+                          )
+                          if (!response.ok) {
+                            const errorText = await response.text()
+                            console.error('Failed to update hysteresis:', errorText)
+                            // Revert on error
+                            setArea(area)
+                          }
+                        } catch (error) {
+                          console.error('Failed to update hysteresis:', error)
+                          // Revert on error
+                          setArea(area)
+                        }
+                      }}
+                      min={0.1}
+                      max={2}
+                      step={0.1}
+                      marks={[
+                        { value: 0.1, label: '0.1°C' },
+                        { value: 1, label: '1.0°C' },
+                        { value: 2, label: '2.0°C' },
+                      ]}
+                      valueLabelDisplay="on"
+                      valueLabelFormat={value => `${value}°C`}
+                      sx={{ flexGrow: 1 }}
+                    />
+                  </Box>
+                </>
+              )}
+
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {t('settingsCards.temperatureLimits')}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                {t('settingsCards.temperatureLimitsDescription')}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 3 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {t('settingsCards.minimumTemperature')}
+                  </Typography>
+                  <Typography variant="h4" color="text.primary">
+                    5°C
+                  </Typography>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {t('settingsCards.maximumTemperature')}
+                  </Typography>
+                  <Typography variant="h4" color="text.primary">
+                    30°C
+                  </Typography>
+                </Box>
               </Box>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  {t('settingsCards.maximumTemperature')}
-                </Typography>
-                <Typography variant="h4" color="text.primary">
-                  30°C
-                </Typography>
-              </Box>
-            </Box>
-          </>
-        ),
+            </>
+          ),
       },
       {
         id: 'history-management',
