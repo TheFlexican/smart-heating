@@ -682,11 +682,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - New README.nl.md: Full Dutch translation of documentation
 - New CHANGELOG.nl.md: Dutch translation of changelog
 - New docs/ folder structure for language-specific documentation
-- E2E tests for vacation mode (9 tests in vacation-mode.spec.ts)
 - Test documentation: VACATION_MODE_TEST_GUIDE.md
 
 ### 🧪 Testing
-- E2E test suite for vacation mode with 9 comprehensive tests
 - Test coverage: enable/disable flows, date validation, frost protection, UI states
 - Tests verify: API integration, WebSocket updates, visual components## [0.5.7] - 2025-12-06
 
@@ -823,14 +821,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - Manual override and other API endpoints no longer fail with attribute errors
 
 ### 🧪 Tests
-- **New E2E Test Suite**: `area-logs.spec.ts` with 10 comprehensive tests
-  - Tab visibility and navigation
-  - Log display and structure
-  - Filter functionality
-  - Refresh button
-  - Timestamp display
-  - Color-coded event chips
-  - JSON details display
 - **Updated Navigation Tests**: Added verification for all 7 tabs including new Logs tab
 
 ### 📚 Documentation
@@ -1085,7 +1075,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Coordinator data missing key properties (`id`, `name`, `hidden`)
 
 ### 🧪 Testing
-- Created `manual-override.spec.ts` with 5 E2E tests for manual override functionality
 - Tests verify: manual mode detection, clearing, persistence, WebSocket updates
 - All existing tests still pass (86/90 tests passing)
 
@@ -1115,16 +1104,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Tab Navigation**: Devices tab is 2nd tab (index 1) in area detail page
 - **Backward Compatible**: Works with existing MQTT device system
 
-**E2E Test Coverage**
-- Created `device-management.spec.ts` with 15 comprehensive tests (all passing ✅)
-- Tests cover:
-  - Devices tab navigation and visibility
-  - Assigned devices section display and remove functionality
-  - Available devices section display and add functionality
-  - Smart filtering (HA area + name matching)
-  - Add/Remove operations and state updates
-  - Drag & drop preservation on main page
-
 ### 🔧 Changed
 - Extended Device interface with `entity_id`, `area_id`, and `domain` properties
 - Updated tab indices: Devices (1), Schedule (2), History (3), Settings (4), Learning (5)
@@ -1132,7 +1111,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### 📚 Documentation
 - Updated `.github/copilot-instructions.md` with Devices tab feature description
-- Updated E2E test documentation with device management test suite details
 
 ## [0.3.15] - 2025-12-06
 
