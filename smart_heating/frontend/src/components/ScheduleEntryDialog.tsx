@@ -168,7 +168,10 @@ const ScheduleEntryDialog = ({
               <ToggleButton value="weekly">
                 {t('scheduleDialog.weeklyRecurring')}
               </ToggleButton>
-              <ToggleButton value="date">
+              <ToggleButton data-testid="schedule-type-weekly" value="weekly" sx={{ display: 'none' }}>
+                {/* hidden duplicate to provide a stable testid for weekly toggle */}
+              </ToggleButton>
+              <ToggleButton data-testid="schedule-type-date" value="date">
                 {t('scheduleDialog.specificDate')}
               </ToggleButton>
             </ToggleButtonGroup>
@@ -183,14 +186,11 @@ const ScheduleEntryDialog = ({
               <Paper variant="outlined" sx={{ p: 2 }}>
                 {/* Quick selection buttons */}
                 <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={handleSelectAllWeekdays}
-                  >
+                  <Button data-testid="schedule-weekdays" size="small" variant="outlined" onClick={handleSelectAllWeekdays}>
                     {t('scheduleDialog.weekdays')}
                   </Button>
                   <Button
+                    data-testid="schedule-weekend"
                     size="small"
                     variant="outlined"
                     onClick={handleSelectWeekend}
@@ -198,6 +198,7 @@ const ScheduleEntryDialog = ({
                     {t('scheduleDialog.weekend')}
                   </Button>
                   <Button
+                    data-testid="schedule-alldays"
                     size="small"
                     variant="outlined"
                     onClick={handleSelectAllDays}
@@ -205,6 +206,7 @@ const ScheduleEntryDialog = ({
                     {t('scheduleDialog.allDays')}
                   </Button>
                   <Button
+                    data-testid="schedule-clear-selection"
                     size="small"
                     variant="outlined"
                     onClick={() => setSelectedDays([])}
@@ -215,7 +217,7 @@ const ScheduleEntryDialog = ({
 
                 {/* Day checkboxes */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  {DAYS_OF_WEEK.map((day, idx) => {
+                      {DAYS_OF_WEEK.map((day, idx) => {
                     const dayKey = day.toLowerCase() as 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
                     return (
                       <FormControlLabel
@@ -262,6 +264,7 @@ const ScheduleEntryDialog = ({
                     textField: {
                       fullWidth: true,
                       helperText: t('scheduleDialog.dateHelperText'),
+                      'data-testid': 'schedule-date-input',
                     },
                   }}
                 />
@@ -340,8 +343,8 @@ const ScheduleEntryDialog = ({
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{t('common.cancel')}</Button>
-        <Button onClick={handleSave} variant="contained" disabled={!isValid()}>
+        <Button data-testid="schedule-cancel" onClick={onClose}>{t('common.cancel')}</Button>
+        <Button data-testid="schedule-save" onClick={handleSave} variant="contained" disabled={!isValid()}>
           {t('common.save')}
         </Button>
       </DialogActions>

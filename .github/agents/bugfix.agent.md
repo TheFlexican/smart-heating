@@ -4,6 +4,7 @@ description: End-to-end bug triage, reproduction, and fixing across frontend/bac
 argument-hint: Describe the bug, steps to reproduce, expected vs actual behavior...
 tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'sonarqube/*', 'playwright/*', 'github/*', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'sonarsource.sonarlint-vscode/sonarqube_getPotentialSecurityIssues', 'sonarsource.sonarlint-vscode/sonarqube_excludeFiles', 'sonarsource.sonarlint-vscode/sonarqube_setUpConnectedMode', 'sonarsource.sonarlint-vscode/sonarqube_analyzeFile', 'todo']
 target: vscode
+infer: true
 handoffs:
   - label: Write Backend Tests
     agent: home-assistant-pytest

@@ -546,13 +546,24 @@ async def handle_set_heating_type(
         # Validate and set heating type
         if "heating_type" in data:
             heating_type = data["heating_type"]
-            if heating_type not in ["radiator", "floor_heating"]:
+            if heating_type not in ["radiator", "floor_heating", "airco"]:
                 return web.json_response(
-                    {"error": "heating_type must be 'radiator' or 'floor_heating'"},
+                    {
+                        "error": "heating_type must be 'radiator', 'floor_heating' or 'airco'"
+                    },
                     status=400,
                 )
             area.heating_type = heating_type
             _LOGGER.info("Area %s: Setting heating_type to %s", area_id, heating_type)
+
+            # If area is switched to air conditioning, clear/disable
+            # settings that apply only to radiator/floor heating systems
+            if heating_type == "airco":
+                area.custom_overhead_temp = None
+                area.heating_curve_coefficient = None
+                area.hysteresis_override = None
+                # Avoid shutting down switches by default for airco
+                area.shutdown_switches_when_idle = False
 
         # Set custom overhead temperature (optional)
         if "custom_overhead_temp" in data:

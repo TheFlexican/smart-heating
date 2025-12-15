@@ -1,6 +1,6 @@
 /// <reference types="vitest" />
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import SettingsSection from '../components/SettingsSection'
 import { FormControl, InputLabel, Select, MenuItem, RadioGroup, FormControlLabel, Radio, Switch, TextField, Box, Typography } from '@mui/material'
 import * as areas from '../api/areas'
@@ -90,6 +90,7 @@ it('heating type control has testid and accessible label', async () => {
     <RadioGroup data-testid="heating-type-control" aria-label={'settingsCards.heatingTypeTitle'} value={'radiator'} onChange={() => {}}>
       <FormControlLabel value="radiator" control={<Radio />} label={'settingsCards.radiator'} />
       <FormControlLabel value="floor_heating" control={<Radio />} label={'settingsCards.floorHeating'} />
+      <FormControlLabel value="airco" control={<Radio />} label={'settingsCards.airConditioner'} />
     </RadioGroup>
   )
 
@@ -112,6 +113,64 @@ it('heating type control has testid and accessible label', async () => {
   // accessible via aria-label (translation mock returns the key)
   const labeled = screen.getByLabelText('settingsCards.heatingTypeTitle') as HTMLElement
   expect(labeled).not.toBeNull()
+  // airco option present
+  expect(screen.getByText('settingsCards.airConditioner')).not.toBeNull()
+})
+
+it('heating curve control is disabled for airco area', async () => {
+  await userEvent.setup()
+
+  // Make getZones return an area with heating_type 'airco'
+  vi.spyOn(areas, 'getZones').mockResolvedValue([{ ...(area as any), heating_type: 'airco' } as any])
+
+  const { MemoryRouter, Routes, Route } = Router as any
+  render(
+    <MemoryRouter initialEntries={[`/areas/${area.id}`]}>
+      <Routes>
+        <Route path="/areas/:areaId" element={<ZoneDetail />} />
+      </Routes>
+    </MemoryRouter>
+  )
+
+  // Expand heating-type section and check helper text is visible
+  // Switch to Settings tab then expand heating-type card
+  await waitFor(() => expect(screen.getByTestId('area-detail-tab-settings')).not.toBeNull())
+  const settingsTab = screen.getByTestId('area-detail-tab-settings') as HTMLElement
+  await userEvent.click(settingsTab)
+  await waitFor(() => expect(screen.getByTestId('settings-card-heating-type')).not.toBeNull())
+  await userEvent.click(screen.getByTestId('settings-card-heating-type'))
+  // Badge should indicate Air Conditioner when heating_type is airco
+  await waitFor(() => expect(screen.getByText('settingsCards.airConditioner')).not.toBeNull())
+})
+
+it('switch/pump control is disabled for airco area', async () => {
+  await userEvent.setup()
+
+  // Make getZones return an area with heating_type 'airco'
+  vi.spyOn(areas, 'getZones').mockResolvedValue([{ ...(area as any), heating_type: 'airco' } as any])
+
+  const { MemoryRouter, Routes, Route } = Router as any
+  render(
+    <MemoryRouter initialEntries={[`/areas/${area.id}`]}>
+      <Routes>
+        <Route path="/areas/:areaId" element={<ZoneDetail />} />
+      </Routes>
+    </MemoryRouter>
+  )
+
+  // Expand switch-control section and check helper text and disabled state
+  // Switch to Settings tab then expand switch-control card
+  await waitFor(() => expect(screen.getByTestId('area-detail-tab-settings')).not.toBeNull())
+  const settingsTab = screen.getByTestId('area-detail-tab-settings') as HTMLElement
+  await userEvent.click(settingsTab)
+  await waitFor(() => expect(screen.getByTestId('settings-card-switch-control')).not.toBeNull())
+  // Click the card title to expand the card reliably
+  await userEvent.click(screen.getByText('settingsCards.switchPumpControlTitle'))
+  // The switch should be disabled for airco areas (check within the card)
+  const switchCard = screen.getByTestId('settings-card-switch-control') as HTMLElement
+  await waitFor(() => expect(within(switchCard).getByRole('switch')).not.toBeNull())
+  const switchInput = within(switchCard).getByRole('switch') as HTMLInputElement
+  expect(switchInput.disabled).toBe(true)
 })
 
 it('heating curve control has testid and toggles input disabled when using global', async () => {

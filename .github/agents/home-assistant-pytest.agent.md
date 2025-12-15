@@ -4,6 +4,7 @@ description: Write pytest tests for Home Assistant integrations with 80%+ covera
 argument-hint: Describe what to test (module, feature, or component)...
 tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'pylance-mcp-server/*', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'todo']
 target: vscode
+infer: true
 handoffs:
   - label: Run Tests
     agent: agent

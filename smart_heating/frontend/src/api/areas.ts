@@ -141,7 +141,7 @@ export const copySchedule = async (
 
 export const setHeatingType = async (
   areaId: string,
-  heatingType: 'radiator' | 'floor_heating',
+  heatingType: 'radiator' | 'floor_heating' | 'airco',
   customOverheadTemp?: number
 ): Promise<void> => {
   const data: any = { heating_type: heatingType }

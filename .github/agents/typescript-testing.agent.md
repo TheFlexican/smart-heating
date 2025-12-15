@@ -4,6 +4,7 @@ description: Write Jest/Vitest unit tests for React components with Testing Libr
 argument-hint: Describe what to test (component, hook, or API client)...
 tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'todo']
 target: vscode
+infer: true
 handoffs:
   - label: Run Tests
     agent: typescript-testing

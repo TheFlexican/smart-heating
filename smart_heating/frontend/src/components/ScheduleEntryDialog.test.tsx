@@ -29,7 +29,7 @@ describe('ScheduleEntryDialog', () => {
     render(<ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />)
 
     // Switch to date mode
-    await user.click(screen.getByRole('button', { name: 'scheduleDialog.specificDate' }))
+    await user.click(screen.getByTestId('schedule-type-date'))
     expect(screen.getByText('scheduleDialog.selectDate')).toBeInTheDocument()
   })
 })

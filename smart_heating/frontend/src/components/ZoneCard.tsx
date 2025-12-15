@@ -360,6 +360,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
             </Typography>
             <Box display="flex" gap={1} flexWrap="wrap">
               <Chip
+                data-testid={`area-state-${area.id}`}
                 icon={getStateIcon()}
                 label={area.manual_override ? t('area.manual') : t(`area.${area.state}`, { defaultValue: area.state }).toUpperCase()}
                 color={getStateColor()}
@@ -368,6 +369,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
               />
               {area.presence_sensors && area.presence_sensors.length > 0 && presenceState && (
                 <Chip
+                  data-testid={`area-presence-${area.id}`}
                   icon={<PersonIcon />}
                   label={t(`presets.${presenceState}`, { defaultValue: presenceState }).toUpperCase()}
                   color={presenceState === 'home' ? 'success' : 'default'}
@@ -390,6 +392,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
           <Box onClick={(e) => e.stopPropagation()} display="flex" gap={1}>
             <Tooltip title={area.boost_mode_active ? t('boost.quickBoostActive') : t('boost.quickBoostInactive')}>
               <IconButton
+                data-testid={`boost-toggle-${area.id}`}
                 size="small"
                 onClick={handleBoostToggle}
                 sx={{
@@ -404,7 +407,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
                 <RocketLaunchIcon />
               </IconButton>
             </Tooltip>
-            <IconButton size="small" onClick={handleMenuOpen} sx={{ p: { xs: 0.5, sm: 1 } }}>
+            <IconButton data-testid={`zone-menu-button-${area.id}`} size="small" onClick={handleMenuOpen} sx={{ p: { xs: 0.5, sm: 1 } }}>
               <MoreVertIcon />
             </IconButton>
           </Box>
@@ -568,11 +571,12 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
       </CardContent>
 
       <Menu
+        data-testid={`zone-menu-${area.id}`}
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={handleToggleHidden}>
+        <MenuItem data-testid={`zone-menu-hide-${area.id}`} onClick={handleToggleHidden}>
           <ListItemIcon>
             {area.hidden ? <VisibilityIcon /> : <VisibilityOffIcon />}
           </ListItemIcon>

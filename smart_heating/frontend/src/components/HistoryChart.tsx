@@ -112,11 +112,15 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
     }),
     current: entry.current_temperature,
     target: entry.target_temperature,
-    // For heating indicator scatter plot
+    // For heating/cooling indicator scatter plot
     heatingDot: entry.state === 'heating' ? entry.current_temperature : null,
+    coolingDot: entry.state === 'cooling' ? entry.current_temperature : null,
     // Store state for custom tooltip
     heatingState: entry.state
   }))
+
+  const hasCooling = chartData.some(d => d.coolingDot !== null && d.coolingDot !== undefined)
+
 
   // Custom tooltip to show heating as Active/Inactive
   const CustomTooltip = ({ active, payload }: any) => {
@@ -135,9 +139,27 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
           <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>{data.time}</div>
           <div style={{ color: '#03a9f4' }}>Current: {data.current.toFixed(1)}°C</div>
           <div style={{ color: '#ffc107' }}>Target: {data.target.toFixed(1)}°C</div>
-          <div style={{ color: '#f44336' }}>
-            Heating: {data.heatingState === 'heating' ? 'Active' : 'Inactive'}
-          </div>
+          {
+            (() => {
+              let stateLabel: string
+              let color: string
+              if (data.heatingState === 'heating') {
+                stateLabel = `${t('areaDetail.heatingActiveLineShort', 'Heating')}: Active`
+                color = '#f44336'
+              } else if (data.heatingState === 'cooling') {
+                stateLabel = `${t('areaDetail.coolingActiveLineShort', 'Cooling')}: Active`
+                color = '#03a9f4'
+              } else {
+                stateLabel = `${t('areaDetail.heatingActiveLineShort', 'Heating')}: Inactive`
+                color = '#e1e1e1'
+              }
+              return (
+                <div style={{ color }}>
+                  {stateLabel}
+                </div>
+              )
+            })()
+          }
         </Box>
       )
     }
@@ -172,7 +194,13 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
             <ToggleButton value={72}>3d</ToggleButton>
             <ToggleButton value={168}>7d</ToggleButton>
             <ToggleButton value={720}>30d</ToggleButton>
-            <ToggleButton value="custom">Custom</ToggleButton>
+              <ToggleButton data-testid="history-range-6h" value={6}>6h</ToggleButton>
+              <ToggleButton data-testid="history-range-12h" value={12}>12h</ToggleButton>
+              <ToggleButton data-testid="history-range-24h" value={24}>24h</ToggleButton>
+              <ToggleButton data-testid="history-range-3d" value={72}>3d</ToggleButton>
+              <ToggleButton data-testid="history-range-7d" value={168}>7d</ToggleButton>
+              <ToggleButton data-testid="history-range-30d" value={720}>30d</ToggleButton>
+              <ToggleButton data-testid="history-range-custom" value="custom">Custom</ToggleButton>
           </ToggleButtonGroup>
         </Box>
 
@@ -183,6 +211,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
               type="datetime-local"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
+              data-testid="history-start-datetime"
               slotProps={{ inputLabel: { shrink: true } }}
               size="small"
               sx={{ flex: 1 }}
@@ -192,11 +221,13 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
               type="datetime-local"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
+              data-testid="history-end-datetime"
               slotProps={{ inputLabel: { shrink: true } }}
               size="small"
               sx={{ flex: 1 }}
             />
             <Button
+              data-testid="history-apply-button"
               variant="contained"
               onClick={loadHistory}
               disabled={!startTime || !endTime}
@@ -206,8 +237,8 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
           </Box>
         )}
       </Stack>
-
-      <ResponsiveContainer width="100%" height={400}>
+      <div data-testid="history-chart-container">
+        <ResponsiveContainer width="100%" height={400}>
         <ComposedChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2c" />
           <XAxis
@@ -258,14 +289,38 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
             dot={false}
             name={t('areaDetail.targetTempLine')}
           />
-          <Scatter
-            dataKey="heatingDot"
-            fill="#f44336"
-            shape="circle"
-            name={t('areaDetail.heatingActiveLine')}
-          />
+          {/** Render heating/cooling activity only if present in history entries */}
+          {(() => {
+            const hasHeating = chartData.some(d => d.heatingDot !== null && d.heatingDot !== undefined)
+            const hasCooling = chartData.some(d => d.coolingDot !== null && d.coolingDot !== undefined)
+            return (
+              <>
+                {hasHeating && (
+                  <Scatter
+                    dataKey="heatingDot"
+                    fill="#f44336"
+                    shape="circle"
+                    name={t('areaDetail.heatingActiveLine')}
+                  />
+                )}
+                {hasCooling && (
+                  <Scatter
+                    dataKey="coolingDot"
+                    fill="#03a9f4"
+                    shape="circle"
+                    name={t('areaDetail.coolingActiveLine')}
+                  />
+                )}
+              </>
+            )
+          })()}
+
         </ComposedChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+      </div>
+
+      {/* test-only flag to indicate cooling series present */}
+      <div data-testid="history-has-cooling" style={{ display: 'none' }}>{hasCooling ? '1' : '0'}</div>
 
       <Box sx={{ mt: 2 }}>
         <Alert severity="info" variant="outlined">

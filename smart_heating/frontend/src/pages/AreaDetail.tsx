@@ -708,7 +708,7 @@ const ZoneDetail = () => {
         title: t('settingsCards.heatingTypeTitle', 'Heating Type'),
         description: t('settingsCards.heatingTypeDescription', 'Select radiator or floor heating to optimize temperature control'),
         icon: <LocalFireDepartmentIcon />,
-        badge: area.heating_type === 'floor_heating' ? t('settingsCards.floorHeating', 'Floor Heating') : t('settingsCards.radiator', 'Radiator'),
+        badge: area.heating_type === 'floor_heating' ? t('settingsCards.floorHeating', 'Floor Heating') : (area.heating_type === 'airco' ? t('settingsCards.airConditioner', 'Air Conditioner') : t('settingsCards.radiator', 'Radiator')),
         defaultExpanded: false,
         content: (
           <Box>
@@ -718,7 +718,7 @@ const ZoneDetail = () => {
               value={area.heating_type || 'radiator'}
               onChange={async (e) => {
                 try {
-                  await setHeatingType(area.id, e.target.value as 'radiator' | 'floor_heating')
+                  await setHeatingType(area.id, e.target.value as 'radiator' | 'floor_heating' | 'airco')
                   loadData()
                 } catch (error) {
                   console.error('Failed to update heating type:', error)
@@ -749,6 +749,18 @@ const ZoneDetail = () => {
                   </Box>
                 }
               />
+              <FormControlLabel
+                value="airco"
+                control={<Radio />}
+                label={
+                  <Box>
+                    <Typography variant="body1">{t('settingsCards.airConditioner', 'Air Conditioner')}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {t('settingsCards.aircoDescription', 'Use air conditioner (cooling/heating). Radiator/floor-specific settings are disabled.')}
+                    </Typography>
+                  </Box>
+                }
+              />
             </RadioGroup>
 
             <Alert severity="info" sx={{ mt: 2 }}>
@@ -771,10 +783,10 @@ const ZoneDetail = () => {
                   type="number"
                   value={areaHeatingCurveCoefficient ?? ''}
                   onChange={(e) => setAreaHeatingCurveCoefficient(e.target.value ? Number(e.target.value) : null)}
-                  disabled={useGlobalHeatingCurve}
+                  disabled={useGlobalHeatingCurve || area.heating_type === 'airco'}
                   slotProps={{ htmlInput: { step: 0.1, min: 0.1, max: 10 } }}
                   inputProps={{ 'data-testid': 'heating-curve-control' }}
-                  helperText={useGlobalHeatingCurve ? t('settingsCards.heatingCurveHelper.usingGlobal', 'Using global coefficient') : t('settingsCards.heatingCurveHelper.overrideActive', 'Per-area override active')}
+                  helperText={area.heating_type === 'airco' ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner') : (useGlobalHeatingCurve ? t('settingsCards.heatingCurveHelper.usingGlobal', 'Using global coefficient') : t('settingsCards.heatingCurveHelper.overrideActive', 'Per-area override active'))}
                 />
                 <Button variant="contained" onClick={async () => {
                   try {
@@ -804,6 +816,8 @@ const ZoneDetail = () => {
               control={
                 <Switch
                   checked={area.shutdown_switches_when_idle ?? true}
+                  disabled={area.heating_type === 'airco'}
+                  inputProps={{ 'data-testid': 'shutdown-switches-input' }}
                   onChange={async (e) => {
                     try {
                       await setSwitchShutdown(area.id, e.target.checked)
@@ -817,7 +831,7 @@ const ZoneDetail = () => {
               label={t('settingsCards.shutdownSwitchesPumps')}
             />
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1, ml: 4 }}>
-              {t('settingsCards.shutdownSwitchesDescription')}
+              {area.heating_type === 'airco' ? t('settingsCards.disabledForAirco') : t('settingsCards.shutdownSwitchesDescription')}
             </Typography>
           </Box>
         )
@@ -1965,6 +1979,7 @@ const ZoneDetail = () => {
                 <List>
                   {area.devices.map((device) => (
                     <ListItem
+                      data-testid={`assigned-device-${device.id}`}
                       key={device.id}
                       sx={{
                         border: 1,
@@ -1976,6 +1991,7 @@ const ZoneDetail = () => {
                         <IconButton
                           edge="end"
                           aria-label="remove"
+                          data-testid={`remove-device-${(device.entity_id || device.id).toLowerCase().replaceAll(' ', '-')}`}
                           onClick={async () => {
                             try {
                               await removeDeviceFromZone(area.id, device.entity_id || device.id)
@@ -2002,6 +2018,7 @@ const ZoneDetail = () => {
                              device.current_temperature !== undefined &&
                              area.target_temperature > device.current_temperature && (
                               <Chip
+                                data-testid={`device-heating-chip-${device.id}`}
                                 label="heating"
                                 size="small"
                                 color="error"
@@ -2011,15 +2028,20 @@ const ZoneDetail = () => {
                           </Box>
                         }
                         secondary={
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              {String(device.type).replaceAll('_', ' ')}
-                            </Typography>
-                            <Typography variant="body2" color="text.primary" sx={{ mt: 0.5 }}>
-                              {getDeviceStatus(device)}
-                            </Typography>
-                          </Box>
-                        }
+                              <Box>
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  {String(device.type).replaceAll('_', ' ')}
+                                </Typography>
+                                <Typography variant="body2" color="text.primary" sx={{ mt: 0.5 }}>
+                                  {getDeviceStatus(device)}
+                                </Typography>
+                                {device.type === 'valve' && area?.heating_type === 'airco' && (
+                                  <Typography data-testid={`device-disabled-airco-${device.id}`} variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                                    {t('areaDetail.disabledForAirco', 'Disabled for Air Conditioner')}
+                                  </Typography>
+                                )}
+                              </Box>
+                            }
                       />
                     </ListItem>
                   ))}
@@ -2096,6 +2118,7 @@ const ZoneDetail = () => {
                     })
                     .map((device) => (
                     <ListItem
+                      data-testid={`available-device-${(device.entity_id || device.id).toLowerCase().replaceAll(' ', '-')}`}
                       key={device.entity_id || device.id}
                       sx={{
                         border: 1,
@@ -2105,8 +2128,11 @@ const ZoneDetail = () => {
                       }}
                       secondaryAction={
                         <Button
+                          data-testid={`add-available-device-${(device.entity_id || device.id).toLowerCase().replaceAll(' ', '-')}`}
                           variant="contained"
                           size="small"
+                          disabled={device.type === 'valve' && area?.heating_type === 'airco'}
+                          title={device.type === 'valve' && area?.heating_type === 'airco' ? t('areaDetail.disabledForAirco', 'Disabled for Air Conditioner') : undefined}
                           onClick={async () => {
                             try {
                               await addDeviceToZone(area.id, {

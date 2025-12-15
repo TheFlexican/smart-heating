@@ -110,6 +110,25 @@ class TestHandleSetHeatingType:
         assert "radiator" in body["error"] or "floor_heating" in body["error"]
 
     @pytest.mark.asyncio
+    async def test_set_airco_type(self, mock_hass, mock_area_manager, mock_area):
+        """Test setting heating type to airco clears radiator settings."""
+        mock_area_manager.get_area.return_value = mock_area
+
+        # Set some radiator specific settings
+        mock_area.custom_overhead_temp = 10.0
+        mock_area.heating_curve_coefficient = 2.0
+        mock_area.hysteresis_override = 0.5
+
+        data = {"heating_type": "airco"}
+        response = await handle_set_heating_type(mock_hass, mock_area_manager, "test_area", data)
+
+        assert response.status == 200
+        assert mock_area.heating_type == "airco"
+        assert mock_area.custom_overhead_temp is None
+        assert mock_area.heating_curve_coefficient is None
+        assert mock_area.hysteresis_override is None
+
+    @pytest.mark.asyncio
     async def test_overhead_temp_too_high(self, mock_hass, mock_area_manager, mock_area):
         """Test validation rejects overhead temp above 30°C."""
         mock_area_manager.get_area.return_value = mock_area

@@ -51,6 +51,28 @@ This creates an optimized production build in the `dist/` directory, which will 
 npm run type-check
 ```
 
+## Testing IDs
+
+Any new or modified frontend UI elements that are interactive or important for tests MUST include a `data-testid` attribute. This makes tests more reliable and easier to maintain by providing stable selectors that are resilient to cosmetic changes.
+
+Examples:
+
+- Button: `<button data-testid="zonecard-save">Save</button>`
+- Input: `<input data-testid="schedule-start-time" />`
+- Component root: `<ZoneCard data-testid="zonecard-<id>" />`
+
+Recommended naming conventions:
+
+- `component-action` (e.g., `zonecard-toggle`, `schedule-submit`)
+- `page-element-action` (e.g., `area-detail-save`, `header-logout`)
+
+Enforcement suggestion:
+
+- Add a PR checklist item to remind contributors to include `data-testid` on interactive/test-important elements (see `docs/frontend-testing-guidelines.md` for examples and scripts).
+
+See `docs/frontend-testing-guidelines.md` for more guidance and sample lint/pre-commit checks.
+
+
 ## Architecture
 
 ### Components

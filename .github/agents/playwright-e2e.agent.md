@@ -4,6 +4,7 @@ description: Write Playwright E2E tests for user workflows with semantic locator
 argument-hint: Describe the user workflow to test...
 tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'playwright/*', 'github/*', 'todo']
 target: vscode
+infer: true
 handoffs:
   - label: Run E2E Tests
     agent: playwright-e2e

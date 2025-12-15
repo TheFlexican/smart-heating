@@ -448,11 +448,11 @@ export default function AdvancedMetricsDashboard() {
                           </Typography>
                           <Chip
                             size="small"
-                            label={
-                              areaData?.heating_type === 'floor_heating'
-                                ? t('advancedMetrics.floorHeating', 'Floor')
-                                : t('advancedMetrics.radiator', 'Radiator')
-                            }
+                            label={(() => {
+                              if (areaData?.heating_type === 'floor_heating') return t('advancedMetrics.floorHeating', 'Floor')
+                              if (areaData?.heating_type === 'airco') return t('advancedMetrics.airConditioner', 'Air Conditioner')
+                              return t('advancedMetrics.radiator', 'Radiator')
+                            })()}
                             color={
                               areaData?.heating_type === 'floor_heating'
                                 ? 'primary'

@@ -12,8 +12,8 @@ vi.mock('./ScheduleEntryDialog', () => ({
   default: ({ open, onClose, onSave, editingEntry }: any) => (
     open ? (
       <div>
-        <button onClick={() => onSave({ id: 'from-test', start_time: '06:00', end_time: '07:00', days: ['Monday'], temperature: 20 })}>Save</button>
-        <button onClick={onClose}>Close</button>
+        <button data-testid="schedule-save" onClick={() => onSave({ id: 'from-test', start_time: '06:00', end_time: '07:00', days: ['Monday'], temperature: 20 })}>Save</button>
+        <button data-testid="schedule-cancel" onClick={onClose}>Close</button>
       </div>
     ) : null
   )
@@ -58,8 +58,8 @@ describe('ScheduleEditor', () => {
     const user = userEvent.setup()
     render(<ScheduleEditor area={area as any} onUpdate={onUpdate} />)
 
-    await user.click(screen.getByRole('button', { name: 'areaDetail.addSchedule' }))
-    const saveButton = screen.getByText('Save')
+    await user.click(screen.getByTestId('schedule-add-button'))
+    const saveButton = screen.getByTestId('schedule-save')
     await user.click(saveButton)
     const { addScheduleToZone } = await import('../api/areas')
     expect(addScheduleToZone).toHaveBeenCalled()
@@ -171,15 +171,9 @@ describe('ScheduleEditor', () => {
 
       render(<ScheduleEditor area={area as any} onUpdate={vi.fn()} />)
 
-      const mondayCard = screen.getByText('areaDetail.monday').closest('.MuiCard-root')
-      const expandButton = mondayCard?.querySelector('button[aria-label]') ||
-                           mondayCard?.querySelector('svg[data-testid="ExpandLessIcon"]')?.closest('button')
-
-      if (expandButton) {
-        await user.click(expandButton)
-        // After click, content should be collapsed (handled by MUI Collapse)
-        expect(expandButton).toBeInTheDocument()
-      }
+      const expandButton = screen.getByTestId('schedule-toggle-day-0')
+      await user.click(expandButton)
+      expect(expandButton).toBeInTheDocument()
     })
 
     it('toggles date expansion state', async () => {
@@ -189,14 +183,9 @@ describe('ScheduleEditor', () => {
 
       render(<ScheduleEditor area={area as any} onUpdate={vi.fn()} />)
 
-      const dateCard = screen.getByText(/2024/).closest('.MuiCard-root')
-      const expandButton = dateCard?.querySelector('svg[data-testid="ExpandLessIcon"]')?.closest('button') ||
-                           dateCard?.querySelector('svg[data-testid="ExpandMoreIcon"]')?.closest('button')
-
-      if (expandButton) {
-        await user.click(expandButton)
-        expect(expandButton).toBeInTheDocument()
-      }
+      const expandButton = screen.getByTestId('schedule-toggle-date-2024-12-25')
+      await user.click(expandButton)
+      expect(expandButton).toBeInTheDocument()
     })
 
     it('edits schedule when clicking on chip', async () => {
@@ -206,8 +195,8 @@ describe('ScheduleEditor', () => {
 
       render(<ScheduleEditor area={area as any} onUpdate={vi.fn()} />)
 
-      const scheduleChip = screen.getByText(/06:00 - 07:00/i).closest('.MuiChip-root')
-      await user.click(scheduleChip!)
+      const scheduleChip = screen.getByTestId('schedule-chip-s1')
+      await user.click(scheduleChip)
 
       // Dialog should open with editing entry
       expect(screen.getByText('Save')).toBeInTheDocument()
@@ -220,11 +209,11 @@ describe('ScheduleEditor', () => {
 
       render(<ScheduleEditor area={area as any} onUpdate={vi.fn()} />)
 
-      await user.click(screen.getByRole('button', { name: 'areaDetail.addSchedule' }))
-      expect(screen.getByText('Save')).toBeInTheDocument()
+      await user.click(screen.getByTestId('schedule-add-button'))
+      expect(screen.getByTestId('schedule-save')).toBeInTheDocument()
 
-      await user.click(screen.getByText('Close'))
-      expect(screen.queryByText('Save')).not.toBeInTheDocument()
+      await user.click(screen.getByTestId('schedule-cancel'))
+      expect(screen.queryByTestId('schedule-save')).not.toBeInTheDocument()
     })
 
     it('handles save errors gracefully', async () => {
