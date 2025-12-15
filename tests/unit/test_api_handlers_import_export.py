@@ -90,9 +90,7 @@ class TestImportHandler:
 
         assert response.status == 200
         # Verify async_import_config was called with create_backup=True
-        mock_config_manager.async_import_config.assert_called_once_with(
-            data, create_backup=True
-        )
+        mock_config_manager.async_import_config.assert_called_once_with(data, create_backup=True)
 
     async def test_import_validation_error(self, mock_hass, mock_config_manager):
         """Test import with validation error."""
@@ -141,9 +139,7 @@ class TestValidateHandler:
 
     async def test_validate_with_preview(self, mock_hass, mock_config_manager):
         """Test validate returns preview information."""
-        mock_config_manager.area_manager.get_all_areas.return_value = {
-            "living_room": MagicMock()
-        }
+        mock_config_manager.area_manager.get_all_areas.return_value = {"living_room": MagicMock()}
 
         data = {
             "version": "0.6.0",
@@ -228,9 +224,7 @@ class TestBackupHandlers:
         backup_dir.__truediv__.return_value = backup_file
         type(mock_config_manager).backup_dir = PropertyMock(return_value=backup_dir)
 
-        response = await handle_restore_backup(
-            mock_hass, mock_config_manager, "nonexistent.json"
-        )
+        response = await handle_restore_backup(mock_hass, mock_config_manager, "nonexistent.json")
 
         assert response.status == 404
 
@@ -257,16 +251,12 @@ class TestBackupHandlers:
         )
 
         with patch("builtins.open", mock_open(read_data=backup_content)):
-            response = await handle_restore_backup(
-                mock_hass, mock_config_manager, "backup.json"
-            )
+            response = await handle_restore_backup(mock_hass, mock_config_manager, "backup.json")
 
         assert response.status == 200
         data = json.loads(response.body)
         assert data["success"] is True
-        response = await handle_restore_backup(
-            mock_hass, mock_config_manager, "backup.json"
-        )
+        response = await handle_restore_backup(mock_hass, mock_config_manager, "backup.json")
 
         # Any response is fine for smoke test
         assert response is not None

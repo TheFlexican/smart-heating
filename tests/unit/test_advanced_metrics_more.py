@@ -96,9 +96,7 @@ def test_get_metrics_sync_area_filter_and_invalid_json():
 
     # Create fake rows
     class Row:
-        def __init__(
-            self, timestamp, outdoor_temp, boiler_flow_temp, area_metrics_json
-        ):
+        def __init__(self, timestamp, outdoor_temp, boiler_flow_temp, area_metrics_json):
             self.timestamp = timestamp
             self.outdoor_temp = outdoor_temp
             self.boiler_flow_temp = boiler_flow_temp

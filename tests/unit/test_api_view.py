@@ -47,11 +47,7 @@ async def test_api_view_get_various_endpoints(hass, mock_area_manager):
         ),
         patch(
             "smart_heating.api.handle_get_efficiency_report",
-            AsyncMock(
-                return_value=web.json_response(
-                    {"summary_metrics": {"energy_score": 50}}
-                )
-            ),
+            AsyncMock(return_value=web.json_response({"summary_metrics": {"energy_score": 50}})),
         ),
     ):
         # status

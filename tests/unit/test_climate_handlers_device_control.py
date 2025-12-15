@@ -112,9 +112,7 @@ class TestIsAnyThermostatActivelyHeating:
 
         assert result is False
 
-    def test_multiple_thermostats_one_heating(
-        self, device_handler, mock_hass, mock_area
-    ):
+    def test_multiple_thermostats_one_heating(self, device_handler, mock_hass, mock_area):
         """Test with multiple thermostats where one is heating."""
         mock_area.get_thermostats.return_value = ["climate.thermo1", "climate.thermo2"]
 
@@ -239,9 +237,7 @@ class TestAsyncControlThermostats:
         # Should still be 3 calls (no extra temperature call)
         calls = device_handler.hass.services.async_call.call_args_list
         set_temp_calls = [
-            c
-            for c in calls
-            if c.args[0] == "climate" and c.args[1] == "set_temperature"
+            c for c in calls if c.args[0] == "climate" and c.args[1] == "set_temperature"
         ]
         assert len(set_temp_calls) == 1
 
@@ -254,9 +250,7 @@ class TestAsyncControlThermostats:
         await device_handler.async_control_thermostats(mock_area, True, 21.0)
         calls = device_handler.hass.services.async_call.call_args_list
         set_temp_calls = [
-            c
-            for c in calls
-            if c.args[0] == "climate" and c.args[1] == "set_temperature"
+            c for c in calls if c.args[0] == "climate" and c.args[1] == "set_temperature"
         ]
         assert len(set_temp_calls) == 1
 
@@ -265,9 +259,7 @@ class TestAsyncControlThermostats:
         # Should be 6 calls now
         calls = device_handler.hass.services.async_call.call_args_list
         set_temp_calls = [
-            c
-            for c in calls
-            if c.args[0] == "climate" and c.args[1] == "set_temperature"
+            c for c in calls if c.args[0] == "climate" and c.args[1] == "set_temperature"
         ]
         assert len(set_temp_calls) == 2
 
@@ -310,9 +302,7 @@ class TestAsyncControlThermostats:
         )
 
     @pytest.mark.asyncio
-    async def test_update_target_when_not_heating_below_hysteresis(
-        self, device_handler, mock_area
-    ):
+    async def test_update_target_when_not_heating_below_hysteresis(self, device_handler, mock_area):
         """Test keeps thermostat target when current_temp is below target - hysteresis."""
         mock_area.get_thermostats.return_value = ["climate.thermo1"]
         mock_area.current_temperature = 21.0
@@ -366,9 +356,7 @@ class TestAsyncControlThermostats:
         # Should have attempted turn_off, then fallen back to set_temperature
         calls = device_handler.hass.services.async_call.call_args_list
         set_temp_calls = [
-            c
-            for c in calls
-            if c.args[0] == "climate" and c.args[1] == "set_temperature"
+            c for c in calls if c.args[0] == "climate" and c.args[1] == "set_temperature"
         ]
         assert len(set_temp_calls) == 1
 
@@ -404,9 +392,7 @@ class TestAsyncControlThermostats:
         """Test error handling for failed thermostat control."""
         mock_area.get_thermostats.return_value = ["climate.broken"]
 
-        device_handler.hass.services.async_call.side_effect = Exception(
-            "Connection error"
-        )
+        device_handler.hass.services.async_call.side_effect = Exception("Connection error")
 
         # Should not raise exception
         await device_handler.async_control_thermostats(mock_area, True, 21.0)
@@ -487,9 +473,7 @@ class TestAsyncControlSwitches:
         )
 
     @pytest.mark.asyncio
-    async def test_keep_switches_on_when_shutdown_disabled(
-        self, device_handler, mock_area
-    ):
+    async def test_keep_switches_on_when_shutdown_disabled(self, device_handler, mock_area):
         """Test keeping switches on when shutdown_switches_when_idle is False."""
         mock_area.get_switches.return_value = ["switch.pump1"]
         mock_area.shutdown_switches_when_idle = False
@@ -504,9 +488,7 @@ class TestAsyncControlSwitches:
         """Test error handling for failed switch control."""
         mock_area.get_switches.return_value = ["switch.broken"]
 
-        device_handler.hass.services.async_call.side_effect = Exception(
-            "Connection error"
-        )
+        device_handler.hass.services.async_call.side_effect = Exception("Connection error")
 
         # Should not raise exception
         await device_handler.async_control_switches(mock_area, True)
@@ -525,9 +507,7 @@ class TestAsyncControlValves:
         device_handler.hass.services.async_call.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_number_valve_open_when_heating(
-        self, device_handler, mock_hass, mock_area
-    ):
+    async def test_number_valve_open_when_heating(self, device_handler, mock_hass, mock_area):
         """Test opening number valve when heating."""
         mock_area.get_valves.return_value = ["number.valve_pos1"]
 
@@ -548,9 +528,7 @@ class TestAsyncControlValves:
         )
 
     @pytest.mark.asyncio
-    async def test_number_valve_close_when_idle(
-        self, device_handler, mock_hass, mock_area
-    ):
+    async def test_number_valve_close_when_idle(self, device_handler, mock_hass, mock_area):
         """Test closing number valve when idle."""
         mock_area.get_valves.return_value = ["number.valve_pos1"]
 
@@ -571,9 +549,7 @@ class TestAsyncControlValves:
         )
 
     @pytest.mark.asyncio
-    async def test_climate_valve_position_control(
-        self, device_handler, mock_hass, mock_area
-    ):
+    async def test_climate_valve_position_control(self, device_handler, mock_hass, mock_area):
         """Test climate valve with position control."""
         mock_area.get_valves.return_value = ["climate.trv_with_position"]
 
@@ -616,9 +592,7 @@ class TestAsyncControlValves:
         # Should have attempted set_position, then fallen back to set_temperature
         calls = device_handler.hass.services.async_call.call_args_list
         set_temp_calls = [
-            c
-            for c in calls
-            if c.args[0] == "climate" and c.args[1] == "set_temperature"
+            c for c in calls if c.args[0] == "climate" and c.args[1] == "set_temperature"
         ]
         assert len(set_temp_calls) == 1
 
@@ -695,9 +669,7 @@ class TestAsyncControlValves:
         state.attributes = {"min": 0, "max": 100}
         mock_hass.states.get.return_value = state
 
-        device_handler.hass.services.async_call.side_effect = Exception(
-            "Connection error"
-        )
+        device_handler.hass.services.async_call.side_effect = Exception("Connection error")
 
         # Should not raise exception
         await device_handler.async_control_valves(mock_area, True, 21.0)
@@ -725,9 +697,7 @@ class TestAsyncControlOpenthermGateway:
 
         device_handler.hass.services.async_call.assert_not_called()
 
-    def test_collect_heating_areas_excludes_airco(
-        self, device_handler, mock_area_manager
-    ):
+    def test_collect_heating_areas_excludes_airco(self, device_handler, mock_area_manager):
         """Test that _collect_heating_areas excludes airco areas."""
         # Create areas: one radiator, one airco (both heating)
         radiator_area = Area("radiator_area", "Radiator Room")
@@ -735,21 +705,23 @@ class TestAsyncControlOpenthermGateway:
         radiator_area.state = "heating"
         radiator_area.current_temperature = 18.0
         radiator_area.target_temperature = 20.0
-        
+
         airco_area = Area("airco_area", "Airco Room")
         airco_area.heating_type = "airco"
         airco_area.state = "heating"
         airco_area.current_temperature = 19.0
         airco_area.target_temperature = 21.0
-        
+
         mock_area_manager.get_all_areas.return_value = {
             "radiator_area": radiator_area,
             "airco_area": airco_area,
         }
 
         # Collect heating areas
-        heating_area_ids, heating_types, overhead_temps = device_handler._collect_heating_areas(None)
-        
+        heating_area_ids, heating_types, overhead_temps = device_handler._collect_heating_areas(
+            None
+        )
+
         # Should only include radiator area, not airco
         assert heating_area_ids == ["radiator_area"]
         assert heating_types == {"radiator_area": "radiator"}
@@ -757,13 +729,11 @@ class TestAsyncControlOpenthermGateway:
         assert "airco_area" not in overhead_temps
 
     @pytest.mark.asyncio
-    async def test_turn_on_gateway_when_heating(
-        self, device_handler, mock_area_manager
-    ):
+    async def test_turn_on_gateway_when_heating(self, device_handler, mock_area_manager):
         """Test turning on OpenTherm gateway when heating required."""
         mock_area_manager.opentherm_gateway_id = "gateway1"
         mock_area_manager.opentherm_gateway_id = "gateway1"
-        
+
         # No areas set up, should turn off gateway
         mock_area_manager.get_all_areas.return_value = {}
 
@@ -812,14 +782,14 @@ class TestAsyncControlOpenthermGateway:
     async def test_only_airco_areas_no_opentherm_call(self, device_handler, mock_area_manager):
         """Test that when only airco areas are heating, OpenTherm Gateway is turned off."""
         mock_area_manager.opentherm_gateway_id = "gateway1"
-        
+
         # Create only airco area (heating)
         airco_area = Area("airco_area", "Airco Room")
         airco_area.heating_type = "airco"
         airco_area.state = "heating"
         airco_area.current_temperature = 19.0
         airco_area.target_temperature = 21.0
-        
+
         mock_area_manager.get_all_areas.return_value = {
             "airco_area": airco_area,
         }
@@ -841,9 +811,7 @@ class TestAsyncControlOpenthermGateway:
         mock_area_manager.opentherm_gateway_id = "gateway1"
         mock_area_manager.opentherm_gateway_id = "broken_gateway"
 
-        device_handler.hass.services.async_call.side_effect = Exception(
-            "Connection error"
-        )
+        device_handler.hass.services.async_call.side_effect = Exception("Connection error")
 
         # Should not raise exception
         await device_handler.async_control_opentherm_gateway(True, 22.0)

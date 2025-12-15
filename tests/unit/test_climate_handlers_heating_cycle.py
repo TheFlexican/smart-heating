@@ -90,9 +90,7 @@ def mock_area():
 
 
 @pytest.fixture
-def heating_cycle_handler(
-    mock_hass, mock_area_manager, mock_learning_engine, mock_area_logger
-):
+def heating_cycle_handler(mock_hass, mock_area_manager, mock_learning_engine, mock_area_logger):
     """Return HeatingCycleHandler instance."""
     return HeatingCycleHandler(
         hass=mock_hass,
@@ -143,10 +141,8 @@ class TestAsyncPrepareHeatingCycle:
         """Test preparation when no areas exist."""
         heating_cycle_handler.area_manager.get_all_areas.return_value = {}
 
-        should_record, history = (
-            await heating_cycle_handler.async_prepare_heating_cycle(
-                mock_temp_handler, mock_sensor_handler
-            )
+        should_record, history = await heating_cycle_handler.async_prepare_heating_cycle(
+            mock_temp_handler, mock_sensor_handler
         )
 
         assert should_record is False
@@ -162,20 +158,14 @@ class TestAsyncPrepareHeatingCycle:
         mock_area.get_thermostats.return_value = []
         mock_temp_handler.collect_area_temperatures.return_value = [20.5, 21.0, 20.2]
 
-        heating_cycle_handler.area_manager.get_all_areas.return_value = {
-            "living_room": mock_area
-        }
+        heating_cycle_handler.area_manager.get_all_areas.return_value = {"living_room": mock_area}
 
-        should_record, history = (
-            await heating_cycle_handler.async_prepare_heating_cycle(
-                mock_temp_handler, mock_sensor_handler
-            )
+        should_record, history = await heating_cycle_handler.async_prepare_heating_cycle(
+            mock_temp_handler, mock_sensor_handler
         )
 
         # Temperature should be averaged
-        assert (
-            mock_area.current_temperature == 20.566666666666666
-        )  # avg of [20.5, 21.0, 20.2]
+        assert mock_area.current_temperature == 20.566666666666666  # avg of [20.5, 21.0, 20.2]
         assert should_record is False
         mock_sensor_handler.async_update_sensor_states.assert_called_once()
 
@@ -188,14 +178,10 @@ class TestAsyncPrepareHeatingCycle:
         mock_area.get_thermostats.return_value = ["climate.thermostat1"]
         mock_temp_handler.collect_area_temperatures.return_value = [19.5]
 
-        heating_cycle_handler.area_manager.get_all_areas.return_value = {
-            "bedroom": mock_area
-        }
+        heating_cycle_handler.area_manager.get_all_areas.return_value = {"bedroom": mock_area}
 
-        should_record, history = (
-            await heating_cycle_handler.async_prepare_heating_cycle(
-                mock_temp_handler, mock_sensor_handler
-            )
+        should_record, history = await heating_cycle_handler.async_prepare_heating_cycle(
+            mock_temp_handler, mock_sensor_handler
         )
 
         assert mock_area.current_temperature == 19.5
@@ -209,14 +195,10 @@ class TestAsyncPrepareHeatingCycle:
         mock_area.get_temperature_sensors.return_value = []
         mock_area.get_thermostats.return_value = []
 
-        heating_cycle_handler.area_manager.get_all_areas.return_value = {
-            "empty_area": mock_area
-        }
+        heating_cycle_handler.area_manager.get_all_areas.return_value = {"empty_area": mock_area}
 
-        should_record, history = (
-            await heating_cycle_handler.async_prepare_heating_cycle(
-                mock_temp_handler, mock_sensor_handler
-            )
+        should_record, history = await heating_cycle_handler.async_prepare_heating_cycle(
+            mock_temp_handler, mock_sensor_handler
         )
 
         # Should not call collect_area_temperatures
@@ -229,19 +211,15 @@ class TestAsyncPrepareHeatingCycle:
         """Test preparation when temperature collection returns empty."""
         mock_area.get_temperature_sensors.return_value = ["sensor.broken"]
         mock_area.get_thermostats.return_value = []
-        mock_temp_handler.collect_area_temperatures.return_value = (
-            []
-        )  # No temps available
+        mock_temp_handler.collect_area_temperatures.return_value = []  # No temps available
 
         original_temp = mock_area.current_temperature
         heating_cycle_handler.area_manager.get_all_areas.return_value = {
             "problematic_area": mock_area
         }
 
-        should_record, history = (
-            await heating_cycle_handler.async_prepare_heating_cycle(
-                mock_temp_handler, mock_sensor_handler
-            )
+        should_record, history = await heating_cycle_handler.async_prepare_heating_cycle(
+            mock_temp_handler, mock_sensor_handler
         )
 
         # Temperature should not be updated
@@ -256,9 +234,7 @@ class TestAsyncPrepareHeatingCycle:
         mock_area.get_temperature_sensors.return_value = []
         mock_area.get_thermostats.return_value = []
 
-        heating_cycle_handler.area_manager.get_all_areas.return_value = {
-            "boosted_area": mock_area
-        }
+        heating_cycle_handler.area_manager.get_all_areas.return_value = {"boosted_area": mock_area}
 
         await heating_cycle_handler.async_prepare_heating_cycle(
             mock_temp_handler, mock_sensor_handler
@@ -325,15 +301,9 @@ class TestAsyncHandleHeatingRequired:
         assert mock_area.state == "heating"
 
         # Should control all devices
-        mock_device_handler.async_control_thermostats.assert_called_once_with(
-            mock_area, True, 21.0
-        )
-        mock_device_handler.async_control_switches.assert_called_once_with(
-            mock_area, True
-        )
-        mock_device_handler.async_control_valves.assert_called_once_with(
-            mock_area, True, 21.0
-        )
+        mock_device_handler.async_control_thermostats.assert_called_once_with(mock_area, True, 21.0)
+        mock_device_handler.async_control_switches.assert_called_once_with(mock_area, True)
+        mock_device_handler.async_control_valves.assert_called_once_with(mock_area, True, 21.0)
 
     @pytest.mark.asyncio
     async def test_handle_heating_required_with_learning_engine_new_event(
@@ -342,15 +312,13 @@ class TestAsyncHandleHeatingRequired:
         """Test heating required with learning engine starting new event."""
         mock_temp_handler.async_get_outdoor_temperature.return_value = 5.0
 
-        heating_areas, max_target = (
-            await heating_cycle_handler.async_handle_heating_required(
-                "living_room",
-                mock_area,
-                18.5,
-                21.5,
-                mock_device_handler,
-                mock_temp_handler,
-            )
+        heating_areas, max_target = await heating_cycle_handler.async_handle_heating_required(
+            "living_room",
+            mock_area,
+            18.5,
+            21.5,
+            mock_device_handler,
+            mock_temp_handler,
         )
 
         assert len(heating_areas) == 1
@@ -363,9 +331,7 @@ class TestAsyncHandleHeatingRequired:
         )
 
         # Outdoor temp should be fetched
-        mock_temp_handler.async_get_outdoor_temperature.assert_called_once_with(
-            mock_area
-        )
+        mock_temp_handler.async_get_outdoor_temperature.assert_called_once_with(mock_area)
 
     @pytest.mark.asyncio
     async def test_handle_heating_required_with_learning_engine_existing_event(
@@ -435,12 +401,8 @@ class TestAsyncHandleHeatingStop:
         mock_device_handler.async_control_thermostats.assert_called_once_with(
             mock_area, False, 21.0
         )
-        mock_device_handler.async_control_switches.assert_called_once_with(
-            mock_area, False
-        )
-        mock_device_handler.async_control_valves.assert_called_once_with(
-            mock_area, False, 21.0
-        )
+        mock_device_handler.async_control_switches.assert_called_once_with(mock_area, False)
+        mock_device_handler.async_control_valves.assert_called_once_with(mock_area, False, 21.0)
 
         assert mock_area.state == "idle"
 
@@ -467,12 +429,8 @@ class TestAsyncHandleHeatingStop:
         mock_device_handler.async_control_thermostats.assert_called_once_with(
             mock_area, False, 21.0
         )
-        mock_device_handler.async_control_switches.assert_called_once_with(
-            mock_area, False
-        )
-        mock_device_handler.async_control_valves.assert_called_once_with(
-            mock_area, False, 21.0
-        )
+        mock_device_handler.async_control_switches.assert_called_once_with(mock_area, False)
+        mock_device_handler.async_control_valves.assert_called_once_with(mock_area, False, 21.0)
 
         # Should log normal stop event
         heating_cycle_handler.area_logger.log_event.assert_called_once()
@@ -575,30 +533,24 @@ class TestHeatingCycleIntegration:
         mock_temp_handler.collect_area_temperatures.return_value = [18.0]
         mock_temp_handler.async_get_outdoor_temperature.return_value = 3.5
 
-        heating_cycle_handler.area_manager.get_all_areas.return_value = {
-            "living_room": mock_area
-        }
+        heating_cycle_handler.area_manager.get_all_areas.return_value = {"living_room": mock_area}
 
         # 1. Prepare heating cycle
-        should_record, history = (
-            await heating_cycle_handler.async_prepare_heating_cycle(
-                mock_temp_handler, mock_sensor_handler
-            )
+        should_record, history = await heating_cycle_handler.async_prepare_heating_cycle(
+            mock_temp_handler, mock_sensor_handler
         )
 
         assert mock_area.current_temperature == 18.0
         assert should_record is False
 
         # 2. Start heating
-        heating_areas, max_target = (
-            await heating_cycle_handler.async_handle_heating_required(
-                "living_room",
-                mock_area,
-                18.0,
-                21.0,
-                mock_device_handler,
-                mock_temp_handler,
-            )
+        heating_areas, max_target = await heating_cycle_handler.async_handle_heating_required(
+            "living_room",
+            mock_area,
+            18.0,
+            21.0,
+            mock_device_handler,
+            mock_temp_handler,
         )
 
         assert mock_area.state == "heating"

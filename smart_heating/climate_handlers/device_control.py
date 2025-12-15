@@ -1090,7 +1090,9 @@ class DeviceControlHandler:
 
                 # If no non-airco areas need heating, turn off gateway
                 if not heating_area_ids:
-                    await self._control_gateway_heating_off(gateway_id, opentherm_logger)
+                    await self._control_gateway_heating_off(
+                        gateway_id, opentherm_logger
+                    )
                 else:
                     # Control boiler for heating
                     await self._control_gateway_heating_on(

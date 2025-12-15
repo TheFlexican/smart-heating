@@ -85,6 +85,4 @@ async def test_api_view_many_endpoints(hass, mock_area_manager):
             if resp.status != 200:
                 # Gather diagnostic information for failing endpoint
                 body = resp.text or ""
-                pytest.fail(
-                    f"Endpoint {endpoint} returned status {resp.status}, body: {body}"
-                )
+                pytest.fail(f"Endpoint {endpoint} returned status {resp.status}, body: {body}")

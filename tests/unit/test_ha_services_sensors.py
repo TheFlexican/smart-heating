@@ -61,9 +61,7 @@ class TestSensorHandlers:
 
         # Verify sensor was added
         area = mock_area_manager.get_area.return_value
-        area.add_window_sensor.assert_called_once_with(
-            "binary_sensor.window_living_room"
-        )
+        area.add_window_sensor.assert_called_once_with("binary_sensor.window_living_room")
         # Verify data was saved
         mock_area_manager.async_save.assert_called_once()
         # Verify coordinator refresh
@@ -91,9 +89,7 @@ class TestSensorHandlers:
         mock_coordinator.async_request_refresh.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_handle_add_window_sensor_error(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_add_window_sensor_error(self, mock_area_manager, mock_coordinator):
         """Test adding window sensor when add_window_sensor raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -123,15 +119,11 @@ class TestSensorHandlers:
             "entity_id": "binary_sensor.window_living_room",
         }
 
-        await async_handle_remove_window_sensor(
-            call, mock_area_manager, mock_coordinator
-        )
+        await async_handle_remove_window_sensor(call, mock_area_manager, mock_coordinator)
 
         # Verify sensor was removed
         area = mock_area_manager.get_area.return_value
-        area.remove_window_sensor.assert_called_once_with(
-            "binary_sensor.window_living_room"
-        )
+        area.remove_window_sensor.assert_called_once_with("binary_sensor.window_living_room")
         # Verify data was saved
         mock_area_manager.async_save.assert_called_once()
         # Verify coordinator refresh
@@ -152,9 +144,7 @@ class TestSensorHandlers:
         mock_area_manager.get_area.return_value = None
 
         # Should not raise, just log error
-        await async_handle_remove_window_sensor(
-            call, mock_area_manager, mock_coordinator
-        )
+        await async_handle_remove_window_sensor(call, mock_area_manager, mock_coordinator)
 
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
@@ -176,9 +166,7 @@ class TestSensorHandlers:
         area.remove_window_sensor.side_effect = ValueError("Sensor not found")
 
         # Should not raise, just log error
-        await async_handle_remove_window_sensor(
-            call, mock_area_manager, mock_coordinator
-        )
+        await async_handle_remove_window_sensor(call, mock_area_manager, mock_coordinator)
 
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
@@ -195,15 +183,11 @@ class TestSensorHandlers:
             "entity_id": "binary_sensor.motion_living_room",
         }
 
-        await async_handle_add_presence_sensor(
-            call, mock_area_manager, mock_coordinator
-        )
+        await async_handle_add_presence_sensor(call, mock_area_manager, mock_coordinator)
 
         # Verify sensor was added
         area = mock_area_manager.get_area.return_value
-        area.add_presence_sensor.assert_called_once_with(
-            "binary_sensor.motion_living_room"
-        )
+        area.add_presence_sensor.assert_called_once_with("binary_sensor.motion_living_room")
         # Verify data was saved
         mock_area_manager.async_save.assert_called_once()
         # Verify coordinator refresh
@@ -224,9 +208,7 @@ class TestSensorHandlers:
         mock_area_manager.get_area.return_value = None
 
         # Should not raise, just log error
-        await async_handle_add_presence_sensor(
-            call, mock_area_manager, mock_coordinator
-        )
+        await async_handle_add_presence_sensor(call, mock_area_manager, mock_coordinator)
 
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
@@ -248,9 +230,7 @@ class TestSensorHandlers:
         area.add_presence_sensor.side_effect = ValueError("Sensor already exists")
 
         # Should not raise, just log error
-        await async_handle_add_presence_sensor(
-            call, mock_area_manager, mock_coordinator
-        )
+        await async_handle_add_presence_sensor(call, mock_area_manager, mock_coordinator)
 
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
@@ -267,15 +247,11 @@ class TestSensorHandlers:
             "entity_id": "binary_sensor.motion_living_room",
         }
 
-        await async_handle_remove_presence_sensor(
-            call, mock_area_manager, mock_coordinator
-        )
+        await async_handle_remove_presence_sensor(call, mock_area_manager, mock_coordinator)
 
         # Verify sensor was removed
         area = mock_area_manager.get_area.return_value
-        area.remove_presence_sensor.assert_called_once_with(
-            "binary_sensor.motion_living_room"
-        )
+        area.remove_presence_sensor.assert_called_once_with("binary_sensor.motion_living_room")
         # Verify data was saved
         mock_area_manager.async_save.assert_called_once()
         # Verify coordinator refresh
@@ -296,9 +272,7 @@ class TestSensorHandlers:
         mock_area_manager.get_area.return_value = None
 
         # Should not raise, just log error
-        await async_handle_remove_presence_sensor(
-            call, mock_area_manager, mock_coordinator
-        )
+        await async_handle_remove_presence_sensor(call, mock_area_manager, mock_coordinator)
 
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()
@@ -320,9 +294,7 @@ class TestSensorHandlers:
         area.remove_presence_sensor.side_effect = ValueError("Sensor not found")
 
         # Should not raise, just log error
-        await async_handle_remove_presence_sensor(
-            call, mock_area_manager, mock_coordinator
-        )
+        await async_handle_remove_presence_sensor(call, mock_area_manager, mock_coordinator)
 
         # Should not save or refresh on error
         mock_area_manager.async_save.assert_not_called()

@@ -190,9 +190,7 @@ class TestDeviceHandlers:
             assert len(body["devices"]) == 2
 
             # Check climate device
-            climate_dev = next(
-                d for d in body["devices"] if d["id"] == "climate.heater"
-            )
+            climate_dev = next(d for d in body["devices"] if d["id"] == "climate.heater")
             assert climate_dev["type"] == "climate"
             assert climate_dev["name"] == "Smart Heater"
             assert climate_dev["current_temperature"] == 20.5
@@ -302,9 +300,7 @@ class TestDeviceHandlers:
         """Test adding a device to area."""
         data = {"device_id": "climate.new_heater", "device_type": "climate"}
 
-        response = await handle_add_device(
-            mock_hass, mock_area_manager, "living_room", data
-        )
+        response = await handle_add_device(mock_hass, mock_area_manager, "living_room", data)
 
         assert response.status == 200
         body = json.loads(response.body.decode())
@@ -324,9 +320,7 @@ class TestDeviceHandlers:
             "mqtt_topic": "heating/control",
         }
 
-        response = await handle_add_device(
-            mock_hass, mock_area_manager, "living_room", data
-        )
+        response = await handle_add_device(mock_hass, mock_area_manager, "living_room", data)
 
         assert response.status == 200
         mock_area_manager.add_device_to_area.assert_called_once_with(
@@ -338,18 +332,14 @@ class TestDeviceHandlers:
         """Test adding device without required parameters."""
         data = {"device_id": "climate.heater"}  # Missing device_type
 
-        response = await handle_add_device(
-            mock_hass, mock_area_manager, "living_room", data
-        )
+        response = await handle_add_device(mock_hass, mock_area_manager, "living_room", data)
 
         assert response.status == 400
         body = json.loads(response.body.decode())
         assert "error" in body
 
     @pytest.mark.asyncio
-    async def test_handle_add_device_area_not_found(
-        self, mock_hass, mock_area_registry
-    ):
+    async def test_handle_add_device_area_not_found(self, mock_hass, mock_area_registry):
         """Test adding device to non-existent area that's not in HA."""
         area_manager = MagicMock()
         area_manager.get_area.return_value = None
@@ -363,9 +353,7 @@ class TestDeviceHandlers:
             "smart_heating.api_handlers.devices.ar.async_get",
             return_value=mock_area_registry,
         ):
-            response = await handle_add_device(
-                mock_hass, area_manager, "nonexistent", data
-            )
+            response = await handle_add_device(mock_hass, area_manager, "nonexistent", data)
 
             assert response.status == 404
             body = json.loads(response.body.decode())
@@ -391,9 +379,7 @@ class TestDeviceHandlers:
             mock_new_area = MagicMock()
             mock_area_class.return_value = mock_new_area
 
-            response = await handle_add_device(
-                mock_hass, area_manager, "living_room", data
-            )
+            response = await handle_add_device(mock_hass, area_manager, "living_room", data)
 
             assert response.status == 200
             # Verify area was created
@@ -403,15 +389,11 @@ class TestDeviceHandlers:
     @pytest.mark.asyncio
     async def test_handle_add_device_value_error(self, mock_hass, mock_area_manager):
         """Test adding device with ValueError."""
-        mock_area_manager.add_device_to_area.side_effect = ValueError(
-            "Device already exists"
-        )
+        mock_area_manager.add_device_to_area.side_effect = ValueError("Device already exists")
 
         data = {"device_id": "climate.heater", "device_type": "climate"}
 
-        response = await handle_add_device(
-            mock_hass, mock_area_manager, "living_room", data
-        )
+        response = await handle_add_device(mock_hass, mock_area_manager, "living_room", data)
 
         assert response.status == 400
         body = json.loads(response.body.decode())
@@ -420,9 +402,7 @@ class TestDeviceHandlers:
     @pytest.mark.asyncio
     async def test_handle_remove_device_success(self, mock_area_manager):
         """Test removing a device from area."""
-        response = await handle_remove_device(
-            mock_area_manager, "living_room", "climate.heater"
-        )
+        response = await handle_remove_device(mock_area_manager, "living_room", "climate.heater")
 
         assert response.status == 200
         body = json.loads(response.body.decode())
@@ -436,13 +416,9 @@ class TestDeviceHandlers:
     @pytest.mark.asyncio
     async def test_handle_remove_device_error(self, mock_area_manager):
         """Test removing device with error."""
-        mock_area_manager.remove_device_from_area.side_effect = ValueError(
-            "Device not found"
-        )
+        mock_area_manager.remove_device_from_area.side_effect = ValueError("Device not found")
 
-        response = await handle_remove_device(
-            mock_area_manager, "living_room", "nonexistent"
-        )
+        response = await handle_remove_device(mock_area_manager, "living_room", "nonexistent")
 
         assert response.status == 404
         body = json.loads(response.body.decode())

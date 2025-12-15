@@ -157,9 +157,7 @@ async def test_remove_safety_sensor_success(mock_hass, mock_area_manager):
     """Test successfully removing a safety sensor."""
     sensor_id = "binary_sensor.smoke_detector"
 
-    response = await handle_remove_safety_sensor(
-        mock_hass, mock_area_manager, sensor_id
-    )
+    response = await handle_remove_safety_sensor(mock_hass, mock_area_manager, sensor_id)
 
     assert response.status == 200
     assert b'"success": true' in response.body

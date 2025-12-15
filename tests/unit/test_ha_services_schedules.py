@@ -76,9 +76,7 @@ class TestScheduleHandlers:
     """Test schedule service handlers."""
 
     @pytest.mark.asyncio
-    async def test_async_handle_add_schedule_success(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_add_schedule_success(self, mock_area_manager, mock_coordinator):
         """Test adding schedule successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -101,9 +99,7 @@ class TestScheduleHandlers:
         mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_handle_add_schedule_no_days(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_add_schedule_no_days(self, mock_area_manager, mock_coordinator):
         """Test adding schedule without days parameter."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -121,9 +117,7 @@ class TestScheduleHandlers:
         )
 
     @pytest.mark.asyncio
-    async def test_async_handle_add_schedule_error(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_add_schedule_error(self, mock_area_manager, mock_coordinator):
         """Test adding schedule when add_schedule_to_area raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -134,9 +128,7 @@ class TestScheduleHandlers:
         }
 
         # Make add_schedule_to_area raise ValueError
-        mock_area_manager.add_schedule_to_area.side_effect = ValueError(
-            "Schedule exists"
-        )
+        mock_area_manager.add_schedule_to_area.side_effect = ValueError("Schedule exists")
 
         # Should not raise, just log error
         await async_handle_add_schedule(call, mock_area_manager, mock_coordinator)
@@ -146,9 +138,7 @@ class TestScheduleHandlers:
         mock_coordinator.async_request_refresh.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_handle_remove_schedule_success(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_remove_schedule_success(self, mock_area_manager, mock_coordinator):
         """Test removing schedule successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -168,9 +158,7 @@ class TestScheduleHandlers:
         mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_handle_remove_schedule_error(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_remove_schedule_error(self, mock_area_manager, mock_coordinator):
         """Test removing schedule when remove_schedule_from_area raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -179,9 +167,7 @@ class TestScheduleHandlers:
         }
 
         # Make remove_schedule_from_area raise ValueError
-        mock_area_manager.remove_schedule_from_area.side_effect = ValueError(
-            "Schedule not found"
-        )
+        mock_area_manager.remove_schedule_from_area.side_effect = ValueError("Schedule not found")
 
         # Should not raise, just log error
         await async_handle_remove_schedule(call, mock_area_manager, mock_coordinator)

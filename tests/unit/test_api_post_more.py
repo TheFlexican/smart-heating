@@ -76,9 +76,7 @@ async def test_api_view_post_more_endpoints(hass, mock_area_manager):
         assert resp.status == 200
 
         # set heating curve
-        req = make_mocked_request(
-            "POST", "/api/smart_heating/areas/area1/heating_curve"
-        )
+        req = make_mocked_request("POST", "/api/smart_heating/areas/area1/heating_curve")
         req.json = AsyncMock(return_value={"coefficient": 1.1})
         resp = await api_view.post(req, "areas/area1/heating_curve")
         assert resp.status == 200

@@ -80,9 +80,7 @@ async def test_async_get_metrics(monkeypatch):
 
     # Create fake rows as simple objects
     class Row:
-        def __init__(
-            self, timestamp, outdoor_temp, boiler_flow_temp, area_metrics_json
-        ):
+        def __init__(self, timestamp, outdoor_temp, boiler_flow_temp, area_metrics_json):
             self.timestamp = timestamp
             self.outdoor_temp = outdoor_temp
             self.boiler_flow_temp = boiler_flow_temp

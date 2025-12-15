@@ -89,7 +89,7 @@ test.describe('Auto Preset Mode', () => {
     // Verify selection persisted by reopening dropdown
     await homePresetDropdown.click()
     await page.waitForTimeout(500)
-    
+
     // Verify Comfort is selected (has aria-selected="true" or is highlighted)
     const comfortOption = page.locator('[role="option"]', { hasText: 'Comfort' })
     await expect(comfortOption).toHaveAttribute('aria-selected', 'true')
@@ -135,7 +135,7 @@ test.describe('Auto Preset Mode', () => {
     // (This will only show if the area has no presence sensors configured)
     const warningText = page.locator('text=No presence sensors configured')
     const hasWarning = await warningText.count() > 0
-    
+
     // If warning is present, verify it's visible
     if (hasWarning) {
       await expect(warningText).toBeVisible()

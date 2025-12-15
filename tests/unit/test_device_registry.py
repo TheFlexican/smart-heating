@@ -78,8 +78,6 @@ def test_get_ha_area_and_filtering_and_build():
     )
 
     # build device dict
-    dev = build_device_dict(
-        ent, state, "sensor", "temperature", ("area_1", "Living Room"), ["a1"]
-    )
+    dev = build_device_dict(ent, state, "sensor", "temperature", ("area_1", "Living Room"), ["a1"])
     assert dev["id"] == "sensor.temp1"
     assert dev["ha_area_name"] == "Living Room"

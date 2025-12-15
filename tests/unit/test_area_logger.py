@@ -76,9 +76,7 @@ class TestLogging:
             "details": {},
         }
 
-        with patch.object(
-            area_logger, "_async_rotate_if_needed", new_callable=AsyncMock
-        ):
+        with patch.object(area_logger, "_async_rotate_if_needed", new_callable=AsyncMock):
             await area_logger._async_write_log(TEST_AREA_ID, "temperature", entry)
 
         # Verify file was created and written
@@ -104,9 +102,7 @@ class TestLogging:
             "_get_log_file_path",
             return_value=Path("/nonexistent/invalid/path.jsonl"),
         ):
-            with patch.object(
-                area_logger, "_async_rotate_if_needed", new_callable=AsyncMock
-            ):
+            with patch.object(area_logger, "_async_rotate_if_needed", new_callable=AsyncMock):
                 # Should not raise exception despite the invalid path
                 await area_logger._async_write_log(TEST_AREA_ID, "temperature", entry)
 
@@ -188,15 +184,13 @@ class TestReading:
         temp_file = area_logger._get_log_file_path(TEST_AREA_ID, "temperature")
         await asyncio.to_thread(
             temp_file.write_text,
-            json.dumps({"timestamp": "2024-01-01T12:00:00", "message": "Temp 1"})
-            + "\n",
+            json.dumps({"timestamp": "2024-01-01T12:00:00", "message": "Temp 1"}) + "\n",
         )
 
         heating_file = area_logger._get_log_file_path(TEST_AREA_ID, "heating")
         await asyncio.to_thread(
             heating_file.write_text,
-            json.dumps({"timestamp": "2024-01-01T12:01:00", "message": "Heat 1"})
-            + "\n",
+            json.dumps({"timestamp": "2024-01-01T12:01:00", "message": "Heat 1"}) + "\n",
         )
 
         logs = await area_logger.async_get_logs(TEST_AREA_ID)
@@ -211,8 +205,7 @@ class TestReading:
         # Write 5 logs
         log_file = area_logger._get_log_file_path(TEST_AREA_ID, "temperature")
         content = "".join(
-            json.dumps({"timestamp": f"2024-01-01T12:0{i}:00", "message": f"Entry {i}"})
-            + "\n"
+            json.dumps({"timestamp": f"2024-01-01T12:0{i}:00", "message": f"Entry {i}"}) + "\n"
             for i in range(5)
         )
         await asyncio.to_thread(log_file.write_text, content)
@@ -234,10 +227,7 @@ class TestReading:
         log_file = area_logger._get_log_file_path(TEST_AREA_ID, "temperature")
         await asyncio.to_thread(
             log_file.write_text,
-            json.dumps({"message": "Entry 1"})
-            + "\n"
-            + json.dumps({"message": "Entry 2"})
-            + "\n",
+            json.dumps({"message": "Entry 1"}) + "\n" + json.dumps({"message": "Entry 2"}) + "\n",
         )
 
         logs = await area_logger._async_read_log_file(log_file)

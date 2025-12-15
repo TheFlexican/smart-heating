@@ -40,9 +40,7 @@ class TestDeviceHandlers:
     """Test device service handlers."""
 
     @pytest.mark.asyncio
-    async def test_async_handle_add_device_success(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_add_device_success(self, mock_area_manager, mock_coordinator):
         """Test adding device to area successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -63,9 +61,7 @@ class TestDeviceHandlers:
         mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_handle_add_device_error(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_add_device_error(self, mock_area_manager, mock_coordinator):
         """Test adding device when area manager raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -87,9 +83,7 @@ class TestDeviceHandlers:
         mock_coordinator.async_request_refresh.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_handle_remove_device_success(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_remove_device_success(self, mock_area_manager, mock_coordinator):
         """Test removing device from area successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -109,9 +103,7 @@ class TestDeviceHandlers:
         mock_coordinator.async_request_refresh.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_handle_remove_device_error(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_remove_device_error(self, mock_area_manager, mock_coordinator):
         """Test removing device when area manager raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -120,9 +112,7 @@ class TestDeviceHandlers:
         }
 
         # Make remove_device_from_area raise ValueError
-        mock_area_manager.remove_device_from_area.side_effect = ValueError(
-            "Device not found"
-        )
+        mock_area_manager.remove_device_from_area.side_effect = ValueError("Device not found")
 
         # Should not raise, just log error
         await async_handle_remove_device(call, mock_area_manager, mock_coordinator)

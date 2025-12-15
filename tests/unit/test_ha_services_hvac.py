@@ -54,9 +54,7 @@ class TestHvacHandlers:
     """Test HVAC service handlers."""
 
     @pytest.mark.asyncio
-    async def test_async_handle_set_preset_mode_success(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_set_preset_mode_success(self, mock_area_manager, mock_coordinator):
         """Test setting preset mode successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -99,9 +97,7 @@ class TestHvacHandlers:
         mock_coordinator.async_request_refresh.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_handle_set_preset_mode_error(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_set_preset_mode_error(self, mock_area_manager, mock_coordinator):
         """Test setting preset mode when set_preset_mode raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -123,9 +119,7 @@ class TestHvacHandlers:
         mock_coordinator.async_request_refresh.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_handle_set_boost_mode_success(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_set_boost_mode_success(self, mock_area_manager, mock_coordinator):
         """Test setting boost mode successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {
@@ -177,9 +171,7 @@ class TestHvacHandlers:
         mock_coordinator.async_request_refresh.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_handle_set_boost_mode_error(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_set_boost_mode_error(self, mock_area_manager, mock_coordinator):
         """Test setting boost mode when set_boost_mode raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {ATTR_AREA_ID: "living_room"}
@@ -196,9 +188,7 @@ class TestHvacHandlers:
         mock_coordinator.async_request_refresh.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_handle_cancel_boost_success(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_cancel_boost_success(self, mock_area_manager, mock_coordinator):
         """Test cancelling boost mode successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {ATTR_AREA_ID: "living_room"}
@@ -232,9 +222,7 @@ class TestHvacHandlers:
         mock_coordinator.async_request_refresh.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_handle_cancel_boost_error(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_cancel_boost_error(self, mock_area_manager, mock_coordinator):
         """Test cancelling boost mode when cancel_boost_mode raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {ATTR_AREA_ID: "living_room"}
@@ -251,9 +239,7 @@ class TestHvacHandlers:
         mock_coordinator.async_request_refresh.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_async_handle_set_hvac_mode_success(
-        self, mock_area_manager, mock_coordinator
-    ):
+    async def test_async_handle_set_hvac_mode_success(self, mock_area_manager, mock_coordinator):
         """Test setting HVAC mode successfully."""
         call = MagicMock(spec=ServiceCall)
         call.data = {

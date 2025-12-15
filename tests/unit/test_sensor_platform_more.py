@@ -100,9 +100,7 @@ def test_area_current_consumption_various(mock_hass, mock_entry):
     assert sensor.native_value is None
 
     # gateway present with modulation and consumption range
-    mock_hass.states.get = MagicMock(
-        return_value=MagicMock(attributes={"relative_mod_level": 50})
-    )
+    mock_hass.states.get = MagicMock(return_value=MagicMock(attributes={"relative_mod_level": 50}))
     am.default_min_consumption = 1.0
     am.default_max_consumption = 3.0
     val = sensor.native_value

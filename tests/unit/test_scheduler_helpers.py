@@ -131,19 +131,13 @@ class TestScheduleTimeMatching:
         # Test time at 23:00 (evening, should match)
         current_time = time(23, 0)
         assert (
-            scheduler._is_time_in_midnight_crossing_schedule_today(
-                schedule, current_time
-            )
-            is True
+            scheduler._is_time_in_midnight_crossing_schedule_today(schedule, current_time) is True
         )
 
         # Test time at 02:00 (early morning, should not match - that's from previous day)
         current_time = time(2, 0)
         assert (
-            scheduler._is_time_in_midnight_crossing_schedule_today(
-                schedule, current_time
-            )
-            is False
+            scheduler._is_time_in_midnight_crossing_schedule_today(schedule, current_time) is False
         )
 
     def test_is_time_in_normal_schedule(self, scheduler):
@@ -320,9 +314,7 @@ class TestGetPresetTemperature:
         temp = scheduler._get_preset_temperature(mock_area, PRESET_COMFORT)
         assert temp == pytest.approx(22.0)
 
-    def test_get_preset_temperature_global(
-        self, scheduler, mock_area, mock_area_manager
-    ):
+    def test_get_preset_temperature_global(self, scheduler, mock_area, mock_area_manager):
         """Test getting preset temperature from global settings."""
         # Set up area manager with global temps
         mock_area_manager.global_comfort_temp = 21.5
@@ -334,24 +326,12 @@ class TestGetPresetTemperature:
 
     def test_get_preset_temperature_all_presets(self, scheduler, mock_area):
         """Test getting all preset temperatures."""
-        assert scheduler._get_preset_temperature(
-            mock_area, PRESET_AWAY
-        ) == pytest.approx(16.0)
-        assert scheduler._get_preset_temperature(
-            mock_area, PRESET_ECO
-        ) == pytest.approx(18.0)
-        assert scheduler._get_preset_temperature(
-            mock_area, PRESET_COMFORT
-        ) == pytest.approx(22.0)
-        assert scheduler._get_preset_temperature(
-            mock_area, PRESET_HOME
-        ) == pytest.approx(20.0)
-        assert scheduler._get_preset_temperature(
-            mock_area, PRESET_SLEEP
-        ) == pytest.approx(17.0)
-        assert scheduler._get_preset_temperature(
-            mock_area, "activity"
-        ) == pytest.approx(23.0)
+        assert scheduler._get_preset_temperature(mock_area, PRESET_AWAY) == pytest.approx(16.0)
+        assert scheduler._get_preset_temperature(mock_area, PRESET_ECO) == pytest.approx(18.0)
+        assert scheduler._get_preset_temperature(mock_area, PRESET_COMFORT) == pytest.approx(22.0)
+        assert scheduler._get_preset_temperature(mock_area, PRESET_HOME) == pytest.approx(20.0)
+        assert scheduler._get_preset_temperature(mock_area, PRESET_SLEEP) == pytest.approx(17.0)
+        assert scheduler._get_preset_temperature(mock_area, "activity") == pytest.approx(23.0)
 
     def test_get_preset_temperature_unknown_preset(self, scheduler, mock_area):
         """Test getting temperature for unknown preset falls back to target."""
@@ -389,9 +369,7 @@ class TestOutdoorTemperature:
         temp = scheduler._get_outdoor_temperature(mock_area)
         assert temp == pytest.approx(12.78, abs=0.01)
 
-    async def test_get_outdoor_temperature_unavailable(
-        self, scheduler, mock_area, hass
-    ):
+    async def test_get_outdoor_temperature_unavailable(self, scheduler, mock_area, hass):
         """Test getting outdoor temperature when unavailable."""
         mock_area.weather_entity_id = "weather.home"
 
@@ -430,9 +408,7 @@ class TestApplyScheduleMethods:
     """Test _apply_preset_schedule and _apply_temperature_schedule methods."""
 
     @pytest.mark.asyncio
-    async def test_apply_preset_schedule(
-        self, scheduler, mock_area, mock_area_manager, hass
-    ):
+    async def test_apply_preset_schedule(self, scheduler, mock_area, mock_area_manager, hass):
         """Test applying a schedule with preset mode."""
         schedule = Schedule(
             schedule_id="1",
@@ -482,9 +458,7 @@ class TestApplyScheduleMethods:
         await hass.async_block_till_done()
 
     @pytest.mark.asyncio
-    async def test_apply_temperature_schedule(
-        self, scheduler, mock_area, mock_area_manager, hass
-    ):
+    async def test_apply_temperature_schedule(self, scheduler, mock_area, mock_area_manager, hass):
         """Test applying a schedule with direct temperature."""
         schedule = Schedule(
             schedule_id="1",

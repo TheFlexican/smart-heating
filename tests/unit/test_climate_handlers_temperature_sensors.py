@@ -367,9 +367,7 @@ class TestCollectAreaTemperaturesWithPrimarySensor:
         # Should only return primary thermostat temperature
         assert result == [20.0]
 
-    def test_primary_sensor_unavailable_fallback_to_all(
-        self, temp_handler, mock_hass, mock_area
-    ):
+    def test_primary_sensor_unavailable_fallback_to_all(self, temp_handler, mock_hass, mock_area):
         """Test fallback to all sensors when primary is unavailable."""
         mock_area.primary_temperature_sensor = "sensor.primary"
         mock_area.get_temperature_sensors.return_value = [
@@ -413,9 +411,7 @@ class TestCollectAreaTemperaturesWithPrimarySensor:
         assert 19.5 in result
         assert 20.0 in result
 
-    def test_primary_sensor_none_uses_all_sensors(
-        self, temp_handler, mock_hass, mock_area
-    ):
+    def test_primary_sensor_none_uses_all_sensors(self, temp_handler, mock_hass, mock_area):
         """Test that None primary sensor uses all sensors (default behavior)."""
         mock_area.primary_temperature_sensor = None
         mock_area.get_temperature_sensors.return_value = ["sensor.temp1"]
@@ -469,9 +465,7 @@ class TestAsyncGetOutdoorTemperature:
         assert result == 5.5
 
     @pytest.mark.asyncio
-    async def test_valid_fahrenheit_temperature(
-        self, temp_handler, mock_hass, mock_area
-    ):
+    async def test_valid_fahrenheit_temperature(self, temp_handler, mock_hass, mock_area):
         """Test getting valid outdoor temperature in Fahrenheit."""
         mock_area.weather_entity_id = "weather.home"
 

@@ -98,9 +98,7 @@ def pytest_sessionfinish(session, exitstatus):
         if tasks:
             print(f"SESSION DEBUG: total asyncio tasks: {len(tasks)}")
             for t in tasks:
-                print(
-                    f"SESSION TASK: {t!r}, done={t.done()}, cancelled={t.cancelled()}"
-                )
+                print(f"SESSION TASK: {t!r}, done={t.done()}, cancelled={t.cancelled()}")
                 try:
                     stack = t.get_stack()
                     if stack:
@@ -205,9 +203,7 @@ def mock_config_entry() -> MockConfigEntry:
 @pytest.fixture
 def mock_setup_entry() -> Generator[AsyncMock]:
     """Override async_setup_entry."""
-    with patch(
-        "smart_heating.async_setup_entry", return_value=True
-    ) as mock_setup_entry:
+    with patch("smart_heating.async_setup_entry", return_value=True) as mock_setup_entry:
         yield mock_setup_entry
 
 

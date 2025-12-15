@@ -65,9 +65,7 @@ class TestSafetyHandlers:
             "enabled": True,
         }
 
-        await async_handle_set_safety_sensor(
-            call, mock_hass, mock_area_manager, mock_coordinator
-        )
+        await async_handle_set_safety_sensor(call, mock_hass, mock_area_manager, mock_coordinator)
 
         # Verify sensor was added
         mock_area_manager.add_safety_sensor.assert_called_once_with(
@@ -88,9 +86,7 @@ class TestSafetyHandlers:
         call = MagicMock(spec=ServiceCall)
         call.data = {"sensor_id": "binary_sensor.smoke_detector"}
 
-        await async_handle_set_safety_sensor(
-            call, mock_hass, mock_area_manager, mock_coordinator
-        )
+        await async_handle_set_safety_sensor(call, mock_hass, mock_area_manager, mock_coordinator)
 
         # Verify sensor was added with defaults
         mock_area_manager.add_safety_sensor.assert_called_once_with(
@@ -106,9 +102,7 @@ class TestSafetyHandlers:
         call = MagicMock(spec=ServiceCall)
         call.data = {"sensor_id": "binary_sensor.smoke_detector"}
 
-        await async_handle_set_safety_sensor(
-            call, mock_hass, mock_area_manager, mock_coordinator
-        )
+        await async_handle_set_safety_sensor(call, mock_hass, mock_area_manager, mock_coordinator)
 
         # Verify sensor was still added
         mock_area_manager.add_safety_sensor.assert_called_once()
@@ -127,9 +121,7 @@ class TestSafetyHandlers:
         mock_area_manager.add_safety_sensor.side_effect = Exception("Sensor error")
 
         # Should not raise, just log error
-        await async_handle_set_safety_sensor(
-            call, mock_hass, mock_area_manager, mock_coordinator
-        )
+        await async_handle_set_safety_sensor(call, mock_hass, mock_area_manager, mock_coordinator)
 
     @pytest.mark.asyncio
     async def test_async_handle_remove_safety_sensor_success(
@@ -181,9 +173,7 @@ class TestSafetyHandlers:
         call.data = {"sensor_id": "binary_sensor.smoke_detector"}
 
         # Make remove_safety_sensor raise exception
-        mock_area_manager.remove_safety_sensor.side_effect = Exception(
-            "Sensor not found"
-        )
+        mock_area_manager.remove_safety_sensor.side_effect = Exception("Sensor not found")
 
         # Should not raise, just log error
         await async_handle_remove_safety_sensor(

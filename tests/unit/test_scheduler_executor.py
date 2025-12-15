@@ -18,9 +18,7 @@ def test_get_previous_day():
     assert se._get_previous_day(0) == 6 or se._get_previous_day(0) == 6
 
 
-def make_schedule(
-    start, end, day, schedule_id="s1", preset_mode=None, temperature=None
-):
+def make_schedule(start, end, day, schedule_id="s1", preset_mode=None, temperature=None):
     return SimpleNamespace(
         start_time=start,
         end_time=end,
@@ -68,9 +66,7 @@ def test_get_target_time_and_temp_from_schedule():
     area = SimpleNamespace(area_id="a1", target_temperature=21.0)
     sched = make_schedule("07:15", "08:00", 3, temperature=20.5)
     now = datetime(2025, 12, 12, 6, 0)
-    target_time, target_temp = se._get_target_time_and_temp_from_schedule(
-        area, sched, now
-    )
+    target_time, target_temp = se._get_target_time_and_temp_from_schedule(area, sched, now)
     assert target_time.hour == 7 and target_time.minute == 15
     assert abs(target_temp - 20.5) < 1e-6
 

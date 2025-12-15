@@ -88,9 +88,7 @@ class TestAreaHandlers:
     """Test area API handlers."""
 
     @pytest.mark.asyncio
-    async def test_handle_get_areas(
-        self, mock_hass, mock_area_manager, mock_area_registry
-    ):
+    async def test_handle_get_areas(self, mock_hass, mock_area_manager, mock_area_registry):
         """Test getting all areas."""
         with (
             patch(
@@ -157,9 +155,7 @@ class TestAreaHandlers:
                 return_value={"id": "living_room", "name": "Living Room"},
             ),
         ):
-            response = await handle_get_area(
-                mock_hass, mock_area_manager, "living_room"
-            )
+            response = await handle_get_area(mock_hass, mock_area_manager, "living_room")
 
             assert response.status == 200
             body = json.loads(response.body.decode())
@@ -215,9 +211,7 @@ class TestAreaHandlers:
             mock_climate.async_control_heating.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_set_temperature_invalid_area_id(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_set_temperature_invalid_area_id(self, mock_hass, mock_area_manager):
         """Test setting temperature with invalid area ID."""
         data = {"temperature": 22.5}
 
@@ -225,18 +219,14 @@ class TestAreaHandlers:
             "smart_heating.utils.validators.validate_area_id",
             return_value=(False, "Invalid area ID"),
         ):
-            response = await handle_set_temperature(
-                mock_hass, mock_area_manager, "", data
-            )
+            response = await handle_set_temperature(mock_hass, mock_area_manager, "", data)
 
             assert response.status == 400
             body = json.loads(response.body.decode())
             assert "error" in body
 
     @pytest.mark.asyncio
-    async def test_handle_set_temperature_invalid_temperature(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_set_temperature_invalid_temperature(self, mock_hass, mock_area_manager):
         """Test setting invalid temperature."""
         data = {"temperature": 100}
 
@@ -276,9 +266,7 @@ class TestAreaHandlers:
                 return_value=(True, None),
             ),
         ):
-            response = await handle_set_temperature(
-                mock_hass, area_manager, "nonexistent", data
-            )
+            response = await handle_set_temperature(mock_hass, area_manager, "nonexistent", data)
 
             assert response.status == 404
             body = json.loads(response.body.decode())
@@ -338,9 +326,7 @@ class TestAreaHandlers:
         mock_climate.async_control_heating.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_enable_area_clears_safety_alert(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_enable_area_clears_safety_alert(self, mock_hass, mock_area_manager):
         """Test enabling area clears safety alert."""
         mock_area_manager.is_safety_alert_active.return_value = True
         mock_safety = MagicMock()
@@ -379,9 +365,7 @@ class TestAreaHandlers:
         mock_climate = AsyncMock()
         mock_hass.data[DOMAIN]["climate_controller"] = mock_climate
 
-        response = await handle_disable_area(
-            mock_hass, mock_area_manager, "living_room"
-        )
+        response = await handle_disable_area(mock_hass, mock_area_manager, "living_room")
 
         assert response.status == 200
         body = json.loads(response.body.decode())
@@ -396,9 +380,7 @@ class TestAreaHandlers:
         """Test disable area with error."""
         mock_area_manager.disable_area.side_effect = ValueError("Area not found")
 
-        response = await handle_disable_area(
-            mock_hass, mock_area_manager, "nonexistent"
-        )
+        response = await handle_disable_area(mock_hass, mock_area_manager, "nonexistent")
 
         assert response.status == 404
         body = json.loads(response.body.decode())
@@ -459,9 +441,7 @@ class TestAreaHandlers:
         registry = MagicMock()
         registry.async_get_area.return_value = None  # Not in HA
 
-        with patch(
-            "smart_heating.api_handlers.areas.ar.async_get", return_value=registry
-        ):
+        with patch("smart_heating.api_handlers.areas.ar.async_get", return_value=registry):
             response = await handle_hide_area(mock_hass, area_manager, "nonexistent")
 
             assert response.status == 404
@@ -516,9 +496,7 @@ class TestAreaHandlers:
             assert not mock_new_area.hidden
 
     @pytest.mark.asyncio
-    async def test_handle_set_switch_shutdown_success(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_set_switch_shutdown_success(self, mock_hass, mock_area_manager):
         """Test setting switch shutdown setting."""
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
@@ -538,9 +516,7 @@ class TestAreaHandlers:
         mock_area_manager.async_save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_set_switch_shutdown_default(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_set_switch_shutdown_default(self, mock_hass, mock_area_manager):
         """Test setting switch shutdown with default value."""
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
@@ -563,18 +539,14 @@ class TestAreaHandlers:
         area_manager.get_area.return_value = None
 
         data = {"shutdown": False}
-        response = await handle_set_switch_shutdown(
-            mock_hass, area_manager, "nonexistent", data
-        )
+        response = await handle_set_switch_shutdown(mock_hass, area_manager, "nonexistent", data)
 
         assert response.status == 404
         body = json.loads(response.body.decode())
         assert "error" in body
 
     @pytest.mark.asyncio
-    async def test_handle_set_area_hysteresis_use_global(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_set_area_hysteresis_use_global(self, mock_hass, mock_area_manager):
         """Test setting area to use global hysteresis."""
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
@@ -594,9 +566,7 @@ class TestAreaHandlers:
         mock_area_manager.async_save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_set_area_hysteresis_custom(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_set_area_hysteresis_custom(self, mock_hass, mock_area_manager):
         """Test setting custom area hysteresis."""
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
@@ -616,9 +586,7 @@ class TestAreaHandlers:
         mock_area_manager.async_save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_set_area_hysteresis_missing_value(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_set_area_hysteresis_missing_value(self, mock_hass, mock_area_manager):
         """Test setting hysteresis without value."""
         data = {"use_global": False}  # Missing hysteresis
         response = await handle_set_area_hysteresis(
@@ -630,9 +598,7 @@ class TestAreaHandlers:
         assert "error" in body
 
     @pytest.mark.asyncio
-    async def test_handle_set_area_heating_curve_use_global(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_set_area_heating_curve_use_global(self, mock_hass, mock_area_manager):
         """Test toggling use_global flag clears area coefficient and saves."""
         data = {"use_global": True}
         # set initial coefficient
@@ -662,16 +628,13 @@ class TestAreaHandlers:
         assert response.status == 200
         body = json.loads(response.body.decode())
         assert body["success"]
-        assert (
-            mock_area_manager.get_area.return_value.heating_curve_coefficient
-            == pytest.approx(1.8)
+        assert mock_area_manager.get_area.return_value.heating_curve_coefficient == pytest.approx(
+            1.8
         )
         mock_area_manager.async_save.assert_called()
 
     @pytest.mark.asyncio
-    async def test_handle_set_area_hysteresis_out_of_range(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_set_area_hysteresis_out_of_range(self, mock_hass, mock_area_manager):
         """Test setting hysteresis with out-of-range value."""
         data = {"use_global": False, "hysteresis": 5.0}  # Too high
         response = await handle_set_area_hysteresis(
@@ -689,9 +652,7 @@ class TestAreaHandlers:
         area_manager.get_area.return_value = None
 
         data = {"use_global": True}
-        response = await handle_set_area_hysteresis(
-            mock_hass, area_manager, "nonexistent", data
-        )
+        response = await handle_set_area_hysteresis(mock_hass, area_manager, "nonexistent", data)
 
         assert response.status == 404
         body = json.loads(response.body.decode())
@@ -706,9 +667,7 @@ class TestAreaHandlers:
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         data = {"auto_preset_enabled": True}
-        response = await handle_set_auto_preset(
-            mock_hass, mock_area_manager, "living_room", data
-        )
+        response = await handle_set_auto_preset(mock_hass, mock_area_manager, "living_room", data)
 
         assert response.status == 200
         body = json.loads(response.body.decode())
@@ -724,18 +683,14 @@ class TestAreaHandlers:
         area_manager.get_area.return_value = None
 
         data = {"auto_preset_enabled": True}
-        response = await handle_set_auto_preset(
-            mock_hass, area_manager, "nonexistent", data
-        )
+        response = await handle_set_auto_preset(mock_hass, area_manager, "nonexistent", data)
 
         assert response.status == 404
         body = json.loads(response.body.decode())
         assert "error" in body
 
     @pytest.mark.asyncio
-    async def test_handle_set_area_preset_config_success(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_set_area_preset_config_success(self, mock_hass, mock_area_manager):
         """Test setting area preset configuration."""
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
@@ -762,9 +717,7 @@ class TestAreaHandlers:
         mock_area_manager.async_save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_set_area_preset_config_all_flags(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_set_area_preset_config_all_flags(self, mock_hass, mock_area_manager):
         """Test setting all preset config flags."""
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
@@ -801,18 +754,14 @@ class TestAreaHandlers:
         area_manager.get_area.return_value = None
 
         data = {"use_global_away": False}
-        response = await handle_set_area_preset_config(
-            mock_hass, area_manager, "nonexistent", data
-        )
+        response = await handle_set_area_preset_config(mock_hass, area_manager, "nonexistent", data)
 
         assert response.status == 404
         body = json.loads(response.body.decode())
         assert "error" in body
 
     @pytest.mark.asyncio
-    async def test_handle_set_manual_override_enable(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_set_manual_override_enable(self, mock_hass, mock_area_manager):
         """Test enabling manual override."""
         mock_coordinator = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
@@ -855,14 +804,10 @@ class TestAreaHandlers:
 
         assert response.status == 200
         assert not mock_area.manual_override
-        assert mock_area.target_temperature == pytest.approx(
-            18.0
-        )  # Updated to preset temp
+        assert mock_area.target_temperature == pytest.approx(18.0)  # Updated to preset temp
 
     @pytest.mark.asyncio
-    async def test_handle_set_manual_override_missing_enabled(
-        self, mock_hass, mock_area_manager
-    ):
+    async def test_handle_set_manual_override_missing_enabled(self, mock_hass, mock_area_manager):
         """Test setting manual override without enabled field."""
         data = {}  # Missing enabled
         response = await handle_set_manual_override(
@@ -880,9 +825,7 @@ class TestAreaHandlers:
         area_manager.get_area.return_value = None
 
         data = {"enabled": True}
-        response = await handle_set_manual_override(
-            mock_hass, area_manager, "nonexistent", data
-        )
+        response = await handle_set_manual_override(mock_hass, area_manager, "nonexistent", data)
 
         assert response.status == 404
         body = json.loads(response.body.decode())

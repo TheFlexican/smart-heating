@@ -34,9 +34,7 @@ def efficiency_calculator(mock_hass, mock_history_tracker):
     return EfficiencyCalculator(mock_hass, mock_history_tracker)
 
 
-def create_history_entry(
-    state_value, current_temp=20.0, target_temp=21.0, timestamp=None
-):
+def create_history_entry(state_value, current_temp=20.0, target_temp=21.0, timestamp=None):
     """Create a history entry dict (as provided by HistoryTracker)."""
     return {
         "timestamp": (timestamp or dt_util.now()).isoformat(),
@@ -79,12 +77,8 @@ async def test_calculate_heating_time_no_states(efficiency_calculator):
 async def test_calculate_avg_temp_delta(efficiency_calculator):
     """Test average temperature delta calculation."""
     history_data = [
-        create_history_entry(
-            "heating", current_temp=19.0, target_temp=21.0
-        ),  # delta: 2.0
-        create_history_entry(
-            "heating", current_temp=20.0, target_temp=21.0
-        ),  # delta: 1.0
+        create_history_entry("heating", current_temp=19.0, target_temp=21.0),  # delta: 2.0
+        create_history_entry("heating", current_temp=20.0, target_temp=21.0),  # delta: 1.0
         create_history_entry("idle", current_temp=21.0, target_temp=21.0),  # delta: 0.0
     ]
 
@@ -295,9 +289,7 @@ async def test_empty_metrics(efficiency_calculator):
 
 
 @pytest.mark.asyncio
-async def test_calculate_area_efficiency_integration(
-    efficiency_calculator, mock_history_tracker
-):
+async def test_calculate_area_efficiency_integration(efficiency_calculator, mock_history_tracker):
     """Test full area efficiency calculation integration."""
     # Mock historical data
     history_data = [
@@ -308,9 +300,7 @@ async def test_calculate_area_efficiency_integration(
 
     mock_history_tracker.get_history.return_value = history_data
 
-    result = await efficiency_calculator.calculate_area_efficiency(
-        "living_room", period="day"
-    )
+    result = await efficiency_calculator.calculate_area_efficiency("living_room", period="day")
 
     assert result["area_id"] == "living_room"
     assert result["period"] == "day"
@@ -320,15 +310,11 @@ async def test_calculate_area_efficiency_integration(
 
 
 @pytest.mark.asyncio
-async def test_calculate_area_efficiency_no_data(
-    efficiency_calculator, mock_history_tracker
-):
+async def test_calculate_area_efficiency_no_data(efficiency_calculator, mock_history_tracker):
     """Test efficiency calculation with no historical data."""
     mock_history_tracker.get_history.return_value = []
 
-    result = await efficiency_calculator.calculate_area_efficiency(
-        "living_room", period="day"
-    )
+    result = await efficiency_calculator.calculate_area_efficiency("living_room", period="day")
 
     assert result["heating_time_percentage"] == 0.0
     assert result["data_points"] == 0
@@ -336,9 +322,7 @@ async def test_calculate_area_efficiency_no_data(
 
 
 @pytest.mark.asyncio
-async def test_calculate_all_areas_efficiency(
-    efficiency_calculator, mock_history_tracker
-):
+async def test_calculate_all_areas_efficiency(efficiency_calculator, mock_history_tracker):
     """Test calculating efficiency for all areas."""
     mock_area_manager = Mock()
     mock_area_manager.get_all_areas.return_value = {
@@ -359,9 +343,7 @@ async def test_calculate_all_areas_efficiency(
 
 
 @pytest.mark.asyncio
-async def test_calculate_all_areas_skips_disabled(
-    efficiency_calculator, mock_history_tracker
-):
+async def test_calculate_all_areas_skips_disabled(efficiency_calculator, mock_history_tracker):
     """Test that disabled areas are skipped."""
     mock_area_manager = Mock()
     mock_area_manager.get_all_areas.return_value = {

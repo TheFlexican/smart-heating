@@ -234,9 +234,7 @@ async def test_compare_periods_month(comparison_engine, mock_efficiency_calculat
 
 
 @pytest.mark.asyncio
-async def test_compare_periods_invalid_type(
-    comparison_engine, mock_efficiency_calculator
-):
+async def test_compare_periods_invalid_type(comparison_engine, mock_efficiency_calculator):
     """Test comparing with invalid period type raises error."""
     with pytest.raises(ValueError, match="Invalid comparison type"):
         await comparison_engine.compare_periods("living_room", "invalid", offset=1)
@@ -283,9 +281,7 @@ async def test_compare_all_areas(comparison_engine, mock_efficiency_calculator):
         "temperature_stability": 0.5,
     }
 
-    results = await comparison_engine.compare_all_areas(
-        mock_area_manager, "day", offset=1
-    )
+    results = await comparison_engine.compare_all_areas(mock_area_manager, "day", offset=1)
 
     assert len(results) == 2
     assert results[0]["area_id"] in ["living_room", "bedroom"]
@@ -293,9 +289,7 @@ async def test_compare_all_areas(comparison_engine, mock_efficiency_calculator):
 
 
 @pytest.mark.asyncio
-async def test_compare_all_areas_skips_disabled(
-    comparison_engine, mock_efficiency_calculator
-):
+async def test_compare_all_areas_skips_disabled(comparison_engine, mock_efficiency_calculator):
     """Test that disabled areas are skipped in comparison."""
     mock_area_manager = Mock()
     mock_area_manager.get_all_areas.return_value = {
@@ -308,9 +302,7 @@ async def test_compare_all_areas_skips_disabled(
         "energy_score": 75.0,
     }
 
-    results = await comparison_engine.compare_all_areas(
-        mock_area_manager, "day", offset=1
-    )
+    results = await comparison_engine.compare_all_areas(mock_area_manager, "day", offset=1)
 
     # Only living_room should be included
     assert len(results) == 1
@@ -347,9 +339,7 @@ async def test_compare_all_areas_sorted_by_improvement(
 
     mock_efficiency_calculator.calculate_area_efficiency.side_effect = mock_calc
 
-    results = await comparison_engine.compare_all_areas(
-        mock_area_manager, "day", offset=1
-    )
+    results = await comparison_engine.compare_all_areas(mock_area_manager, "day", offset=1)
 
     # Results should be sorted by improvement (best first)
     # living_room improved, bedroom decreased

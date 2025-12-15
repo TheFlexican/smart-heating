@@ -70,9 +70,7 @@ async def test_handle_create_user_validation_and_success():
     assert "already linked" in data["error"]
 
     # success
-    req.json = AsyncMock(
-        return_value={"user_id": "u1", "name": "R", "person_entity": "person.r"}
-    )
+    req.json = AsyncMock(return_value={"user_id": "u1", "name": "R", "person_entity": "person.r"})
     um.get_user_by_person_entity.return_value = None  # No duplicate
     um.create_user_profile = AsyncMock(return_value={"user_id": "u1"})
     hass.bus = MagicMock()

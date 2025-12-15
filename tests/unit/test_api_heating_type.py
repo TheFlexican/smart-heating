@@ -35,16 +35,12 @@ class TestHandleSetHeatingType:
     """Test handle_set_heating_type API handler."""
 
     @pytest.mark.asyncio
-    async def test_set_floor_heating_type(
-        self, mock_hass, mock_area_manager, mock_area
-    ):
+    async def test_set_floor_heating_type(self, mock_hass, mock_area_manager, mock_area):
         """Test setting heating type to floor_heating."""
         mock_area_manager.get_area.return_value = mock_area
 
         data = {"heating_type": "floor_heating"}
-        response = await handle_set_heating_type(
-            mock_hass, mock_area_manager, "test_area", data
-        )
+        response = await handle_set_heating_type(mock_hass, mock_area_manager, "test_area", data)
 
         assert response.status == 200
         assert mock_area.heating_type == "floor_heating"
@@ -56,40 +52,30 @@ class TestHandleSetHeatingType:
         mock_area_manager.get_area.return_value = mock_area
 
         data = {"heating_type": "radiator"}
-        response = await handle_set_heating_type(
-            mock_hass, mock_area_manager, "test_area", data
-        )
+        response = await handle_set_heating_type(mock_hass, mock_area_manager, "test_area", data)
 
         assert response.status == 200
         assert mock_area.heating_type == "radiator"
         mock_area_manager.async_save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_set_custom_overhead_temp(
-        self, mock_hass, mock_area_manager, mock_area
-    ):
+    async def test_set_custom_overhead_temp(self, mock_hass, mock_area_manager, mock_area):
         """Test setting custom overhead temperature."""
         mock_area_manager.get_area.return_value = mock_area
 
         data = {"custom_overhead_temp": 8.0}
-        response = await handle_set_heating_type(
-            mock_hass, mock_area_manager, "test_area", data
-        )
+        response = await handle_set_heating_type(mock_hass, mock_area_manager, "test_area", data)
 
         assert response.status == 200
         mock_area_manager.async_save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_set_both_type_and_overhead(
-        self, mock_hass, mock_area_manager, mock_area
-    ):
+    async def test_set_both_type_and_overhead(self, mock_hass, mock_area_manager, mock_area):
         """Test setting both heating type and custom overhead."""
         mock_area_manager.get_area.return_value = mock_area
 
         data = {"heating_type": "floor_heating", "custom_overhead_temp": 8.0}
-        response = await handle_set_heating_type(
-            mock_hass, mock_area_manager, "test_area", data
-        )
+        response = await handle_set_heating_type(mock_hass, mock_area_manager, "test_area", data)
 
         assert response.status == 200
         assert mock_area.heating_type == "floor_heating"
@@ -102,9 +88,7 @@ class TestHandleSetHeatingType:
         mock_area_manager.get_area.return_value = mock_area
 
         data = {"custom_overhead_temp": None}
-        response = await handle_set_heating_type(
-            mock_hass, mock_area_manager, "test_area", data
-        )
+        response = await handle_set_heating_type(mock_hass, mock_area_manager, "test_area", data)
 
         assert response.status == 200
         assert mock_area.custom_overhead_temp is None
@@ -116,9 +100,7 @@ class TestHandleSetHeatingType:
         mock_area_manager.get_area.return_value = mock_area
 
         data = {"heating_type": "invalid_type"}
-        response = await handle_set_heating_type(
-            mock_hass, mock_area_manager, "test_area", data
-        )
+        response = await handle_set_heating_type(mock_hass, mock_area_manager, "test_area", data)
 
         assert response.status == 400
         import json as _json
@@ -138,9 +120,7 @@ class TestHandleSetHeatingType:
         mock_area.hysteresis_override = 0.5
 
         data = {"heating_type": "airco"}
-        response = await handle_set_heating_type(
-            mock_hass, mock_area_manager, "test_area", data
-        )
+        response = await handle_set_heating_type(mock_hass, mock_area_manager, "test_area", data)
 
         assert response.status == 200
         assert mock_area.heating_type == "airco"
@@ -149,16 +129,12 @@ class TestHandleSetHeatingType:
         assert mock_area.hysteresis_override is None
 
     @pytest.mark.asyncio
-    async def test_overhead_temp_too_high(
-        self, mock_hass, mock_area_manager, mock_area
-    ):
+    async def test_overhead_temp_too_high(self, mock_hass, mock_area_manager, mock_area):
         """Test validation rejects overhead temp above 30°C."""
         mock_area_manager.get_area.return_value = mock_area
 
         data = {"custom_overhead_temp": 35.0}
-        response = await handle_set_heating_type(
-            mock_hass, mock_area_manager, "test_area", data
-        )
+        response = await handle_set_heating_type(mock_hass, mock_area_manager, "test_area", data)
 
         assert response.status == 400
         import json as _json
@@ -168,16 +144,12 @@ class TestHandleSetHeatingType:
         assert "30" in body["error"]
 
     @pytest.mark.asyncio
-    async def test_overhead_temp_negative(
-        self, mock_hass, mock_area_manager, mock_area
-    ):
+    async def test_overhead_temp_negative(self, mock_hass, mock_area_manager, mock_area):
         """Test validation rejects negative overhead temp."""
         mock_area_manager.get_area.return_value = mock_area
 
         data = {"custom_overhead_temp": -5.0}
-        response = await handle_set_heating_type(
-            mock_hass, mock_area_manager, "test_area", data
-        )
+        response = await handle_set_heating_type(mock_hass, mock_area_manager, "test_area", data)
 
         assert response.status == 400
         import json as _json
@@ -191,9 +163,7 @@ class TestHandleSetHeatingType:
         mock_area_manager.get_area.return_value = None
 
         data = {"heating_type": "floor_heating"}
-        response = await handle_set_heating_type(
-            mock_hass, mock_area_manager, "nonexistent", data
-        )
+        response = await handle_set_heating_type(mock_hass, mock_area_manager, "nonexistent", data)
 
         assert response.status == 404
         import json as _json
@@ -203,9 +173,7 @@ class TestHandleSetHeatingType:
         assert "not found" in body["error"].lower()
 
     @pytest.mark.asyncio
-    async def test_coordinator_refresh_triggered(
-        self, mock_hass, mock_area_manager, mock_area
-    ):
+    async def test_coordinator_refresh_triggered(self, mock_hass, mock_area_manager, mock_area):
         """Test that coordinator refresh is triggered after update."""
         mock_area_manager.get_area.return_value = mock_area
         mock_coordinator = MagicMock()
