@@ -1,8 +1,19 @@
-/// <reference types="vitest" />
 import React from 'react'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import SettingsSection from '../components/SettingsSection'
-import { FormControl, InputLabel, Select, MenuItem, RadioGroup, FormControlLabel, Radio, Switch, TextField, Box, Typography } from '@mui/material'
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Switch,
+  TextField,
+  Box,
+  Typography,
+} from '@mui/material'
 import * as areas from '../api/areas'
 import * as devices from '../api/devices'
 import * as history from '../api/history'
@@ -11,7 +22,9 @@ import { vi, it, expect } from 'vitest'
 import userEvent from '@testing-library/user-event'
 
 // Mock translation
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, v?: any) => (v && v.temp) ? `${v.temp}°C` : k }) }))
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (k: string, v?: any) => (v && v.temp ? `${v.temp}°C` : k) }),
+}))
 
 // Mock getZones and other API calls used in AreaDetail
 const area = {
@@ -74,7 +87,7 @@ it('preset select is disabled when area is disabled/off', async () => {
       defaultExpanded={true}
     >
       {content}
-    </SettingsSection>
+    </SettingsSection>,
   )
 
   // The Select should be present and disabled for disabled/off area
@@ -87,9 +100,18 @@ it('heating type control has testid and accessible label', async () => {
   await userEvent.setup()
 
   const content = (
-    <RadioGroup data-testid="heating-type-control" aria-label={'settingsCards.heatingTypeTitle'} value={'radiator'} onChange={() => {}}>
+    <RadioGroup
+      data-testid="heating-type-control"
+      aria-label={'settingsCards.heatingTypeTitle'}
+      value={'radiator'}
+      onChange={() => {}}
+    >
       <FormControlLabel value="radiator" control={<Radio />} label={'settingsCards.radiator'} />
-      <FormControlLabel value="floor_heating" control={<Radio />} label={'settingsCards.floorHeating'} />
+      <FormControlLabel
+        value="floor_heating"
+        control={<Radio />}
+        label={'settingsCards.floorHeating'}
+      />
       <FormControlLabel value="airco" control={<Radio />} label={'settingsCards.airConditioner'} />
     </RadioGroup>
   )
@@ -104,7 +126,7 @@ it('heating type control has testid and accessible label', async () => {
       defaultExpanded={true}
     >
       {content}
-    </SettingsSection>
+    </SettingsSection>,
   )
 
   // testid present
@@ -121,7 +143,9 @@ it('heating curve control is disabled for airco area', async () => {
   await userEvent.setup()
 
   // Make getZones return an area with heating_type 'airco'
-  vi.spyOn(areas, 'getZones').mockResolvedValue([{ ...(area as any), heating_type: 'airco' } as any])
+  vi.spyOn(areas, 'getZones').mockResolvedValue([
+    { ...(area as any), heating_type: 'airco' } as any,
+  ])
 
   const { MemoryRouter, Routes, Route } = Router as any
   render(
@@ -129,7 +153,7 @@ it('heating curve control is disabled for airco area', async () => {
       <Routes>
         <Route path="/areas/:areaId" element={<ZoneDetail />} />
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
   // Expand heating-type section and check helper text is visible
@@ -147,7 +171,9 @@ it('switch/pump control is disabled for airco area', async () => {
   await userEvent.setup()
 
   // Make getZones return an area with heating_type 'airco'
-  vi.spyOn(areas, 'getZones').mockResolvedValue([{ ...(area as any), heating_type: 'airco' } as any])
+  vi.spyOn(areas, 'getZones').mockResolvedValue([
+    { ...(area as any), heating_type: 'airco' } as any,
+  ])
 
   const { MemoryRouter, Routes, Route } = Router as any
   render(
@@ -155,7 +181,7 @@ it('switch/pump control is disabled for airco area', async () => {
       <Routes>
         <Route path="/areas/:areaId" element={<ZoneDetail />} />
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
   // Expand switch-control section and check helper text and disabled state
@@ -182,10 +208,15 @@ it('heating curve control has testid and toggles input disabled when using globa
     return (
       <div data-testid="heating-curve-control">
         <FormControlLabel
-          control={<Switch checked={!useGlobal} onChange={(e) => setUseGlobal(!e.target.checked)} />}
+          control={<Switch checked={!useGlobal} onChange={e => setUseGlobal(!e.target.checked)} />}
           label={'settingsCards.heatingCurveUseArea'}
         />
-        <TextField label="Coefficient" type="number" inputProps={{ 'data-testid': 'heating-curve-control-input' }} disabled={useGlobal} />
+        <TextField
+          label="Coefficient"
+          type="number"
+          inputProps={{ 'data-testid': 'heating-curve-control-input' }}
+          disabled={useGlobal}
+        />
       </div>
     )
   }
@@ -200,7 +231,7 @@ it('heating curve control has testid and toggles input disabled when using globa
       defaultExpanded={true}
     >
       <TestComponent />
-    </SettingsSection>
+    </SettingsSection>,
   )
 
   // testid present
@@ -226,7 +257,7 @@ it('renders Logs tab and opens logs panel (shows empty state)', async () => {
       <Routes>
         <Route path="/areas/:areaId" element={<ZoneDetail />} />
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
   // Logs tab should be present (stable testid)
@@ -263,7 +294,7 @@ it('auto preset toggle has stable testid and is renderable', async () => {
       defaultExpanded={true}
     >
       {content}
-    </SettingsSection>
+    </SettingsSection>,
   )
 
   await waitFor(() => expect(screen.queryByTestId('auto-preset-toggle')).not.toBeNull())

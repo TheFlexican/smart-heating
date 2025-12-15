@@ -13,7 +13,7 @@ export const getAreaLogs = async (
   options?: {
     limit?: number
     type?: string
-  }
+  },
 ): Promise<AreaLogEntry[]> => {
   const params = new URLSearchParams()
   if (options?.limit) {

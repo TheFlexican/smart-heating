@@ -31,7 +31,9 @@ describe('API - OpenTherm', () => {
   })
 
   it('getOpenthermGateways and engineering endpoints', async () => {
-    mockedAxios.get = vi.fn().mockResolvedValue({ data: { gateways: [{ gateway_id: 'g1', title: 'G1' }] } }) as any
+    mockedAxios.get = vi
+      .fn()
+      .mockResolvedValue({ data: { gateways: [{ gateway_id: 'g1', title: 'G1' }] } }) as any
     const gws = await api.getOpenthermGateways()
     expect(gws[0].gateway_id).toBe('g1')
 

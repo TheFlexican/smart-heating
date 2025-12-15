@@ -1,4 +1,14 @@
-import { AppBar, Toolbar, Typography, Chip, Box, Tooltip, IconButton, Menu, MenuItem } from '@mui/material'
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Chip,
+  Box,
+  Tooltip,
+  IconButton,
+  Menu,
+  MenuItem,
+} from '@mui/material'
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import WifiIcon from '@mui/icons-material/Wifi'
 import WifiOffIcon from '@mui/icons-material/WifiOff'
@@ -60,7 +70,7 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
       sx={{
         bgcolor: 'background.paper',
         borderBottom: 1,
-        borderColor: 'divider'
+        borderColor: 'divider',
       }}
     >
       <Toolbar sx={{ gap: { xs: 1, sm: 2 } }}>
@@ -72,7 +82,7 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
             flexGrow: 1,
             fontWeight: 600,
             fontSize: { xs: '1rem', sm: '1.25rem' },
-            cursor: 'pointer'
+            cursor: 'pointer',
           }}
           onClick={() => navigate('/')}
         >
@@ -87,7 +97,7 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
                   onClick={handleAnalyticsMenuOpen}
                   sx={{
                     color: 'text.secondary',
-                    p: { xs: 0.5, sm: 1 }
+                    p: { xs: 0.5, sm: 1 },
                   }}
                 >
                   <AnalyticsIcon />
@@ -100,7 +110,7 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
                   onClick={handleSettingsClick}
                   sx={{
                     color: 'text.secondary',
-                    p: { xs: 0.5, sm: 1 }
+                    p: { xs: 0.5, sm: 1 },
                   }}
                 >
                   <SettingsIcon />
@@ -113,11 +123,17 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
             open={Boolean(analyticsMenuAnchor)}
             onClose={handleAnalyticsMenuClose}
           >
-            <MenuItem data-testid="header-analytics-efficiency" onClick={() => handleNavigateAnalytics('/analytics/efficiency')}>
+            <MenuItem
+              data-testid="header-analytics-efficiency"
+              onClick={() => handleNavigateAnalytics('/analytics/efficiency')}
+            >
               <TrendingUpIcon sx={{ mr: 1 }} />
               {t('efficiency.title', 'Efficiency Reports')}
             </MenuItem>
-            <MenuItem data-testid="header-analytics-comparison" onClick={() => handleNavigateAnalytics('/analytics/comparison')}>
+            <MenuItem
+              data-testid="header-analytics-comparison"
+              onClick={() => handleNavigateAnalytics('/analytics/comparison')}
+            >
               <CompareArrowsIcon sx={{ mr: 1 }} />
               {t('comparison.title', 'Historical Comparisons')}
             </MenuItem>
@@ -128,7 +144,7 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
               onClick={handleLanguageMenuOpen}
               sx={{
                 color: 'text.secondary',
-                p: { xs: 0.5, sm: 1 }
+                p: { xs: 0.5, sm: 1 },
               }}
             >
               <LanguageIcon />
@@ -139,10 +155,18 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
             open={Boolean(langMenuAnchor)}
             onClose={handleLanguageMenuClose}
           >
-            <MenuItem data-testid="header-language-en" onClick={() => handleLanguageChange('en')} selected={i18n.language === 'en'}>
+            <MenuItem
+              data-testid="header-language-en"
+              onClick={() => handleLanguageChange('en')}
+              selected={i18n.language === 'en'}
+            >
               English
             </MenuItem>
-            <MenuItem data-testid="header-language-nl" onClick={() => handleLanguageChange('nl')} selected={i18n.language === 'nl'}>
+            <MenuItem
+              data-testid="header-language-nl"
+              onClick={() => handleLanguageChange('nl')}
+              selected={i18n.language === 'nl'}
+            >
               Nederlands
             </MenuItem>
           </Menu>
@@ -157,7 +181,7 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
                 sx={{
                   borderColor: wsConnected ? 'success.main' : 'divider',
                   color: wsConnected ? 'success.main' : 'text.secondary',
-                  display: { xs: 'none', sm: 'flex' }
+                  display: { xs: 'none', sm: 'flex' },
                 }}
               />
               <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
@@ -172,7 +196,7 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
             sx={{
               borderColor: 'divider',
               color: 'text.secondary',
-              display: { xs: 'none', sm: 'flex' }
+              display: { xs: 'none', sm: 'flex' },
             }}
           />
         </Box>

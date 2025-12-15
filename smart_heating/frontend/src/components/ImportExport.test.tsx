@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 import React from 'react'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import ImportExport from './ImportExport'
@@ -15,9 +14,9 @@ describe('ImportExport', () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: { get: () => 'filename="test.json"' },
-      blob: () => Promise.resolve(new Blob(['{}'], { type: 'application/json' }))
+      blob: () => Promise.resolve(new Blob(['{}'], { type: 'application/json' })),
     })
-    // @ts-ignore
+    // @ts-expect-error - Mock implementation
     globalThis.fetch = mockFetch
 
     render(<ImportExport />)

@@ -37,7 +37,12 @@ interface DraggableSettingsProps {
   onExpandedChange: (cardId: string | null) => void
 }
 
-const DraggableSettings = ({ sections, storageKey = 'settings-order', expandedCard, onExpandedChange }: DraggableSettingsProps) => {
+const DraggableSettings = ({
+  sections,
+  storageKey = 'settings-order',
+  expandedCard,
+  onExpandedChange,
+}: DraggableSettingsProps) => {
   const [orderedSections, setOrderedSections] = useState<SettingSection[]>(sections)
   const [hasCustomOrder, setHasCustomOrder] = useState(false)
   const theme = useTheme()
@@ -71,15 +76,15 @@ const DraggableSettings = ({ sections, storageKey = 'settings-order', expandedCa
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   )
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
 
     if (over && active.id !== over.id) {
-      const oldIndex = orderedSections.findIndex((s) => s.id === active.id)
-      const newIndex = orderedSections.findIndex((s) => s.id === over.id)
+      const oldIndex = orderedSections.findIndex(s => s.id === active.id)
+      const newIndex = orderedSections.findIndex(s => s.id === over.id)
 
       const items = arrayMove(orderedSections, oldIndex, newIndex)
       setOrderedSections(items)
@@ -114,29 +119,33 @@ const DraggableSettings = ({ sections, storageKey = 'settings-order', expandedCa
             </IconButton>
           }
         >
-          Cards have been reordered. Drag cards to customize the layout or click the restore icon to reset.
+          Cards have been reordered. Drag cards to customize the layout or click the restore icon to
+          reset.
         </Alert>
       )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={orderedSections.map(s => s.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext
+          items={orderedSections.map(s => s.id)}
+          strategy={verticalListSortingStrategy}
+        >
           <Box
             sx={{
               display: 'grid',
               gridTemplateColumns: isMobile
                 ? '1fr'
                 : isTablet
-                ? 'repeat(2, 1fr)'
-                : 'repeat(3, 1fr)',
+                  ? 'repeat(2, 1fr)'
+                  : 'repeat(3, 1fr)',
               gap: 2,
             }}
           >
-            {orderedSections.map((section) => (
+            {orderedSections.map(section => (
               <SortableSettingCard
                 key={section.id}
                 section={section}
                 expanded={expandedCard === section.id}
-                onExpandedChange={(expanded) => onExpandedChange(expanded ? section.id : null)}
+                onExpandedChange={expanded => onExpandedChange(expanded ? section.id : null)}
               />
             ))}
           </Box>
@@ -154,14 +163,9 @@ interface SortableSettingCardProps {
 }
 
 const SortableSettingCard = ({ section, expanded, onExpandedChange }: SortableSettingCardProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: section.id })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: section.id,
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),

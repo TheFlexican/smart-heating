@@ -18,7 +18,7 @@ import {
   FormControlLabel,
   Switch,
   Tooltip,
-  alpha
+  alpha,
 } from '@mui/material'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -37,7 +37,15 @@ import BookmarkIcon from '@mui/icons-material/Bookmark'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import { Zone } from '../types'
-import { setZoneTemperature, removeDeviceFromZone, hideZone, unhideZone, setManualOverride, setBoostMode, cancelBoost } from '../api/areas'
+import {
+  setZoneTemperature,
+  removeDeviceFromZone,
+  hideZone,
+  unhideZone,
+  setManualOverride,
+  setBoostMode,
+  cancelBoost,
+} from '../api/areas'
 import { getEntityState } from '../api/config'
 
 interface ZoneCardProps {
@@ -50,14 +58,9 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   const navigate = useNavigate()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: area.id })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: area.id,
+  })
 
   // Get displayed temperature: use effective temperature when in preset mode, otherwise use target
   const getDisplayTemperature = () => {
@@ -65,7 +68,12 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
     if (!area.enabled || area.state === 'off') return area.target_temperature
 
     // When using preset mode (not manual override), show effective temperature
-    if (!area.manual_override && area.preset_mode && area.preset_mode !== 'none' && area.effective_target_temperature != null) {
+    if (
+      !area.manual_override &&
+      area.preset_mode &&
+      area.preset_mode !== 'none' &&
+      area.effective_target_temperature != null
+    ) {
       return area.effective_target_temperature
     }
     // Otherwise show the base target temperature
@@ -79,7 +87,13 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   useEffect(() => {
     const displayTemp = getDisplayTemperature()
     setTemperature(displayTemp)
-  }, [area.target_temperature, area.effective_target_temperature, area.manual_override, area.preset_mode, area.name])
+  }, [
+    area.target_temperature,
+    area.effective_target_temperature,
+    area.manual_override,
+    area.preset_mode,
+    area.name,
+  ])
 
   useEffect(() => {
     const loadPresenceState = async () => {
@@ -115,7 +129,10 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
     setTemperature(newTemp)
   }
 
-  const handleTemperatureCommit = async (event: Event | React.SyntheticEvent, value: number | number[]) => {
+  const handleTemperatureCommit = async (
+    event: Event | React.SyntheticEvent,
+    value: number | number[],
+  ) => {
     event.stopPropagation()
     try {
       await setZoneTemperature(area.id, value as number)
@@ -228,9 +245,13 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
 
     // Use area's target temperature instead of device's stale target
     const areaTarget = area.target_temperature
-    if (areaTarget !== undefined && areaTarget !== null &&
-        device.current_temperature !== undefined && device.current_temperature !== null &&
-        areaTarget > device.current_temperature) {
+    if (
+      areaTarget !== undefined &&
+      areaTarget !== null &&
+      device.current_temperature !== undefined &&
+      device.current_temperature !== null &&
+      areaTarget > device.current_temperature
+    ) {
       const targetTemp = formatTemperature(areaTarget)
       if (targetTemp) parts.push(`→ ${targetTemp}`)
     }
@@ -315,9 +336,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
         bgcolor: isDragging ? alpha('#03a9f4', 0.15) : 'background.paper',
         borderRadius: 3,
         cursor: isDragging ? 'grabbing' : 'pointer',
-        boxShadow: isDragging
-          ? '0 12px 32px rgba(3, 169, 244, 0.4)'
-          : undefined,
+        boxShadow: isDragging ? '0 12px 32px rgba(3, 169, 244, 0.4)' : undefined,
         opacity: isDragging ? 0.9 : 1,
         minHeight: { xs: 160, sm: 180 },
         '&:hover': {
@@ -349,7 +368,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
               cursor: 'grabbing',
             },
           }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
         >
           <DragIndicatorIcon fontSize="small" />
         </Box>
@@ -362,7 +381,11 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
               <Chip
                 data-testid={`area-state-${area.id}`}
                 icon={getStateIcon()}
-                label={area.manual_override ? t('area.manual') : t(`area.${area.state}`, { defaultValue: area.state }).toUpperCase()}
+                label={
+                  area.manual_override
+                    ? t('area.manual')
+                    : t(`area.${area.state}`, { defaultValue: area.state }).toUpperCase()
+                }
                 color={getStateColor()}
                 size="small"
                 sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
@@ -371,7 +394,9 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
                 <Chip
                   data-testid={`area-presence-${area.id}`}
                   icon={<PersonIcon />}
-                  label={t(`presets.${presenceState}`, { defaultValue: presenceState }).toUpperCase()}
+                  label={t(`presets.${presenceState}`, {
+                    defaultValue: presenceState,
+                  }).toUpperCase()}
                   color={presenceState === 'home' ? 'success' : 'default'}
                   size="small"
                   sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
@@ -389,8 +414,12 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
               )}
             </Box>
           </Box>
-          <Box onClick={(e) => e.stopPropagation()} display="flex" gap={1}>
-            <Tooltip title={area.boost_mode_active ? t('boost.quickBoostActive') : t('boost.quickBoostInactive')}>
+          <Box onClick={e => e.stopPropagation()} display="flex" gap={1}>
+            <Tooltip
+              title={
+                area.boost_mode_active ? t('boost.quickBoostActive') : t('boost.quickBoostInactive')
+              }
+            >
               <IconButton
                 data-testid={`boost-toggle-${area.id}`}
                 size="small"
@@ -401,13 +430,18 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
                   bgcolor: area.boost_mode_active ? 'error.dark' : 'transparent',
                   '&:hover': {
                     bgcolor: area.boost_mode_active ? 'error.dark' : 'rgba(255, 255, 255, 0.08)',
-                  }
+                  },
                 }}
               >
                 <RocketLaunchIcon />
               </IconButton>
             </Tooltip>
-            <IconButton data-testid={`zone-menu-button-${area.id}`} size="small" onClick={handleMenuOpen} sx={{ p: { xs: 0.5, sm: 1 } }}>
+            <IconButton
+              data-testid={`zone-menu-button-${area.id}`}
+              size="small"
+              onClick={handleMenuOpen}
+              sx={{ p: { xs: 0.5, sm: 1 } }}
+            >
               <MoreVertIcon />
             </IconButton>
           </Box>
@@ -415,19 +449,31 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
 
         <Box my={{ xs: 2, sm: 3 }} onClick={handleSliderClick}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+            >
               {t('area.targetTemperature')}
-              {area.enabled && area.state !== 'off' && area.preset_mode && area.preset_mode !== 'none' && (
-                <Chip
-                  data-testid="preset-mode-badge"
-                  label={t(`presets.${area.preset_mode}`).toUpperCase()}
-                  size="small"
-                  color="secondary"
-                  sx={{ ml: 1, fontSize: { xs: '0.65rem', sm: '0.7rem' }, height: '20px' }}
-                />
-              )}
+              {area.enabled &&
+                area.state !== 'off' &&
+                area.preset_mode &&
+                area.preset_mode !== 'none' && (
+                  <Chip
+                    data-testid="preset-mode-badge"
+                    label={t(`presets.${area.preset_mode}`).toUpperCase()}
+                    size="small"
+                    color="secondary"
+                    sx={{ ml: 1, fontSize: { xs: '0.65rem', sm: '0.7rem' }, height: '20px' }}
+                  />
+                )}
             </Typography>
-            <Typography variant="h5" color="primary" data-testid="target-temperature-display" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+            <Typography
+              variant="h5"
+              color="primary"
+              data-testid="target-temperature-display"
+              sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}
+            >
               {temperature}°C
             </Typography>
           </Box>
@@ -441,7 +487,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
             step={0.1}
             marks={[
               { value: 5, label: '5°' },
-              { value: 30, label: '30°' }
+              { value: 30, label: '30°' },
             ]}
             valueLabelDisplay="auto"
             disabled={!area.enabled || area.devices.length === 0 || !area.manual_override}
@@ -470,23 +516,31 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
 
         {area.current_temperature !== undefined && area.current_temperature !== null && (
           <Box display="flex" justifyContent="space-between" mb={2}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+            >
               {t('area.currentTemperature')}
             </Typography>
-            <Typography variant="body1" data-testid="current-temperature-display" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
+            <Typography
+              variant="body1"
+              data-testid="current-temperature-display"
+              sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}
+            >
               {area.current_temperature.toFixed(1)}°C
             </Typography>
           </Box>
         )}
 
         {/* Manual Override Toggle */}
-        <Box mb={2} onClick={(e) => e.stopPropagation()}>
+        <Box mb={2} onClick={e => e.stopPropagation()}>
           <FormControlLabel
             control={
               <Switch
                 data-testid="area-enable-toggle"
                 checked={!area.manual_override}
-                onChange={async (e) => {
+                onChange={async e => {
                   try {
                     // Toggle: if checked (not manual), user wants to use preset mode
                     await setManualOverride(area.id, !e.target.checked)
@@ -511,27 +565,31 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
 
         <Box display="flex" alignItems="center" gap={1} mb={area.devices.length > 0 ? 2 : 0}>
           <SensorsIcon fontSize="small" color="action" />
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+          >
             {t('area.deviceCount', { count: area.devices.length })}
           </Typography>
         </Box>
 
         {area.devices.length > 0 && (
           <List dense sx={{ mt: 1, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 1 }}>
-            {area.devices.map((device) => (
+            {area.devices.map(device => (
               <ListItem
                 key={device.id}
                 secondaryAction={
                   <IconButton
                     edge="end"
                     size="small"
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation()
                       handleRemoveDevice(device.id)
                     }}
                     sx={{
                       color: 'text.secondary',
-                      p: { xs: 0.5, sm: 1 }
+                      p: { xs: 0.5, sm: 1 },
                     }}
                   >
                     <RemoveCircleOutlineIcon fontSize="small" />
@@ -539,7 +597,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
                 }
                 sx={{
                   py: { xs: 0.5, sm: 1 },
-                  pr: { xs: 5, sm: 6 }
+                  pr: { xs: 5, sm: 6 },
                 }}
               >
                 <ListItemText
@@ -549,7 +607,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
                       color="text.primary"
                       sx={{
                         fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                        wordBreak: 'break-word'
+                        wordBreak: 'break-word',
                       }}
                     >
                       {device.name || device.id}
@@ -560,8 +618,8 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
                     secondary: {
                       variant: 'caption',
                       color: 'text.secondary',
-                      sx: { fontSize: { xs: '0.7rem', sm: '0.75rem' } }
-                    }
+                      sx: { fontSize: { xs: '0.7rem', sm: '0.75rem' } },
+                    },
                   }}
                 />
               </ListItem>
@@ -577,9 +635,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
         onClose={handleMenuClose}
       >
         <MenuItem data-testid={`zone-menu-hide-${area.id}`} onClick={handleToggleHidden}>
-          <ListItemIcon>
-            {area.hidden ? <VisibilityIcon /> : <VisibilityOffIcon />}
-          </ListItemIcon>
+          <ListItemIcon>{area.hidden ? <VisibilityIcon /> : <VisibilityOffIcon />}</ListItemIcon>
           <ListItemText primary={area.hidden ? t('area.unhideArea') : t('area.hideArea')} />
         </MenuItem>
       </Menu>

@@ -88,12 +88,7 @@ const HistoricalComparisons: React.FC = () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await getCustomComparison(
-        customStartA,
-        customEndA,
-        customStartB,
-        customEndB
-      )
+      const data = await getCustomComparison(customStartA, customEndA, customStartB, customEndB)
       setComparison(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load custom comparison')
@@ -130,7 +125,7 @@ const HistoricalComparisons: React.FC = () => {
     currentValue: number,
     previousValue: number,
     delta: MetricDelta,
-    unit: string = ''
+    unit: string = '',
   ) => (
     <Card>
       <CardContent>
@@ -144,7 +139,8 @@ const HistoricalComparisons: React.FC = () => {
               {t('comparison.currentPeriod')}
             </Typography>
             <Typography variant="h6">
-              {currentValue.toFixed(1)}{unit}
+              {currentValue.toFixed(1)}
+              {unit}
             </Typography>
           </Box>
 
@@ -153,7 +149,8 @@ const HistoricalComparisons: React.FC = () => {
               {t('comparison.previousPeriod')}
             </Typography>
             <Typography variant="h6" color="textSecondary">
-              {previousValue.toFixed(1)}{unit}
+              {previousValue.toFixed(1)}
+              {unit}
             </Typography>
           </Box>
         </Box>
@@ -185,9 +182,7 @@ const HistoricalComparisons: React.FC = () => {
       <TableCell align="right">
         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
           {getDeltaIcon(areaComp.deltas.energy_score)}
-          <Typography variant="body2">
-            {formatDelta(areaComp.deltas.energy_score)}
-          </Typography>
+          <Typography variant="body2">{formatDelta(areaComp.deltas.energy_score)}</Typography>
         </Box>
       </TableCell>
       <TableCell align="right">
@@ -196,20 +191,14 @@ const HistoricalComparisons: React.FC = () => {
       <TableCell align="right">
         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
           {getDeltaIcon(areaComp.deltas.heating_time)}
-          <Typography variant="body2">
-            {formatDelta(areaComp.deltas.heating_time, true)}
-          </Typography>
+          <Typography variant="body2">{formatDelta(areaComp.deltas.heating_time, true)}</Typography>
         </Box>
       </TableCell>
-      <TableCell align="right">
-        {areaComp.current_metrics.heating_cycles}
-      </TableCell>
+      <TableCell align="right">{areaComp.current_metrics.heating_cycles}</TableCell>
       <TableCell align="right">
         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
           {getDeltaIcon(areaComp.deltas.heating_cycles)}
-          <Typography variant="body2">
-            {formatDelta(areaComp.deltas.heating_cycles)}
-          </Typography>
+          <Typography variant="body2">{formatDelta(areaComp.deltas.heating_cycles)}</Typography>
         </Box>
       </TableCell>
     </TableRow>
@@ -223,21 +212,18 @@ const HistoricalComparisons: React.FC = () => {
 
     if (delta.is_improvement) {
       summaryText = t('comparison.summaryImproved', {
-        percent: Math.abs(delta.percent_change).toFixed(1)
+        percent: Math.abs(delta.percent_change).toFixed(1),
       })
     } else if (delta.percent_change < -5) {
       summaryText = t('comparison.summaryDecreased', {
-        percent: Math.abs(delta.percent_change).toFixed(1)
+        percent: Math.abs(delta.percent_change).toFixed(1),
       })
     } else {
       summaryText = t('comparison.summaryStable')
     }
 
     return (
-      <Alert
-        severity={getDeltaSeverity(delta)}
-        icon={getDeltaIcon(delta)}
-      >
+      <Alert severity={getDeltaSeverity(delta)} icon={getDeltaIcon(delta)}>
         <Typography variant="body1">{summaryText}</Typography>
       </Alert>
     )
@@ -254,9 +240,7 @@ const HistoricalComparisons: React.FC = () => {
             <Typography variant="h4" gutterBottom>
               {t('comparison.title')}
             </Typography>
-            <Typography color="textSecondary">
-              {t('comparison.description')}
-            </Typography>
+            <Typography color="textSecondary">{t('comparison.description')}</Typography>
           </Box>
         </Box>
 
@@ -307,7 +291,7 @@ const HistoricalComparisons: React.FC = () => {
                 type="date"
                 label={t('comparison.periodA') + ' - ' + t('comparison.startDate')}
                 value={customStartA}
-                onChange={(e) => setCustomStartA(e.target.value)}
+                onChange={e => setCustomStartA(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }}
               />
             </Grid>
@@ -317,7 +301,7 @@ const HistoricalComparisons: React.FC = () => {
                 type="date"
                 label={t('comparison.periodA') + ' - ' + t('comparison.endDate')}
                 value={customEndA}
-                onChange={(e) => setCustomEndA(e.target.value)}
+                onChange={e => setCustomEndA(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }}
               />
             </Grid>
@@ -327,7 +311,7 @@ const HistoricalComparisons: React.FC = () => {
                 type="date"
                 label={t('comparison.periodB') + ' - ' + t('comparison.startDate')}
                 value={customStartB}
-                onChange={(e) => setCustomStartB(e.target.value)}
+                onChange={e => setCustomStartB(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }}
               />
             </Grid>
@@ -337,16 +321,12 @@ const HistoricalComparisons: React.FC = () => {
                 type="date"
                 label={t('comparison.periodB') + ' - ' + t('comparison.endDate')}
                 value={customEndB}
-                onChange={(e) => setCustomEndB(e.target.value)}
+                onChange={e => setCustomEndB(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }}
               />
             </Grid>
             <Grid size={{ xs: 12 }}>
-              <Button
-                variant="contained"
-                onClick={loadCustomComparison}
-                fullWidth
-              >
+              <Button variant="contained" onClick={loadCustomComparison} fullWidth>
                 {t('comparison.compare')}
               </Button>
             </Grid>
@@ -365,9 +345,7 @@ const HistoricalComparisons: React.FC = () => {
       {!loading && !error && comparison && (
         <Box>
           {/* Summary */}
-          <Box mb={3}>
-            {renderSummary()}
-          </Box>
+          <Box mb={3}>{renderSummary()}</Box>
 
           {/* Overall Metrics Comparison */}
           {comparison.summary_delta && (
@@ -381,7 +359,7 @@ const HistoricalComparisons: React.FC = () => {
                     t('comparison.energyScore'),
                     comparison.current_summary.energy_score,
                     comparison.previous_summary.energy_score,
-                    comparison.summary_delta.energy_score
+                    comparison.summary_delta.energy_score,
                   )}
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -390,7 +368,7 @@ const HistoricalComparisons: React.FC = () => {
                     comparison.current_summary.heating_time_percentage,
                     comparison.previous_summary.heating_time_percentage,
                     comparison.summary_delta.heating_time,
-                    '%'
+                    '%',
                   )}
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -398,7 +376,7 @@ const HistoricalComparisons: React.FC = () => {
                     t('comparison.heatingCycles'),
                     comparison.current_summary.heating_cycles,
                     comparison.previous_summary.heating_cycles,
-                    comparison.summary_delta.heating_cycles
+                    comparison.summary_delta.heating_cycles,
                   )}
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -407,7 +385,7 @@ const HistoricalComparisons: React.FC = () => {
                     comparison.current_summary.avg_temp_delta,
                     comparison.previous_summary.avg_temp_delta,
                     comparison.summary_delta.temp_delta,
-                    '°C'
+                    '°C',
                   )}
                 </Grid>
               </Grid>
@@ -433,9 +411,7 @@ const HistoricalComparisons: React.FC = () => {
                       <TableCell align="right">{t('comparison.delta')}</TableCell>
                     </TableRow>
                   </TableHead>
-                  <TableBody>
-                    {comparison.area_comparisons.map(renderAreaComparison)}
-                  </TableBody>
+                  <TableBody>{comparison.area_comparisons.map(renderAreaComparison)}</TableBody>
                 </Table>
               </TableContainer>
             </Box>
@@ -444,9 +420,7 @@ const HistoricalComparisons: React.FC = () => {
       )}
 
       {!loading && !error && !comparison && period !== 'custom' && (
-        <Alert severity="info">
-          {t('comparison.noData')}
-        </Alert>
+        <Alert severity="info">{t('comparison.noData')}</Alert>
       )}
     </Box>
   )

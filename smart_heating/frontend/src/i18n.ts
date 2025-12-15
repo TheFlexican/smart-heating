@@ -6,11 +6,11 @@ import translationNL from './locales/nl/translation.json'
 
 const resources = {
   en: {
-    translation: translationEN
+    translation: translationEN,
   },
   nl: {
-    translation: translationNL
-  }
+    translation: translationNL,
+  },
 }
 
 // Custom language detector that checks Home Assistant language first
@@ -29,7 +29,7 @@ const haLanguageDetector = {
   },
   cacheUserLanguage(lng: string) {
     localStorage.setItem('selectedLanguage', lng)
-  }
+  },
 }
 
 const languageDetector = new LanguageDetector()
@@ -44,11 +44,11 @@ i18n
     supportedLngs: ['en', 'nl'],
     detection: {
       order: ['haLanguageDetector', 'navigator', 'htmlTag'],
-      caches: ['localStorage']
+      caches: ['localStorage'],
     },
     interpolation: {
-      escapeValue: false // React already escapes
-    }
+      escapeValue: false, // React already escapes
+    },
   })
 
 export default i18n

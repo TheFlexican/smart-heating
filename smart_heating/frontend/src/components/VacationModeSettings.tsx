@@ -60,8 +60,16 @@ export const VacationModeSettings: React.FC = () => {
       setFrostProtection(data.frost_protection_override)
     } catch (err) {
       // Retry on network errors (common during page visibility changes)
-      if (err && typeof err === 'object' && 'code' in err && err.code === 'ERR_NETWORK' && retryCount < 3) {
-        console.warn(`Failed to load vacation mode (network error), retrying (${retryCount + 1}/3)...`)
+      if (
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        err.code === 'ERR_NETWORK' &&
+        retryCount < 3
+      ) {
+        console.warn(
+          `Failed to load vacation mode (network error), retrying (${retryCount + 1}/3)...`,
+        )
         // Exponential backoff: 500ms, 1s, 2s
         const delay = 500 * Math.pow(2, retryCount)
         setTimeout(() => loadVacationMode(retryCount + 1), delay)
@@ -92,7 +100,7 @@ export const VacationModeSettings: React.FC = () => {
         min_temperature: minTemp,
         auto_disable: autoDisable,
         frost_protection_override: frostProtection,
-        person_entities: []  // TODO: Add person entity selection
+        person_entities: [], // TODO: Add person entity selection
       }
 
       const data = await enableVacationMode(config)
@@ -153,12 +161,12 @@ export const VacationModeSettings: React.FC = () => {
         {vacationMode?.enabled && (
           <Alert severity="info" sx={{ mb: 2 }}>
             <Box display="flex" alignItems="center" gap={1}>
-              <Typography variant="body2">
-                {t('vacation.activeMessage')}
-              </Typography>
+              <Typography variant="body2">{t('vacation.activeMessage')}</Typography>
               {vacationMode.end_date && (
                 <Typography variant="body2">
-                  {t('vacation.until', { date: new Date(vacationMode.end_date).toLocaleDateString() })}
+                  {t('vacation.until', {
+                    date: new Date(vacationMode.end_date).toLocaleDateString(),
+                  })}
                 </Typography>
               )}
             </Box>
@@ -171,14 +179,14 @@ export const VacationModeSettings: React.FC = () => {
             <DatePicker
               label={t('vacation.startDate')}
               value={startDate}
-              onChange={(date) => setStartDate(date)}
+              onChange={date => setStartDate(date)}
               disabled={vacationMode?.enabled || saving}
               slotProps={{ textField: { fullWidth: true } }}
             />
             <DatePicker
               label={t('vacation.endDate')}
               value={endDate}
-              onChange={(date) => setEndDate(date)}
+              onChange={date => setEndDate(date)}
               disabled={vacationMode?.enabled || saving}
               slotProps={{ textField: { fullWidth: true } }}
             />
@@ -189,7 +197,7 @@ export const VacationModeSettings: React.FC = () => {
             <InputLabel>{t('vacation.presetMode')}</InputLabel>
             <Select
               value={presetMode}
-              onChange={(e) => setPresetMode(e.target.value)}
+              onChange={e => setPresetMode(e.target.value)}
               label={t('vacation.presetMode')}
             >
               <MenuItem value="away">{t('presets.away')}</MenuItem>
@@ -203,7 +211,7 @@ export const VacationModeSettings: React.FC = () => {
             control={
               <Switch
                 checked={frostProtection}
-                onChange={(e) => setFrostProtection(e.target.checked)}
+                onChange={e => setFrostProtection(e.target.checked)}
                 disabled={vacationMode?.enabled || saving}
               />
             }
@@ -215,7 +223,7 @@ export const VacationModeSettings: React.FC = () => {
               label={t('vacation.minTemperature')}
               type="number"
               value={minTemp}
-              onChange={(e) => setMinTemp(Number.parseFloat(e.target.value))}
+              onChange={e => setMinTemp(Number.parseFloat(e.target.value))}
               disabled={vacationMode?.enabled || saving}
               slotProps={{ htmlInput: { min: 5, max: 15, step: 0.5 } }}
               fullWidth
@@ -227,7 +235,7 @@ export const VacationModeSettings: React.FC = () => {
             control={
               <Switch
                 checked={autoDisable}
-                onChange={(e) => setAutoDisable(e.target.checked)}
+                onChange={e => setAutoDisable(e.target.checked)}
                 disabled={vacationMode?.enabled || saving}
               />
             }

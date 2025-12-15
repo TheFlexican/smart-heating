@@ -1,14 +1,17 @@
-/// <reference types="vitest" />
 import { render, screen } from '@testing-library/react'
-import { vi, it, describe, expect } from 'vitest'
+import { vi, it, expect } from 'vitest'
 import ZoneCard from './ZoneCard'
 
 // Mock react-i18next to provide a basic translation function
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, v?: any) => {
-  if (v && v.temp) return `${v.temp}°C`
-  if (k.startsWith('presets.')) return k.split('.')[1].toUpperCase()
-  return k
-} }) }))
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (k: string, v?: any) => {
+      if (v && v.temp) return `${v.temp}°C`
+      if (k.startsWith('presets.')) return k.split('.')[1].toUpperCase()
+      return k
+    },
+  }),
+}))
 
 // Mock react-router-dom navigate to prevent side effects
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
@@ -37,7 +40,7 @@ const baseArea = {
   presence_sensors: [],
   boost_mode_active: false,
   devices: [],
-  current_temperature: 19.2
+  current_temperature: 19.2,
 }
 
 it('hides preset chip and shows base temperature when area is disabled/off', () => {

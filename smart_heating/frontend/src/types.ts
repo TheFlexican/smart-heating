@@ -1,15 +1,22 @@
 export interface Device {
   id: string
-  entity_id?: string  // Universal device ID (HA entity_id)
-  type: 'thermostat' | 'temperature_sensor' | 'opentherm_gateway' | 'valve' | 'switch' | 'sensor' | 'number'
-  subtype?: 'climate' | 'switch' | 'number' | 'temperature'  // Domain-based categorization (no keyword filtering)
+  entity_id?: string // Universal device ID (HA entity_id)
+  type:
+    | 'thermostat'
+    | 'temperature_sensor'
+    | 'opentherm_gateway'
+    | 'valve'
+    | 'switch'
+    | 'sensor'
+    | 'number'
+  subtype?: 'climate' | 'switch' | 'number' | 'temperature' // Domain-based categorization (no keyword filtering)
   mqtt_topic?: string
   name?: string
   state?: string
   ha_area_id?: string
-  area_id?: string  // Alias for ha_area_id for consistency
+  area_id?: string // Alias for ha_area_id for consistency
   ha_area_name?: string
-  domain?: string  // HA domain (climate, sensor, switch, number)
+  domain?: string // HA domain (climate, sensor, switch, number)
   // Thermostat specific
   hvac_action?: string
   current_temperature?: number
@@ -22,13 +29,13 @@ export interface Device {
 
 export interface ScheduleEntry {
   id: string
-  day?: number  // For weekly recurring schedules (single day as index 0..6)
-  days?: number[]  // For multi-day weekly recurring schedules (indices 0..6)
-  date?: string  // For date-specific schedules (YYYY-MM-DD format)
+  day?: number // For weekly recurring schedules (single day as index 0..6)
+  days?: number[] // For multi-day weekly recurring schedules (indices 0..6)
+  date?: string // For date-specific schedules (YYYY-MM-DD format)
   start_time: string
   end_time: string
   temperature?: number
-  preset_mode?: string  // Optional: 'away', 'eco', 'comfort', 'home', 'sleep', 'activity'
+  preset_mode?: string // Optional: 'away', 'eco', 'comfort', 'home', 'sleep', 'activity'
 }
 
 export interface Zone {
@@ -38,7 +45,7 @@ export interface Zone {
   hidden?: boolean
   state: 'heating' | 'idle' | 'off'
   target_temperature: number
-  effective_target_temperature?: number  // Actual temperature considering presets, schedules, etc.
+  effective_target_temperature?: number // Actual temperature considering presets, schedules, etc.
   current_temperature?: number
   devices: Device[]
   schedules?: ScheduleEntry[]
@@ -96,12 +103,12 @@ export interface Zone {
   // Presence sensor settings
   presence_sensors?: PresenceSensorConfig[]
   presence_detected?: boolean
-  use_global_presence?: boolean  // Use global presence sensors instead of area-specific
+  use_global_presence?: boolean // Use global presence sensors instead of area-specific
 
   // Auto preset mode based on presence
   auto_preset_enabled?: boolean
-  auto_preset_home?: string  // Preset when presence detected (default: 'home')
-  auto_preset_away?: string  // Preset when no presence (default: 'away')
+  auto_preset_home?: string // Preset when presence detected (default: 'home')
+  auto_preset_away?: string // Preset when no presence (default: 'away')
 
   // Hysteresis override (null = use global setting)
   hysteresis_override?: number | null
@@ -116,7 +123,7 @@ export interface Zone {
 export interface WindowSensorConfig {
   entity_id: string
   action_when_open: 'turn_off' | 'reduce_temperature' | 'none'
-  temp_drop?: number  // Only used when action_when_open is 'reduce_temperature'
+  temp_drop?: number // Only used when action_when_open is 'reduce_temperature'
 }
 
 // Presence sensor configuration
@@ -193,18 +200,18 @@ export interface DeviceAdd {
 
 // User profile for multi-user presence tracking
 export interface UserProfile {
-  user_id: string  // Person entity ID
+  user_id: string // Person entity ID
   name: string
   preset_preferences: {
-    [preset: string]: number  // Preset name -> preferred temperature
+    [preset: string]: number // Preset name -> preferred temperature
   }
-  priority: number  // 1-10, higher = more important
-  areas: string[]  // Empty = all areas
+  priority: number // 1-10, higher = more important
+  areas: string[] // Empty = all areas
 }
 
 export interface PresenceState {
-  users_home: string[]  // List of user IDs currently home
-  active_user: string | null  // Highest priority user currently home
+  users_home: string[] // List of user IDs currently home
+  active_user: string | null // Highest priority user currently home
   combined_mode: 'none' | 'single' | 'multiple'
 }
 
@@ -221,10 +228,10 @@ export interface UserData {
 
 // Efficiency metrics for heating performance
 export interface EfficiencyMetrics {
-  energy_score: number  // 0-100 score
-  heating_time_percentage: number  // % of time heating was active
-  heating_cycles: number  // Number of on/off cycles
-  avg_temp_delta: number  // Average difference from target temp
+  energy_score: number // 0-100 score
+  heating_time_percentage: number // % of time heating was active
+  heating_cycles: number // Number of on/off cycles
+  avg_temp_delta: number // Average difference from target temp
 }
 
 export interface EfficiencyReport {
@@ -235,15 +242,15 @@ export interface EfficiencyReport {
   end_date: string
   metrics: EfficiencyMetrics
   recommendations: string[]
-  summary_metrics?: EfficiencyMetrics  // For all-areas report
-  area_reports?: EfficiencyReport[]  // For all-areas report
+  summary_metrics?: EfficiencyMetrics // For all-areas report
+  area_reports?: EfficiencyReport[] // For all-areas report
 }
 
 // Historical comparison types
 export interface MetricDelta {
-  change: number  // Absolute change
-  percent_change: number  // Percentage change
-  is_improvement: boolean  // Whether change is positive
+  change: number // Absolute change
+  percent_change: number // Percentage change
+  is_improvement: boolean // Whether change is positive
 }
 
 export interface ComparisonResult {

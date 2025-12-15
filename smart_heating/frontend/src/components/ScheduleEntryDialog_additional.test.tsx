@@ -11,7 +11,9 @@ describe('ScheduleEntryDialog additional behaviors', () => {
     const onClose = vi.fn()
     const user = userEvent.setup()
 
-    render(<ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />)
+    render(
+      <ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />,
+    )
 
     // Initially Save should be enabled (Monday selected)
     const saveBtn = screen.getByRole('button', { name: 'common.save' })
@@ -32,7 +34,9 @@ describe('ScheduleEntryDialog additional behaviors', () => {
     const onSave = vi.fn().mockResolvedValue(undefined)
     const onClose = vi.fn()
     const user = userEvent.setup()
-    render(<ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />)
+    render(
+      <ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />,
+    )
 
     await user.click(screen.getByTestId('schedule-type-date'))
     // clicking Save should include a date
@@ -45,8 +49,21 @@ describe('ScheduleEntryDialog additional behaviors', () => {
   it('prefilled editingEntry with preset_mode writes preset in entry', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined)
     const onClose = vi.fn()
-    const editingEntry = { id: 'e1', start_time: '06:00', end_time: '07:00', days: ['Monday'], preset_mode: 'eco' }
-    render(<ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={editingEntry as any} />)
+    const editingEntry = {
+      id: 'e1',
+      start_time: '06:00',
+      end_time: '07:00',
+      days: ['Monday'],
+      preset_mode: 'eco',
+    }
+    render(
+      <ScheduleEntryDialog
+        open={true}
+        onClose={onClose}
+        onSave={onSave}
+        editingEntry={editingEntry as any}
+      />,
+    )
     await userEvent.click(screen.getByRole('button', { name: 'common.save' }))
     expect(onSave).toHaveBeenCalled()
     const entry = onSave.mock.calls[0][0]

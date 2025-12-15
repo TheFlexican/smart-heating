@@ -203,23 +203,12 @@ export default function OpenThermLogger() {
       {/* Header Controls */}
       <Paper sx={{ p: 2 }}>
         <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-          <Typography variant="h6">
-            {t('opentherm.title', 'OpenTherm Gateway Monitor')}
-          </Typography>
+          <Typography variant="h6">{t('opentherm.title', 'OpenTherm Gateway Monitor')}</Typography>
           <Stack direction="row" spacing={1}>
-            <Button
-              size="small"
-              startIcon={<RefreshIcon />}
-              onClick={fetchLogs}
-              variant="outlined"
-            >
+            <Button size="small" startIcon={<RefreshIcon />} onClick={fetchLogs} variant="outlined">
               {t('common.refresh', 'Refresh')}
             </Button>
-            <Button
-              size="small"
-              onClick={handleDiscoverCapabilities}
-              variant="outlined"
-            >
+            <Button size="small" onClick={handleDiscoverCapabilities} variant="outlined">
               {t('opentherm.discoverCapabilities', 'Discover Capabilities')}
             </Button>
             <Button
@@ -241,10 +230,7 @@ export default function OpenThermLogger() {
             onClick={() => setAutoRefresh(!autoRefresh)}
             size="small"
           />
-          <Chip
-            label={`${logs.length} ${t('opentherm.logs', 'logs')}`}
-            size="small"
-          />
+          <Chip label={`${logs.length} ${t('opentherm.logs', 'logs')}`} size="small" />
         </Stack>
       </Paper>
 
@@ -256,7 +242,10 @@ export default function OpenThermLogger() {
 
       {gatewayPresent === false && (
         <Alert severity="info" sx={{ mt: 1 }}>
-          {t('opentherm.noGateways', 'No OpenTherm gateways found. Please add the OpenTherm Gateway integration in Home Assistant.')}
+          {t(
+            'opentherm.noGateways',
+            'No OpenTherm gateways found. Please add the OpenTherm Gateway integration in Home Assistant.',
+          )}
         </Alert>
       )}
 
@@ -320,9 +309,7 @@ export default function OpenThermLogger() {
                         <Typography variant="caption" color="text.secondary">
                           {t('opentherm.flameStatus', 'Flame Status')}
                         </Typography>
-                        <Typography variant="h6">
-                          {sensorStates.flame_on ? 'ON' : 'OFF'}
-                        </Typography>
+                        <Typography variant="h6">{sensorStates.flame_on ? 'ON' : 'OFF'}</Typography>
                       </Box>
                     </Stack>
                   </CardContent>
@@ -404,14 +391,12 @@ export default function OpenThermLogger() {
                         <Typography variant="caption" color="text.secondary">
                           {t('opentherm.roomTemp', 'Room Temperature')}
                         </Typography>
-                        <Typography variant="h6">
-                          {sensorStates.room_temp.toFixed(1)}°C
-                        </Typography>
+                        <Typography variant="h6">{sensorStates.room_temp.toFixed(1)}°C</Typography>
                       </Box>
                     </Stack>
                   </CardContent>
                 </Card>
-            </Grid>
+              </Grid>
             )}
 
             {/* Room Setpoint */}
@@ -437,9 +422,14 @@ export default function OpenThermLogger() {
           </Grid>
 
           {/* Boiler Status & Errors */}
-          {(sensorStates.ch_active !== undefined || sensorStates.dhw_active !== undefined ||
-            sensorStates.fault || sensorStates.diagnostic || sensorStates.low_water_pressure ||
-            sensorStates.gas_fault || sensorStates.air_pressure_fault || sensorStates.water_overtemp ||
+          {(sensorStates.ch_active !== undefined ||
+            sensorStates.dhw_active !== undefined ||
+            sensorStates.fault ||
+            sensorStates.diagnostic ||
+            sensorStates.low_water_pressure ||
+            sensorStates.gas_fault ||
+            sensorStates.air_pressure_fault ||
+            sensorStates.water_overtemp ||
             sensorStates.service_required) && (
             <Box sx={{ mt: 3 }} data-testid="opentherm-boiler-errors">
               <Typography variant="subtitle2" gutterBottom>
@@ -568,14 +558,15 @@ export default function OpenThermLogger() {
             {t('opentherm.capabilities', 'Gateway Capabilities')}
           </Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-            {capabilities.attributes && Object.entries(capabilities.attributes).map(([key, value]: [string, any]) => (
-              <Chip
-                key={key}
-                label={`${key}: ${typeof value === 'boolean' ? (value ? 'ON' : 'OFF') : value}`}
-                size="small"
-                variant="outlined"
-              />
-            ))}
+            {capabilities.attributes &&
+              Object.entries(capabilities.attributes).map(([key, value]: [string, any]) => (
+                <Chip
+                  key={key}
+                  label={`${key}: ${typeof value === 'boolean' ? (value ? 'ON' : 'OFF') : value}`}
+                  size="small"
+                  variant="outlined"
+                />
+              ))}
           </Stack>
         </Paper>
       )}
@@ -637,13 +628,14 @@ export default function OpenThermLogger() {
                           )}
                         </Stack>
                       )}
-                      {log.event_type === 'modulation' && log.data.modulation_level !== undefined && (
-                        <Chip
-                          label={`${log.data.modulation_level}%`}
-                          size="small"
-                          color={log.data.modulation_level > 0 ? 'success' : 'default'}
-                        />
-                      )}
+                      {log.event_type === 'modulation' &&
+                        log.data.modulation_level !== undefined && (
+                          <Chip
+                            label={`${log.data.modulation_level}%`}
+                            size="small"
+                            color={log.data.modulation_level > 0 ? 'success' : 'default'}
+                          />
+                        )}
                     </TableCell>
                   </TableRow>
                   <TableRow>

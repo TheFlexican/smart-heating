@@ -111,7 +111,7 @@ export default function AdvancedMetricsDashboard() {
   }, [autoRefresh, timeRange, mounted])
 
   // Transform metrics for charts
-  const heatingCurveData = metrics.map((m) => ({
+  const heatingCurveData = metrics.map(m => ({
     time: new Date(m.timestamp).toLocaleTimeString('nl-NL', {
       hour: '2-digit',
       minute: '2-digit',
@@ -123,7 +123,7 @@ export default function AdvancedMetricsDashboard() {
     setpoint: m.boiler_setpoint,
   }))
 
-  const modulationData = metrics.map((m) => ({
+  const modulationData = metrics.map(m => ({
     time: new Date(m.timestamp).toLocaleTimeString('nl-NL', {
       hour: '2-digit',
       minute: '2-digit',
@@ -137,15 +137,15 @@ export default function AdvancedMetricsDashboard() {
   const stats = {
     avgModulation:
       metrics.length > 0
-        ? (
-            metrics.reduce((acc, m) => acc + (m.modulation_level || 0), 0) / metrics.length
-          ).toFixed(1)
+        ? (metrics.reduce((acc, m) => acc + (m.modulation_level || 0), 0) / metrics.length).toFixed(
+            1,
+          )
         : '0',
     avgFlowTemp:
       metrics.length > 0
-        ? (
-            metrics.reduce((acc, m) => acc + (m.boiler_flow_temp || 0), 0) / metrics.length
-          ).toFixed(1)
+        ? (metrics.reduce((acc, m) => acc + (m.boiler_flow_temp || 0), 0) / metrics.length).toFixed(
+            1,
+          )
         : '0',
     avgReturnTemp:
       metrics.length > 0
@@ -155,15 +155,14 @@ export default function AdvancedMetricsDashboard() {
         : '0',
     flameOnPercent:
       metrics.length > 0
-        ? ((metrics.filter((m) => m.flame_on).length / metrics.length) * 100).toFixed(1)
+        ? ((metrics.filter(m => m.flame_on).length / metrics.length) * 100).toFixed(1)
         : '0',
     tempDelta:
       metrics.length > 0
         ? (
             metrics.reduce(
-              (acc, m) =>
-                acc + ((m.boiler_flow_temp || 0) - (m.boiler_return_temp || 0)),
-              0
+              (acc, m) => acc + ((m.boiler_flow_temp || 0) - (m.boiler_return_temp || 0)),
+              0,
             ) / metrics.length
           ).toFixed(1)
         : '0',
@@ -199,10 +198,7 @@ export default function AdvancedMetricsDashboard() {
         <Stack direction="row" spacing={2} alignItems="center">
           <FormControlLabel
             control={
-              <Switch
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-              />
+              <Switch checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} />
             }
             label={t('advancedMetrics.autoRefresh', 'Auto-refresh (30s)')}
           />
@@ -230,7 +226,7 @@ export default function AdvancedMetricsDashboard() {
         <Alert severity="info" sx={{ mb: 2 }}>
           {t(
             'advancedMetrics.noData',
-            'No metrics data yet. Data is collected every 5 minutes. Check back soon!'
+            'No metrics data yet. Data is collected every 5 minutes. Check back soon!',
           )}
         </Alert>
       )}
@@ -247,7 +243,7 @@ export default function AdvancedMetricsDashboard() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           {t(
             'advancedMetrics.heatingCurve.description',
-            'Shows how the system proactively adjusts flow temperature based on outdoor conditions'
+            'Shows how the system proactively adjusts flow temperature based on outdoor conditions',
           )}
         </Typography>
 
@@ -298,7 +294,7 @@ export default function AdvancedMetricsDashboard() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           {t(
             'advancedMetrics.efficiency.description',
-            'Modulation stability and thermal performance indicators'
+            'Modulation stability and thermal performance indicators',
           )}
         </Typography>
 
@@ -408,7 +404,7 @@ export default function AdvancedMetricsDashboard() {
             <strong>{t('advancedMetrics.efficiency.tip', 'Tip')}:</strong>{' '}
             {t(
               'advancedMetrics.efficiency.tipText',
-              'Stable modulation between 30-60% indicates efficient operation. Large fluctuations suggest the system is cycling on/off frequently.'
+              'Stable modulation between 30-60% indicates efficient operation. Large fluctuations suggest the system is cycling on/off frequently.',
             )}
           </Typography>
         </Alert>
@@ -422,14 +418,14 @@ export default function AdvancedMetricsDashboard() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           {t(
             'advancedMetrics.areas.description',
-            'Current advanced feature configuration per heating area'
+            'Current advanced feature configuration per heating area',
           )}
         </Typography>
 
         <Grid container spacing={2}>
           {areas
-            .filter((area) => area.enabled)
-            .map((area) => {
+            .filter(area => area.enabled)
+            .map(area => {
               const latestMetric = metrics[metrics.length - 1]
               const areaData = latestMetric?.area_metrics?.[area.id]
 
@@ -449,14 +445,14 @@ export default function AdvancedMetricsDashboard() {
                           <Chip
                             size="small"
                             label={(() => {
-                              if (areaData?.heating_type === 'floor_heating') return t('advancedMetrics.floorHeating', 'Floor')
-                              if (areaData?.heating_type === 'airco') return t('advancedMetrics.airConditioner', 'Air Conditioner')
+                              if (areaData?.heating_type === 'floor_heating')
+                                return t('advancedMetrics.floorHeating', 'Floor')
+                              if (areaData?.heating_type === 'airco')
+                                return t('advancedMetrics.airConditioner', 'Air Conditioner')
                               return t('advancedMetrics.radiator', 'Radiator')
                             })()}
                             color={
-                              areaData?.heating_type === 'floor_heating'
-                                ? 'primary'
-                                : 'default'
+                              areaData?.heating_type === 'floor_heating' ? 'primary' : 'default'
                             }
                           />
                         </Box>

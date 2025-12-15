@@ -15,6 +15,8 @@ describe('API - Presets', () => {
 
     mockedAxios.post = vi.fn().mockResolvedValue({ data: {} }) as any
     await presets.setGlobalPresets({ test: true })
-    expect(mockedAxios.post).toHaveBeenCalledWith('/api/smart_heating/global_presets', { test: true })
+    expect(mockedAxios.post).toHaveBeenCalledWith('/api/smart_heating/global_presets', {
+      test: true,
+    })
   })
 })

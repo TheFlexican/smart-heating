@@ -82,9 +82,7 @@ export default function HysteresisHelpModal({ open, onClose }: HysteresisHelpMod
                 {t('hysteresisHelp.floorExplanation')}
               </Typography>
               <Alert severity="success" sx={{ mb: 2 }}>
-                <Typography variant="body2">
-                  {t('hysteresisHelp.floorRecommendation')}
-                </Typography>
+                <Typography variant="body2">{t('hysteresisHelp.floorRecommendation')}</Typography>
               </Alert>
             </Box>
           </Box>
@@ -98,10 +96,12 @@ export default function HysteresisHelpModal({ open, onClose }: HysteresisHelpMod
             </Typography>
             <Box sx={{ ml: 2, mt: 1 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                <strong>• {t('hysteresisHelp.globalSetting')}</strong> {t('hysteresisHelp.globalSettingExplanation')}
+                <strong>• {t('hysteresisHelp.globalSetting')}</strong>{' '}
+                {t('hysteresisHelp.globalSettingExplanation')}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                <strong>• {t('hysteresisHelp.areaSetting')}</strong> {t('hysteresisHelp.areaSettingExplanation')}
+                <strong>• {t('hysteresisHelp.areaSetting')}</strong>{' '}
+                {t('hysteresisHelp.areaSettingExplanation')}
               </Typography>
             </Box>
           </Box>
@@ -134,7 +134,12 @@ export default function HysteresisHelpModal({ open, onClose }: HysteresisHelpMod
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button data-testid="hysteresis-help-close" onClick={onClose} color="primary" variant="contained">
+        <Button
+          data-testid="hysteresis-help-close"
+          onClick={onClose}
+          color="primary"
+          variant="contained"
+        >
           {t('common.close')}
         </Button>
       </DialogActions>

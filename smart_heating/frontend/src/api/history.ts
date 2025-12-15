@@ -8,7 +8,7 @@ export const getHistoryConfig = async (): Promise<any> => {
 
 export const setHistoryRetention = async (days: number): Promise<void> => {
   await axios.post(`${API_BASE}/history/config`, {
-    retention_days: days
+    retention_days: days,
   })
 }
 
@@ -19,7 +19,7 @@ export const getHistoryStorageInfo = async (): Promise<any> => {
 
 export const migrateHistoryStorage = async (targetBackend: 'json' | 'database'): Promise<any> => {
   const response = await axios.post(`${API_BASE}/history/storage/migrate`, {
-    target_backend: targetBackend
+    target_backend: targetBackend,
   })
   return response.data
 }
@@ -40,7 +40,7 @@ export const getHistory = async (
     hours?: number
     startTime?: string
     endTime?: string
-  }
+  },
 ): Promise<any> => {
   const params = new URLSearchParams()
   if (options?.hours) {

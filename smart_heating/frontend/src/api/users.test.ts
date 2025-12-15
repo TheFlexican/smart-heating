@@ -21,7 +21,9 @@ describe('API - Users', () => {
     const created = await api.createUser({ user_id: 'u2', name: 'U2', person_entity: 'p2' } as any)
     expect(created.user.user_id).toBe('u2')
 
-    mockedAxios.post = vi.fn().mockResolvedValue({ data: { user: { user_id: 'u2', name: 'New' } } }) as any
+    mockedAxios.post = vi
+      .fn()
+      .mockResolvedValue({ data: { user: { user_id: 'u2', name: 'New' } } }) as any
     const updated = await api.updateUser('u2', { name: 'New' })
     expect(updated.user.name).toBe('New')
 

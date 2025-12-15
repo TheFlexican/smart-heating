@@ -50,7 +50,7 @@ export const getOpenThermSensorStates = async (): Promise<any> => {
   ]
 
   const results = await Promise.allSettled(
-    sensorIds.map(id => getEntityState(id).catch(() => null))
+    sensorIds.map(id => getEntityState(id).catch(() => null)),
   )
 
   const sensorMapping: Array<{
@@ -59,22 +59,34 @@ export const getOpenThermSensorStates = async (): Promise<any> => {
     parser: (value: string) => number | boolean
   }> = [
     { keyword: 'regel_instelpunt_1', stateKey: 'control_setpoint', parser: Number.parseFloat },
-    { keyword: 'relatief_modulatieniveau', stateKey: 'modulation_level', parser: Number.parseFloat },
-    { keyword: 'centrale_verwarming_1_watertemperatuur', stateKey: 'ch_water_temp', parser: Number.parseFloat },
-    { keyword: 'temperatuur_retourwater', stateKey: 'return_water_temp', parser: Number.parseFloat },
+    {
+      keyword: 'relatief_modulatieniveau',
+      stateKey: 'modulation_level',
+      parser: Number.parseFloat,
+    },
+    {
+      keyword: 'centrale_verwarming_1_watertemperatuur',
+      stateKey: 'ch_water_temp',
+      parser: Number.parseFloat,
+    },
+    {
+      keyword: 'temperatuur_retourwater',
+      stateKey: 'return_water_temp',
+      parser: Number.parseFloat,
+    },
     { keyword: 'kamertemperatuur', stateKey: 'room_temp', parser: Number.parseFloat },
     { keyword: 'room_setpoint_1', stateKey: 'room_setpoint', parser: Number.parseFloat },
-    { keyword: 'vlam', stateKey: 'flame_on', parser: (v) => v === 'on' },
+    { keyword: 'vlam', stateKey: 'flame_on', parser: v => v === 'on' },
     { keyword: 'waterdruk', stateKey: 'ch_pressure', parser: Number.parseFloat },
-    { keyword: 'centrale_verwarming_1', stateKey: 'ch_active', parser: (v) => v === 'on' },
-    { keyword: 'heet_water', stateKey: 'dhw_active', parser: (v) => v === 'on' },
-    { keyword: 'storingsindicatie', stateKey: 'fault', parser: (v) => v === 'on' },
-    { keyword: 'diagnostische', stateKey: 'diagnostic', parser: (v) => v === 'on' },
-    { keyword: 'lage_waterdruk', stateKey: 'low_water_pressure', parser: (v) => v === 'on' },
-    { keyword: 'gasstoring', stateKey: 'gas_fault', parser: (v) => v === 'on' },
-    { keyword: 'luchtdrukfout', stateKey: 'air_pressure_fault', parser: (v) => v === 'on' },
-    { keyword: 'water_overtemperature', stateKey: 'water_overtemp', parser: (v) => v === 'on' },
-    { keyword: 'service_vereist', stateKey: 'service_required', parser: (v) => v === 'on' },
+    { keyword: 'centrale_verwarming_1', stateKey: 'ch_active', parser: v => v === 'on' },
+    { keyword: 'heet_water', stateKey: 'dhw_active', parser: v => v === 'on' },
+    { keyword: 'storingsindicatie', stateKey: 'fault', parser: v => v === 'on' },
+    { keyword: 'diagnostische', stateKey: 'diagnostic', parser: v => v === 'on' },
+    { keyword: 'lage_waterdruk', stateKey: 'low_water_pressure', parser: v => v === 'on' },
+    { keyword: 'gasstoring', stateKey: 'gas_fault', parser: v => v === 'on' },
+    { keyword: 'luchtdrukfout', stateKey: 'air_pressure_fault', parser: v => v === 'on' },
+    { keyword: 'water_overtemperature', stateKey: 'water_overtemp', parser: v => v === 'on' },
+    { keyword: 'service_vereist', stateKey: 'service_required', parser: v => v === 'on' },
   ]
 
   const states: any = {}
@@ -94,7 +106,9 @@ export const getOpenThermSensorStates = async (): Promise<any> => {
   return states
 }
 
-export const getOpenthermGateways = async (): Promise<Array<{gateway_id: string, title: string}>> => {
+export const getOpenthermGateways = async (): Promise<
+  Array<{ gateway_id: string; title: string }>
+> => {
   const response = await axios.get(`${API_BASE}/opentherm/gateways`)
   return response.data.gateways
 }

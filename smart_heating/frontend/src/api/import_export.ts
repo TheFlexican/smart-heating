@@ -3,7 +3,7 @@ const API_BASE = '/api/smart_heating'
 
 export const exportConfig = async (): Promise<Blob> => {
   const response = await axios.get(`${API_BASE}/export`, {
-    responseType: 'blob'
+    responseType: 'blob',
   })
   return response.data
 }

@@ -212,8 +212,7 @@
     "defaultCoefficient": "Default heating curve coefficient",
     "defaultCoefficientHelper": "Default coefficient used when Heating Curve is enabled",
     "runCalibration": "Run OPV calibration",
-    "calibrationResult": "OPV: {{value}} °C"
-    ,
+    "calibrationResult": "OPV: {{value}} °C",
     "resetDefaults": "Reset to defaults"
   },
   "presetDescriptions": {
@@ -587,13 +586,13 @@
     "radiatorDescription": "Fast response, higher overhead temperature (default: +20°C)",
     "floorHeatingDescription": "Slow response, lower overhead temperature (default: +5°C)",
     "heatingTypeInfo": "Heating type affects the boiler setpoint temperature. Radiators use higher temperature for faster heating, floor heating uses lower temperature for gradual heating.",
-      "heatingCurveTitle": "Heating Curve Coefficient",
-      "heatingCurveDescription": "Optional per-area coefficient used in heating curve calculations. Leave blank to use the global coefficient.",
-      "heatingCurveUseArea": "Use area-specific coefficient",
-      "heatingCurveHelper": {
-        "usingGlobal": "Using global coefficient",
-        "overrideActive": "Per-area override active"
-      },
+    "heatingCurveTitle": "Heating Curve Coefficient",
+    "heatingCurveDescription": "Optional per-area coefficient used in heating curve calculations. Leave blank to use the global coefficient.",
+    "heatingCurveUseArea": "Use area-specific coefficient",
+    "heatingCurveHelper": {
+      "usingGlobal": "Using global coefficient",
+      "overrideActive": "Per-area override active"
+    },
     "customOverheadTemp": "Custom Overhead Temperature",
     "customOverheadTempDescription": "Override default overhead temperature (floor heating: +10°C, radiator: +20°C). Leave empty to use defaults.",
     "customOverheadTempPlaceholder": "e.g., 8.0",

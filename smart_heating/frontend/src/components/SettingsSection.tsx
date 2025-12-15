@@ -1,11 +1,5 @@
 import { ReactNode, useState } from 'react'
-import {
-  Paper,
-  Box,
-  Typography,
-  Collapse,
-  Chip,
-} from '@mui/material'
+import { Paper, Box, Typography, Collapse, Chip } from '@mui/material'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 
 interface SettingsSectionProps {
@@ -67,7 +61,7 @@ const SettingsSection = ({
         minHeight: expanded ? 'auto' : '120px',
         '&:hover': {
           boxShadow: 4,
-        }
+        },
       }}
     >
       <Box
@@ -100,7 +94,7 @@ const SettingsSection = ({
             color: 'action.active',
             '&:hover': {
               color: 'primary.main',
-            }
+            },
           }}
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
         >
@@ -109,9 +103,7 @@ const SettingsSection = ({
 
         {/* Icon */}
         {icon && (
-          <Box sx={{ display: 'flex', alignItems: 'center', color: 'primary.main' }}>
-            {icon}
-          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', color: 'primary.main' }}>{icon}</Box>
         )}
 
         {/* Title & Description */}
@@ -121,12 +113,7 @@ const SettingsSection = ({
               {title}
             </Typography>
             {badge !== undefined && (
-              <Chip
-                label={badge}
-                size="small"
-                color="primary"
-                sx={{ height: 20 }}
-              />
+              <Chip label={badge} size="small" color="primary" sx={{ height: 20 }} />
             )}
           </Box>
           {description && (
@@ -139,9 +126,7 @@ const SettingsSection = ({
 
       {/* Content */}
       <Collapse in={expanded} timeout="auto" unmountOnExit>
-        <Box sx={{ p: 3, pt: 2, bgcolor: 'background.default' }}>
-          {children}
-        </Box>
+        <Box sx={{ p: 3, pt: 2, bgcolor: 'background.default' }}>{children}</Box>
       </Collapse>
     </Paper>
   )
