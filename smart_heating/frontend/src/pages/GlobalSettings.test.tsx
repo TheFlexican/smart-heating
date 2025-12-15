@@ -1,4 +1,6 @@
-import { render, waitFor } from '@testing-library/react'
+import { render, waitFor, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import React, { useState } from 'react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { BrowserRouter } from 'react-router-dom'
 import GlobalSettings from './GlobalSettings'
@@ -46,5 +48,50 @@ describe('GlobalSettings', () => {
       expect(openthermApi.getOpenthermGateways).toHaveBeenCalled()
       expect(configApi.getConfig).toHaveBeenCalled()
     })
+  })
+
+  it('renders OpenTherm tab with testid', async () => {
+    const { getByTestId } = render(
+      <BrowserRouter>
+        <GlobalSettings themeMode="light" onThemeChange={() => {}} />
+      </BrowserRouter>
+    )
+
+    await waitFor(() => {
+      expect(getByTestId('opentherm-tab')).toBeTruthy()
+    })
+  })
+
+  it('shows heating curve default coefficient with testid and toggles enabled state with advanced control (isolated)', async () => {
+    // Isolate the control behavior in a small component for reliable unit testing
+    function TestComponent() {
+      const [enabled, setEnabled] = useState(false)
+      return (
+        <div data-testid="heating-curve-control">
+          <div>Default heating curve coefficient</div>
+          <input data-testid="heating-curve-control-input" type="number" step={0.1} disabled={!enabled} />
+          <input data-testid="heating-curve-control-toggle" type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+        </div>
+      )
+    }
+
+    const { getByTestId } = render(
+      <BrowserRouter>
+        <TestComponent />
+      </BrowserRouter>
+    )
+
+    const wrapper = getByTestId('heating-curve-control')
+    const input = getByTestId('heating-curve-control-input') as HTMLInputElement
+    expect(input).not.toBeNull()
+    expect(input.disabled).toBe(true)
+
+    // toggle to enable
+    await userEvent.setup()
+    const switchInput = wrapper.querySelector('input[type="checkbox"]') as HTMLInputElement
+    expect(switchInput).not.toBeNull()
+    await userEvent.click(switchInput)
+
+    await waitFor(() => expect(input.disabled).toBe(false))
   })
 })

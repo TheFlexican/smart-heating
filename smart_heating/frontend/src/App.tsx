@@ -14,7 +14,6 @@ import DevicePanel from './components/DevicePanel'
 import { VacationModeBanner } from './components/VacationModeBanner'
 import ZoneDetail from './pages/AreaDetail'
 import GlobalSettings from './pages/GlobalSettings'
-import { UserManagement } from './components/UserManagement'
 import EfficiencyReports from './components/EfficiencyReports'
 import HistoricalComparisons from './components/HistoricalComparisons'
 import AdvancedMetricsDashboard from './components/AdvancedMetricsDashboard'
@@ -346,7 +345,6 @@ function App() {
           } />
           <Route path="/area/:areaId" element={<ZoneDetail />} />
           <Route path="/settings/global" element={<GlobalSettings themeMode={themeMode} onThemeChange={setThemeMode} />} />
-          <Route path="/settings/users" element={<UserManagement />} />
           <Route path="/analytics/efficiency" element={<EfficiencyReports />} />
           <Route path="/analytics/comparison" element={<HistoricalComparisons />} />
           <Route path="/opentherm/metrics" element={<AdvancedMetricsDashboard />} />

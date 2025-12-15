@@ -230,6 +230,43 @@ async def test_get_user_profile_not_found(user_manager):
 
 
 @pytest.mark.asyncio
+async def test_get_user_by_person_entity(user_manager):
+    """Test getting user by person entity."""
+    # Create test users
+    await user_manager.create_user_profile(
+        user_id="user1",
+        name="John Doe",
+        person_entity="person.john",
+        preset_preferences={},
+        priority=5,
+    )
+    await user_manager.create_user_profile(
+        user_id="user2",
+        name="Jane Doe",
+        person_entity="person.jane",
+        preset_preferences={},
+        priority=8,
+    )
+
+    # Find user by person entity
+    user = user_manager.get_user_by_person_entity("person.john")
+    assert user is not None
+    assert user["name"] == "John Doe"
+    assert user["user_id"] == "person.john"
+    assert user["internal_id"] == "user1"
+
+    # Find another user
+    user2 = user_manager.get_user_by_person_entity("person.jane")
+    assert user2 is not None
+    assert user2["name"] == "Jane Doe"
+    assert user2["internal_id"] == "user2"
+
+    # Non-existent person entity
+    user_none = user_manager.get_user_by_person_entity("person.unknown")
+    assert user_none is None
+
+
+@pytest.mark.asyncio
 async def test_get_all_users(user_manager):
     """Test getting all user profiles."""
     await user_manager.create_user_profile(

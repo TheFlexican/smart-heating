@@ -53,6 +53,7 @@ import { VacationModeSettings } from '../components/VacationModeSettings'
 import HysteresisHelpModal from '../components/HysteresisHelpModal'
 import ImportExport from '../components/ImportExport'
 import OpenThermLogger from '../components/OpenThermLogger'
+import { UserManagement } from '../components/UserManagement'
 // additional advanced control apis already imported above
 
 interface TabPanelProps {
@@ -496,6 +497,11 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
             label={t('globalSettings.tabs.vacation', 'Vacation')}
           />
           <Tab
+            icon={<PeopleIcon />}
+            iconPosition="start"
+            label={t('globalSettings.tabs.users', 'User Management')}
+          />
+          <Tab
             icon={<SecurityIcon />}
             iconPosition="start"
             label={t('globalSettings.tabs.safety', 'Safety')}
@@ -513,6 +519,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
           <Tab
             icon={<FireplaceIcon />}
             iconPosition="start"
+            data-testid="opentherm-tab"
             label={t('globalSettings.tabs.opentherm', 'OpenTherm')}
           />
         </Tabs>
@@ -558,6 +565,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1 }}>
                       <Slider
+                        data-testid={`global-preset-${presetKey.replace('_temp', '')}-slider`}
                         value={value}
                         onChange={(_, newValue) => handlePresetChange(presetKey, newValue as number)}
                         min={5}
@@ -602,6 +610,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                 {presenceSensors.map((sensor) => (
                   <ListItem
                     key={sensor.entity_id}
+                    data-testid="presence-sensor-item"
                     secondaryAction={
                       <IconButton
                         edge="end"
@@ -644,8 +653,13 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
           <VacationModeSettings />
         </TabPanel>
 
-        {/* Safety Tab */}
+        {/* User Management Tab */}
         <TabPanel value={activeTab} index={3}>
+          <UserManagement embedded={true} />
+        </TabPanel>
+
+        {/* Safety Tab */}
+        <TabPanel value={activeTab} index={4}>
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="h6" sx={{ mb: 1 }}>
               {t('globalSettings.safety.title', '🚨 Safety Sensors (Smoke/CO Detectors)')}
@@ -672,6 +686,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                   {safetySensor.sensors.map((sensor) => (
                     <ListItem
                       key={sensor.sensor_id}
+                      data-testid="safety-sensor-item"
                       sx={{
                         border: 1,
                         borderColor: 'divider',
@@ -742,7 +757,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
         </TabPanel>
 
         {/* Advanced Tab */}
-        <TabPanel value={activeTab} index={4}>
+        <TabPanel value={activeTab} index={5}>
           {/* Theme Settings */}
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="h6" sx={{ mb: 1 }}>
@@ -830,6 +845,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1 }}>
                 <Slider
+                  data-testid="global-hysteresis-slider"
                   value={hysteresis}
                   onChange={handleHysteresisChange}
                   min={0.1}
@@ -915,9 +931,12 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                   <Typography>{t('globalSettings.advanced.overshoot', 'Overshoot Protection (OPV) calibration')}</Typography>
                   <Switch checked={overshootProtectionEnabled} onChange={(e) => handleToggleAdvancedControl('overshoot_protection_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }} data-testid="heating-curve-control">
                   <Typography>{t('globalSettings.advanced.defaultCoefficient', 'Default heating curve coefficient')}</Typography>
-                  <input type='number' value={defaultCoefficient as any} onChange={(e) => handleToggleAdvancedControl('default_heating_curve_coefficient', Number(e.target.value))} step={0.1} disabled={!advancedControlEnabled} />
+                  <input data-testid="heating-curve-control" type='number' value={defaultCoefficient as any} onChange={(e) => handleToggleAdvancedControl('default_heating_curve_coefficient', Number(e.target.value))} step={0.1} disabled={!advancedControlEnabled} />
+                  <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                    {t('globalSettings.advanced.defaultCoefficientHelper', 'Default coefficient used when Heating Curve is enabled')}
+                  </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
                   <Button variant='contained' onClick={handleRunCalibration} disabled={!advancedControlEnabled || calibrating}>
@@ -938,7 +957,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
         </TabPanel>
 
         {/* Import/Export Tab */}
-        <TabPanel value={activeTab} index={5}>
+        <TabPanel value={activeTab} index={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" sx={{ mb: 1 }}>
               {t('importExport.title', 'Import/Export Configuration')}
@@ -948,7 +967,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
         </TabPanel>
 
         {/* OpenTherm Tab */}
-        <TabPanel value={activeTab} index={6}>
+        <TabPanel value={activeTab} index={7}>
           <Accordion defaultExpanded={false}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6">

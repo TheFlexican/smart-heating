@@ -199,7 +199,7 @@ export default function OpenThermLogger() {
   }
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={3} data-testid="opentherm-content">
       {/* Header Controls */}
       <Paper sx={{ p: 2 }}>
         <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
@@ -270,7 +270,7 @@ export default function OpenThermLogger() {
             {/* Control Setpoint */}
             {sensorStates.control_setpoint !== undefined && (
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Card variant="outlined">
+                <Card variant="outlined" data-testid="opentherm-control-setpoint">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <ThermostatIcon color="primary" />
@@ -291,7 +291,7 @@ export default function OpenThermLogger() {
             {/* Modulation Level */}
             {sensorStates.modulation_level !== undefined && (
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Card variant="outlined">
+                <Card variant="outlined" data-testid="opentherm-modulation">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <SpeedIcon color="warning" />
@@ -333,7 +333,7 @@ export default function OpenThermLogger() {
             {/* CH Water Temperature */}
             {sensorStates.ch_water_temp !== undefined && (
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Card variant="outlined">
+                <Card variant="outlined" data-testid="opentherm-ch-water">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <OpacityIcon color="info" />
@@ -354,7 +354,7 @@ export default function OpenThermLogger() {
             {/* Return Water Temperature */}
             {sensorStates.return_water_temp !== undefined && (
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Card variant="outlined">
+                <Card variant="outlined" data-testid="opentherm-return-water">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <OpacityIcon color="primary" />
@@ -375,7 +375,7 @@ export default function OpenThermLogger() {
             {/* CH Pressure */}
             {sensorStates.ch_pressure !== undefined && (
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Card variant="outlined">
+                <Card variant="outlined" data-testid="opentherm-system-pressure">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <SpeedIcon color="secondary" />
@@ -396,7 +396,7 @@ export default function OpenThermLogger() {
             {/* Room Temperature */}
             {sensorStates.room_temp !== undefined && (
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Card variant="outlined">
+                <Card variant="outlined" data-testid="opentherm-room-temperature">
                   <CardContent>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <HomeIcon color="success" />
@@ -441,7 +441,7 @@ export default function OpenThermLogger() {
             sensorStates.fault || sensorStates.diagnostic || sensorStates.low_water_pressure ||
             sensorStates.gas_fault || sensorStates.air_pressure_fault || sensorStates.water_overtemp ||
             sensorStates.service_required) && (
-            <Box sx={{ mt: 3 }}>
+            <Box sx={{ mt: 3 }} data-testid="opentherm-boiler-errors">
               <Typography variant="subtitle2" gutterBottom>
                 {t('opentherm.statusAndErrors', 'Boiler Status & Errors')}
               </Typography>

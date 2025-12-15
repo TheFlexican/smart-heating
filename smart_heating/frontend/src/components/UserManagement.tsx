@@ -39,9 +39,14 @@ import {
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { getUsers, createUser, updateUser, deleteUser, updateUserSettings } from '../api/users'
+import { getPersonEntities } from '../api/config'
 import { UserProfile, UserData, MultiUserSettings } from '../types'
 
-export const UserManagement: React.FC = () => {
+interface UserManagementProps {
+  embedded?: boolean
+}
+
+export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [userData, setUserData] = useState<UserData | null>(null)
@@ -50,6 +55,7 @@ export const UserManagement: React.FC = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null)
+  const [personEntities, setPersonEntities] = useState<any[]>([])
   const [formData, setFormData] = useState({
     user_id: '',
     name: '',
@@ -58,10 +64,91 @@ export const UserManagement: React.FC = () => {
     preset_preferences: {} as { [key: string]: number },
     areas: [] as string[],
   })
+  const [formErrors, setFormErrors] = useState({
+    user_id: '',
+    name: '',
+    person_entity: '',
+    priority: '',
+  })
+  const [touched, setTouched] = useState({
+    user_id: false,
+    name: false,
+    person_entity: false,
+    priority: false,
+  })
 
   useEffect(() => {
     loadUsers()
+    loadPersonEntities()
   }, [])
+
+  const loadPersonEntities = async () => {
+    try {
+      const entities = await getPersonEntities()
+      setPersonEntities(entities)
+    } catch (err) {
+      console.error('Error loading person entities:', err)
+    }
+  }
+
+  // Validate form fields
+  const validateField = (field: string, value: string | number): string => {
+    switch (field) {
+      case 'user_id':
+        // user_id is optional - backend will auto-generate if not provided
+        return ''
+      case 'name':
+        if (!value) return t('users.errors.nameRequired', 'Name is required')
+        return ''
+      case 'person_entity':
+        if (!editingUser && !value) return t('users.errors.personEntityRequired', 'Person entity is required')
+        return ''
+      case 'priority': {
+        const num = Number(value)
+        if (Number.isNaN(num) || num < 1 || num > 10) {
+          return t('users.errors.priorityInvalid', 'Priority must be between 1 and 10')
+        }
+        return ''
+      }
+      default:
+        return ''
+    }
+  }
+
+  // Check if form is valid
+  const isFormValid = (): boolean => {
+    if (editingUser) {
+      // Editing existing user - only name required
+      if (!formData.name) {
+        return false
+      }
+    } else if (!formData.name || !formData.person_entity) {
+      // Creating new user - name and person_entity required (user_id is optional, auto-generated)
+      return false
+    }
+    // Validate priority
+    if (formData.priority < 1 || formData.priority > 10) {
+      return false
+    }
+    return true
+  }
+
+  // Handle field blur
+  const handleFieldBlur = (field: string) => {
+    setTouched({ ...touched, [field]: true })
+    const value = formData[field as keyof typeof formData]
+    const error = validateField(field, value as string | number)
+    setFormErrors({ ...formErrors, [field]: error })
+  }
+
+  // Handle field change with validation
+  const handleFieldChange = (field: string, value: string | number) => {
+    setFormData({ ...formData, [field]: value })
+    if (touched[field as keyof typeof touched]) {
+      const error = validateField(field, value)
+      setFormErrors({ ...formErrors, [field]: error })
+    }
+  }
 
   const loadUsers = async () => {
     try {
@@ -94,6 +181,18 @@ export const UserManagement: React.FC = () => {
       },
       areas: [],
     })
+    setFormErrors({
+      user_id: '',
+      name: '',
+      person_entity: '',
+      priority: '',
+    })
+    setTouched({
+      user_id: false,
+      name: false,
+      person_entity: false,
+      priority: false,
+    })
     setEditDialogOpen(true)
   }
 
@@ -106,6 +205,18 @@ export const UserManagement: React.FC = () => {
       priority: user.priority,
       preset_preferences: { ...user.preset_preferences },
       areas: [...user.areas],
+    })
+    setFormErrors({
+      user_id: '',
+      name: '',
+      person_entity: '',
+      priority: '',
+    })
+    setTouched({
+      user_id: false,
+      name: false,
+      person_entity: false,
+      priority: false,
     })
     setEditDialogOpen(true)
   }
@@ -132,14 +243,18 @@ export const UserManagement: React.FC = () => {
         }
       } else {
         // Create new user
-        await createUser({
-          user_id: formData.user_id,
+        // Only include user_id if explicitly provided, otherwise backend auto-generates
+        const payload: any = {
           name: formData.name,
           person_entity: formData.person_entity,
           preset_preferences: formData.preset_preferences,
           priority: formData.priority,
           areas: formData.areas,
-        })
+        }
+        if (formData.user_id) {
+          payload.user_id = formData.user_id
+        }
+        await createUser(payload)
       }
       await loadUsers()
       handleCloseDialog()
@@ -150,7 +265,7 @@ export const UserManagement: React.FC = () => {
   }
 
   const handleDeleteUser = async (userId: string) => {
-    if (!window.confirm(t('users.confirmDelete', 'Are you sure you want to delete this user?'))) {
+    if (!globalThis.confirm(t('users.confirmDelete', 'Are you sure you want to delete this user?'))) {
       return
     }
     try {
@@ -208,44 +323,66 @@ export const UserManagement: React.FC = () => {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* Header */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 2,
-          mb: 2,
-          borderRadius: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-        }}
-      >
-        <IconButton onClick={() => navigate('/')} edge="start">
-          <ArrowBackIcon />
-        </IconButton>
-        <PersonIcon />
-        <Typography variant="h6">
-          {t('users.title', 'User Management')}
-        </Typography>
-        <Box sx={{ flexGrow: 1 }} />
-        <Button
-          variant="outlined"
-          startIcon={<SettingsIcon />}
-          onClick={() => setSettingsDialogOpen(true)}
+    <Box sx={{ minHeight: embedded ? 'auto' : '100vh', bgcolor: embedded ? 'transparent' : 'background.default' }}>
+      {/* Header - only show when not embedded */}
+      {!embedded && (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            mb: 2,
+            borderRadius: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
         >
-          {t('users.settings', 'Settings')}
-        </Button>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenCreateDialog}
-        >
-          {t('users.addUser', 'Add User')}
-        </Button>
-      </Paper>
+          <IconButton onClick={() => navigate('/')} edge="start">
+            <ArrowBackIcon />
+          </IconButton>
+          <PersonIcon />
+          <Typography variant="h6">
+            {t('users.title', 'User Management')}
+          </Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          <Button
+            variant="outlined"
+            startIcon={<SettingsIcon />}
+            onClick={() => setSettingsDialogOpen(true)}
+          >
+            {t('users.settings', 'Settings')}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreateDialog}
+          >
+            {t('users.addUser', 'Add User')}
+          </Button>
+        </Paper>
+      )}
 
-      <Box sx={{ px: 3 }}>
+      {/* Action buttons when embedded */}
+      {embedded && (
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<SettingsIcon />}
+            onClick={() => setSettingsDialogOpen(true)}
+          >
+            {t('users.settings', 'Settings')}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreateDialog}
+          >
+            {t('users.addUser', 'Add User')}
+          </Button>
+        </Box>
+      )}
+
+      <Box sx={{ px: embedded ? 0 : 3 }}>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
@@ -322,10 +459,18 @@ export const UserManagement: React.FC = () => {
                   </Stack>
                 </TableCell>
                 <TableCell>
-                  <IconButton size="small" onClick={() => handleOpenEditDialog(user)}>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleOpenEditDialog(user)}
+                    aria-label={t('users.edit', 'Edit user')}
+                  >
                     <EditIcon />
                   </IconButton>
-                  <IconButton size="small" onClick={() => handleDeleteUser(userId)}>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleDeleteUser(userId)}
+                    aria-label={t('users.delete', 'Delete user')}
+                  >
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>
@@ -351,35 +496,60 @@ export const UserManagement: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
-                label={t('users.userId', 'User ID')}
-                value={formData.user_id}
-                onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
-                disabled={!!editingUser}
-                required
-              />
-            </Grid>
+            {/* Only show user_id when editing existing user */}
+            {editingUser && (
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  label={t('users.userId', 'User ID')}
+                  value={formData.user_id}
+                  disabled
+                  helperText={t('users.userIdReadOnly', 'Read-only - Person entity linked to this user')}
+                />
+              </Grid>
+            )}
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('users.name', 'Name')}
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => handleFieldChange('name', e.target.value)}
+                onBlur={() => handleFieldBlur('name')}
                 required
+                error={touched.name && !!formErrors.name}
+                helperText={touched.name ? formErrors.name : ''}
               />
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
-                label={t('users.personEntity', 'Person Entity')}
-                value={formData.person_entity}
-                onChange={(e) => setFormData({ ...formData, person_entity: e.target.value })}
-                disabled={!!editingUser}
-                required
-                helperText="e.g., person.john"
-              />
+            <Grid size={{ xs: 12, md: editingUser ? 6 : 12 }}>
+              <FormControl fullWidth required disabled={!!editingUser}>
+                <InputLabel id="person-entity-label">
+                  {t('users.personEntity', 'Person Entity')}
+                </InputLabel>
+                <Select
+                  labelId="person-entity-label"
+                  value={formData.person_entity}
+                  onChange={(e) => handleFieldChange('person_entity', e.target.value)}
+                  onBlur={() => handleFieldBlur('person_entity')}
+                  label={t('users.personEntity', 'Person Entity')}
+                  error={touched.person_entity && !!formErrors.person_entity}
+                >
+                  {personEntities.length === 0 && (
+                    <MenuItem disabled value="">
+                      {t('users.noPersonEntities', 'No person entities found')}
+                    </MenuItem>
+                  )}
+                  {personEntities.map((entity) => (
+                    <MenuItem key={entity.entity_id} value={entity.entity_id}>
+                      {entity.attributes.friendly_name || entity.entity_id}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {touched.person_entity && formErrors.person_entity && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                    {formErrors.person_entity}
+                  </Typography>
+                )}
+              </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField
@@ -387,9 +557,12 @@ export const UserManagement: React.FC = () => {
                 type="number"
                 label={t('users.priority', 'Priority (1-10)')}
                 value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: Number.parseInt(e.target.value) })}
+                onChange={(e) => handleFieldChange('priority', Number.parseInt(e.target.value) || 0)}
+                onBlur={() => handleFieldBlur('priority')}
                 slotProps={{ htmlInput: { min: 1, max: 10 } }}
                 required
+                error={touched.priority && !!formErrors.priority}
+                helperText={touched.priority ? formErrors.priority : ''}
               />
             </Grid>
             <Grid size={{ xs: 12 }}>
@@ -416,7 +589,11 @@ export const UserManagement: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>{t('common.cancel', 'Cancel')}</Button>
-          <Button onClick={handleSaveUser} variant="contained">
+          <Button
+            onClick={handleSaveUser}
+            variant="contained"
+            disabled={!isFormValid()}
+          >
             {t('common.save', 'Save')}
           </Button>
         </DialogActions>
@@ -444,7 +621,7 @@ export const UserManagement: React.FC = () => {
                 value={userData?.settings.multi_user_strategy || 'priority'}
                 onChange={(e) =>
                   handleUpdateSettings({
-                    multi_user_strategy: e.target.value as 'priority' | 'average',
+                    multi_user_strategy: e.target.value,
                   })
                 }
               >

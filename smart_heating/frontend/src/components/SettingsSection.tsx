@@ -22,6 +22,7 @@ interface SettingsSectionProps {
 }
 
 const SettingsSection = ({
+  id,
   title,
   description,
   icon,
@@ -34,29 +35,30 @@ const SettingsSection = ({
 }: SettingsSectionProps) => {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded)
   const [isToggling, setIsToggling] = useState(false)
-  
+
   // Use controlled or uncontrolled state
   const expanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault()
     if (isToggling) return
-    
+
     setIsToggling(true)
     const newExpanded = !expanded
-    
+
     if (onExpandedChange) {
       onExpandedChange(newExpanded)
     } else {
       setInternalExpanded(newExpanded)
     }
-    
+
     setTimeout(() => setIsToggling(false), 300)
   }
 
   return (
-    <Paper 
-      sx={{ 
+    <Paper
+      data-testid={`settings-card-${id.toLowerCase().replaceAll(' ', '-')}`}
+      sx={{
         overflow: 'hidden',
         transition: 'all 0.2s ease',
         height: '100%',
@@ -119,10 +121,10 @@ const SettingsSection = ({
               {title}
             </Typography>
             {badge !== undefined && (
-              <Chip 
-                label={badge} 
-                size="small" 
-                color="primary" 
+              <Chip
+                label={badge}
+                size="small"
+                color="primary"
                 sx={{ height: 20 }}
               />
             )}

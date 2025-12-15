@@ -222,6 +222,7 @@ const ScheduleEntryDialog = ({
                         key={day}
                         control={
                           <Checkbox
+                            data-testid={`schedule-day-${dayKey}`}
                             checked={selectedDays.includes(idx)}
                             onChange={() => handleDayToggle(idx)}
                           />
@@ -271,6 +272,7 @@ const ScheduleEntryDialog = ({
           {/* Time Selection */}
           <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField
+              data-testid="schedule-time-start-input"
               label={t('scheduleDialog.startTime')}
               type="time"
               value={startTime}
@@ -281,6 +283,7 @@ const ScheduleEntryDialog = ({
             />
 
             <TextField
+              data-testid="schedule-time-end-input"
               label={t('scheduleDialog.endTime')}
               type="time"
               value={endTime}
@@ -322,6 +325,7 @@ const ScheduleEntryDialog = ({
             </FormControl>
           ) : (
             <TextField
+              data-testid="schedule-temperature-input"
               label={t('scheduleDialog.temperature')}
               type="number"
               value={temperature}

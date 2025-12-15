@@ -4,7 +4,6 @@ import WifiIcon from '@mui/icons-material/Wifi'
 import WifiOffIcon from '@mui/icons-material/WifiOff'
 import SettingsIcon from '@mui/icons-material/Settings'
 import LanguageIcon from '@mui/icons-material/Language'
-import PeopleIcon from '@mui/icons-material/People'
 import AnalyticsIcon from '@mui/icons-material/Analytics'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows'
@@ -22,7 +21,6 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
   const location = useLocation()
   const isSettings = location.pathname.startsWith('/settings/')
   const [langMenuAnchor, setLangMenuAnchor] = useState<null | HTMLElement>(null)
-  const [settingsMenuAnchor, setSettingsMenuAnchor] = useState<null | HTMLElement>(null)
   const [analyticsMenuAnchor, setAnalyticsMenuAnchor] = useState<null | HTMLElement>(null)
 
   const handleLanguageMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -38,17 +36,8 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
     handleLanguageMenuClose()
   }
 
-  const handleSettingsMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setSettingsMenuAnchor(event.currentTarget)
-  }
-
-  const handleSettingsMenuClose = () => {
-    setSettingsMenuAnchor(null)
-  }
-
-  const handleNavigateSettings = (path: string) => {
-    navigate(path)
-    handleSettingsMenuClose()
+  const handleSettingsClick = () => {
+    navigate('/settings/global')
   }
 
   const handleAnalyticsMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -94,6 +83,7 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
             <>
               <Tooltip title={t('header.analytics', 'Analytics')}>
                 <IconButton
+                  data-testid="header-analytics-button"
                   onClick={handleAnalyticsMenuOpen}
                   sx={{
                     color: 'text.secondary',
@@ -105,7 +95,9 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
               </Tooltip>
               <Tooltip title={t('header.settings', 'Settings')}>
                 <IconButton
-                  onClick={handleSettingsMenuOpen}
+                  data-testid="header-settings-button"
+                  aria-label={t('header.settings', 'Settings')}
+                  onClick={handleSettingsClick}
                   sx={{
                     color: 'text.secondary',
                     p: { xs: 0.5, sm: 1 }
@@ -130,22 +122,9 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
               {t('comparison.title', 'Historical Comparisons')}
             </MenuItem>
           </Menu>
-          <Menu
-            anchorEl={settingsMenuAnchor}
-            open={Boolean(settingsMenuAnchor)}
-            onClose={handleSettingsMenuClose}
-          >
-            <MenuItem onClick={() => handleNavigateSettings('/settings/global')}>
-              <SettingsIcon sx={{ mr: 1 }} />
-              {t('header.globalSettings', 'Global Settings')}
-            </MenuItem>
-            <MenuItem onClick={() => handleNavigateSettings('/settings/users')}>
-              <PeopleIcon sx={{ mr: 1 }} />
-              {t('header.userManagement', 'User Management')}
-            </MenuItem>
-          </Menu>
           <Tooltip title={t('header.changeLanguage')}>
             <IconButton
+              data-testid="header-language-button"
               onClick={handleLanguageMenuOpen}
               sx={{
                 color: 'text.secondary',

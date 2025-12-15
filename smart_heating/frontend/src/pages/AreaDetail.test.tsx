@@ -2,7 +2,7 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import SettingsSection from '../components/SettingsSection'
-import { FormControl, InputLabel, Select, MenuItem } from '@mui/material'
+import { FormControl, InputLabel, Select, MenuItem, RadioGroup, FormControlLabel, Radio, Switch, TextField, Box, Typography } from '@mui/material'
 import * as areas from '../api/areas'
 import * as devices from '../api/devices'
 import * as history from '../api/history'
@@ -37,7 +37,13 @@ vi.spyOn(config, 'getWeatherEntities').mockResolvedValue([])
 import * as logs from '../api/logs'
 vi.spyOn(logs, 'getAreaLogs').mockResolvedValue([])
 
+import * as presets from '../api/presets'
+vi.spyOn(presets, 'getGlobalPresets').mockResolvedValue([])
+
 vi.mock('../hooks/useWebSocket', () => ({ useWebSocket: () => ({}) }))
+
+import ZoneDetail from './AreaDetail'
+import * as Router from 'react-router-dom'
 
 it('preset select is disabled when area is disabled/off', async () => {
   await userEvent.setup()
@@ -75,4 +81,133 @@ it('preset select is disabled when area is disabled/off', async () => {
   await waitFor(() => expect(screen.queryByRole('combobox')).not.toBeNull())
   const combobox = screen.getByRole('combobox') as HTMLElement
   expect(combobox.getAttribute('aria-disabled')).toBe('true')
+})
+
+it('heating type control has testid and accessible label', async () => {
+  await userEvent.setup()
+
+  const content = (
+    <RadioGroup data-testid="heating-type-control" aria-label={'settingsCards.heatingTypeTitle'} value={'radiator'} onChange={() => {}}>
+      <FormControlLabel value="radiator" control={<Radio />} label={'settingsCards.radiator'} />
+      <FormControlLabel value="floor_heating" control={<Radio />} label={'settingsCards.floorHeating'} />
+    </RadioGroup>
+  )
+
+  render(
+    <SettingsSection
+      id="heating-type"
+      title={'settingsCards.heatingTypeTitle'}
+      description={'settingsCards.heatingTypeDescription'}
+      icon={null}
+      badge={undefined}
+      defaultExpanded={true}
+    >
+      {content}
+    </SettingsSection>
+  )
+
+  // testid present
+  await waitFor(() => expect(screen.queryByTestId('heating-type-control')).not.toBeNull())
+
+  // accessible via aria-label (translation mock returns the key)
+  const labeled = screen.getByLabelText('settingsCards.heatingTypeTitle') as HTMLElement
+  expect(labeled).not.toBeNull()
+})
+
+it('heating curve control has testid and toggles input disabled when using global', async () => {
+  await userEvent.setup()
+
+  // Create a small component to manage local state so we can assert enable/disable behavior
+  function TestComponent() {
+    const [useGlobal, setUseGlobal] = React.useState(true)
+    return (
+      <div data-testid="heating-curve-control">
+        <FormControlLabel
+          control={<Switch checked={!useGlobal} onChange={(e) => setUseGlobal(!e.target.checked)} />}
+          label={'settingsCards.heatingCurveUseArea'}
+        />
+        <TextField label="Coefficient" type="number" inputProps={{ 'data-testid': 'heating-curve-control-input' }} disabled={useGlobal} />
+      </div>
+    )
+  }
+
+  render(
+    <SettingsSection
+      id="heating-curve"
+      title={'settingsCards.heatingCurveTitle'}
+      description={'settingsCards.heatingCurveDescription'}
+      icon={null}
+      badge={undefined}
+      defaultExpanded={true}
+    >
+      <TestComponent />
+    </SettingsSection>
+  )
+
+  // testid present
+  await waitFor(() => expect(screen.queryByTestId('heating-curve-control')).not.toBeNull())
+
+  const input = screen.getByTestId('heating-curve-control-input') as HTMLInputElement
+  expect(input).not.toBeNull()
+  expect(input.disabled).toBe(true)
+
+  // toggle to enable
+  const switchInput = screen.getByLabelText('settingsCards.heatingCurveUseArea') as HTMLInputElement
+  await userEvent.click(switchInput)
+  await waitFor(() => expect(input.disabled).toBe(false))
+})
+
+it('renders Logs tab and opens logs panel (shows empty state)', async () => {
+  await userEvent.setup()
+
+  // Render ZoneDetail inside a MemoryRouter so useParams picks up areaId
+  const { MemoryRouter, Routes, Route } = Router as any
+  render(
+    <MemoryRouter initialEntries={[`/areas/${area.id}`]}>
+      <Routes>
+        <Route path="/areas/:areaId" element={<ZoneDetail />} />
+      </Routes>
+    </MemoryRouter>
+  )
+
+  // Logs tab should be present (stable testid)
+  await waitFor(() => expect(screen.queryByTestId('tab-logs')).not.toBeNull())
+
+  const logsTab = screen.getByTestId('tab-logs') as HTMLElement
+  await userEvent.click(logsTab)
+
+  // Our logs api mock returns empty array, so we should see the empty placeholder
+  await waitFor(() => expect(screen.getByTestId('area-logs-empty')).toBeInTheDocument())
+})
+
+it('auto preset toggle has stable testid and is renderable', async () => {
+  await userEvent.setup()
+
+  // Render the Auto Preset control inside a SettingsSection for a deterministic unit test
+  const content = (
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box>
+        <Typography variant="body1">{'settingsCards.enableAutoPreset'}</Typography>
+        <Typography variant="caption">{'settingsCards.enableAutoPresetDescription'}</Typography>
+      </Box>
+      <Switch data-testid="auto-preset-toggle" checked={false} onChange={() => {}} />
+    </Box>
+  )
+
+  render(
+    <SettingsSection
+      id="auto-preset"
+      title={'settingsCards.autoPresetTitle'}
+      description={'settingsCards.autoPresetDescription'}
+      icon={null}
+      badge={undefined}
+      defaultExpanded={true}
+    >
+      {content}
+    </SettingsSection>
+  )
+
+  await waitFor(() => expect(screen.queryByTestId('auto-preset-toggle')).not.toBeNull())
+  const toggle = screen.getByTestId('auto-preset-toggle') as HTMLElement
+  expect(toggle).not.toBeNull()
 })

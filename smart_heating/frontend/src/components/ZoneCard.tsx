@@ -308,6 +308,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
     <Card
       ref={setNodeRef}
       style={style}
+      data-testid={`area-card-${area.name.toLowerCase().replaceAll(' ', '-')}`}
       elevation={isDragging ? 12 : 2}
       onClick={handleCardClick}
       sx={{
@@ -376,6 +377,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
               )}
               {area.boost_mode_active && (
                 <Chip
+                  data-testid="boost-active-badge"
                   icon={<RocketLaunchIcon />}
                   label={t('presets.boost', { defaultValue: 'BOOST' }).toUpperCase()}
                   color="error"
@@ -414,6 +416,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
               {t('area.targetTemperature')}
               {area.enabled && area.state !== 'off' && area.preset_mode && area.preset_mode !== 'none' && (
                 <Chip
+                  data-testid="preset-mode-badge"
                   label={t(`presets.${area.preset_mode}`).toUpperCase()}
                   size="small"
                   color="secondary"
@@ -421,11 +424,12 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
                 />
               )}
             </Typography>
-            <Typography variant="h5" color="primary" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+            <Typography variant="h5" color="primary" data-testid="target-temperature-display" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
               {temperature}°C
             </Typography>
           </Box>
           <Slider
+            data-testid="temperature-slider"
             value={temperature}
             onChange={handleTemperatureChange}
             onChangeCommitted={handleTemperatureCommit}
@@ -466,7 +470,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
               {t('area.currentTemperature')}
             </Typography>
-            <Typography variant="body1" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
+            <Typography variant="body1" data-testid="current-temperature-display" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
               {area.current_temperature.toFixed(1)}°C
             </Typography>
           </Box>
@@ -477,6 +481,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
           <FormControlLabel
             control={
               <Switch
+                data-testid="area-enable-toggle"
                 checked={!area.manual_override}
                 onChange={async (e) => {
                   try {
