@@ -214,6 +214,7 @@ const ImportExport = () => {
 
         {/* Import Button */}
         <Button
+          data-testid="import-file-button"
           variant="outlined"
           component="label"
           startIcon={loading ? <CircularProgress size={20} /> : <UploadIcon />}

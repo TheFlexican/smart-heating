@@ -915,23 +915,23 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               <Stack spacing={2}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.enableAll', 'Enable advanced control')}</Typography>
-                  <Switch checked={advancedControlEnabled} onChange={(e) => handleToggleAdvancedControl('advanced_control_enabled', e.target.checked)} />
+                  <Switch checked={advancedControlEnabled} onChange={(e) => handleToggleAdvancedControl('advanced_control_enabled', e.target.checked)} inputProps={{ 'data-testid': 'global-advanced-control-switch' }} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.heatingCurve', 'Heating curve')}</Typography>
-                  <Switch checked={heatingCurveEnabled} onChange={(e) => handleToggleAdvancedControl('heating_curve_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                  <Switch checked={heatingCurveEnabled} onChange={(e) => handleToggleAdvancedControl('heating_curve_enabled', e.target.checked)} disabled={!advancedControlEnabled} inputProps={{ 'data-testid': 'global-heating-curve-switch' }} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.pwm', 'PWM for on/off boilers')}</Typography>
-                  <Switch checked={pwmEnabled} onChange={(e) => handleToggleAdvancedControl('pwm_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                  <Switch checked={pwmEnabled} onChange={(e) => handleToggleAdvancedControl('pwm_enabled', e.target.checked)} disabled={!advancedControlEnabled} inputProps={{ 'data-testid': 'global-pwm-switch' }} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.pid', 'PID Automatic Gains')}</Typography>
-                  <Switch checked={pidEnabled} onChange={(e) => handleToggleAdvancedControl('pid_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                  <Switch checked={pidEnabled} onChange={(e) => handleToggleAdvancedControl('pid_enabled', e.target.checked)} disabled={!advancedControlEnabled} inputProps={{ 'data-testid': 'global-pid-switch' }} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.overshoot', 'Overshoot Protection (OPV) calibration')}</Typography>
-                  <Switch checked={overshootProtectionEnabled} onChange={(e) => handleToggleAdvancedControl('overshoot_protection_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                  <Switch checked={overshootProtectionEnabled} onChange={(e) => handleToggleAdvancedControl('overshoot_protection_enabled', e.target.checked)} disabled={!advancedControlEnabled} inputProps={{ 'data-testid': 'global-opv-switch' }} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }} data-testid="heating-curve-control">
                   <Typography>{t('globalSettings.advanced.defaultCoefficient', 'Default heating curve coefficient')}</Typography>
@@ -941,10 +941,10 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
-                  <Button variant='contained' onClick={handleRunCalibration} disabled={!advancedControlEnabled || calibrating}>
+                  <Button data-testid="run-opv-calibration" variant='contained' onClick={handleRunCalibration} disabled={!advancedControlEnabled || calibrating}>
                     {calibrating ? <CircularProgress size={20} /> : t('globalSettings.advanced.runCalibration', 'Run OPV calibration')}
                   </Button>
-                  <Button variant='outlined' onClick={handleResetAdvancedControl} disabled={saving}>
+                  <Button data-testid="reset-advanced-control" variant='outlined' onClick={handleResetAdvancedControl} disabled={saving}>
                     {t('globalSettings.advanced.resetDefaults', 'Reset to defaults')}
                   </Button>
                   {calibrationResult !== null && (
@@ -1020,7 +1020,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
 
                 {/* Removed manual enable toggle - control is automatic when a gateway id is configured */}
 
-                <Button
+                <Button data-testid="save-opentherm-config"
                   variant="contained"
                   onClick={handleSaveOpenthermConfig}
                   // Disable when saving or there are no available gateways at all
@@ -1035,18 +1035,6 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               </Stack>
             </AccordionDetails>
           </Accordion>
-
-          {/* Advanced Metrics Dashboard Link */}
-          <Box sx={{ mt: 2, mb: 2 }}>
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={() => navigate('/opentherm/metrics')}
-              startIcon={<AssessmentIcon />}
-            >
-              {t('globalSettings.opentherm.advancedMetrics', 'View Advanced Metrics & Performance Dashboard')}
-            </Button>
-          </Box>
 
           <OpenThermLogger />
         </TabPanel>
