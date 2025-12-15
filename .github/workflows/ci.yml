@@ -1,77 +1,56 @@
-name: CI
+name: Backend CI
 
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'smart_heating/**/*.py'
+      - 'tests/**'
+      - 'requirements*.txt'
+      - 'sonar-project.properties'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'smart_heating/**/*.py'
+      - 'tests/**'
+      - 'requirements*.txt'
+      - 'sonar-project.properties'
+      - '.github/workflows/ci.yml'
+  workflow_call:
 
 jobs:
-  build:
-    name: Build and Test
+  backend-test:
+    name: Backend Tests
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Full history for SonarCloud
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Setup Python 3.14.1
+      - name: Setup Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: '3.14.1'
+          python-version: '3.13'
 
       - name: Install Python requirements
         run: |
           pip install -r tests/requirements_test.txt
 
-      - name: Run tests with coverage
+      - name: Run Python tests with coverage
         run: |
           pytest tests/unit --cov=smart_heating --cov-report=xml --cov-report=html
         continue-on-error: false
 
-      - name: Install node dependencies
-        run: |
-          cd smart_heating/frontend
-          rm -rf node_modules package-lock.json
-          npm install
-
-      - name: TypeScript type checking
-        run: |
-          cd smart_heating/frontend
-          npm run type-check
-
-      - name: Frontend linting
-        run: |
-          cd smart_heating/frontend
-          npm run lint
-
-      - name: Frontend formatting check
-        run: |
-          cd smart_heating/frontend
-          npm run format:check
-
-      - name: Run frontend tests with coverage
-        run: |
-          cd smart_heating/frontend
-          npm run test:coverage
-
-      - name: Build frontend
-        run: |
-          cd smart_heating/frontend
-          npm run build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload Python coverage reports
+        uses: codecov/codecov-action@v4
         with:
-          name: frontend-dist
-          path: smart_heating/frontend/dist/
-          retention-days: 7
+          file: ./coverage.xml
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@master
@@ -80,27 +59,24 @@ jobs:
           SONAR_HOST_URL: https://sonarcloud.io
         # Note: sonar-project.properties is automatically detected and used
 
-  lint:
-    name: Lint Code
+  backend-lint:
+    name: Backend Linting
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for SonarCloud
 
-      - name: Setup Python
+      - name: Setup Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Python dependencies
+      - name: Install Python linting dependencies
         run: |
-          pip install flake8
+          pip install flake8 black isort
 
       - name: Lint Python with flake8
         run: |
@@ -109,22 +85,10 @@ jobs:
           # Exit-zero treats all errors as warnings
           flake8 smart_heating --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Install frontend dependencies
+      - name: Check Python code formatting with black
         run: |
-          cd smart_heating/frontend
-          npm ci
+          black --check smart_heating tests
 
-      - name: Lint frontend with ESLint
+      - name: Check Python import sorting with isort
         run: |
-          cd smart_heating/frontend
-          npm run lint
-
-      - name: Check frontend formatting
-        run: |
-          cd smart_heating/frontend
-          npm run format:check
-
-      - name: TypeScript type checking
-        run: |
-          cd smart_heating/frontend
-          npm run type-check
+          isort --check-only --diff smart_heating tests
