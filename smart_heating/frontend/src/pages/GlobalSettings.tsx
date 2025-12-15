@@ -36,7 +36,7 @@ import SecurityIcon from '@mui/icons-material/Security'
 import BackupIcon from '@mui/icons-material/Backup'
 import FireplaceIcon from '@mui/icons-material/Fireplace'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import AssessmentIcon from '@mui/icons-material/Assessment'
+
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getGlobalPresets, setGlobalPresets } from '../api/presets'
@@ -468,7 +468,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
           gap: 1,
         }}
       >
-        <IconButton onClick={() => navigate('/')} edge="start">
+        <IconButton data-testid="global-back-button" onClick={() => navigate('/')} edge="start">
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h6">{t('globalSettings.title', 'Global Settings')}</Typography>
@@ -613,6 +613,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                     data-testid="presence-sensor-item"
                     secondaryAction={
                       <IconButton
+                        data-testid={`presence-remove-${sensor.entity_id}`}
                         edge="end"
                         onClick={() => handleRemovePresenceSensor(sensor.entity_id)}
                       >
@@ -636,6 +637,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
             <Button
               variant="outlined"
               fullWidth
+              data-testid="global-add-presence-sensor"
               onClick={() => setSensorDialogOpen(true)}
               sx={{ mt: 2 }}
             >
@@ -706,8 +708,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                     >
                       <ListItemText
                         primary={sensor.sensor_id}
-                        secondary={
-                          <>
+                          secondary={
                             <Typography component="span" variant="body2">
                               {t('globalSettings.safety.attribute', 'Attribute')}: {sensor.attribute} | {' '}
                               {t('globalSettings.safety.status', 'Status')}: {
@@ -716,8 +717,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                                   : t('globalSettings.safety.disabled', '✗ Disabled')
                               }
                             </Typography>
-                          </>
-                        }
+                          }
                       />
                     </ListItem>
                   ))}
@@ -726,6 +726,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                 <Button
                   variant="outlined"
                   fullWidth
+                  data-testid="global-add-safety-sensor"
                   onClick={() => setSafetySensorDialogOpen(true)}
                   startIcon={<SecurityIcon />}
                   sx={{ mb: 2 }}
@@ -742,7 +743,8 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                 <Button
                   variant="outlined"
                   fullWidth
-                  onClick={() => setSafetySensorDialogOpen(true)}
+                    data-testid="global-add-safety-sensor"
+                    onClick={() => setSafetySensorDialogOpen(true)}
                   startIcon={<SecurityIcon />}
                 >
                   {t('globalSettings.safety.addButton', 'Add Safety Sensor')}
@@ -844,18 +846,18 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               </Typography>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1 }}>
-                <Slider
+                  <Slider
                   data-testid="global-hysteresis-slider"
                   value={hysteresis}
                   onChange={handleHysteresisChange}
                   min={0.1}
-                  max={2.0}
+                  max={2}
                   step={0.1}
                   marks={[
                     { value: 0.1, label: '0.1°C' },
                     { value: 0.5, label: '0.5°C' },
-                    { value: 1.0, label: '1.0°C' },
-                    { value: 2.0, label: '2.0°C' },
+                    { value: 1, label: '1°C' },
+                    { value: 2, label: '2°C' },
                   ]}
                   valueLabelDisplay="on"
                   valueLabelFormat={(v) => `${v.toFixed(1)}°C`}
@@ -913,36 +915,36 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               <Stack spacing={2}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.enableAll', 'Enable advanced control')}</Typography>
-                  <Switch checked={advancedControlEnabled} onChange={(e) => handleToggleAdvancedControl('advanced_control_enabled', e.target.checked)} />
+                  <Switch data-testid="global-advanced-control-switch" checked={advancedControlEnabled} onChange={(e) => handleToggleAdvancedControl('advanced_control_enabled', e.target.checked)} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.heatingCurve', 'Heating curve')}</Typography>
-                  <Switch checked={heatingCurveEnabled} onChange={(e) => handleToggleAdvancedControl('heating_curve_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                  <Switch data-testid="global-heating-curve-switch" checked={heatingCurveEnabled} onChange={(e) => handleToggleAdvancedControl('heating_curve_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.pwm', 'PWM for on/off boilers')}</Typography>
-                  <Switch checked={pwmEnabled} onChange={(e) => handleToggleAdvancedControl('pwm_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                  <Switch data-testid="global-pwm-switch" checked={pwmEnabled} onChange={(e) => handleToggleAdvancedControl('pwm_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.pid', 'PID Automatic Gains')}</Typography>
-                  <Switch checked={pidEnabled} onChange={(e) => handleToggleAdvancedControl('pid_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                  <Switch data-testid="global-pid-switch" checked={pidEnabled} onChange={(e) => handleToggleAdvancedControl('pid_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography>{t('globalSettings.advanced.overshoot', 'Overshoot Protection (OPV) calibration')}</Typography>
-                  <Switch checked={overshootProtectionEnabled} onChange={(e) => handleToggleAdvancedControl('overshoot_protection_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
+                  <Switch data-testid="global-opv-switch" checked={overshootProtectionEnabled} onChange={(e) => handleToggleAdvancedControl('overshoot_protection_enabled', e.target.checked)} disabled={!advancedControlEnabled} />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }} data-testid="heating-curve-control">
                   <Typography>{t('globalSettings.advanced.defaultCoefficient', 'Default heating curve coefficient')}</Typography>
-                  <input data-testid="heating-curve-control" type='number' value={defaultCoefficient as any} onChange={(e) => handleToggleAdvancedControl('default_heating_curve_coefficient', Number(e.target.value))} step={0.1} disabled={!advancedControlEnabled} />
+                  <input data-testid="global-settings-default-coefficient" type='number' value={defaultCoefficient as any} onChange={(e) => handleToggleAdvancedControl('default_heating_curve_coefficient', Number(e.target.value))} step={0.1} disabled={!advancedControlEnabled} />
                   <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
                     {t('globalSettings.advanced.defaultCoefficientHelper', 'Default coefficient used when Heating Curve is enabled')}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
-                  <Button variant='contained' onClick={handleRunCalibration} disabled={!advancedControlEnabled || calibrating}>
+                  <Button data-testid="run-opv-calibration" variant='contained' onClick={handleRunCalibration} disabled={!advancedControlEnabled || calibrating}>
                     {calibrating ? <CircularProgress size={20} /> : t('globalSettings.advanced.runCalibration', 'Run OPV calibration')}
                   </Button>
-                  <Button variant='outlined' onClick={handleResetAdvancedControl} disabled={saving}>
+                  <Button data-testid="reset-advanced-control" variant='outlined' onClick={handleResetAdvancedControl} disabled={saving}>
                     {t('globalSettings.advanced.resetDefaults', 'Reset to defaults')}
                   </Button>
                   {calibrationResult !== null && (
@@ -999,13 +1001,13 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
                     </a>
                   </Alert>
                 )}
-                <FormControl fullWidth>
+                  <FormControl fullWidth>
                   <InputLabel id="opentherm-gateway-select-label">{t('globalSettings.opentherm.gatewayId', 'Gateway Integration ID (ID or slug)')}</InputLabel>
                   <Select
                     labelId="opentherm-gateway-select-label"
                     value={openthermGatewayId}
                     label={t('globalSettings.opentherm.gatewayId', 'Gateway Integration ID (ID or slug)')}
-                    onChange={(e) => setOpenthermGatewayId(e.target.value as string)}
+                    onChange={(e) => setOpenthermGatewayId(e.target.value)}
                   >
                     <MenuItem value="">None (Disabled)</MenuItem>
                     {openthermGateways.map((g) => (
@@ -1018,7 +1020,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
 
                 {/* Removed manual enable toggle - control is automatic when a gateway id is configured */}
 
-                <Button
+                <Button data-testid="save-opentherm-config"
                   variant="contained"
                   onClick={handleSaveOpenthermConfig}
                   // Disable when saving or there are no available gateways at all
@@ -1033,18 +1035,6 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
               </Stack>
             </AccordionDetails>
           </Accordion>
-
-          {/* Advanced Metrics Dashboard Link */}
-          <Box sx={{ mt: 2, mb: 2 }}>
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={() => navigate('/opentherm/metrics')}
-              startIcon={<AssessmentIcon />}
-            >
-              {t('globalSettings.opentherm.advancedMetrics', 'View Advanced Metrics & Performance Dashboard')}
-            </Button>
-          </Box>
 
           <OpenThermLogger />
         </TabPanel>

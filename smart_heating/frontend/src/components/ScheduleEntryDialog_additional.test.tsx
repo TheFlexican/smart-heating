@@ -34,9 +34,9 @@ describe('ScheduleEntryDialog additional behaviors', () => {
     const user = userEvent.setup()
     render(<ScheduleEntryDialog open={true} onClose={onClose} onSave={onSave} editingEntry={null} />)
 
-    await user.click(screen.getByRole('button', { name: 'scheduleDialog.specificDate' }))
+    await user.click(screen.getByTestId('schedule-type-date'))
     // clicking Save should include a date
-    await user.click(screen.getByRole('button', { name: 'common.save' }))
+    await user.click(screen.getByTestId('schedule-save'))
     expect(onSave).toHaveBeenCalled()
     const entry = onSave.mock.calls[0][0]
     expect(entry.date).toBeDefined()

@@ -134,7 +134,7 @@ export default function HysteresisHelpModal({ open, onClose }: HysteresisHelpMod
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} color="primary" variant="contained">
+        <Button data-testid="hysteresis-help-close" onClick={onClose} color="primary" variant="contained">
           {t('common.close')}
         </Button>
       </DialogActions>

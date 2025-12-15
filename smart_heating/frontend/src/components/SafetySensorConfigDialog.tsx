@@ -101,12 +101,12 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = []
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
+      <DialogTitle data-testid="safety-dialog-title">
         {t('globalSettings.safety.addSensorTitle', 'Configure Safety Sensor')}
       </DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
-          <Alert severity="info">
+          <Alert severity="info" data-testid="safety-info">
             {t(
               'globalSettings.safety.sensorDescription',
               'Configure a smoke or carbon monoxide detector that will automatically shut down all heating when danger is detected.'
@@ -122,17 +122,18 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = []
               <FormControl fullWidth>
                 <InputLabel>{t('globalSettings.safety.sensorLabel', 'Safety Sensor')}</InputLabel>
                 <Select
+                  data-testid="safety-entity-select"
                   value={selectedEntity}
                   onChange={(e) => setSelectedEntity(e.target.value)}
                   label={t('globalSettings.safety.sensorLabel', 'Safety Sensor')}
                 >
                   {filteredEntities.length === 0 ? (
-                    <MenuItem disabled>
+                    <MenuItem disabled data-testid="safety-no-entities">
                       {t('globalSettings.safety.noSensors', 'No safety sensors found')}
                     </MenuItem>
                   ) : (
                     filteredEntities.map((entity) => (
-                      <MenuItem key={entity.entity_id} value={entity.entity_id}>
+                      <MenuItem data-testid={`safety-entity-${entity.entity_id}`} key={entity.entity_id} value={entity.entity_id}>
                         <Box>
                           <Typography variant="body2">{entity.name}</Typography>
                           <Typography variant="caption" color="text.secondary">
@@ -147,6 +148,7 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = []
               </FormControl>
 
               <TextField
+                data-testid="safety-attribute-input"
                 fullWidth
                 label={t('globalSettings.safety.attributeLabel', 'Attribute to Monitor')}
                 value={attribute}
@@ -158,6 +160,7 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = []
               />
 
               <TextField
+                data-testid="safety-alert-value"
                 fullWidth
                 label={t('globalSettings.safety.alertValueLabel', 'Alert Value')}
                 value={alertValue}
@@ -171,14 +174,15 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = []
               <FormControl fullWidth>
                 <InputLabel>{t('globalSettings.safety.enabledLabel', 'Enable Monitoring')}</InputLabel>
                 <Select
+                  data-testid="safety-enabled-select"
                   value={enabled ? 'true' : 'false'}
                   onChange={(e) => setEnabled(e.target.value === 'true')}
                   label={t('globalSettings.safety.enabledLabel', 'Enable Monitoring')}
                 >
-                  <MenuItem value="true">
+                  <MenuItem data-testid="safety-enabled-true" value="true">
                     {t('globalSettings.safety.enabled', 'Enabled')}
                   </MenuItem>
-                  <MenuItem value="false">
+                  <MenuItem data-testid="safety-enabled-false" value="false">
                     {t('globalSettings.safety.disabled', 'Disabled (for testing)')}
                   </MenuItem>
                 </Select>
@@ -188,10 +192,11 @@ const SafetySensorConfigDialog = ({ open, onClose, onAdd, configuredSensors = []
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} color="inherit">
+        <Button data-testid="safety-cancel" onClick={handleClose} color="inherit">
           {t('common.cancel', 'Cancel')}
         </Button>
         <Button
+          data-testid="safety-add-button"
           onClick={handleAdd}
           variant="contained"
           disabled={!selectedEntity || loading}

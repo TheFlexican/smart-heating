@@ -36,6 +36,8 @@ describe('API additional endpoints', () => {
     mockedAxios.post = vi.fn().mockResolvedValue({ data: {} }) as any
     await areas.setHeatingType('a1', 'radiator')
     expect(mockedAxios.post).toHaveBeenCalledWith('/api/smart_heating/areas/a1/heating_type', { heating_type: 'radiator' })
+    await areas.setHeatingType('a1', 'airco')
+    expect(mockedAxios.post).toHaveBeenCalledWith('/api/smart_heating/areas/a1/heating_type', { heating_type: 'airco' })
     await areas.setHeatingType('a1', 'floor_heating', 42)
     expect(mockedAxios.post).toHaveBeenCalledWith('/api/smart_heating/areas/a1/heating_type', { heating_type: 'floor_heating', custom_overhead_temp: 42 })
   })

@@ -348,6 +348,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
           <Button
             variant="outlined"
             startIcon={<SettingsIcon />}
+            data-testid="user-settings-button"
             onClick={() => setSettingsDialogOpen(true)}
           >
             {t('users.settings', 'Settings')}
@@ -355,6 +356,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
           <Button
             variant="contained"
             startIcon={<AddIcon />}
+            data-testid="user-add-button"
             onClick={handleOpenCreateDialog}
           >
             {t('users.addUser', 'Add User')}
@@ -368,6 +370,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
           <Button
             variant="outlined"
             startIcon={<SettingsIcon />}
+            data-testid="user-settings-button"
             onClick={() => setSettingsDialogOpen(true)}
           >
             {t('users.settings', 'Settings')}
@@ -375,6 +378,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
           <Button
             variant="contained"
             startIcon={<AddIcon />}
+            data-testid="user-add-button"
             onClick={handleOpenCreateDialog}
           >
             {t('users.addUser', 'Add User')}
@@ -460,6 +464,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
                 </TableCell>
                 <TableCell>
                   <IconButton
+                    data-testid={`user-edit-${user.user_id}`}
                     size="small"
                     onClick={() => handleOpenEditDialog(user)}
                     aria-label={t('users.edit', 'Edit user')}
@@ -467,6 +472,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
                     <EditIcon />
                   </IconButton>
                   <IconButton
+                    data-testid={`user-delete-${userId}`}
                     size="small"
                     onClick={() => handleDeleteUser(userId)}
                     aria-label={t('users.delete', 'Delete user')}
@@ -588,8 +594,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>{t('common.cancel', 'Cancel')}</Button>
+          <Button data-testid="user-cancel" onClick={handleCloseDialog}>{t('common.cancel', 'Cancel')}</Button>
           <Button
+            data-testid="user-save"
             onClick={handleSaveUser}
             variant="contained"
             disabled={!isFormValid()}
@@ -607,7 +614,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
             <FormControlLabel
               control={
                 <Switch
-                  checked={userData?.settings.enabled || false}
+                  data-testid="user-settings-enabled-switch"
+                  checked={userData?.settings?.enabled || false}
                   onChange={(e) =>
                     handleUpdateSettings({ enabled: e.target.checked })
                   }
@@ -617,8 +625,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
             />
             <FormControl fullWidth>
               <InputLabel>{t('users.strategy', 'Strategy')}</InputLabel>
-              <Select
-                value={userData?.settings.multi_user_strategy || 'priority'}
+                <Select
+                data-testid="user-settings-strategy-select"
+                value={userData?.settings?.multi_user_strategy || 'priority'}
                 onChange={(e) =>
                   handleUpdateSettings({
                     multi_user_strategy: e.target.value,
@@ -636,7 +645,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSettingsDialogOpen(false)}>
+          <Button data-testid="user-settings-close" onClick={() => setSettingsDialogOpen(false)}>
             {t('common.close', 'Close')}
           </Button>
         </DialogActions>

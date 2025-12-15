@@ -92,7 +92,7 @@ To add a new language:
 5. **Update i18n configuration** (`smart_heating/frontend/src/i18n.ts`):
    ```typescript
    import translation{Lang} from './locales/{lang}/translation.json'
-   
+
    const resources = {
      en: { translation: translationEN },
      nl: { translation: translationNL },
@@ -123,6 +123,7 @@ To add a new language:
 - **V0.6.0_ARCHITECTURE.md** (root) - v0.6.0 feature architecture
 - **V0.6.0_ROADMAP.md** (root) - v0.6.0 implementation plan
 - **I18N_IMPLEMENTATION.md** (root) - i18n implementation guide
+ - **frontend-testing-guidelines.md** - Frontend testing guidance for `data-testid` and sample checks
 
 ## Language Coverage
 

@@ -154,7 +154,10 @@ class Area:
         )
 
         # Heating system type - affects OpenTherm setpoint calculation
-        self.heating_type: str = "radiator"  # "radiator" or "floor_heating"
+        # Options: "radiator", "floor_heating", "airco"
+        # "airco" denotes an air conditioning system and should bypass
+        # boiler / radiator / valve control logic.
+        self.heating_type: str = "radiator"
         self.custom_overhead_temp: float | None = (
             None  # Custom overhead (overrides defaults)
         )

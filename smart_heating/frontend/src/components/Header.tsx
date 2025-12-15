@@ -113,11 +113,11 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
             open={Boolean(analyticsMenuAnchor)}
             onClose={handleAnalyticsMenuClose}
           >
-            <MenuItem onClick={() => handleNavigateAnalytics('/analytics/efficiency')}>
+            <MenuItem data-testid="header-analytics-efficiency" onClick={() => handleNavigateAnalytics('/analytics/efficiency')}>
               <TrendingUpIcon sx={{ mr: 1 }} />
               {t('efficiency.title', 'Efficiency Reports')}
             </MenuItem>
-            <MenuItem onClick={() => handleNavigateAnalytics('/analytics/comparison')}>
+            <MenuItem data-testid="header-analytics-comparison" onClick={() => handleNavigateAnalytics('/analytics/comparison')}>
               <CompareArrowsIcon sx={{ mr: 1 }} />
               {t('comparison.title', 'Historical Comparisons')}
             </MenuItem>
@@ -139,10 +139,10 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
             open={Boolean(langMenuAnchor)}
             onClose={handleLanguageMenuClose}
           >
-            <MenuItem onClick={() => handleLanguageChange('en')} selected={i18n.language === 'en'}>
+            <MenuItem data-testid="header-language-en" onClick={() => handleLanguageChange('en')} selected={i18n.language === 'en'}>
               English
             </MenuItem>
-            <MenuItem onClick={() => handleLanguageChange('nl')} selected={i18n.language === 'nl'}>
+            <MenuItem data-testid="header-language-nl" onClick={() => handleLanguageChange('nl')} selected={i18n.language === 'nl'}>
               Nederlands
             </MenuItem>
           </Menu>

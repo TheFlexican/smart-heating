@@ -112,6 +112,7 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
         </Box>
         <Tooltip title={t('devices.refreshTooltip')}>
           <IconButton
+            data-testid="device-refresh-button"
             onClick={handleRefresh}
             disabled={refreshing}
             size="small"
@@ -196,6 +197,7 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
                           secondary={
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
                               <Chip
+                                data-testid={`device-type-chip-${(device.name || device.id).toLowerCase().replaceAll(' ', '-')}`}
                                 label={getDeviceTypeLabel(device.type)}
                                 size="small"
                                 variant="outlined"

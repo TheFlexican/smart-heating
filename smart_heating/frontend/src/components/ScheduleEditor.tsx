@@ -155,6 +155,7 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
+          data-testid="schedule-add-button"
           onClick={handleAddNew}
         >
           {t('areaDetail.addSchedule')}
@@ -191,7 +192,7 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
                           variant="outlined"
                         />
                       </Box>
-                      <IconButton size="small" onClick={() => toggleDate(date)}>
+                      <IconButton data-testid={`schedule-toggle-date-${date}`} size="small" onClick={() => toggleDate(date)}>
                         {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                       </IconButton>
                     </Box>
@@ -201,6 +202,7 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
                         {dateSchedules.map(schedule => (
                           <Chip
                             key={schedule.id}
+                            data-testid={`schedule-chip-${schedule.id}`}
                             label={formatScheduleLabel(schedule)}
                             onDelete={() => handleDelete(schedule.id)}
                             onClick={() => handleEdit(schedule)}
@@ -242,10 +244,10 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
             const isExpanded = expandedDays[dayIndex] ?? true
 
             return (
-              <Card key={day} variant="outlined">
+                <Card key={day} data-testid={`schedule-day-card-${dayKey}`} variant="outlined">
                 <CardContent sx={{ pb: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="subtitle1" fontWeight="bold" color="text.primary">
+                    <Typography data-testid={`schedule-day-${dayKey}`} variant="subtitle1" fontWeight="bold" color="text.primary">
                       {t(`areaDetail.${dayKey}`)}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -256,8 +258,8 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
                       )}
                       {daySchedules.length > 0 && (
                         <>
-                          <Chip label={`${daySchedules.length}`} size="small" color="primary" />
-                          <IconButton size="small" onClick={() => toggleDay(dayIndex)}>
+                          <Chip data-testid={`schedule-day-count-${dayIndex}`} label={`${daySchedules.length}`} size="small" color="primary" />
+                          <IconButton data-testid={`schedule-toggle-day-${dayIndex}`} size="small" onClick={() => toggleDay(dayIndex)}>
                             {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                           </IconButton>
                         </>
@@ -271,6 +273,7 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
                         {daySchedules.map(schedule => (
                           <Chip
                             key={schedule.id}
+                            data-testid={`schedule-chip-${schedule.id}`}
                             label={formatScheduleLabel(schedule)}
                             onDelete={() => handleDelete(schedule.id, dayIndex)}
                             onClick={() => handleEdit(schedule)}

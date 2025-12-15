@@ -178,7 +178,7 @@ const ImportExport = () => {
   return (
     <Box>
       <Box display="flex" alignItems="center" gap={2} mb={2}>
-        <IconButton onClick={() => navigate('/')} size="large" color="primary">
+        <IconButton data-testid="import-export-back" onClick={() => navigate('/')} size="large" color="primary">
           <ArrowBackIcon />
           </IconButton>
         <Typography variant="body2" color="text.secondary">
@@ -203,6 +203,7 @@ const ImportExport = () => {
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         {/* Export Button */}
         <Button
+          data-testid="import-export-button"
           variant="contained"
           startIcon={loading ? <CircularProgress size={20} /> : <DownloadIcon />}
           onClick={handleExport}
@@ -213,6 +214,7 @@ const ImportExport = () => {
 
         {/* Import Button */}
         <Button
+          data-testid="import-file-button"
           variant="outlined"
           component="label"
           startIcon={loading ? <CircularProgress size={20} /> : <UploadIcon />}

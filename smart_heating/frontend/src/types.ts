@@ -81,7 +81,7 @@ export interface Zone {
   hvac_mode?: string
 
   // Heating type
-  heating_type?: 'radiator' | 'floor_heating'
+  heating_type?: 'radiator' | 'floor_heating' | 'airco'
 
   // Manual override mode
   manual_override?: boolean

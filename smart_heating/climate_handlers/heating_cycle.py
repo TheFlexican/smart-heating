@@ -101,8 +101,14 @@ class HeatingCycleHandler:
         Returns:
             Tuple of (heating_areas list, max_target_temp)
         """
-        heating_areas = [area]
+        # Areas using air conditioning should not be included in boiler
+        # control (OpenTherm Gateway) and should not have radiator/valve
+        # control applied. Always control thermostats (airco or TRV), but
+        # exclude airco areas from heating_areas used for boiler decisions.
+        heating_areas: list = []
         max_target_temp = target_temp
+        if getattr(area, "heating_type", "radiator") != "airco":
+            heating_areas = [area]
 
         # Start heating event if not already active
         if self.learning_engine and area_id not in self._area_heating_events:
@@ -118,10 +124,12 @@ class HeatingCycleHandler:
                 outdoor_temp if outdoor_temp else "N/A",
             )
 
-        # Control all devices
+        # Control thermostats (always). For non-airco areas also control
+        # switches and valves (radiators / underfloor systems).
         await device_handler.async_control_thermostats(area, True, target_temp)
-        await device_handler.async_control_switches(area, True)
-        await device_handler.async_control_valves(area, True, target_temp)
+        if getattr(area, "heating_type", "radiator") != "airco":
+            await device_handler.async_control_switches(area, True)
+            await device_handler.async_control_valves(area, True, target_temp)
 
         area.state = "heating"
         _LOGGER.info(
@@ -191,10 +199,12 @@ class HeatingCycleHandler:
                 current_temp,
             )
 
-        # Turn off heating
+        # Turn off heating. For airco areas only thermostats need to be
+        # controlled; do not touch switches/valves for airco.
         await device_handler.async_control_thermostats(area, False, target_temp)
-        await device_handler.async_control_switches(area, False)
-        await device_handler.async_control_valves(area, False, target_temp)
+        if getattr(area, "heating_type", "radiator") != "airco":
+            await device_handler.async_control_switches(area, False)
+            await device_handler.async_control_valves(area, False, target_temp)
 
         area.state = "idle"
         _LOGGER.debug(
@@ -245,12 +255,14 @@ class HeatingCycleHandler:
                 outdoor_temp if outdoor_temp else "N/A",
             )
 
-        # Control all devices in cooling mode
+        # Control all devices in cooling mode. Thermostats should be
+        # controlled for cooling (airco), but avoid switches/valves for airco
         await device_handler.async_control_thermostats(
             area, True, target_temp, hvac_mode="cool"
         )
-        await device_handler.async_control_switches(area, True)
-        await device_handler.async_control_valves(area, True, target_temp)
+        if getattr(area, "heating_type", "radiator") != "airco":
+            await device_handler.async_control_switches(area, True)
+            await device_handler.async_control_valves(area, True, target_temp)
 
         area.state = "cooling"
         _LOGGER.info(

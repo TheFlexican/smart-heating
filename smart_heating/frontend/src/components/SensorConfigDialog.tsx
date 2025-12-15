@@ -108,7 +108,7 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
+      <DialogTitle data-testid="sensor-dialog-title">
         {sensorType === 'window' ? 'Add Window Sensor' : 'Add Presence Sensor'}
       </DialogTitle>
       <DialogContent>
@@ -122,18 +122,19 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
               <FormControl fullWidth>
                 <InputLabel>Entity</InputLabel>
                 <Select
+                  data-testid="sensor-entity-select"
                   value={selectedEntity}
                   label="Entity"
                   onChange={(e) => setSelectedEntity(e.target.value)}
                 >
                   {filteredEntities.length > 0 ? (
                     filteredEntities.map((entity) => (
-                      <MenuItem key={entity.entity_id} value={entity.entity_id}>
+                      <MenuItem data-testid={`sensor-entity-${entity.entity_id}`} key={entity.entity_id} value={entity.entity_id}>
                         {entity.attributes.friendly_name || entity.entity_id}
                       </MenuItem>
                     ))
                   ) : (
-                    <MenuItem disabled>
+                    <MenuItem disabled data-testid="sensor-no-entities">
                       No {sensorType === 'window' ? 'window/door' : 'motion/presence'} sensors found
                     </MenuItem>
                   )}
@@ -146,9 +147,10 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
                   <TextField
                     size="small"
                     fullWidth
-                    placeholder={sensorType === 'window'
+                      placeholder={sensorType === 'window'
                       ? 'binary_sensor.window_living_room'
                       : 'binary_sensor.motion_living_room or person.john or device_tracker.iphone'}
+                      data-testid="sensor-manual-input"
                     value={selectedEntity}
                     onChange={(e) => setSelectedEntity(e.target.value)}
                     sx={{ mt: 1 }}
@@ -156,19 +158,20 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
                 </Alert>
               )}
 
-              {sensorType === 'window' ? (
+                {sensorType === 'window' ? (
                 // Window Sensor Configuration
                 <>
                   <FormControl fullWidth>
                     <InputLabel>Action When Open</InputLabel>
                     <Select
+                      data-testid="sensor-window-action-select"
                       value={windowAction}
                       label="Action When Open"
                       onChange={(e) => setWindowAction(e.target.value as any)}
                     >
-                      <MenuItem value="reduce_temperature">Reduce Temperature</MenuItem>
-                      <MenuItem value="turn_off">Turn Off Heating</MenuItem>
-                      <MenuItem value="none">No Action</MenuItem>
+                      <MenuItem data-testid="sensor-window-action-reduce" value="reduce_temperature">Reduce Temperature</MenuItem>
+                      <MenuItem data-testid="sensor-window-action-turnoff" value="turn_off">Turn Off Heating</MenuItem>
+                      <MenuItem data-testid="sensor-window-action-none" value="none">No Action</MenuItem>
                     </Select>
                   </FormControl>
 
@@ -177,6 +180,7 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
                       label="Temperature Drop (°C)"
                       type="number"
                       value={windowTempDrop}
+                      data-testid="sensor-temp-drop"
                       onChange={(e) => setWindowTempDrop(Number(e.target.value))}
                       slotProps={{ htmlInput: { min: 1, max: 10, step: 0.5 } }}
                       helperText="How much to reduce temperature when window is open"
@@ -187,7 +191,7 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
               ) : (
                 // Presence Sensor Configuration
                 <>
-                  <Alert severity="info">
+                  <Alert severity="info" data-testid="sensor-info">
                     <Typography variant="body2">
                       <strong>Preset Mode Control</strong>
                     </Typography>
@@ -206,8 +210,8 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose}>Cancel</Button>
-        <Button onClick={handleAdd} variant="contained" disabled={!selectedEntity}>
+        <Button data-testid="sensor-cancel" onClick={handleClose}>Cancel</Button>
+        <Button data-testid="sensor-add-button" onClick={handleAdd} variant="contained" disabled={!selectedEntity}>
           Add Sensor
         </Button>
       </DialogActions>

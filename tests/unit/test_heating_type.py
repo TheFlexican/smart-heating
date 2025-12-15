@@ -87,6 +87,15 @@ class TestHeatingType:
         floor_area.heating_type = "floor_heating"
         assert floor_area.heating_type == "floor_heating"
 
+    def test_airco_heating_type(self):
+        """Test airco heating type works and serializes properly."""
+        area = Area("air", "Aircon Room")
+        area.heating_type = "airco"
+        assert area.heating_type == "airco"
+
+        data = area.to_dict()
+        assert data["heating_type"] == "airco"
+
     def test_custom_overhead_overrides_default(self):
         """Test custom overhead can override default for any type."""
         # Radiator with custom overhead

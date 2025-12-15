@@ -220,6 +220,29 @@ export interface ScheduleEntry {
 6. Connect to API/WebSocket if needed
 7. Add translations
 8. Export component
+
+## Testing IDs (Required)
+
+When adding or modifying UI elements in the frontend, any interactive or test-important element MUST include a `data-testid` attribute. This short, consistent contract helps make unit and E2E tests robust and prevents brittle queries.
+
+Guidelines:
+- Required on elements that are interactive (buttons, switches, menu items, dialog actions), represent list items, or are otherwise important to test (chips that change state, dynamic labels, key controls).
+- Use descriptive, kebab-style names. Recommended patterns:
+  - `component-action` — e.g., `header-settings-button`, `device-refresh-button`
+  - `page-element-action` — e.g., `area-detail-tab-settings`, `schedule-save`
+  - For list items include a stable identifier: `available-device-thermostat_1`, `assigned-device-<id>`
+
+Examples:
+```tsx
+<IconButton data-testid="header-settings-button" />
+<Button data-testid="schedule-save">Save</Button>
+<ListItem data-testid={`available-device-${device.id}`}>...</ListItem>
+```
+
+Enforcement & Review:
+- The agent SHOULD check proposed UI changes and, when reviewing code, flag missing `data-testid` attributes on interactive/test-important elements.
+- Add a PR checklist reminder: "Interactive/test-important UI elements include `data-testid` attributes where applicable." This should be added to PR templates or contribution guidelines.
+- For teams that want stricter enforcement, consider adding a lightweight grep or ESLint rule (example patterns shown in docs) to fail CI when missing attributes are detected. See `docs/frontend-testing-guidelines.md` for suggestions and quick checks.
 ```
 
 ## Code Patterns & Best Practices

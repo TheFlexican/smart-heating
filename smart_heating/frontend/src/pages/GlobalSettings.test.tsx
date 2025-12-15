@@ -20,7 +20,12 @@ vi.mock('../api/opentherm', () => ({
 }))
 vi.mock('../api/config', () => ({
   getConfig: vi.fn().mockResolvedValue({ hide_devices_panel: false, opentherm_gateway_id: '' }),
-  getAdvancedControlConfig: vi.fn().mockResolvedValue({})
+  getAdvancedControlConfig: vi.fn().mockResolvedValue({}),
+  getBinarySensorEntities: vi.fn().mockResolvedValue([]),
+  getPersonEntities: vi.fn().mockResolvedValue([]),
+}))
+vi.mock('../api/users', () => ({
+  getUsers: vi.fn().mockResolvedValue({ users: {} }),
 }))
 vi.mock('../api/sensors', () => ({
   getGlobalPresence: vi.fn().mockResolvedValue({ sensors: [] })
@@ -60,6 +65,61 @@ describe('GlobalSettings', () => {
     await waitFor(() => {
       expect(getByTestId('opentherm-tab')).toBeTruthy()
     })
+  })
+
+  it('opens sensor and safety dialogs when add buttons clicked', async () => {
+    const { getByTestId, queryByTestId } = render(
+      <BrowserRouter>
+        <GlobalSettings themeMode="light" onThemeChange={() => {}} />
+      </BrowserRouter>
+    )
+
+    // Switch to Sensors tab to expose presence controls
+    await userEvent.setup()
+    // Wait for tabs to render (loading may show progressbar briefly)
+    await waitFor(() => expect(getByTestId('opentherm-tab')).toBeTruthy())
+    const tabs = screen.getAllByRole('tab')
+    await userEvent.click(tabs[1])
+
+    await waitFor(() => expect(getByTestId('global-add-presence-sensor')).toBeTruthy())
+
+    // Sensor dialog
+    await userEvent.click(getByTestId('global-add-presence-sensor'))
+    await waitFor(() => expect(getByTestId('sensor-dialog-title')).toBeTruthy())
+
+    // Close sensor dialog via cancel
+    const sensorCancel = queryByTestId('sensor-cancel')
+    if (sensorCancel) await userEvent.click(sensorCancel)
+
+    // Switch to Safety tab and open dialog
+    await userEvent.click(tabs[4])
+    await waitFor(() => expect(getByTestId('global-add-safety-sensor')).toBeTruthy())
+    await userEvent.click(getByTestId('global-add-safety-sensor'))
+    await waitFor(() => expect(getByTestId('safety-dialog-title')).toBeTruthy())
+
+    // Close safety dialog
+    const safetyCancel = queryByTestId('safety-cancel')
+    if (safetyCancel) await userEvent.click(safetyCancel)
+  })
+
+  it('opens embedded user create dialog and shows actions', async () => {
+    const { findByTestId } = render(
+      <BrowserRouter>
+        <GlobalSettings themeMode="light" onThemeChange={() => {}} />
+      </BrowserRouter>
+    )
+
+    // Switch to Users tab and open add dialog
+    await userEvent.setup()
+    await waitFor(() => expect(screen.getByTestId('opentherm-tab')).toBeTruthy())
+    const tabs2 = screen.getAllByRole('tab')
+    await userEvent.click(tabs2[3])
+    const addButton = await findByTestId('user-add-button')
+    await userEvent.click(addButton)
+
+    // Dialog actions should be present
+    expect(await findByTestId('user-save')).toBeTruthy()
+    expect(await findByTestId('user-cancel')).toBeTruthy()
   })
 
   it('shows heating curve default coefficient with testid and toggles enabled state with advanced control (isolated)', async () => {

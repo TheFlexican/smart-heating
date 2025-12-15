@@ -4,6 +4,7 @@ description: Develop Home Assistant integrations with proper HA patterns and asy
 argument-hint: Describe the HA feature to implement (platform, entity, service)...
 tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'pylance-mcp-server/*', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'todo']
 target: vscode
+infer: true
 handoffs:
   - label: Write Tests
     agent: home-assistant-pytest
