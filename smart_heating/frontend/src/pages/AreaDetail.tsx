@@ -1748,7 +1748,7 @@ const ZoneDetail = () => {
       >
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
-            <IconButton onClick={() => navigate('/')} edge="start" sx={{ p: { xs: 0.5, sm: 1 } }}>
+            <IconButton data-testid="area-top-back-button" onClick={() => navigate('/')} edge="start" sx={{ p: { xs: 0.5, sm: 1 } }}>
               <ArrowBackIcon />
             </IconButton>
             <Box>
@@ -1780,7 +1780,7 @@ const ZoneDetail = () => {
                 {area.enabled ? 'Area is being controlled' : 'No temperature control'}
               </Typography>
             </Box>
-            <Switch checked={area.enabled} onChange={handleToggle} color="primary" />
+            <Switch data-testid="area-enable-switch" checked={area.enabled} onChange={handleToggle} color="primary" />
           </Box>
         </Box>
       </Paper>

@@ -468,7 +468,7 @@ export default function GlobalSettings({ themeMode, onThemeChange }: { themeMode
           gap: 1,
         }}
       >
-        <IconButton onClick={() => navigate('/')} edge="start">
+        <IconButton data-testid="global-back-button" onClick={() => navigate('/')} edge="start">
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h6">{t('globalSettings.title', 'Global Settings')}</Typography>

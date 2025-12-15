@@ -178,7 +178,7 @@ const ImportExport = () => {
   return (
     <Box>
       <Box display="flex" alignItems="center" gap={2} mb={2}>
-        <IconButton onClick={() => navigate('/')} size="large" color="primary">
+        <IconButton data-testid="import-export-back" onClick={() => navigate('/')} size="large" color="primary">
           <ArrowBackIcon />
           </IconButton>
         <Typography variant="body2" color="text.secondary">
