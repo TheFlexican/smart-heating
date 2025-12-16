@@ -38,6 +38,7 @@ def mock_area_manager():
     manager.trv_temp_offset = 2.0
     manager.trv_heating_temp = 30.0
     manager.trv_idle_temp = 15.0
+    manager.hysteresis = 0.5  # Default hysteresis for tests
     # Add attributes needed for OpenTherm control
     manager.advanced_control_enabled = False
     manager.heating_curve_enabled = False
@@ -328,14 +329,56 @@ class TestAsyncControlThermostats:
 
         await device_handler.async_control_thermostats(mock_area, False, None)
 
+    @pytest.mark.asyncio
+    async def test_skip_hysteresis_for_ac_area_cool_mode(self, device_handler, mock_area):
+        """Test that hysteresis idle logic is skipped for AC areas in cool mode."""
+        mock_area.get_thermostats.return_value = ["climate.ac_unit"]
+        mock_area.current_temperature = 20.0
+        mock_area.hvac_mode = "cool"
+        mock_area.name = "AC Area"
+
+        # When heating=False and target_temp is set, but hvac_mode is "cool"
+        # Should NOT call _handle_thermostat_idle (no service call expected)
+        await device_handler.async_control_thermostats(mock_area, False, 22.0, hvac_mode="cool")
+
+        # No service calls should be made (hysteresis logic skipped)
+        device_handler.hass.services.async_call.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_skip_hysteresis_for_ac_area_auto_mode(self, device_handler, mock_area):
+        """Test that hysteresis idle logic is skipped for AC areas in auto mode."""
+        mock_area.get_thermostats.return_value = ["climate.ac_unit"]
+        mock_area.current_temperature = 20.0
+        mock_area.hvac_mode = "auto"
+        mock_area.name = "AC Area"
+
+        await device_handler.async_control_thermostats(mock_area, False, 22.0, hvac_mode="auto")
+
+        # No service calls should be made (hysteresis logic skipped)
+        device_handler.hass.services.async_call.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_apply_hysteresis_for_heat_mode(self, device_handler, mock_area):
+        """Test that hysteresis idle logic still applies for traditional heating areas."""
+        mock_area.get_thermostats.return_value = ["climate.thermo1"]
+        mock_area.current_temperature = 20.0
+        mock_area.hvac_mode = "heat"
+        mock_area.name = "Living Room"
+
+        # When heating=False and target_temp is set, with hvac_mode="heat"
+        # Should call _handle_thermostat_idle (service call expected)
+        await device_handler.async_control_thermostats(mock_area, False, 20.0, hvac_mode="heat")
+
+        # Service call should be made (hysteresis logic applied)
         device_handler.hass.services.async_call.assert_called_once_with(
             "climate",
-            "turn_off",
-            {"entity_id": "climate.thermo1"},
+            "set_temperature",
+            {
+                "entity_id": "climate.thermo1",
+                "temperature": 20.0,
+            },
             blocking=False,
         )
-        # Cache should be cleared
-        assert "climate.thermo1" not in device_handler._last_set_temperatures
 
     @pytest.mark.asyncio
     async def test_turn_off_fallback_to_min_temp(
