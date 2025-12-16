@@ -9,10 +9,41 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }
 
 it('shows cooling series when history contains cooling state', async () => {
   const now = new Date().toISOString()
+  const older = new Date(Date.now() - 1000 * 60 * 30).toISOString() // 30m older
   vi.spyOn(api, 'getHistory').mockResolvedValue({
     entries: [
       { timestamp: now, current_temperature: 22, target_temperature: 21, state: 'cooling' },
+      { timestamp: older, current_temperature: 21.5, target_temperature: 21, state: 'idle' },
     ],
+  })
+
+  render(<HistoryChart areaId="a1" />)
+
+  // Ensure data is sorted so the latest timestamp (now) is the last point
+  await waitFor(() => expect(screen.getByTestId('history-chart')).toBeInTheDocument())
+  // The hidden indicator should reflect cooling
+  await waitFor(() => expect(screen.getByTestId('history-has-cooling').textContent).toBe('1'))
+
+  it('defaults to 4h selector and exposes range buttons', async () => {
+    const now = new Date().toISOString()
+    vi.spyOn(api, 'getHistory').mockResolvedValue({
+      entries: [{ timestamp: now, current_temperature: 22, target_temperature: 21, state: 'idle' }],
+    })
+
+    render(<HistoryChart areaId="a1" />)
+
+    // Check selector buttons exist
+    expect(screen.getByTestId('history-range-1h')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-2h')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-4h')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-8h')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-24h')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-custom')).toBeInTheDocument()
+
+    // The 4h button should be selected by default (aria-pressed === true)
+    await waitFor(() =>
+      expect(screen.getByTestId('history-range-4h').getAttribute('aria-pressed')).toBe('true'),
+    )
   })
 
   render(<HistoryChart areaId="a1" />)
@@ -29,7 +60,13 @@ it('shows cooling series when history contains cooling state', async () => {
   // Legend items should render with testids (use the descriptive legend list)
   await waitFor(() => expect(screen.getByTestId('history-legend-item-temp')).toBeInTheDocument())
   await waitFor(() => expect(screen.getByTestId('history-legend-item-target')).toBeInTheDocument())
-  await waitFor(() => expect(screen.getByTestId('history-legend-item-redDots')).toBeInTheDocument())
+  // Legend should include either heating (red dots) or cooling (blue dots)
+  await waitFor(() =>
+    expect(
+      screen.queryByTestId('history-legend-item-redDots') ||
+        screen.queryByTestId('history-legend-item-blueDots'),
+    ).toBeInTheDocument(),
+  )
 
   // Cooling toggle should be present
   await waitFor(() => expect(screen.getByTestId('history-toggle-cooling')).toBeInTheDocument())

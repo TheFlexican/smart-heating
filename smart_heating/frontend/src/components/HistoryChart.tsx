@@ -42,7 +42,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
   const [data, setData] = useState<HistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [timeRange, setTimeRange] = useState<number>(24)
+  const [timeRange, setTimeRange] = useState<number>(4)
   const [customRange, setCustomRange] = useState(false)
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
@@ -103,8 +103,13 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
     )
   }
 
+  // Sort data oldest -> newest so current time appears on the right of the chart
+  const sortedData = data.slice().sort((a, b) => {
+    return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  })
+
   // Format data for chart
-  const chartData = data.map(entry => ({
+  const chartData = sortedData.map(entry => ({
     time: new Date(entry.timestamp).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
@@ -182,29 +187,20 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
             }}
             size="small"
           >
-            <ToggleButton value={6}>6h</ToggleButton>
-            <ToggleButton value={12}>12h</ToggleButton>
-            <ToggleButton value={24}>24h</ToggleButton>
-            <ToggleButton value={72}>3d</ToggleButton>
-            <ToggleButton value={168}>7d</ToggleButton>
-            <ToggleButton value={720}>30d</ToggleButton>
-            <ToggleButton data-testid="history-range-6h" value={6}>
-              6h
+            <ToggleButton data-testid="history-range-1h" value={1}>
+              1h
             </ToggleButton>
-            <ToggleButton data-testid="history-range-12h" value={12}>
-              12h
+            <ToggleButton data-testid="history-range-2h" value={2}>
+              2h
+            </ToggleButton>
+            <ToggleButton data-testid="history-range-4h" value={4}>
+              4h
+            </ToggleButton>
+            <ToggleButton data-testid="history-range-8h" value={8}>
+              8h
             </ToggleButton>
             <ToggleButton data-testid="history-range-24h" value={24}>
               24h
-            </ToggleButton>
-            <ToggleButton data-testid="history-range-3d" value={72}>
-              3d
-            </ToggleButton>
-            <ToggleButton data-testid="history-range-7d" value={168}>
-              7d
-            </ToggleButton>
-            <ToggleButton data-testid="history-range-30d" value={720}>
-              30d
             </ToggleButton>
             <ToggleButton data-testid="history-range-custom" value="custom">
               Custom
@@ -248,8 +244,28 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
       <div data-testid="history-chart">
         <ResponsiveContainer width="100%" height={400}>
           <ComposedChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2c" />
-            <XAxis dataKey="time" stroke="#9e9e9e" tick={{ fill: '#9e9e9e' }} />
+            <CartesianGrid
+              horizontal={true}
+              vertical={false}
+              stroke="#2c2c2c"
+              strokeOpacity={0.18}
+            />
+            {/* Reduce label clutter: show up to 6 evenly spaced ticks */}
+            <XAxis
+              dataKey="time"
+              stroke="#9e9e9e"
+              tick={{ fill: '#9e9e9e', fontSize: 11 }}
+              angle={-45}
+              textAnchor="end"
+              height={60}
+              ticks={(() => {
+                const maxTicks = 6
+                const len = chartData.length
+                if (len <= maxTicks) return chartData.map(d => d.time)
+                const step = Math.ceil(len / maxTicks)
+                return chartData.filter((_, i) => i % step === 0).map(d => d.time)
+              })()}
+            />
             <YAxis
               stroke="#9e9e9e"
               tick={{ fill: '#9e9e9e' }}
@@ -288,7 +304,6 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
               <ReferenceLine
                 y={avgTarget}
                 stroke="#4caf50"
-                strokeDasharray="3 3"
                 strokeWidth={1}
                 label={{
                   value: `Avg: ${avgTarget.toFixed(1)}°C`,
@@ -311,7 +326,6 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
               dataKey="target"
               stroke="#ffc107"
               strokeWidth={2}
-              strokeDasharray="5 5"
               dot={false}
               name={t('areaDetail.targetTempLine')}
             />
@@ -396,12 +410,22 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
               </strong>{' '}
               {t('areaDetail.yellowDashedDesc')}
             </li>
-            <li>
-              <strong data-testid="history-legend-item-redDots" style={{ color: '#f44336' }}>
-                {t('areaDetail.redDots')}
-              </strong>{' '}
-              {t('areaDetail.redDotsDesc')}
-            </li>
+            {chartData.some(d => d.heatingDot !== null && d.heatingDot !== undefined) && (
+              <li>
+                <strong data-testid="history-legend-item-redDots" style={{ color: '#f44336' }}>
+                  {t('areaDetail.redDots')}
+                </strong>{' '}
+                {t('areaDetail.redDotsDesc')}
+              </li>
+            )}
+            {hasCooling && (
+              <li>
+                <strong data-testid="history-legend-item-blueDots" style={{ color: '#03a9f4' }}>
+                  {t('areaDetail.blueDots')}
+                </strong>{' '}
+                {t('areaDetail.blueDotsDesc')}
+              </li>
+            )}
             <li>
               <strong data-testid="history-legend-item-greenDashed" style={{ color: '#4caf50' }}>
                 {t('areaDetail.greenDashed')}
