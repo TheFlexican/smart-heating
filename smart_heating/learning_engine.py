@@ -478,22 +478,68 @@ class LearningEngine:
     async def async_calculate_smart_night_boost(
         self,
         area_id: str,
-    ) -> float | None:  # NOSONAR - intentionally async (implementation TODO, see issue #49)
+    ) -> float | None:  # NOSONAR - intentionally async (implementation improved)
         """Calculate optimal night boost offset based on learning data.
+
+        The algorithm uses recent heating rate statistics to estimate how much
+        temperature is lost overnight and recommends a small offset (in °C) to
+        compensate. The estimate is conservative and will return ``None`` when
+        there is insufficient data.
 
         Args:
             area_id: Area identifier
 
         Returns:
-            Recommended night boost offset or None if insufficient data
+            Recommended night boost offset (rounded to 1 decimal) or ``None`` if
+            insufficient data or negligible boost suggested
         """
-        # Get cooldown rate during night hours
-        # This would analyze how much the room cools overnight
-        # For now, return None until we have enough data
+        # Gather recent heating rate statistics (°C per minute)
+        heating_rates = await self._async_get_recent_heating_rates(area_id, days=30)
 
-        # Implementation of smart night boost is tracked in issue #49 (https://github.com/TheFlexican/smart-heating/issues/49)
-        _LOGGER.debug("Smart night boost calculation not yet implemented for %s", area_id)
-        return None
+        if len(heating_rates) < MIN_LEARNING_EVENTS:
+            _LOGGER.debug(
+                "Insufficient data for smart night boost (need %d events, have %d)",
+                MIN_LEARNING_EVENTS,
+                len(heating_rates),
+            )
+            return None
+
+        # Average heating rate (°C/min)
+        avg_rate = statistics.mean(heating_rates)
+
+        # Estimate overnight cooling: assume an 8-hour night and that cooling is a
+        # fraction of the heating rate (rooms heat slower than they cool). The
+        # 0.6 factor is conservative and tunable later. Note we use °C/min * hours
+        # directly (no extra 60x multiplier) so results are in °C.
+        hours_night = 8
+        cooling_fraction = 0.6
+        estimated_overnight_cooling = avg_rate * hours_night * cooling_fraction
+
+        # Adjust estimate by outdoor temperature if available (colder outside -> more cooling)
+        outdoor_temp = await self._async_get_outdoor_temperature()
+        adjustment = 1.0
+        if outdoor_temp is not None:
+            # 2% extra cooling per °C below 10°C, capped to reasonable bounds
+            adjustment += max(0.0, (10.0 - outdoor_temp) * 0.02)
+            adjustment = min(adjustment, 1.5)  # cap
+
+        boost = estimated_overnight_cooling * adjustment
+
+        # If the suggested boost is negligible, don't recommend anything
+        if boost < 0.1:
+            _LOGGER.debug("Calculated night boost negligible (%.3f°C) for %s", boost, area_id)
+            return None
+
+        # Round to one decimal for user-friendly offsets
+        result = round(boost, 1)
+        _LOGGER.debug(
+            "Calculated night boost for %s: %.1f°C (avg_rate=%.3f°C/min, outdoor=%s)",
+            area_id,
+            result,
+            avg_rate,
+            str(outdoor_temp),
+        )
+        return result
 
     async def async_get_learning_stats(self, area_id: str) -> dict[str, Any]:
         """Get learning statistics for an area.

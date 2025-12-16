@@ -494,8 +494,26 @@ class TestLearningStats:
 
     @pytest.mark.asyncio
     async def test_calculate_smart_night_boost(self, learning_engine):
-        """Test smart night boost calculation (not yet implemented)."""
-        result = await learning_engine.async_calculate_smart_night_boost("living_room")
+        """Test smart night boost calculation with insufficient and sufficient data."""
+        # Insufficient data -> None
+        with patch.object(
+            learning_engine, "_async_get_recent_heating_rates", AsyncMock(return_value=[])
+        ):
+            result = await learning_engine.async_calculate_smart_night_boost("living_room")
+            assert result is None
 
-        # Returns None until implemented
-        assert result is None
+        # Sufficient data should return a small positive boost
+        rates = [0.1] * MIN_LEARNING_EVENTS  # 0.1°C/min
+        with patch.object(
+            learning_engine,
+            "_async_get_recent_heating_rates",
+            AsyncMock(return_value=rates),
+        ):
+            with patch.object(
+                learning_engine, "_async_get_outdoor_temperature", AsyncMock(return_value=5.0)
+            ):
+                result2 = await learning_engine.async_calculate_smart_night_boost("living_room")
+
+        assert result2 is not None
+        # Expect a reasonable small boost (e.g., between 0.3 and 3.0°C)
+        assert 0.3 <= result2 <= 3.0
