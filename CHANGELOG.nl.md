@@ -37,6 +37,8 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 ### ✨ Functies
 - **Refactor:** De frontend API is opgesplitst in modulebestanden onder `src/api/*`. Imports zijn bijgewerkt zodat components direct uit module-niveau API-bestanden importeren. Het top-level `src/api.ts` is gedepricieerd — import rechtstreeks uit specifieke modules (bijv. `src/api/areas`).
 
+- **Slimme Nacht Boost:** Een conservatieve, op leerdata gebaseerde nachtboost-berekening is toegevoegd aan de backend learning engine om kleine temperatuurcompensaties voor nachts te adviseren op basis van historische verwarmings-/afkoelgegevens. Werkt alleen wanneer er voldoende data aanwezig is.
+
 ### 🐛 Opgeloste bugs & Verbeteringen
 ## [0.5.14] - 2025-12-13
 

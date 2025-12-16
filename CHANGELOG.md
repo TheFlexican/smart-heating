@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### ✨ Features
 - **Refactor:** Split frontend API into module files under `src/api/*`. Updated imports across the frontend to import from module-level API files and added module-focused unit tests. The top-level `src/api.ts` is deprecated — import from specific modules (for example, `src/api/areas`) instead.
 
+- **Smart Night Boost:** Implemented a conservative learning-based night boost calculation in the backend learning engine to recommend small overnight temperature offsets based on historical heating/cooling data. This improves comfort during night hours while remaining conservative when data is insufficient.
+
 
 
 ## [0.5.14] - 2025-12-13
