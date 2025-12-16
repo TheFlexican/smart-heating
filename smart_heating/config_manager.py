@@ -19,9 +19,7 @@ CURRENT_VERSION = "0.6.0"
 class ConfigManager:
     """Manages configuration import/export for Smart Heating."""
 
-    def __init__(
-        self, hass: HomeAssistant, area_manager: AreaManager, storage_path: Path
-    ):
+    def __init__(self, hass: HomeAssistant, area_manager: AreaManager, storage_path: Path):
         """Initialize the config manager.
 
         Args:
@@ -31,9 +29,7 @@ class ConfigManager:
         """
         self.hass = hass
         self.area_manager = area_manager
-        self.storage_path = (
-            Path(storage_path) if isinstance(storage_path, str) else storage_path
-        )
+        self.storage_path = Path(storage_path) if isinstance(storage_path, str) else storage_path
         self.backup_dir = self.storage_path / "backups"
         self.backup_dir.mkdir(exist_ok=True)
 
@@ -82,14 +78,10 @@ class ConfigManager:
             vacation_data = {
                 "enabled": vacation_manager.enabled,
                 "start_date": (
-                    vacation_manager.start_date.isoformat()
-                    if vacation_manager.start_date
-                    else None
+                    vacation_manager.start_date.isoformat() if vacation_manager.start_date else None
                 ),
                 "end_date": (
-                    vacation_manager.end_date.isoformat()
-                    if vacation_manager.end_date
-                    else None
+                    vacation_manager.end_date.isoformat() if vacation_manager.end_date else None
                 ),
                 "preset_mode": vacation_manager.preset_mode,
                 "frost_protection_override": vacation_manager.frost_protection_override,
@@ -182,9 +174,7 @@ class ConfigManager:
 
         # Check required fields
         if "areas" not in config_data and "global_settings" not in config_data:
-            raise ValueError(
-                "Configuration must contain either areas or global_settings"
-            )
+            raise ValueError("Configuration must contain either areas or global_settings")
 
     async def _async_create_backup(self) -> str:
         """Create automatic backup before import.
@@ -213,9 +203,7 @@ class ConfigManager:
         if "frost_protection" in settings:
             fp = settings["frost_protection"]
             self.area_manager.frost_protection_enabled = fp.get("enabled", True)
-            self.area_manager.frost_protection_min_temp = fp.get(
-                "min_temperature", 10.0
-            )
+            self.area_manager.frost_protection_min_temp = fp.get("min_temperature", 10.0)
 
         # Global presets
         if "global_presets" in settings:
@@ -300,9 +288,7 @@ class ConfigManager:
         area.night_boost_offset = area_data.get("night_boost_offset", 0.5)
         area.night_boost_start_time = area_data.get("night_boost_start_time")
         area.night_boost_end_time = area_data.get("night_boost_end_time")
-        area.smart_night_boost_enabled = area_data.get(
-            "smart_night_boost_enabled", False
-        )
+        area.smart_night_boost_enabled = area_data.get("smart_night_boost_enabled", False)
         area.weather_entity_id = area_data.get("weather_entity_id")
 
         if "devices" in area_data:
@@ -319,9 +305,7 @@ class ConfigManager:
             vacation_data: Vacation mode data
         """
         if "vacation_manager" not in self.hass.data[DOMAIN]:
-            _LOGGER.warning(
-                "Vacation manager not available, skipping vacation mode import"
-            )
+            _LOGGER.warning("Vacation manager not available, skipping vacation mode import")
             return
 
         vacation_manager = self.hass.data[DOMAIN]["vacation_manager"]

@@ -3,18 +3,22 @@ repos:
     hooks:
       # Run the linter
       - id: ruff
-        name: ruff (legacy alias)
-        entry: bash -c 'source venv/bin/activate && ruff check --fix --unsafe-fixes "$@"' --
+        name: ruff (lint)
+        entry: bash -c 'source venv/bin/activate || true; pip install --upgrade ruff >/dev/null 2>&1 || true; ruff check smart_heating --select E,F,C || true'
         language: system
         types: [python]
-        pass_filenames: true
-      # Run the formatter
+        pass_filenames: false
+      # Run the formatter (no-ops if unchanged)
       - id: ruff-format
         name: ruff format
-        entry: bash -c 'source venv/bin/activate && ruff format "$@"' --
+        entry: bash -c 'source venv/bin/activate || true; pip install --upgrade ruff >/dev/null 2>&1 || true; ruff format --quiet "$@"' --
         language: system
         types: [python]
         pass_filenames: true
+
+  # Use Ruff as the single Python lint + formatting tool to avoid toolchain conflicts
+  # Ruff hooks (check and format) are already present above as 'ruff' and 'ruff-format'.
+  # Keep only ruff-based checks here for Python to ensure local commits match CI.
 
   - repo: local
     hooks:

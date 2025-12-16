@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from smart_heating.const import DOMAIN
 from smart_heating.utils.coordinator_helpers import (
     call_maybe_async,
@@ -23,9 +24,6 @@ def test_get_coordinator_and_devices_and_safe_data():
     data = {"a": 1, "learning_engine": {"heavy": True}}
     safe = safe_coordinator_data(data)
     assert "learning_engine" not in safe
-
-
-import pytest
 
 
 @pytest.mark.asyncio

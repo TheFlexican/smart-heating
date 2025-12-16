@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from smart_heating.config_manager import CURRENT_VERSION, ConfigManager
@@ -81,11 +81,6 @@ async def test_import_vacation_mode(tmp_storage, mock_hass, mock_area_manager):
     }
     await cm._async_import_vacation_mode(data)
     assert vm.enabled is True
-
-
-from unittest.mock import patch
-
-import pytest
 
 
 @pytest.fixture

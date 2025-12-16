@@ -7,16 +7,14 @@ from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 
-from .api_handlers import (
+from .api_handlers import (  # Schedules; Sensors; Logs; Areas; Config; Devices; History; System
     handle_add_device,
     handle_add_presence_sensor,
-    # Schedules
     handle_add_schedule,
-    handle_update_schedule,
-    # Sensors
     handle_add_window_sensor,
     handle_call_service,
     handle_cancel_boost,
+    handle_cleanup_history,
     handle_create_user,
     handle_delete_user,
     handle_disable_area,
@@ -27,41 +25,34 @@ from .api_handlers import (
     handle_get_active_preferences,
     handle_get_area,
     handle_get_area_efficiency_history,
-    # Logs
     handle_get_area_logs,
-    # Areas
     handle_get_areas,
     handle_get_binary_sensor_entities,
-    handle_get_weather_entities,
-    # Config
     handle_get_comparison,
     handle_get_config,
     handle_get_custom_comparison,
-    # Devices
+    handle_get_database_stats,
     handle_get_devices,
     handle_get_efficiency_report,
     handle_get_entity_state,
     handle_get_global_presence,
     handle_get_global_presets,
-    # History
     handle_get_history,
     handle_get_history_config,
     handle_get_history_storage_info,
-    handle_get_database_stats,
-    handle_migrate_history_storage,
-    handle_cleanup_history,
     handle_get_hysteresis,
     handle_get_learning_stats,
     handle_get_presence_state,
     handle_get_safety_sensor,
-    # System
     handle_get_status,
     handle_get_user,
     handle_get_users,
     handle_get_vacation_mode,
+    handle_get_weather_entities,
     handle_hide_area,
     handle_import_config,
     handle_list_backups,
+    handle_migrate_history_storage,
     handle_refresh_devices,
     handle_remove_device,
     handle_remove_presence_sensor,
@@ -69,21 +60,21 @@ from .api_handlers import (
     handle_remove_schedule,
     handle_remove_window_sensor,
     handle_restore_backup,
+    handle_set_advanced_control_config,
+    handle_set_area_heating_curve,
     handle_set_area_hysteresis,
     handle_set_area_preset_config,
-    handle_set_area_heating_curve,
     handle_set_auto_preset,
-    handle_set_heating_type,
     handle_set_boost_mode,
     handle_set_frost_protection,
     handle_set_global_presence,
     handle_set_global_presets,
+    handle_set_heating_type,
     handle_set_hide_devices_panel,
     handle_set_history_config,
     handle_set_hvac_mode,
     handle_set_hysteresis_value,
     handle_set_manual_override,
-    handle_set_advanced_control_config,
     handle_set_opentherm_gateway,
     handle_set_preset_mode,
     handle_set_primary_temperature_sensor,
@@ -91,17 +82,18 @@ from .api_handlers import (
     handle_set_switch_shutdown,
     handle_set_temperature,
     handle_unhide_area,
+    handle_update_schedule,
     handle_update_user,
     handle_update_user_settings,
     handle_validate_config,
 )
 from .api_handlers.opentherm import (
-    handle_get_opentherm_logs,
-    handle_get_opentherm_capabilities,
-    handle_discover_opentherm_capabilities,
-    handle_clear_opentherm_logs,
-    handle_get_opentherm_gateways,
     handle_calibrate_opentherm,
+    handle_clear_opentherm_logs,
+    handle_discover_opentherm_capabilities,
+    handle_get_opentherm_capabilities,
+    handle_get_opentherm_gateways,
+    handle_get_opentherm_logs,
 )
 from .area_manager import AreaManager
 from .const import DOMAIN
@@ -193,14 +185,10 @@ class SmartHeatingAPIView(HomeAssistantView):
             "hysteresis": lambda: handle_get_hysteresis(self.area_manager),
             "vacation_mode": lambda: handle_get_vacation_mode(self.hass),
             "safety_sensor": lambda: handle_get_safety_sensor(self.area_manager),
-            "config/advanced_control": lambda: handle_get_config(
-                self.hass, self.area_manager
-            ),
+            "config/advanced_control": lambda: handle_get_config(self.hass, self.area_manager),
             "history/config": lambda: handle_get_history_config(self.hass),
             "history/storage/info": lambda: handle_get_history_storage_info(self.hass),
-            "history/storage/database/stats": lambda: handle_get_database_stats(
-                self.hass
-            ),
+            "history/storage/database/stats": lambda: handle_get_database_stats(self.hass),
         }
 
         handler = config_handlers.get(endpoint)
@@ -249,9 +237,7 @@ class SmartHeatingAPIView(HomeAssistantView):
         if not endpoint.startswith("efficiency"):
             return None
 
-        efficiency_calculator = self.hass.data.get(DOMAIN, {}).get(
-            "efficiency_calculator"
-        )
+        efficiency_calculator = self.hass.data.get(DOMAIN, {}).get("efficiency_calculator")
         if not efficiency_calculator:
             return None
 
@@ -262,9 +248,7 @@ class SmartHeatingAPIView(HomeAssistantView):
         elif endpoint.startswith("efficiency/report/"):
             area_id = endpoint.split("/")[2]
             period = request.query.get("period", "week")
-            area_metrics = await efficiency_calculator.calculate_area_efficiency(
-                area_id, period
-            )
+            area_metrics = await efficiency_calculator.calculate_area_efficiency(area_id, period)
             response_data = {
                 "area_id": area_metrics.get("area_id"),
                 "period": area_metrics.get("period"),
@@ -272,9 +256,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                 "end_date": area_metrics.get("end_time", ""),
                 "metrics": {
                     "energy_score": area_metrics.get("energy_score", 0),
-                    "heating_time_percentage": area_metrics.get(
-                        "heating_time_percentage", 0
-                    ),
+                    "heating_time_percentage": area_metrics.get("heating_time_percentage", 0),
                     "heating_cycles": area_metrics.get("heating_cycles", 0),
                     "avg_temp_delta": area_metrics.get("average_temperature_delta", 0),
                 },
@@ -346,9 +328,7 @@ class SmartHeatingAPIView(HomeAssistantView):
 
         # Advanced metrics endpoints
         if endpoint == "metrics/advanced":
-            advanced_metrics = self.hass.data.get(DOMAIN, {}).get(
-                "advanced_metrics_collector"
-            )
+            advanced_metrics = self.hass.data.get(DOMAIN, {}).get("advanced_metrics_collector")
             if not advanced_metrics:
                 return web.json_response(
                     {"error": "Advanced metrics collector not available"}, status=503
@@ -358,9 +338,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             area_id = request.query.get("area_id")
 
             if days not in [1, 3, 7, 30]:
-                return web.json_response(
-                    {"error": "days must be 1, 3, 7, or 30"}, status=400
-                )
+                return web.json_response({"error": "days must be 1, 3, 7, or 30"}, status=400)
 
             metrics = await advanced_metrics.async_get_metrics(days, area_id)
             return web.json_response(
@@ -417,9 +395,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                 return None
 
             if endpoint.startswith("comparison/custom"):
-                return await handle_get_custom_comparison(
-                    self.hass, comparison_engine, request
-                )
+                return await handle_get_custom_comparison(self.hass, comparison_engine, request)
             return await handle_get_comparison(
                 self.hass, self.area_manager, comparison_engine, request
             )
@@ -488,9 +464,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             _LOGGER.error("Error handling PATCH %s: %s", endpoint, err)
             return web.json_response({"error": str(err)}, status=500)
 
-    async def _handle_area_action_post(
-        self, endpoint: str, action: str
-    ) -> web.Response | None:
+    async def _handle_area_action_post(self, endpoint: str, action: str) -> web.Response | None:
         """Handle area action endpoints (no body required).
 
         Args:
@@ -517,9 +491,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                 return await handler(self.hass, self.area_manager, area_id)
         return None
 
-    async def _handle_area_data_post(
-        self, endpoint: str, data: dict
-    ) -> web.Response | None:
+    async def _handle_area_data_post(self, endpoint: str, data: dict) -> web.Response | None:
         """Handle area endpoints that require data.
 
         Args:
@@ -536,30 +508,22 @@ class SmartHeatingAPIView(HomeAssistantView):
 
         # Map endpoint suffixes to handlers
         endpoint_handlers = {
-            "/devices": lambda: handle_add_device(
-                self.hass, self.area_manager, area_id, data
-            ),
-            "/schedules": lambda: handle_add_schedule(
-                self.hass, self.area_manager, area_id, data
-            ),
+            "/devices": lambda: handle_add_device(self.hass, self.area_manager, area_id, data),
+            "/schedules": lambda: handle_add_schedule(self.hass, self.area_manager, area_id, data),
             "/temperature": lambda: handle_set_temperature(
                 self.hass, self.area_manager, area_id, data
             ),
             "/preset_mode": lambda: handle_set_preset_mode(
                 self.hass, self.area_manager, area_id, data
             ),
-            "/boost": lambda: handle_set_boost_mode(
-                self.hass, self.area_manager, area_id, data
-            ),
+            "/boost": lambda: handle_set_boost_mode(self.hass, self.area_manager, area_id, data),
             "/window_sensors": lambda: handle_add_window_sensor(
                 self.hass, self.area_manager, area_id, data
             ),
             "/presence_sensors": lambda: handle_add_presence_sensor(
                 self.hass, self.area_manager, area_id, data
             ),
-            "/hvac_mode": lambda: handle_set_hvac_mode(
-                self.hass, self.area_manager, area_id, data
-            ),
+            "/hvac_mode": lambda: handle_set_hvac_mode(self.hass, self.area_manager, area_id, data),
             "/heating_curve": lambda: handle_set_area_heating_curve(
                 self.hass, self.area_manager, area_id, data
             ),
@@ -592,35 +556,9 @@ class SmartHeatingAPIView(HomeAssistantView):
 
         return None
 
-    def _get_coordinator(self):
-        """Get the coordinator instance from hass data.
+    # Note: _get_coordinator defined earlier with proper typing. Do not duplicate.
 
-        Returns:
-            Coordinator instance or None
-        """
-        entry_ids = [
-            key
-            for key in self.hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-                "config_manager",
-                "user_manager",
-                "comparison_engine",
-            ]
-        ]
-        return self.hass.data[DOMAIN][entry_ids[0]] if entry_ids else None
-
-    async def _handle_global_config_post(
-        self, endpoint: str, data: dict
-    ) -> web.Response | None:
+    async def _handle_global_config_post(self, endpoint: str, data: dict) -> web.Response | None:
         """Handle global configuration endpoints.
 
         Args:
@@ -631,30 +569,18 @@ class SmartHeatingAPIView(HomeAssistantView):
             Response if handled, None otherwise
         """
         handlers = {
-            "frost_protection": lambda: handle_set_frost_protection(
-                self.area_manager, data
-            ),
+            "frost_protection": lambda: handle_set_frost_protection(self.area_manager, data),
             "history/config": lambda: handle_set_history_config(self.hass, data),
-            "history/storage/migrate": lambda: handle_migrate_history_storage(
-                self.hass, data
-            ),
+            "history/storage/migrate": lambda: handle_migrate_history_storage(self.hass, data),
             "history/cleanup": lambda: handle_cleanup_history(self.hass),
-            "global_presets": lambda: handle_set_global_presets(
-                self.area_manager, data
-            ),
-            "global_presence": lambda: handle_set_global_presence(
-                self.area_manager, data
-            ),
-            "hide_devices_panel": lambda: handle_set_hide_devices_panel(
-                self.area_manager, data
-            ),
+            "global_presets": lambda: handle_set_global_presets(self.area_manager, data),
+            "global_presence": lambda: handle_set_global_presence(self.area_manager, data),
+            "hide_devices_panel": lambda: handle_set_hide_devices_panel(self.area_manager, data),
             "config/advanced_control": lambda: handle_set_advanced_control_config(
                 self.area_manager, data
             ),
             "vacation_mode": lambda: handle_enable_vacation_mode(self.hass, data),
-            "safety_sensor": lambda: handle_set_safety_sensor(
-                self.hass, self.area_manager, data
-            ),
+            "safety_sensor": lambda: handle_set_safety_sensor(self.hass, self.area_manager, data),
             "call_service": lambda: handle_call_service(self.hass, data),
         }
 
@@ -669,14 +595,9 @@ class SmartHeatingAPIView(HomeAssistantView):
                 self.hass, self.area_manager, coordinator, data
             )
         elif endpoint == "opentherm_gateway":
-            entry_ids = [
-                entry.entry_id
-                for entry in self.hass.config_entries.async_entries(DOMAIN)
-            ]
+            entry_ids = [entry.entry_id for entry in self.hass.config_entries.async_entries(DOMAIN)]
             coordinator = self.hass.data[DOMAIN][entry_ids[0]] if entry_ids else None
-            return await handle_set_opentherm_gateway(
-                self.area_manager, coordinator, data
-            )
+            return await handle_set_opentherm_gateway(self.area_manager, coordinator, data)
 
         return None
 
@@ -703,9 +624,7 @@ class SmartHeatingAPIView(HomeAssistantView):
         elif endpoint.startswith("backups/") and endpoint.endswith("/restore"):
             backup_filename = endpoint.split("/")[1]
             config_manager = self.hass.data[DOMAIN]["config_manager"]
-            return await handle_restore_backup(
-                self.hass, config_manager, backup_filename
-            )
+            return await handle_restore_backup(self.hass, config_manager, backup_filename)
 
         # User endpoints
         elif endpoint == "users":
@@ -722,15 +641,11 @@ class SmartHeatingAPIView(HomeAssistantView):
         # Comparison endpoints
         elif endpoint == "comparison/custom":
             comparison_engine = self.hass.data[DOMAIN]["comparison_engine"]
-            return await handle_get_custom_comparison(
-                self.hass, comparison_engine, request
-            )
+            return await handle_get_custom_comparison(self.hass, comparison_engine, request)
 
         # OpenTherm endpoints
         elif endpoint == "opentherm/capabilities/discover":
-            return await handle_discover_opentherm_capabilities(
-                self.hass, self.area_manager
-            )
+            return await handle_discover_opentherm_capabilities(self.hass, self.area_manager)
         elif endpoint == "opentherm/logs/clear":
             return await handle_clear_opentherm_logs(self.hass)
 
@@ -770,9 +685,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                 return response
 
             # Try special endpoints (users, backups, comparison, opentherm)
-            response = await self._handle_special_endpoints_post(
-                request, endpoint, data
-            )
+            response = await self._handle_special_endpoints_post(request, endpoint, data)
             if response:
                 return response
 
@@ -801,37 +714,27 @@ class SmartHeatingAPIView(HomeAssistantView):
                     return web.json_response(
                         {"error": "sensor_id query parameter is required"}, status=400
                     )
-                return await handle_remove_safety_sensor(
-                    self.hass, self.area_manager, sensor_id
-                )
+                return await handle_remove_safety_sensor(self.hass, self.area_manager, sensor_id)
             elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and "/devices/" in endpoint:
                 parts = endpoint.split("/")
                 area_id = parts[1]
                 device_id = parts[3]
                 return await handle_remove_device(self.area_manager, area_id, device_id)
-            elif (
-                endpoint.startswith(ENDPOINT_PREFIX_AREAS) and "/schedules/" in endpoint
-            ):
+            elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and "/schedules/" in endpoint:
                 parts = endpoint.split("/")
                 area_id = parts[1]
                 schedule_id = parts[3]
                 return await handle_remove_schedule(
                     self.hass, self.area_manager, area_id, schedule_id
                 )
-            elif (
-                endpoint.startswith(ENDPOINT_PREFIX_AREAS)
-                and "/window_sensors/" in endpoint
-            ):
+            elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and "/window_sensors/" in endpoint:
                 parts = endpoint.split("/")
                 area_id = parts[1]
                 entity_id = "/".join(parts[3:])  # Reconstruct entity_id
                 return await handle_remove_window_sensor(
                     self.hass, self.area_manager, area_id, entity_id
                 )
-            elif (
-                endpoint.startswith(ENDPOINT_PREFIX_AREAS)
-                and "/presence_sensors/" in endpoint
-            ):
+            elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and "/presence_sensors/" in endpoint:
                 parts = endpoint.split("/")
                 area_id = parts[1]
                 entity_id = "/".join(parts[3:])  # Reconstruct entity_id
@@ -842,9 +745,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             elif endpoint.startswith(_USERS_PATH):
                 user_id = endpoint.split("/")[1]
                 user_manager = self.hass.data[DOMAIN]["user_manager"]
-                return await handle_delete_user(
-                    self.hass, user_manager, request, user_id
-                )
+                return await handle_delete_user(self.hass, user_manager, request, user_id)
             else:
                 return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)
         except Exception as err:
@@ -879,9 +780,7 @@ class SmartHeatingUIView(HomeAssistantView):
         import os
 
         # Path to the built frontend
-        frontend_path = self.hass.config.path(
-            "custom_components/smart_heating/frontend/dist"
-        )
+        frontend_path = self.hass.config.path("custom_components/smart_heating/frontend/dist")
         index_path = os.path.join(frontend_path, "index.html")
 
         try:
@@ -890,13 +789,9 @@ class SmartHeatingUIView(HomeAssistantView):
 
             # Fix asset paths to be relative to our endpoint
             html_content = html_content.replace('src="/', 'src="/smart_heating_static/')
-            html_content = html_content.replace(
-                'href="/', 'href="/smart_heating_static/'
-            )
+            html_content = html_content.replace('href="/', 'href="/smart_heating_static/')
 
-            return web.Response(
-                text=html_content, content_type="text/html", charset="utf-8"
-            )
+            return web.Response(text=html_content, content_type="text/html", charset="utf-8")
         except FileNotFoundError:
             _LOGGER.error("Frontend build not found at %s", frontend_path)
             return web.Response(
@@ -935,9 +830,7 @@ class SmartHeatingStaticView(HomeAssistantView):
         import os
 
         # Path to the built frontend
-        frontend_path = self.hass.config.path(
-            "custom_components/smart_heating/frontend/dist"
-        )
+        frontend_path = self.hass.config.path("custom_components/smart_heating/frontend/dist")
         file_path = os.path.join(frontend_path, filename)
 
         # Security check - ensure file is within frontend directory

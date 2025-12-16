@@ -31,9 +31,7 @@ class HeatingCurve:
         - base_offset: 20 for underfloor, 27.2 for radiators by default
     """
 
-    def __init__(
-        self, heating_system: str = HEATING_SYSTEM_RADIATOR, coefficient: float = 1.0
-    ):
+    def __init__(self, heating_system: str = HEATING_SYSTEM_RADIATOR, coefficient: float = 1.0):
         self._heating_system = heating_system
         self._coefficient = coefficient
         self.reset()
@@ -67,13 +65,9 @@ class HeatingCurve:
         if setpoint <= MINIMUM_SETPOINT:
             return None
 
-        coefficient = self.calculate_coefficient(
-            setpoint, target_temperature, outside_temperature
-        )
+        coefficient = self.calculate_coefficient(setpoint, target_temperature, outside_temperature)
         if self._optimal_coefficient:
-            self._coefficient_derivative = round(
-                coefficient - self._optimal_coefficient, 1
-            )
+            self._coefficient_derivative = round(coefficient - self._optimal_coefficient, 1)
         else:
             self._coefficient_derivative = 0
 

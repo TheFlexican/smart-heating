@@ -1,5 +1,6 @@
 """History and learning API handlers for Smart Heating."""
 
+import asyncio
 import logging
 from datetime import datetime
 
@@ -7,16 +8,13 @@ from aiohttp import web
 from homeassistant.core import HomeAssistant
 
 from ..const import DOMAIN, HISTORY_RECORD_INTERVAL_SECONDS
-import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 
 ERROR_HISTORY_NOT_AVAILABLE = "History not available"
 
 
-async def handle_get_history(
-    hass: HomeAssistant, area_id: str, request
-) -> web.Response:
+async def handle_get_history(hass: HomeAssistant, area_id: str, request) -> web.Response:
     """Get temperature history for an area.
 
     Args:
@@ -48,9 +46,7 @@ async def handle_get_history(
             # Custom time range
             start_dt = datetime.fromisoformat(start_time)
             end_dt = datetime.fromisoformat(end_time)
-            history = history_tracker.get_history(
-                area_id, start_time=start_dt, end_time=end_dt
-            )
+            history = history_tracker.get_history(area_id, start_time=start_dt, end_time=end_dt)
         elif hours:
             # Hours-based query
             hours_int = int(hours)
@@ -71,9 +67,7 @@ async def handle_get_history(
             }
         )
     except ValueError as err:
-        return web.json_response(
-            {"error": f"Invalid time parameter: {err}"}, status=400
-        )
+        return web.json_response({"error": f"Invalid time parameter: {err}"}, status=400)
 
 
 async def handle_get_learning_stats(hass: HomeAssistant, area_id: str) -> web.Response:
@@ -195,9 +189,7 @@ async def handle_get_history_storage_info(hass: HomeAssistant) -> web.Response:
     return web.json_response(response)
 
 
-async def handle_migrate_history_storage(
-    hass: HomeAssistant, data: dict
-) -> web.Response:
+async def handle_migrate_history_storage(hass: HomeAssistant, data: dict) -> web.Response:
     """Migrate history between storage backends.
 
     Args:

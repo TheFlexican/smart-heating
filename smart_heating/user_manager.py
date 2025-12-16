@@ -244,9 +244,7 @@ class UserManager:
         _LOGGER.info("Created user profile: %s", user_id)
         return user_data
 
-    async def update_user_profile(
-        self, user_id: str, updates: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def update_user_profile(self, user_id: str, updates: dict[str, Any]) -> dict[str, Any]:
         """Update an existing user profile.
 
         Args:
@@ -367,9 +365,7 @@ class UserManager:
         _LOGGER.info("Updated multi-user settings: %s", settings)
         return self._data["settings"].copy()
 
-    def get_active_user_preferences(
-        self, area_id: str | None = None
-    ) -> dict[str, float] | None:
+    def get_active_user_preferences(self, area_id: str | None = None) -> dict[str, float] | None:
         """Get temperature preferences for the currently active user.
 
         Args:
@@ -396,9 +392,7 @@ class UserManager:
 
         return user_data.get("preset_preferences", {})
 
-    def get_combined_preferences(
-        self, area_id: str | None = None
-    ) -> dict[str, float] | None:
+    def get_combined_preferences(self, area_id: str | None = None) -> dict[str, float] | None:
         """Get combined temperature preferences when multiple users are home.
 
         Uses the configured strategy (priority or average).
@@ -429,9 +423,7 @@ class UserManager:
 
         return self._average_user_preferences(filtered_users)
 
-    def _get_users_for_area(
-        self, user_ids: list[str], area_id: str | None
-    ) -> list[str]:
+    def _get_users_for_area(self, user_ids: list[str], area_id: str | None) -> list[str]:
         """Filter users that are relevant for given area (if area_id provided)."""
         users = []
         for user_id in user_ids:
@@ -459,9 +451,7 @@ class UserManager:
         if not all_preferences:
             return None
 
-        return {
-            preset: sum(temps) / len(temps) for preset, temps in all_preferences.items()
-        }
+        return {preset: sum(temps) / len(temps) for preset, temps in all_preferences.items()}
 
     async def cleanup(self) -> None:
         """Clean up resources."""

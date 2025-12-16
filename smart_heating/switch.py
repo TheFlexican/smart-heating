@@ -1,5 +1,6 @@
 """Switch platform for Smart Heating integration."""
 
+import inspect
 import logging
 
 from homeassistant.components.switch import SwitchEntity
@@ -39,11 +40,11 @@ async def async_setup_entry(
     for _area_id, area in area_manager.get_all_areas().items():
         entities.append(AreaSwitch(coordinator, entry, area))
 
-    # Add entities
-    async_add_entities(entities)
-    _LOGGER.info(
-        "Smart Heating switch platform setup complete with %d areas", len(entities)
-    )
+    # Add entities (handle both sync and async callbacks)
+    _maybe_result = async_add_entities(entities)
+    if inspect.isawaitable(_maybe_result):
+        await _maybe_result
+    _LOGGER.info("Smart Heating switch platform setup complete with %d areas", len(entities))
 
 
 class AreaSwitch(CoordinatorEntity, SwitchEntity):

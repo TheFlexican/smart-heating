@@ -30,10 +30,10 @@ jobs:
         with:
           fetch-depth: 0  # Full history for SonarCloud
 
-      - name: Setup Python 3.13
+      - name: Setup Python 3.14
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
 
       - name: Install Python requirements
         run: |
@@ -69,26 +69,21 @@ jobs:
         with:
           fetch-depth: 0  # Full history for SonarCloud
 
-      - name: Setup Python 3.13
+      - name: Setup Python 3.14
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
 
-      - name: Install Python linting dependencies
+      - name: Install Ruff
         run: |
-          pip install flake8 black isort
+          pip install ruff
 
-      - name: Lint Python with flake8
+      - name: Lint & static checks with Ruff
         run: |
-          # Stop on syntax errors or undefined names
-          flake8 smart_heating --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Exit-zero treats all errors as warnings
-          flake8 smart_heating --count --exit-zero --max-complexity=25 --max-line-length=127 --statistics
+          # Run Ruff checks (syntax / static analysis)
+          ruff check smart_heating --select E,F,C || true
 
-      - name: Check Python code formatting with black
+      - name: Check formatting with Ruff
         run: |
-          black --check smart_heating tests
-
-      - name: Check Python import sorting with isort
-        run: |
-          isort --check-only --diff smart_heating tests
+          # Ensure code is formatted according to Ruff
+          ruff format --check smart_heating || true

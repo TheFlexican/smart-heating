@@ -1,5 +1,9 @@
 import pytest
-from smart_heating.heating_curve import HEATING_SYSTEM_UNDERFLOOR, HeatingCurve
+from smart_heating.heating_curve import (
+    HEATING_SYSTEM_RADIATOR,
+    HEATING_SYSTEM_UNDERFLOOR,
+    HeatingCurve,
+)
 
 
 def test_calculate_basic():
@@ -41,11 +45,6 @@ def test_autotune_and_restore():
     hc.restore_autotune(1.2, 0.1)
     assert abs(hc.optimal_coefficient - 1.2) < 0.001
     assert abs(hc.coefficient_derivative - 0.1) < 0.001
-
-
-from smart_heating.heating_curve import (
-    HEATING_SYSTEM_RADIATOR,
-)
 
 
 def test_calculate_base_values():

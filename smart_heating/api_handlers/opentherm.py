@@ -1,5 +1,6 @@
 """OpenTherm logging API handlers for Smart Heating."""
 
+import asyncio
 import logging
 
 from aiohttp import web
@@ -7,14 +8,11 @@ from homeassistant.core import HomeAssistant
 
 from ..const import DOMAIN
 from ..overshoot_protection import OvershootProtection
-import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def handle_get_opentherm_logs(
-    hass: HomeAssistant, request
-) -> web.Response:  # NOSONAR
+async def handle_get_opentherm_logs(hass: HomeAssistant, request) -> web.Response:  # NOSONAR
     """Get OpenTherm Gateway logs.
 
     Args:
@@ -98,9 +96,7 @@ async def handle_get_opentherm_gateways(hass: HomeAssistant) -> web.Response:  #
         return web.json_response({"error": str(err)}, status=500)
 
 
-async def handle_discover_opentherm_capabilities(
-    hass: HomeAssistant, area_manager
-) -> web.Response:
+async def handle_discover_opentherm_capabilities(hass: HomeAssistant, area_manager) -> web.Response:
     """Discover OpenTherm Gateway capabilities via MQTT.
 
     Args:
@@ -113,19 +109,13 @@ async def handle_discover_opentherm_capabilities(
     try:
         opentherm_logger = hass.data[DOMAIN].get("opentherm_logger")
         if not opentherm_logger:
-            return web.json_response(
-                {"error": "OpenTherm logger not available"}, status=503
-            )
+            return web.json_response({"error": "OpenTherm logger not available"}, status=503)
 
         gateway_id = area_manager.opentherm_gateway_id
         if not gateway_id:
-            return web.json_response(
-                {"error": "No OpenTherm Gateway configured"}, status=400
-            )
+            return web.json_response({"error": "No OpenTherm Gateway configured"}, status=400)
 
-        capabilities = await opentherm_logger.async_discover_mqtt_capabilities(
-            gateway_id
-        )
+        capabilities = await opentherm_logger.async_discover_mqtt_capabilities(gateway_id)
 
         return web.json_response(capabilities)
 
@@ -147,9 +137,7 @@ async def handle_clear_opentherm_logs(hass: HomeAssistant) -> web.Response:  # N
         await asyncio.sleep(0)
         opentherm_logger = hass.data[DOMAIN].get("opentherm_logger")
         if not opentherm_logger:
-            return web.json_response(
-                {"error": "OpenTherm logger not available"}, status=503
-            )
+            return web.json_response({"error": "OpenTherm logger not available"}, status=503)
 
         opentherm_logger.clear_logs()
 
@@ -177,17 +165,13 @@ async def handle_calibrate_opentherm(
     """
     try:
         if not area_manager.opentherm_gateway_id:
-            return web.json_response(
-                {"error": "No OpenTherm Gateway configured"}, status=400
-            )
+            return web.json_response({"error": "No OpenTherm Gateway configured"}, status=400)
 
         _LOGGER.info("Starting OPV calibration (approx. 2 minutes)")
         op = OvershootProtection(coordinator, "radiator")
         value = await op.calculate()
         if value is None:
-            return web.json_response(
-                {"error": "Calibration failed or timed out"}, status=500
-            )
+            return web.json_response({"error": "Calibration failed or timed out"}, status=500)
 
         # Save to area manager
         area_manager.default_opv = value

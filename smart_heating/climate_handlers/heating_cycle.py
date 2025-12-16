@@ -36,9 +36,7 @@ class HeatingCycleHandler:
         self._area_heating_events = {}  # Track active heating events per area
         self._record_counter = 0
 
-    async def async_prepare_heating_cycle(
-        self, temp_handler, sensor_handler
-    ) -> tuple[bool, Any]:
+    async def async_prepare_heating_cycle(self, temp_handler, sensor_handler) -> tuple[bool, Any]:
         """Prepare for heating control cycle.
 
         Args:
@@ -163,9 +161,7 @@ class HeatingCycleHandler:
     ) -> None:
         """Handle when heating should stop for an area."""
         # Check if thermostats are still actively heating
-        thermostats_still_heating = device_handler.is_any_thermostat_actively_heating(
-            area
-        )
+        thermostats_still_heating = device_handler.is_any_thermostat_actively_heating(area)
 
         if thermostats_still_heating:
             _LOGGER.info(
@@ -257,9 +253,7 @@ class HeatingCycleHandler:
 
         # Control all devices in cooling mode. Thermostats should be
         # controlled for cooling (airco), but avoid switches/valves for airco
-        await device_handler.async_control_thermostats(
-            area, True, target_temp, hvac_mode="cool"
-        )
+        await device_handler.async_control_thermostats(area, True, target_temp, hvac_mode="cool")
         if getattr(area, "heating_type", "radiator") != "airco":
             await device_handler.async_control_switches(area, True)
             await device_handler.async_control_valves(area, True, target_temp)
@@ -296,9 +290,7 @@ class HeatingCycleHandler:
     ) -> None:
         """Handle when cooling should stop for an area."""
         # Check if thermostats are still actively cooling
-        thermostats_still_cooling = device_handler.is_any_thermostat_actively_cooling(
-            area
-        )
+        thermostats_still_cooling = device_handler.is_any_thermostat_actively_cooling(area)
 
         if thermostats_still_cooling:
             _LOGGER.info(
@@ -331,9 +323,7 @@ class HeatingCycleHandler:
             )
 
         # Turn off cooling
-        await device_handler.async_control_thermostats(
-            area, False, target_temp, hvac_mode="cool"
-        )
+        await device_handler.async_control_thermostats(area, False, target_temp, hvac_mode="cool")
         await device_handler.async_control_switches(area, False)
         await device_handler.async_control_valves(area, False, target_temp)
 

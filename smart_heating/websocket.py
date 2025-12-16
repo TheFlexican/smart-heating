@@ -43,9 +43,7 @@ def websocket_subscribe_updates(
     # Find coordinator first
     coordinator = _find_coordinator(hass)
     if not coordinator:
-        connection.send_error(
-            msg["id"], "not_loaded", "Smart Heating coordinator not found"
-        )
+        connection.send_error(msg["id"], "not_loaded", "Smart Heating coordinator not found")
         return
     forward_cb = _create_forward_messages_callback(coordinator, connection, msg)
 
@@ -157,16 +155,12 @@ def _build_device_info(
     }
     if state and state.attributes:
         if dev_data["type"] == "thermostat":
-            device_info["current_temperature"] = state.attributes.get(
-                "current_temperature"
-            )
+            device_info["current_temperature"] = state.attributes.get("current_temperature")
             device_info["target_temperature"] = state.attributes.get("temperature")
             device_info["hvac_action"] = state.attributes.get("hvac_action")
             device_info["friendly_name"] = state.attributes.get("friendly_name", dev_id)
         elif dev_data["type"] == "temperature_sensor":
-            device_info["temperature"] = state.attributes.get(
-                "temperature", state.state
-            )
+            device_info["temperature"] = state.attributes.get("temperature", state.state)
             device_info["friendly_name"] = state.attributes.get("friendly_name", dev_id)
         elif dev_data["type"] == "valve":
             device_info["position"] = state.attributes.get("position")

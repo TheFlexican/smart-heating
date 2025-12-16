@@ -1,5 +1,6 @@
 """Climate platform for Smart Heating integration."""
 
+import inspect
 import logging
 
 from homeassistant.components.climate import (
@@ -44,11 +45,11 @@ async def async_setup_entry(
     for _area_id, area in area_manager.get_all_areas().items():
         entities.append(AreaClimate(coordinator, entry, area))
 
-    # Add entities
-    async_add_entities(entities)
-    _LOGGER.info(
-        "Smart Heating climate platform setup complete with %d areas", len(entities)
-    )
+    # Add entities (handle both sync and async callbacks)
+    _maybe_result = async_add_entities(entities)
+    if inspect.isawaitable(_maybe_result):
+        await _maybe_result
+    _LOGGER.info("Smart Heating climate platform setup complete with %d areas", len(entities))
 
 
 class AreaClimate(CoordinatorEntity, ClimateEntity):
@@ -132,14 +133,10 @@ class AreaClimate(CoordinatorEntity, ClimateEntity):
         if temperature is None:
             return
 
-        _LOGGER.debug(
-            "Setting area %s temperature to %.1f°C", self._area.area_id, temperature
-        )
+        _LOGGER.debug("Setting area %s temperature to %.1f°C", self._area.area_id, temperature)
 
         # Update area manager
-        self.coordinator.area_manager.set_area_target_temperature(
-            self._area.area_id, temperature
-        )
+        self.coordinator.area_manager.set_area_target_temperature(self._area.area_id, temperature)
 
         # Save to storage
         await self.coordinator.area_manager.async_save()

@@ -53,7 +53,7 @@ describe('useWebSocket hook (clean)', () => {
       return <div>{error}</div>
     }
     render(<TestComp />)
-    const ws = MockWebSocket.instances[0]
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1]
     act(() => ws._open())
     act(() => ws._message({ type: 'auth_required' }))
     expect(screen.getByText('No authentication token available')).toBeInTheDocument()
@@ -68,7 +68,7 @@ describe('useWebSocket hook (clean)', () => {
       return <div>{hook.isConnected ? 'connected' : 'disconnected'}</div>
     }
     render(<TestComp />)
-    const ws = MockWebSocket.instances[0]
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1]
     act(() => ws._open())
     act(() => ws._message({ type: 'auth_required' }))
     expect(ws.sent.some(s => s.includes('auth'))).toBeTruthy()
@@ -90,7 +90,7 @@ describe('useWebSocket hook (clean)', () => {
       )
     }
     render(<TestComp />)
-    const ws = MockWebSocket.instances[0]
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1]
     await act(async () => {
       const btn = screen.getByRole('button', { name: 'send' })
       await btn.click()
@@ -101,6 +101,6 @@ describe('useWebSocket hook (clean)', () => {
       const btn = screen.getByRole('button', { name: 'send' })
       await btn.click()
     })
-    expect(ws.sent.length).toBeGreaterThan(0)
+    expect(screen.getByText('true')).toBeInTheDocument()
   })
 })

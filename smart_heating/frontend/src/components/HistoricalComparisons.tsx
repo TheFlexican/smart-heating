@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -60,13 +60,7 @@ const HistoricalComparisons: React.FC = () => {
   const [customStartB, setCustomStartB] = useState('')
   const [customEndB, setCustomEndB] = useState('')
 
-  useEffect(() => {
-    if (period !== 'custom') {
-      loadComparison()
-    }
-  }, [period])
-
-  const loadComparison = async () => {
+  const loadComparison = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -77,7 +71,13 @@ const HistoricalComparisons: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [period])
+
+  useEffect(() => {
+    if (period !== 'custom') {
+      loadComparison()
+    }
+  }, [period, loadComparison])
 
   const loadCustomComparison = async () => {
     if (!customStartA || !customEndA || !customStartB || !customEndB) {
@@ -166,7 +166,6 @@ const HistoricalComparisons: React.FC = () => {
       </CardContent>
     </Card>
   )
-
   const renderAreaComparison = (areaComp: any) => (
     <TableRow key={areaComp.area_id}>
       <TableCell component="th" scope="row">

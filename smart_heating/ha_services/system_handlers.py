@@ -9,9 +9,7 @@ from ..coordinator import SmartHeatingCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_handle_refresh(
-    call: ServiceCall, coordinator: SmartHeatingCoordinator
-) -> None:
+async def async_handle_refresh(call: ServiceCall, coordinator: SmartHeatingCoordinator) -> None:
     """Handle the refresh service call.
 
     Args:

@@ -10,9 +10,7 @@ from ..const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 
-async def handle_get_area_logs(
-    hass: HomeAssistant, area_id: str, request
-) -> web.Response:
+async def handle_get_area_logs(hass: HomeAssistant, area_id: str, request) -> web.Response:
     """Get logs for a specific area.
 
     Args:

@@ -43,9 +43,7 @@ class PWM:
     ) -> None:
         self._cycles = cycles
         self._heating_curve = heating_curve
-        self._supports_relative_modulation_management = (
-            supports_relative_modulation_management
-        )
+        self._supports_relative_modulation_management = supports_relative_modulation_management
         self._automatic_duty_cycle = automatic_duty_cycle
         self._enabled = force or False
 
@@ -95,22 +93,16 @@ class PWM:
         self._last_duty_cycle_percentage = (requested_setpoint - base_offset) / (
             boiler_temperature - base_offset
         )
-        self._last_duty_cycle_percentage = min(
-            max(self._last_duty_cycle_percentage, 0.0), 1.0
-        )
+        self._last_duty_cycle_percentage = min(max(self._last_duty_cycle_percentage, 0.0), 1.0)
 
         # Map percentage to seconds within min/max
-        on_seconds = int(
-            round(self._last_duty_cycle_percentage * self._cycles.max_on_seconds)
-        )
+        on_seconds = int(round(self._last_duty_cycle_percentage * self._cycles.max_on_seconds))
         off_seconds = int(
             round((1 - self._last_duty_cycle_percentage) * self._cycles.max_off_seconds)
         )
 
         # clamp
-        on_seconds = max(
-            self._cycles.min_on_seconds, min(on_seconds, self._cycles.max_on_seconds)
-        )
+        on_seconds = max(self._cycles.min_on_seconds, min(on_seconds, self._cycles.max_on_seconds))
         off_seconds = max(
             self._cycles.min_off_seconds, min(off_seconds, self._cycles.max_off_seconds)
         )
@@ -134,10 +126,7 @@ class PWM:
         base_offset = self._heating_curve.base_offset
         return (
             base_offset
-            + (
-                (self._last_duty_cycle_percentage / 4)
-                * (self._heating_curve.value - base_offset)
-            )
+            + ((self._last_duty_cycle_percentage / 4) * (self._heating_curve.value - base_offset))
             if self._heating_curve.value
             else None
         )

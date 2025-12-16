@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { Zone } from '../types'
 
 interface WebSocketMessage {
@@ -38,8 +38,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const isAuthenticatedRef = useRef(false)
   const pingIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
   const intentionalCloseRef = useRef(false)
+  const optionsRef = useRef(options)
 
-  const getAuthToken = (): string | null => {
+  // Keep latest options in a ref to avoid recreating callbacks when options object changes
+  useEffect(() => {
+    optionsRef.current = options
+  }, [options])
+
+  const getAuthToken = useCallback((): string | null => {
     // Method 1: Try to get from URL query parameter (for iframe embedding)
     try {
       const params = new URLSearchParams(window.location.search)
@@ -83,9 +89,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
     console.warn('[WebSocket] No auth token found - WebSocket will be disabled')
     return null
-  }
+  }, [])
 
-  const connect = () => {
+  // `options` is accessed via `optionsRef` to avoid reconnect churn when the object identity changes
+  const connect = useCallback(() => {
     try {
       // Don't create new connection if one already exists and is open/connecting
       if (
@@ -142,7 +149,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             setIsConnected(true)
             setError(null)
             reconnectAttempts.current = 0
-            options.onConnect?.()
+            optionsRef.current?.onConnect?.()
 
             // Start keepalive ping every 30 seconds
             if (pingIntervalRef.current) {
@@ -183,7 +190,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
               // Convert areas object to array (backend sends object with area_id as keys)
               const areasData = message.result.data.areas
               const areasArray = Object.values(areasData) as Zone[]
-              options.onZonesUpdate?.(areasArray)
+              optionsRef.current?.onZonesUpdate?.(areasArray)
               return
             }
 
@@ -198,11 +205,11 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             // Handle our custom area events
             const event = message.result || message
             if (event.data?.areas) {
-              options.onZonesUpdate?.(event.data.areas)
+              optionsRef.current?.onZonesUpdate?.(event.data.areas)
             } else if (event.data?.area) {
-              options.onZoneUpdate?.(event.data.area)
+              optionsRef.current?.onZoneUpdate?.(event.data.area)
             } else if (event.data?.area_id) {
-              options.onZoneDelete?.(event.data.area_id)
+              optionsRef.current?.onZoneDelete?.(event.data.area_id)
             }
             return
           }
@@ -215,19 +222,19 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
             case 'areas_updated':
               if (message.data?.areas) {
-                options.onZonesUpdate?.(message.data.areas)
+                optionsRef.current?.onZonesUpdate?.(message.data.areas)
               }
               break
 
             case 'area_updated':
               if (message.data?.area) {
-                options.onZoneUpdate?.(message.data.area)
+                optionsRef.current?.onZoneUpdate?.(message.data.area)
               }
               break
 
             case 'area_deleted':
               if (message.data?.area_id) {
-                options.onZoneDelete?.(message.data.area_id)
+                optionsRef.current?.onZoneDelete?.(message.data.area_id)
               }
               break
           }
@@ -239,14 +246,16 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       ws.onerror = event => {
         console.error('[WebSocket] Error:', event)
         setError('WebSocket connection error')
-        options.onError?.('Connection error')
+        optionsRef.current?.onError?.('Connection error')
+        optionsRef.current?.onError?.('Connection error')
       }
 
       ws.onclose = () => {
         console.log('[WebSocket] Connection closed')
         setIsConnected(false)
         wsRef.current = null
-        options.onDisconnect?.()
+        optionsRef.current?.onDisconnect?.()
+        optionsRef.current?.onDisconnect?.()
 
         // Clear ping interval
         if (pingIntervalRef.current) {
@@ -275,14 +284,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         } else {
           console.error('[WebSocket] Failed to connect after maximum attempts')
           setError('Failed to connect after multiple attempts')
-          options.onError?.('Connection failed')
+          optionsRef.current?.onError?.('Connection failed')
         }
       }
     } catch (err) {
       console.error('Failed to create WebSocket:', err)
       setError('Failed to create WebSocket connection')
     }
-  }
+  }, [getAuthToken])
 
   const disconnect = () => {
     console.log('[WebSocket] Disconnecting')
@@ -306,7 +315,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   }
 
   const send = (data: any) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+    if (
+      wsRef.current &&
+      (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === 1)
+    ) {
       wsRef.current.send(JSON.stringify(data))
       return true
     }
@@ -348,7 +360,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       window.removeEventListener('focus', handleFocus)
       disconnect()
     }
-  }, [])
+  }, [connect])
 
   return {
     isConnected,

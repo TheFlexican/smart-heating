@@ -15,9 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 class ComparisonEngine:
     """Compare heating performance across different time periods."""
 
-    def __init__(
-        self, hass: HomeAssistant, efficiency_calculator: EfficiencyCalculator
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, efficiency_calculator: EfficiencyCalculator) -> None:
         """Initialize comparison engine.
 
         Args:
@@ -310,17 +308,13 @@ class ComparisonEngine:
                 continue
 
             try:
-                comparison = await self.compare_periods(
-                    area_id, comparison_type, offset
-                )
+                comparison = await self.compare_periods(area_id, comparison_type, offset)
                 results.append(comparison)
             except Exception as e:
                 _LOGGER.error("Error comparing area %s: %s", area_id, e, exc_info=True)
                 continue
 
         # Sort by energy score improvement (best improvements first)
-        results.sort(
-            key=lambda x: x["delta"]["energy_score"]["percentage"], reverse=True
-        )
+        results.sort(key=lambda x: x["delta"]["energy_score"]["percentage"], reverse=True)
 
         return results

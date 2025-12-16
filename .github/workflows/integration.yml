@@ -16,6 +16,7 @@ jobs:
   frontend-ci:
     name: Frontend CI
     uses: ./.github/workflows/frontend.yml
+    secrets: inherit
 
   integration-complete:
     name: Integration Complete

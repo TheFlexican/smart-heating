@@ -4,8 +4,15 @@ import App from './App.tsx'
 import './index.css'
 import './i18n'
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+const rootElement = document.getElementById('root')
+if (rootElement) {
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  )
+} else {
+  // Fallback: log if root element is missing
+  // This avoids non-null assertion and allows environments without DOM to safely import main
+  console.error('Root element not found')
+}

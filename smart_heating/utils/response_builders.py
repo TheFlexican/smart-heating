@@ -117,9 +117,7 @@ def build_area_response(
         "auto_preset_home": getattr(area, "auto_preset_home", "home"),
         "auto_preset_away": getattr(area, "auto_preset_away", "away"),
         # Switch shutdown (use consistent naming)
-        "shutdown_switches_when_idle": bool(
-            getattr(area, "shutdown_switches_when_idle", True)
-        ),
+        "shutdown_switches_when_idle": bool(getattr(area, "shutdown_switches_when_idle", True)),
         "shutdown_switch_entities": getattr(area, "shutdown_switch_entities", []),
         # Primary temperature sensor
         "primary_temperature_sensor": getattr(area, "primary_temperature_sensor", None),

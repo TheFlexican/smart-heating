@@ -12,9 +12,7 @@ from ..config_manager import ConfigManager
 _LOGGER = logging.getLogger(__name__)
 
 
-async def handle_export_config(
-    _hass: HomeAssistant, config_manager: ConfigManager
-) -> web.Response:
+async def handle_export_config(_hass: HomeAssistant, config_manager: ConfigManager) -> web.Response:
     """Export configuration as JSON file.
 
     Args:
@@ -69,9 +67,7 @@ async def handle_import_config(
         config_data = data
 
         # Import configuration (creates automatic backup)
-        changes = await config_manager.async_import_config(
-            config_data, create_backup=True
-        )
+        changes = await config_manager.async_import_config(config_data, create_backup=True)
 
         _LOGGER.info("Configuration imported successfully: %s", changes)
 
@@ -85,9 +81,7 @@ async def handle_import_config(
 
     except ValueError as err:
         _LOGGER.error("Invalid configuration data: %s", err)
-        return web.json_response(
-            {"error": f"Invalid configuration: {str(err)}"}, status=400
-        )
+        return web.json_response({"error": f"Invalid configuration: {str(err)}"}, status=400)
     except Exception as err:
         _LOGGER.error("Failed to import configuration: %s", err)
         return web.json_response({"error": f"Import failed: {str(err)}"}, status=500)
@@ -138,9 +132,7 @@ async def handle_validate_config(
         )
 
 
-async def handle_list_backups(
-    _hass: HomeAssistant, config_manager: ConfigManager
-) -> web.Response:
+async def handle_list_backups(_hass: HomeAssistant, config_manager: ConfigManager) -> web.Response:
     """List available backup files.
 
     Args:
@@ -172,9 +164,7 @@ async def handle_list_backups(
 
     except Exception as err:
         _LOGGER.error("Failed to list backups: %s", err)
-        return web.json_response(
-            {"error": f"Failed to list backups: {str(err)}"}, status=500
-        )
+        return web.json_response({"error": f"Failed to list backups: {str(err)}"}, status=500)
 
 
 async def handle_restore_backup(
@@ -203,9 +193,7 @@ async def handle_restore_backup(
             config_data = json.load(f)
 
         # Import configuration (creates another backup before restore)
-        changes = await config_manager.async_import_config(
-            config_data, create_backup=True
-        )
+        changes = await config_manager.async_import_config(config_data, create_backup=True)
 
         _LOGGER.info("Backup restored successfully: %s", backup_filename)
 

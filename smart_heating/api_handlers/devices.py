@@ -20,9 +20,7 @@ _devices_cache = None
 _cache_timestamp = None
 
 
-async def handle_get_devices(
-    hass: HomeAssistant, area_manager: AreaManager
-) -> web.Response:
+async def handle_get_devices(hass: HomeAssistant, area_manager: AreaManager) -> web.Response:
     """Get available devices from Home Assistant.
 
     Returns cached device list if available. Use /devices/refresh for fresh discovery.
@@ -44,9 +42,7 @@ async def handle_get_devices(
     return await _discover_devices(hass, area_manager)
 
 
-async def _discover_devices(
-    hass: HomeAssistant, area_manager: AreaManager
-) -> web.Response:
+async def _discover_devices(hass: HomeAssistant, area_manager: AreaManager) -> web.Response:
     """Discover climate, switch, and temperature sensor devices from Home Assistant.
 
     Args:
@@ -69,9 +65,7 @@ async def _discover_devices(
     devices = []
 
     for entry in all_entities:
-        devices.append(
-            _build_device_payload(entry, device_reg, area_registry, hass, area_manager)
-        )
+        devices.append(_build_device_payload(entry, device_reg, area_registry, hass, area_manager))
 
     # Cache the results
     _devices_cache = devices
@@ -184,9 +178,7 @@ def _find_assigned_to_area(entity_id, area_manager: AreaManager):
     return None
 
 
-async def handle_refresh_devices(
-    hass: HomeAssistant, area_manager: AreaManager
-) -> web.Response:
+async def handle_refresh_devices(hass: HomeAssistant, area_manager: AreaManager) -> web.Response:
     """Refresh device list and update any assigned devices.
 
     Args:
@@ -270,9 +262,7 @@ async def handle_add_device(
     mqtt_topic = data.get("mqtt_topic")
 
     if not device_id or not device_type:
-        return web.json_response(
-            {"error": "device_id and device_type are required"}, status=400
-        )
+        return web.json_response({"error": "device_id and device_type are required"}, status=400)
 
     try:
         # Ensure area exists in storage
@@ -286,9 +276,7 @@ async def handle_add_device(
                 area.area_manager = area_manager
                 area_manager.areas[area_id] = area
             else:
-                return web.json_response(
-                    {"error": f"Area {area_id} not found"}, status=404
-                )
+                return web.json_response({"error": f"Area {area_id} not found"}, status=404)
 
         area_manager.add_device_to_area(area_id, device_id, device_type, mqtt_topic)
         await area_manager.async_save()

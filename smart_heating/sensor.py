@@ -1,5 +1,6 @@
 """Sensor platform for Smart Heating integration."""
 
+import inspect
 import logging
 
 from homeassistant.components.sensor import SensorEntity
@@ -44,8 +45,10 @@ async def async_setup_entry(
         entities.append(AreaHeatingCurveSensor(coordinator, entry, area))
         entities.append(AreaCurrentConsumptionSensor(coordinator, entry, area))
 
-    # Add entities
-    async_add_entities(entities)
+    # Add entities (handle both sync and async callbacks)
+    _maybe_result = async_add_entities(entities)
+    if inspect.isawaitable(_maybe_result):
+        await _maybe_result
     _LOGGER.info("Smart Heating sensor platform setup complete")
 
 
@@ -129,9 +132,7 @@ class AreaHeatingCurveSensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{entry.entry_id}_heating_curve_{self._area.area_id}"
         self._curve = HeatingCurve(
             heating_system=(
-                "underfloor"
-                if self._area.heating_type == "floor_heating"
-                else "radiator"
+                "underfloor" if self._area.heating_type == "floor_heating" else "radiator"
             ),
             coefficient=1.0,
         )

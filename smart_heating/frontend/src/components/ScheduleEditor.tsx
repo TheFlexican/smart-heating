@@ -110,7 +110,7 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
       .filter(s => {
         if (s.days && s.days.length > 0) {
           // s.days are indices
-          return s.days.includes(dayIndex as any)
+          return s.days.includes(dayIndex)
         }
         return s.day === dayIndex
       })
@@ -125,7 +125,9 @@ const ScheduleEditor = ({ area, onUpdate }: ScheduleEditorProps) => {
   }
 
   // Get unique dates
-  const uniqueDates = [...new Set(dateSpecificSchedules.map(s => s.date!))]
+  const uniqueDates = [
+    ...new Set(dateSpecificSchedules.map(s => s.date).filter((d): d is string => !!d)),
+  ]
     .sort((a, b) => a.localeCompare(b))
     .reverse() // Most recent first
 

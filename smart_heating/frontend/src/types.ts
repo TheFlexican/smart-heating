@@ -150,7 +150,7 @@ export interface HassEntity {
   attributes: {
     friendly_name?: string
     device_class?: string
-    [key: string]: any
+    [key: string]: unknown
   }
 }
 

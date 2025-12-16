@@ -4,15 +4,9 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import (
-    area_registry as ar,
-)
-from homeassistant.helpers import (
-    device_registry as dr,
-)
-from homeassistant.helpers import (
-    entity_registry as er,
-)
+from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,9 +25,7 @@ class DeviceRegistry:
         self._device_registry = dr.async_get(hass)
         self._area_registry = ar.async_get(hass)
 
-    def get_device_type(
-        self, entity: er.RegistryEntry, state: Any
-    ) -> Optional[Tuple[str, str]]:
+    def get_device_type(self, entity: er.RegistryEntry, state: Any) -> Optional[Tuple[str, str]]:
         """Determine device type and subtype from entity.
 
         Args:
@@ -106,10 +98,7 @@ class DeviceRegistry:
             area_name_lower = hidden_area["name"].lower()
 
             # Check if entity name contains hidden area name
-            if (
-                area_name_lower in entity_id_lower
-                or area_name_lower in friendly_name_lower
-            ):
+            if area_name_lower in entity_id_lower or area_name_lower in friendly_name_lower:
                 _LOGGER.debug(
                     "Filtering device %s - contains hidden area name '%s'",
                     entity_id,

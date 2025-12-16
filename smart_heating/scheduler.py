@@ -59,9 +59,7 @@ class ScheduleExecutor:
             self._async_check_schedules,
             SCHEDULE_CHECK_INTERVAL,
         )
-        _LOGGER.info(
-            "Schedule executor started, checking every %s", SCHEDULE_CHECK_INTERVAL
-        )
+        _LOGGER.info("Schedule executor started, checking every %s", SCHEDULE_CHECK_INTERVAL)
 
     def async_stop(self) -> None:
         """Stop the schedule executor."""
@@ -314,9 +312,7 @@ class ScheduleExecutor:
         current_day_normalized = self._normalize_day_input(current_day)
         previous_day_idx = (current_day_normalized - 1) % 7
         # Try previous day midnight-crossing schedules
-        schedule = self._find_previous_day_schedule(
-            schedules, previous_day_idx, current_time
-        )
+        schedule = self._find_previous_day_schedule(schedules, previous_day_idx, current_time)
         if schedule:
             return schedule
         # Try schedules starting today that cross midnight
@@ -326,9 +322,7 @@ class ScheduleExecutor:
         if schedule:
             return schedule
         # Finally, normal schedules today
-        return self._find_normal_schedule(
-            schedules, current_day_normalized, current_time
-        )
+        return self._find_normal_schedule(schedules, current_day_normalized, current_time)
 
     def _find_previous_day_schedule(
         self, schedules: dict, previous_day: int, current_time: time
@@ -347,11 +341,8 @@ class ScheduleExecutor:
         self, schedules: dict, current_day: int, current_time: time
     ) -> Optional[dict]:
         for schedule in schedules.values():
-            if (
-                schedule.day == current_day
-                and self._is_time_in_midnight_crossing_schedule_today(
-                    schedule, current_time
-                )
+            if schedule.day == current_day and self._is_time_in_midnight_crossing_schedule_today(
+                schedule, current_time
             ):
                 return schedule
         return None
@@ -381,16 +372,12 @@ class ScheduleExecutor:
         """
         # Use schedule's start time as target
         target_hour, target_min = map(int, morning_schedule.start_time.split(":"))
-        target_time = now.replace(
-            hour=target_hour, minute=target_min, second=0, microsecond=0
-        )
+        target_time = now.replace(hour=target_hour, minute=target_min, second=0, microsecond=0)
 
         # Determine target temperature from schedule
         if morning_schedule.preset_mode:
             # Get temperature from preset mode
-            target_temp = self._get_preset_temperature(
-                area, morning_schedule.preset_mode
-            )
+            target_temp = self._get_preset_temperature(area, morning_schedule.preset_mode)
         elif morning_schedule.temperature is not None:
             target_temp = morning_schedule.temperature
         else:
@@ -416,9 +403,7 @@ class ScheduleExecutor:
 
         return target_time, target_temp
 
-    def _get_target_time_from_config(
-        self, area: Area, now: datetime
-    ) -> Optional[datetime]:
+    def _get_target_time_from_config(self, area: Area, now: datetime) -> Optional[datetime]:
         """Get target time from area configuration.
 
         Args:
@@ -431,12 +416,8 @@ class ScheduleExecutor:
         if not area.smart_night_boost_target_time:
             return None
 
-        target_hour, target_min = map(
-            int, area.smart_night_boost_target_time.split(":")
-        )
-        target_time = now.replace(
-            hour=target_hour, minute=target_min, second=0, microsecond=0
-        )
+        target_hour, target_min = map(int, area.smart_night_boost_target_time.split(":"))
+        target_time = now.replace(hour=target_hour, minute=target_min, second=0, microsecond=0)
 
         _LOGGER.debug(
             "Smart night boost for %s: Using configured target time %s",
@@ -577,9 +558,7 @@ class ScheduleExecutor:
                     target_temp,
                 )
 
-    def _find_first_morning_schedule(
-        self, schedules: dict, now: datetime
-    ) -> Optional[object]:
+    def _find_first_morning_schedule(self, schedules: dict, now: datetime) -> Optional[object]:
         """Find the first schedule entry in the morning (after midnight, before noon).
 
         This is used by smart night boost to determine when to start heating.
@@ -648,9 +627,7 @@ class ScheduleExecutor:
         # Default fallback
         return area.target_temperature
 
-    async def _apply_preset_schedule(
-        self, area, schedule, climate_entity_id: str
-    ) -> None:
+    async def _apply_preset_schedule(self, area, schedule, climate_entity_id: str) -> None:
         """Apply a schedule that uses a preset mode.
 
         Args:
@@ -668,10 +645,14 @@ class ScheduleExecutor:
             schedule.preset_mode,
         )
         if hasattr(self, "area_logger") and self.area_logger:
+            msg = (
+                f"Schedule activated: {schedule.start_time}-{schedule.end_time} @ "
+                f"preset '{schedule.preset_mode}' ({preset_temp:.1f}°C)"
+            )
             self.area_logger.log_event(
                 area.area_id,
                 "schedule",
-                f"Schedule activated: {schedule.start_time}-{schedule.end_time} @ preset '{schedule.preset_mode}' ({preset_temp:.1f}°C)",
+                msg,
                 {
                     "schedule_id": schedule.schedule_id,
                     "start_time": schedule.start_time,
@@ -731,9 +712,7 @@ class ScheduleExecutor:
             schedule.preset_mode,
         )
 
-    async def _apply_temperature_schedule(
-        self, area, schedule, climate_entity_id: str
-    ) -> None:
+    async def _apply_temperature_schedule(self, area, schedule, climate_entity_id: str) -> None:
         """Apply a schedule that uses a direct temperature.
 
         Args:
