@@ -16,7 +16,6 @@ from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN
 from .coordinator import SmartHeatingCoordinator
-import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -218,5 +217,3 @@ async def setup_websocket(hass: HomeAssistant) -> None:
     async_register_command(hass, websocket_get_areas)
 
     _LOGGER.info("Smart Heating WebSocket API registered")
-    # Minimal await to satisfy async function requirement
-    await asyncio.sleep(0)

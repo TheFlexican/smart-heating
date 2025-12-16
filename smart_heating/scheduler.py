@@ -112,44 +112,43 @@ class ScheduleExecutor:
         areas = self.area_manager.get_all_areas()
 
         for area_id, area in areas.items():
-            await self._process_area_schedules(area_id, area, now, current_day_idx, current_time)
+            if not area.enabled:
+                _LOGGER.debug("Area %s is disabled, skipping schedule check", area.name)
+                continue
 
-    async def _process_area_schedules(
-        self, area_id: str, area: Area, now: datetime, current_day_idx: int, current_time: time
-    ) -> None:
-        """Process schedules for a single area (extracted for clarity)."""
-        if not area.enabled:
-            _LOGGER.debug("Area %s is disabled, skipping schedule check", area.name)
-            return
+            # Handle smart night boost prediction
+            if area.smart_night_boost_enabled and self.learning_engine:
+                await self._handle_smart_night_boost(area, now)
 
-        # Handle smart night boost prediction
-        if area.smart_night_boost_enabled and self.learning_engine:
-            await self._handle_smart_night_boost(area, now)
+            if not area.schedules:
+                continue
 
-        if not area.schedules:
-            return
+            # Find active schedule for current day/time
+            active_schedule = self._find_active_schedule(
+                area.schedules,
+                current_day_idx,
+                current_time,
+            )
 
-        # Find active schedule for current day/time
-        active_schedule = self._find_active_schedule(area.schedules, current_day_idx, current_time)
+            if active_schedule:
+                schedule_key = f"{area_id}_{active_schedule.schedule_id}"
 
-        if active_schedule:
-            schedule_key = f"{area_id}_{active_schedule.schedule_id}"
+                # Only apply if this schedule hasn't been applied yet
+                # (to avoid setting temperature every minute)
+                if self._last_applied_schedule.get(area_id) != schedule_key:
+                    await self._apply_schedule(area, active_schedule)
+                    self._last_applied_schedule[area_id] = schedule_key
 
-            # Only apply if this schedule hasn't been applied yet
-            # (to avoid setting temperature every minute)
-            if self._last_applied_schedule.get(area_id) != schedule_key:
-                await self._apply_schedule(area, active_schedule)
-                self._last_applied_schedule[area_id] = schedule_key
-        else:
-            # No active schedule, clear the tracking
-            if area_id in self._last_applied_schedule:
-                del self._last_applied_schedule[area_id]
-                _LOGGER.debug(
-                    "No active schedule for area %s at %s %s",
-                    area.name,
-                    DAYS_OF_WEEK[current_day_idx],
-                    current_time.strftime("%H:%M"),
-                )
+            else:
+                # No active schedule, clear the tracking
+                if area_id in self._last_applied_schedule:
+                    del self._last_applied_schedule[area_id]
+                    _LOGGER.debug(
+                        "No active schedule for area %s at %s %s",
+                        area.name,
+                        DAYS_OF_WEEK[current_day_idx],
+                        current_time.strftime("%H:%M"),
+                    )
 
     def _get_previous_day(self, current_day: "str | int") -> int:
         """Get the previous day name.
@@ -679,26 +678,26 @@ class ScheduleExecutor:
 
         # If we cleared manual override, immediately update thermostat with preset temperature
         if manual_override_cleared and preset_temp is not None:
-            entity_to_update = climate_entity_id or f"climate.{area.area_id}"
+            climate_entity_id = f"climate.{area.area_id}"
             try:
                 await self.hass.services.async_call(
                     "climate",
                     "set_temperature",
                     {
-                        "entity_id": entity_to_update,
+                        "entity_id": climate_entity_id,
                         "temperature": preset_temp,
                     },
                     blocking=False,
                 )
                 _LOGGER.info(
                     "Updated thermostat %s to preset temperature %.1f°C after clearing manual override",
-                    entity_to_update,
+                    climate_entity_id,
                     preset_temp,
                 )
             except Exception as err:
                 _LOGGER.debug(
                     "Climate entity %s not found or error updating: %s (will be handled by climate controller)",
-                    entity_to_update,
+                    climate_entity_id,
                     err,
                 )
 

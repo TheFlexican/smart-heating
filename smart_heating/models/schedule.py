@@ -53,11 +53,56 @@ class Schedule:
             self.day = None
             self.days = None
         elif day is not None:
-            normalized_day = self._normalize_day_value(day)
+            # Normalize localized day to English full name if possible
+            if isinstance(day, int):
+                normalized_day = int(day % 7)
+            elif isinstance(day, str):
+                day_key = day.strip().lower()
+                short_codes = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
+                if day_key in short_codes:
+                    short_to_index = {
+                        "mon": 0,
+                        "tue": 1,
+                        "wed": 2,
+                        "thu": 3,
+                        "fri": 4,
+                        "sat": 5,
+                        "sun": 6,
+                    }
+                    normalized_day = short_to_index[day_key]
+                else:
+                    raise ValueError(
+                        "Invalid 'day' string format: use numeric index (0=Monday) or short code 'mon'"
+                    )
+            else:
+                normalized_day = day
             self.day = int(normalized_day)
             self.days = [int(normalized_day)]
         elif days:
-            self.days = [self._normalize_day_value(x) for x in days]
+            # Accept days as list of short codes ("mon") or numeric indices (0=Monday)
+            def normalize_day_item(d):
+                if isinstance(d, int):
+                    return int(d % 7)
+                if isinstance(d, str):
+                    key = d.strip().lower()
+                    if key in {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}:
+                        short_to_index = {
+                            "mon": 0,
+                            "tue": 1,
+                            "wed": 2,
+                            "thu": 3,
+                            "fri": 4,
+                            "sat": 5,
+                            "sun": 6,
+                        }
+                        return short_to_index.get(key)
+                    # Reject full English or localized day names to enforce indices/short codes
+                    raise ValueError(
+                        "Invalid 'days' string format: use numeric indices (0=Monday) or short codes (mon)"
+                    )
+                return d
+
+            self.days = [normalize_day_item(x) for x in days]
             # Use first day for display (as index)
             self.day = int(self.days[0]) if self.days else 0
         else:
@@ -137,8 +182,31 @@ class Schedule:
         if days_data and isinstance(days_data, list) and days_data:
             # Filter out None before mapping
             days_data = [d for d in days_data if d is not None]
-            # Normalize day entries using helper
-            days_data = [cls._normalize_day_value(d) for d in days_data]
+
+            # Expect numeric day indices (0=Monday) or short 3-letter codes (mon, tue, ...)
+            # Also accept legacy full day names (Monday, Tuesday) and localized names (Maandag, Dinsdag)
+            def map_day_any_to_index(d: Any) -> int:
+                if isinstance(d, int):
+                    return int(d % 7)
+                if not isinstance(d, str):
+                    raise ValueError("Invalid 'days' entry: must be integer index or short code")
+                key = d.strip().lower()
+                short_to_idx = {
+                    "mon": 0,
+                    "tue": 1,
+                    "wed": 2,
+                    "thu": 3,
+                    "fri": 4,
+                    "sat": 5,
+                    "sun": 6,
+                }
+                if key not in short_to_idx:
+                    raise ValueError(
+                        "Invalid 'days' string format: use numeric indices (0=Monday) or short codes (mon)"
+                    )
+                return short_to_idx[key]
+
+            days_data = [map_day_any_to_index(d) for d in days_data]
 
         # Filter out None values to match type hint list[str] | None
         filtered_days = [int(d) for d in days_data if d is not None] if days_data else None
@@ -170,30 +238,3 @@ class Schedule:
             preset_mode=data.get("preset_mode"),
             date=data.get("date"),
         )
-
-    @staticmethod
-    def _normalize_day_value(d: Any) -> int:
-        """Normalize a single day value into integer index 0=Monday.
-
-        Accepts integer indices or short string codes (mon, tue, ...).
-        Raises ValueError for unsupported formats.
-        """
-        if isinstance(d, int):
-            return int(d % 7)
-        if not isinstance(d, str):
-            raise ValueError("Invalid 'day' entry: must be integer index or short code")
-        key = d.strip().lower()
-        short_to_idx = {
-            "mon": 0,
-            "tue": 1,
-            "wed": 2,
-            "thu": 3,
-            "fri": 4,
-            "sat": 5,
-            "sun": 6,
-        }
-        if key not in short_to_idx:
-            raise ValueError(
-                "Invalid 'days' string format: use numeric indices (0=Monday) or short codes (mon)"
-            )
-        return short_to_idx[key]
