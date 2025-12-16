@@ -1,5 +1,6 @@
 """Sensor platform for Smart Heating integration."""
 
+import inspect
 import logging
 
 from homeassistant.components.sensor import SensorEntity
@@ -44,8 +45,10 @@ async def async_setup_entry(
         entities.append(AreaHeatingCurveSensor(coordinator, entry, area))
         entities.append(AreaCurrentConsumptionSensor(coordinator, entry, area))
 
-    # Add entities
-    async_add_entities(entities)
+    # Add entities (handle both sync and async callbacks)
+    _maybe_result = async_add_entities(entities)
+    if inspect.isawaitable(_maybe_result):
+        await _maybe_result
     _LOGGER.info("Smart Heating sensor platform setup complete")
 
 
