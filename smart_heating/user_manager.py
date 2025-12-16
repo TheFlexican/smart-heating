@@ -453,7 +453,9 @@ class UserManager:
 
         return {preset: sum(temps) / len(temps) for preset, temps in all_preferences.items()}
 
-    async def cleanup(self) -> None:
+    async def cleanup(
+        self,
+    ) -> None:  # NOSONAR - intentionally async (cleanup may be awaited by caller)
         """Clean up resources."""
         for unsub in self._unsub_person_listeners:
             unsub()

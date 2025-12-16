@@ -282,7 +282,9 @@ class HistoryTracker:
         }
         await self._store.async_save(data)
 
-    async def async_unload(self) -> None:
+    async def async_unload(
+        self,
+    ) -> None:  # NOSONAR - intentionally async (cleanup tasks may be awaited by caller)
         """Unload and cleanup."""
         if self._cleanup_unsub:
             self._cleanup_unsub()

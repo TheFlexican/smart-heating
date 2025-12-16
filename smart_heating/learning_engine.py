@@ -91,7 +91,9 @@ class LearningEngine:
 
         _LOGGER.info("Learning engine setup complete (weather entity: %s)", self._weather_entity)
 
-    async def _async_detect_weather_entity(self) -> str | None:
+    async def _async_detect_weather_entity(
+        self,
+    ) -> str | None:  # NOSONAR - intentionally async (PB: no await inside; awaited externally)
         """Auto-detect the weather entity.
 
         Returns:
@@ -107,7 +109,9 @@ class LearningEngine:
         _LOGGER.warning("No weather entity found - outdoor temperature correlation disabled")
         return None
 
-    async def _async_register_statistics_metadata(self) -> None:
+    async def _async_register_statistics_metadata(
+        self,
+    ) -> None:  # NOSONAR - intentionally async (registration may occur asynchronously)
         """Register metadata for statistics tracking."""
         # We'll register metadata when we first record data for each area
         # This is done dynamically per area
@@ -127,7 +131,7 @@ class LearningEngine:
 
     async def _async_ensure_statistic_metadata(
         self, area_id: str, metric_type: str, name: str, unit: str
-    ) -> None:
+    ) -> None:  # NOSONAR - intentionally async (registration API is asynchronous in HA)
         """Ensure statistic metadata is registered.
 
         Args:
@@ -320,7 +324,9 @@ class LearningEngine:
         except Exception as err:
             _LOGGER.error("Failed to record outdoor correlation for %s: %s", event.area_id, err)
 
-    async def _async_get_outdoor_temperature(self) -> float | None:
+    async def _async_get_outdoor_temperature(
+        self,
+    ) -> float | None:  # NOSONAR - intentionally async (awaited by callers)
         """Get current outdoor temperature from weather entity.
 
         Returns:
@@ -472,7 +478,7 @@ class LearningEngine:
     async def async_calculate_smart_night_boost(
         self,
         area_id: str,
-    ) -> float | None:
+    ) -> float | None:  # NOSONAR - intentionally async (implementation TODO, see issue #49)
         """Calculate optimal night boost offset based on learning data.
 
         Args:
@@ -485,7 +491,7 @@ class LearningEngine:
         # This would analyze how much the room cools overnight
         # For now, return None until we have enough data
 
-        # TODO: Implement based on historical overnight cooldown patterns
+        # Implementation of smart night boost is tracked in issue #49 (https://github.com/TheFlexican/smart-heating/issues/49)
         _LOGGER.debug("Smart night boost calculation not yet implemented for %s", area_id)
         return None
 

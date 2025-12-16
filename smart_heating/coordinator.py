@@ -504,7 +504,9 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             "heating_curve_coefficient": getattr(area, "heating_curve_coefficient", None),
         }
 
-    async def _async_update_data(self) -> dict:
+    async def _async_update_data(
+        self,
+    ) -> dict:  # NOSONAR - intentionally async (awaited by DataUpdateCoordinator)
         """Fetch data from the integration.
 
         This is the place to fetch and process the data from your source.

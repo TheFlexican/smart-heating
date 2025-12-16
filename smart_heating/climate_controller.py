@@ -176,7 +176,9 @@ class ClimateController:
                 should_record_history,
             )
 
-    async def async_update_area_temperatures(self) -> None:
+    async def async_update_area_temperatures(
+        self,
+    ) -> None:  # NOSONAR - intentionally async (awaited by callers)
         """Update current temperatures for all areas from sensors."""
         for area_id, area in self.area_manager.get_all_areas().items():
             temp_sensors = area.get_temperature_sensors()

@@ -33,7 +33,9 @@ class ConfigManager:
         self.backup_dir = self.storage_path / "backups"
         self.backup_dir.mkdir(exist_ok=True)
 
-    async def async_export_config(self) -> dict[str, Any]:
+    async def async_export_config(
+        self,
+    ) -> dict[str, Any]:  # NOSONAR - intentionally async (awaited by callers)
         """Export all Smart Heating configuration.
 
         Returns:
