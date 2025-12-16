@@ -46,6 +46,7 @@ def _normalize_days_list(days: list[Any] | None) -> list[int] | None:
         normalized.append(_normalize_day_value(item))
     return normalized
 
+
 class Schedule:
     """Representation of a temperature schedule."""
 
