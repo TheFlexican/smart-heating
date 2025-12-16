@@ -1,12 +1,12 @@
 """User profile management API handlers."""
 
+import asyncio
 import logging
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
 
 from ..user_manager import UserManager
-import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -668,10 +668,14 @@ class ScheduleExecutor:
             schedule.preset_mode,
         )
         if hasattr(self, "area_logger") and self.area_logger:
+            msg = (
+                f"Schedule activated: {schedule.start_time}-{schedule.end_time} @ "
+                f"preset '{schedule.preset_mode}' ({preset_temp:.1f}°C)"
+            )
             self.area_logger.log_event(
                 area.area_id,
                 "schedule",
-                f"Schedule activated: {schedule.start_time}-{schedule.end_time} @ preset '{schedule.preset_mode}' ({preset_temp:.1f}°C)",
+                msg,
                 {
                     "schedule_id": schedule.schedule_id,
                     "start_time": schedule.start_time,

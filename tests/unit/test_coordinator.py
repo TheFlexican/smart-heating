@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers.update_coordinator import UpdateFailed
+
 from smart_heating.const import DOMAIN, STATE_INITIALIZED, UPDATE_INTERVAL
 from smart_heating.coordinator import SmartHeatingCoordinator
-
 from tests.unit.const import TEST_AREA_ID
 
 

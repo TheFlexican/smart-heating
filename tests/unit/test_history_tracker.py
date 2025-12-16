@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from smart_heating.const import HISTORY_STORAGE_DATABASE, HISTORY_STORAGE_JSON
 from smart_heating.history import HistoryTracker
 

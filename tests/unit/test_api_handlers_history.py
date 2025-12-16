@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from smart_heating.api_handlers.history import (
     handle_get_history,
     handle_get_history_config,

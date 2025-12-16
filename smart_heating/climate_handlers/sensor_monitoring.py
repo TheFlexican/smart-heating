@@ -13,9 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 class SensorMonitoringHandler:
     """Handle window and presence sensor monitoring."""
 
-    def __init__(
-        self, hass: HomeAssistant, area_manager: AreaManager, area_logger=None
-    ):
+    def __init__(self, hass: HomeAssistant, area_manager: AreaManager, area_logger=None):
         """Initialize sensor monitoring handler.
 
         Args:
@@ -44,15 +42,11 @@ class SensorMonitoringHandler:
                 is_open = state.state in ("on", "open", "true", "True")
                 if is_open:
                     any_window_open = True
-                    _LOGGER.debug(
-                        "Window sensor %s is open in area %s", sensor_id, area_id
-                    )
+                    _LOGGER.debug("Window sensor %s is open in area %s", sensor_id, area_id)
 
         return any_window_open
 
-    def log_window_state_change(
-        self, area_id: str, area: Area, any_window_open: bool
-    ) -> None:
+    def log_window_state_change(self, area_id: str, area: Area, any_window_open: bool) -> None:
         """Log window state changes."""
         if area.window_is_open != any_window_open:
             area.window_is_open = any_window_open
@@ -69,9 +63,7 @@ class SensorMonitoringHandler:
                         {"sensor_type": "window", "state": "open"},
                     )
             else:
-                _LOGGER.info(
-                    "All windows closed in area %s - normal heating resumed", area_id
-                )
+                _LOGGER.info("All windows closed in area %s - normal heating resumed", area_id)
                 if self.area_logger:
                     self.area_logger.log_event(
                         area_id,
@@ -103,20 +95,14 @@ class SensorMonitoringHandler:
                 is_present = state.state in ("on", "home", "detected", "true", "True")
                 if is_present:
                     any_presence_detected = True
-                    _LOGGER.debug(
-                        "Presence detected by %s in area %s", sensor_id, area_id
-                    )
+                    _LOGGER.debug("Presence detected by %s in area %s", sensor_id, area_id)
 
         return any_presence_detected
 
-    def log_presence_state_change(
-        self, area_id: str, any_presence_detected: bool
-    ) -> None:
+    def log_presence_state_change(self, area_id: str, any_presence_detected: bool) -> None:
         """Log presence state changes."""
         if any_presence_detected:
-            _LOGGER.info(
-                "Presence detected in area %s - temperature boost active", area_id
-            )
+            _LOGGER.info("Presence detected in area %s - temperature boost active", area_id)
             if self.area_logger:
                 self.area_logger.log_event(
                     area_id,
@@ -141,9 +127,7 @@ class SensorMonitoringHandler:
         if not area.auto_preset_enabled:
             return
 
-        new_preset = (
-            area.auto_preset_home if any_presence_detected else area.auto_preset_away
-        )
+        new_preset = area.auto_preset_home if any_presence_detected else area.auto_preset_away
         if area.preset_mode != new_preset:
             old_preset = area.preset_mode
             area.preset_mode = new_preset
@@ -177,9 +161,7 @@ class SensorMonitoringHandler:
 
             # Update presence sensor states
             presence_sensors = self.get_presence_sensors_for_area(area)
-            any_presence_detected = self.check_presence_sensors(
-                area_id, presence_sensors
-            )
+            any_presence_detected = self.check_presence_sensors(area_id, presence_sensors)
 
             # Update cached state and log if changed
             if area.presence_detected != any_presence_detected:
@@ -187,6 +169,4 @@ class SensorMonitoringHandler:
                 self.log_presence_state_change(area_id, any_presence_detected)
 
                 # Auto preset mode switching
-                await self.handle_auto_preset_change(
-                    area_id, area, any_presence_detected
-                )
+                await self.handle_auto_preset_change(area_id, area, any_presence_detected)

@@ -12,16 +12,16 @@ from homeassistant.components.recorder import get_instance
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     Float,
     Integer,
-    Text,
-    Boolean,
-    Table,
     MetaData,
-    select,
+    Table,
+    Text,
     delete,
+    select,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,9 +64,7 @@ class AdvancedMetricsCollector:
             # Initialize database table
             _LOGGER.warning("🔵 Attempting to initialize database...")
             if not await self._async_init_database():
-                _LOGGER.warning(
-                    "Advanced metrics collection disabled - database not available"
-                )
+                _LOGGER.warning("Advanced metrics collection disabled - database not available")
                 return False
 
             _LOGGER.warning("🔵 Database initialized successfully")
@@ -91,15 +89,11 @@ class AdvancedMetricsCollector:
             await self._async_collect_metrics(None)
             _LOGGER.warning("🔵 Initial metrics collected")
 
-            _LOGGER.warning(
-                "🔵 Advanced metrics collector initialized (5-minute interval)"
-            )
+            _LOGGER.warning("🔵 Advanced metrics collector initialized (5-minute interval)")
             return True
 
         except Exception as err:  # pylint: disable=broad-except
-            _LOGGER.error(
-                "❌ Failed to setup advanced metrics collector: %s", err, exc_info=True
-            )
+            _LOGGER.error("❌ Failed to setup advanced metrics collector: %s", err, exc_info=True)
             return False
 
     async def _async_init_database(self) -> bool:  # NOSONAR
@@ -122,8 +116,7 @@ class AdvancedMetricsCollector:
                 return False
 
             if not any(
-                db in db_url.lower()
-                for db in ["mysql", "mariadb", "postgresql", "postgres"]
+                db in db_url.lower() for db in ["mysql", "mariadb", "postgresql", "postgres"]
             ):
                 _LOGGER.warning("Unsupported database type for advanced metrics")
                 return False
@@ -153,9 +146,7 @@ class AdvancedMetricsCollector:
             return True
 
         except Exception as err:  # pylint: disable=broad-except
-            _LOGGER.error(
-                "Failed to initialize metrics database: %s", err, exc_info=True
-            )
+            _LOGGER.error("Failed to initialize metrics database: %s", err, exc_info=True)
             return False
 
     async def _async_collect_metrics(self, _now: Optional[datetime]) -> None:
@@ -274,9 +265,7 @@ class AdvancedMetricsCollector:
                     "target_temp": area.target_temperature,
                     "state": area.state,
                     "heating_type": getattr(area, "heating_type", "radiator"),
-                    "heating_curve_coefficient": getattr(
-                        area, "heating_curve_coefficient", None
-                    ),
+                    "heating_curve_coefficient": getattr(area, "heating_curve_coefficient", None),
                     "hysteresis_override": getattr(area, "hysteresis_override", None),
                 }
 
@@ -312,9 +301,7 @@ class AdvancedMetricsCollector:
 
             # Execute insert in recorder executor
             recorder = get_instance(self.hass)
-            await recorder.async_add_executor_job(
-                self._insert_metrics_sync, insert_data
-            )
+            await recorder.async_add_executor_job(self._insert_metrics_sync, insert_data)
 
         except Exception as err:  # pylint: disable=broad-except
             _LOGGER.error("Error inserting metrics: %s", err, exc_info=True)
@@ -436,9 +423,7 @@ class AdvancedMetricsCollector:
                         # If filtering by area_id, only include that area's data
                         if area_id:
                             if area_id in area_metrics_dict:
-                                metric["area_metrics"] = {
-                                    area_id: area_metrics_dict[area_id]
-                                }
+                                metric["area_metrics"] = {area_id: area_metrics_dict[area_id]}
                         else:
                             metric["area_metrics"] = area_metrics_dict
                     except json.JSONDecodeError:

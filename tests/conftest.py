@@ -11,6 +11,7 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
 from smart_heating.const import DOMAIN
 
 

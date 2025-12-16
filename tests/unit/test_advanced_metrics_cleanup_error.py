@@ -1,6 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from smart_heating.advanced_metrics_collector import AdvancedMetricsCollector
 
 

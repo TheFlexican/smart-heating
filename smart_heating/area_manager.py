@@ -39,9 +39,7 @@ class AreaManager:
         self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
 
         # Global OpenTherm gateway configuration
-        self.opentherm_gateway_id: str | None = (
-            None  # Gateway device ID for service calls
-        )
+        self.opentherm_gateway_id: str | None = None  # Gateway device ID for service calls
 
         # Global TRV configuration
         self.trv_heating_temp: float = DEFAULT_TRV_HEATING_TEMP
@@ -105,9 +103,7 @@ class AreaManager:
         if data is not None:
             # Load global configuration
             self.opentherm_gateway_id = data.get("opentherm_gateway_id")
-            self.trv_heating_temp = data.get(
-                "trv_heating_temp", DEFAULT_TRV_HEATING_TEMP
-            )
+            self.trv_heating_temp = data.get("trv_heating_temp", DEFAULT_TRV_HEATING_TEMP)
             self.trv_idle_temp = data.get("trv_idle_temp", DEFAULT_TRV_IDLE_TEMP)
             self.trv_temp_offset = data.get("trv_temp_offset", DEFAULT_TRV_TEMP_OFFSET)
             self.frost_protection_enabled = data.get("frost_protection_enabled", False)
@@ -120,9 +116,7 @@ class AreaManager:
             self.heating_curve_enabled = data.get("heating_curve_enabled", False)
             self.pwm_enabled = data.get("pwm_enabled", False)
             self.pid_enabled = data.get("pid_enabled", False)
-            self.overshoot_protection_enabled = data.get(
-                "overshoot_protection_enabled", False
-            )
+            self.overshoot_protection_enabled = data.get("overshoot_protection_enabled", False)
             self.default_heating_curve_coefficient = data.get(
                 "default_heating_curve_coefficient", 1.0
             )
@@ -130,14 +124,10 @@ class AreaManager:
             # Load global preset temperatures
             self.global_away_temp = data.get("global_away_temp", DEFAULT_AWAY_TEMP)
             self.global_eco_temp = data.get("global_eco_temp", DEFAULT_ECO_TEMP)
-            self.global_comfort_temp = data.get(
-                "global_comfort_temp", DEFAULT_COMFORT_TEMP
-            )
+            self.global_comfort_temp = data.get("global_comfort_temp", DEFAULT_COMFORT_TEMP)
             self.global_home_temp = data.get("global_home_temp", DEFAULT_HOME_TEMP)
             self.global_sleep_temp = data.get("global_sleep_temp", DEFAULT_SLEEP_TEMP)
-            self.global_activity_temp = data.get(
-                "global_activity_temp", DEFAULT_ACTIVITY_TEMP
-            )
+            self.global_activity_temp = data.get("global_activity_temp", DEFAULT_ACTIVITY_TEMP)
             self.default_min_consumption = data.get("default_min_consumption", 0.0)
             self.default_max_consumption = data.get("default_max_consumption", 0.0)
             self.default_boiler_capacity = data.get("default_boiler_capacity", 0.0)
@@ -152,9 +142,7 @@ class AreaManager:
                 self.safety_sensors = data.get("safety_sensors", [])
             elif data.get("safety_sensor_id"):
                 # Migrate old single sensor format to new list format
-                _LOGGER.info(
-                    "Migrating old safety sensor format to new multi-sensor format"
-                )
+                _LOGGER.info("Migrating old safety sensor format to new multi-sensor format")
                 self.safety_sensors = [
                     {
                         "sensor_id": data.get("safety_sensor_id"),
@@ -408,9 +396,7 @@ class AreaManager:
         if gateway_id:
             if not self.advanced_control_enabled:
                 self.advanced_control_enabled = True
-                _LOGGER.info(
-                    "Auto-enabled advanced control (OpenTherm gateway configured)"
-                )
+                _LOGGER.info("Auto-enabled advanced control (OpenTherm gateway configured)")
             if not self.heating_curve_enabled:
                 self.heating_curve_enabled = True
                 _LOGGER.info("Auto-enabled heating curve for optimal energy efficiency")
@@ -473,9 +459,7 @@ class AreaManager:
         Args:
             sensor_id: Entity ID of the safety sensor to remove
         """
-        self.safety_sensors = [
-            s for s in self.safety_sensors if s["sensor_id"] != sensor_id
-        ]
+        self.safety_sensors = [s for s in self.safety_sensors if s["sensor_id"] != sensor_id]
         # Clear alert if no sensors remain
         if not self.safety_sensors:
             self._safety_alert_active = False

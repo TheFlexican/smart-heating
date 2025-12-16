@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+
 from smart_heating.comparison_engine import ComparisonEngine
 from smart_heating.efficiency_calculator import EfficiencyCalculator
 

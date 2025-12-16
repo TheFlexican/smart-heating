@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
+
 from smart_heating.api_handlers.config import (
     handle_get_safety_sensor,
     handle_remove_safety_sensor,

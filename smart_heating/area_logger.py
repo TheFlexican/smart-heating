@@ -79,9 +79,7 @@ class AreaLogger:
 
         # Schedule async write (non-blocking) and keep task reference
         try:
-            task = self._hass.async_create_task(
-                self._async_write_log(area_id, event_type, entry)
-            )
+            task = self._hass.async_create_task(self._async_write_log(area_id, event_type, entry))
             self._write_tasks.add(task)
             task.add_done_callback(lambda fut: self._write_tasks.discard(fut))
         except Exception:
@@ -97,9 +95,7 @@ class AreaLogger:
             f"({details})" if details else "",
         )
 
-    async def _async_write_log(
-        self, area_id: str, event_type: str, entry: dict
-    ) -> None:
+    async def _async_write_log(self, area_id: str, event_type: str, entry: dict) -> None:
         """Asynchronously write log entry to file.
 
         Args:

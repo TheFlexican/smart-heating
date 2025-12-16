@@ -1,4 +1,5 @@
 import pytest
+
 from smart_heating.heating_curve import HEATING_SYSTEM_UNDERFLOOR, HeatingCurve
 
 

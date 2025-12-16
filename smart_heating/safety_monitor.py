@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
+
 from .const import DOMAIN
 
 if TYPE_CHECKING:
@@ -58,9 +59,7 @@ class SafetyMonitor:
         # Filter for enabled sensors
         enabled_sensors = [s for s in safety_sensors if s.get("enabled", True)]
 
-        _LOGGER.warning(
-            "Setting up listeners for %d enabled safety sensors", len(enabled_sensors)
-        )
+        _LOGGER.warning("Setting up listeners for %d enabled safety sensors", len(enabled_sensors))
 
         if enabled_sensors:
             # Collect all sensor IDs
@@ -92,9 +91,7 @@ class SafetyMonitor:
             # Check initial state
             await self._check_safety_status()
         else:
-            _LOGGER.warning(
-                "No enabled safety sensors configured, skipping listener setup"
-            )
+            _LOGGER.warning("No enabled safety sensors configured, skipping listener setup")
 
     @callback
     def _handle_safety_sensor_state_change(self, event: Event) -> None:
@@ -123,9 +120,7 @@ class SafetyMonitor:
             try:
                 # Add to set and ensure it's removed when done
                 self._safety_check_tasks.add(task)
-                task.add_done_callback(
-                    lambda fut: self._safety_check_tasks.discard(fut)
-                )
+                task.add_done_callback(lambda fut: self._safety_check_tasks.discard(fut))
             except Exception:
                 # If task tracking fails, ignore and continue
                 pass

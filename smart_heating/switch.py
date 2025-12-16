@@ -41,9 +41,7 @@ async def async_setup_entry(
 
     # Add entities
     async_add_entities(entities)
-    _LOGGER.info(
-        "Smart Heating switch platform setup complete with %d areas", len(entities)
-    )
+    _LOGGER.info("Smart Heating switch platform setup complete with %d areas", len(entities))
 
 
 class AreaSwitch(CoordinatorEntity, SwitchEntity):

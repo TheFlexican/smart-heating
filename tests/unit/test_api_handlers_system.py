@@ -6,6 +6,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from smart_heating.api_handlers.system import (
     handle_call_service,
     handle_get_entity_state,

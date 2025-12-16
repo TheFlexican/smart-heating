@@ -7,16 +7,14 @@ from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 
-from .api_handlers import (
+from .api_handlers import (  # Schedules; Sensors; Logs; Areas; Config; Devices; History; System
     handle_add_device,
     handle_add_presence_sensor,
-    # Schedules
     handle_add_schedule,
-    handle_update_schedule,
-    # Sensors
     handle_add_window_sensor,
     handle_call_service,
     handle_cancel_boost,
+    handle_cleanup_history,
     handle_create_user,
     handle_delete_user,
     handle_disable_area,
@@ -27,41 +25,34 @@ from .api_handlers import (
     handle_get_active_preferences,
     handle_get_area,
     handle_get_area_efficiency_history,
-    # Logs
     handle_get_area_logs,
-    # Areas
     handle_get_areas,
     handle_get_binary_sensor_entities,
-    handle_get_weather_entities,
-    # Config
     handle_get_comparison,
     handle_get_config,
     handle_get_custom_comparison,
-    # Devices
+    handle_get_database_stats,
     handle_get_devices,
     handle_get_efficiency_report,
     handle_get_entity_state,
     handle_get_global_presence,
     handle_get_global_presets,
-    # History
     handle_get_history,
     handle_get_history_config,
     handle_get_history_storage_info,
-    handle_get_database_stats,
-    handle_migrate_history_storage,
-    handle_cleanup_history,
     handle_get_hysteresis,
     handle_get_learning_stats,
     handle_get_presence_state,
     handle_get_safety_sensor,
-    # System
     handle_get_status,
     handle_get_user,
     handle_get_users,
     handle_get_vacation_mode,
+    handle_get_weather_entities,
     handle_hide_area,
     handle_import_config,
     handle_list_backups,
+    handle_migrate_history_storage,
     handle_refresh_devices,
     handle_remove_device,
     handle_remove_presence_sensor,
@@ -69,21 +60,21 @@ from .api_handlers import (
     handle_remove_schedule,
     handle_remove_window_sensor,
     handle_restore_backup,
+    handle_set_advanced_control_config,
+    handle_set_area_heating_curve,
     handle_set_area_hysteresis,
     handle_set_area_preset_config,
-    handle_set_area_heating_curve,
     handle_set_auto_preset,
-    handle_set_heating_type,
     handle_set_boost_mode,
     handle_set_frost_protection,
     handle_set_global_presence,
     handle_set_global_presets,
+    handle_set_heating_type,
     handle_set_hide_devices_panel,
     handle_set_history_config,
     handle_set_hvac_mode,
     handle_set_hysteresis_value,
     handle_set_manual_override,
-    handle_set_advanced_control_config,
     handle_set_opentherm_gateway,
     handle_set_preset_mode,
     handle_set_primary_temperature_sensor,
@@ -91,17 +82,18 @@ from .api_handlers import (
     handle_set_switch_shutdown,
     handle_set_temperature,
     handle_unhide_area,
+    handle_update_schedule,
     handle_update_user,
     handle_update_user_settings,
     handle_validate_config,
 )
 from .api_handlers.opentherm import (
-    handle_get_opentherm_logs,
-    handle_get_opentherm_capabilities,
-    handle_discover_opentherm_capabilities,
-    handle_clear_opentherm_logs,
-    handle_get_opentherm_gateways,
     handle_calibrate_opentherm,
+    handle_clear_opentherm_logs,
+    handle_discover_opentherm_capabilities,
+    handle_get_opentherm_capabilities,
+    handle_get_opentherm_gateways,
+    handle_get_opentherm_logs,
 )
 from .area_manager import AreaManager
 from .const import DOMAIN
@@ -592,31 +584,7 @@ class SmartHeatingAPIView(HomeAssistantView):
 
         return None
 
-    def _get_coordinator(self):
-        """Get the coordinator instance from hass data.
-
-        Returns:
-            Coordinator instance or None
-        """
-        entry_ids = [
-            key
-            for key in self.hass.data[DOMAIN].keys()
-            if key
-            not in [
-                "history",
-                "climate_controller",
-                "schedule_executor",
-                "climate_unsub",
-                "learning_engine",
-                "area_logger",
-                "vacation_manager",
-                "safety_monitor",
-                "config_manager",
-                "user_manager",
-                "comparison_engine",
-            ]
-        ]
-        return self.hass.data[DOMAIN][entry_ids[0]] if entry_ids else None
+    # Note: _get_coordinator defined earlier with proper typing. Do not duplicate.
 
     async def _handle_global_config_post(
         self, endpoint: str, data: dict

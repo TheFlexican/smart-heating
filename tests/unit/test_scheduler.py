@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
-from smart_heating.scheduler import ScheduleExecutor
 
+from smart_heating.scheduler import ScheduleExecutor
 from tests.unit.const import TEST_AREA_ID, TEST_TEMPERATURE
 
 

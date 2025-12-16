@@ -8,8 +8,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
 
-from .api import setup_api
 from .advanced_metrics_collector import AdvancedMetricsCollector
+from .api import setup_api
 from .area_logger import AreaLogger
 from .area_manager import AreaManager
 from .climate_controller import ClimateController
@@ -96,9 +96,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "Skipping options override for OpenTherm gateway: numeric value present"
                 )
             else:
-                await area_manager.set_opentherm_gateway(
-                    entry.options["opentherm_gateway_id"]
-                )
+                await area_manager.set_opentherm_gateway(entry.options["opentherm_gateway_id"])
             _LOGGER.info(
                 "Applied OpenTherm config from options: %s",
                 entry.options["opentherm_gateway_id"],
@@ -213,9 +211,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await climate_controller.async_control_heating()
 
     # Start and keep reference for test cleanup
-    hass.data[DOMAIN]["initial_control_task"] = hass.async_create_task(
-        run_initial_control()
-    )
+    hass.data[DOMAIN]["initial_control_task"] = hass.async_create_task(run_initial_control())
 
     _LOGGER.info("Climate controller started with 30-second update interval")
 
@@ -309,9 +305,8 @@ async def async_setup_services(  # NOSONAR
     """
     from functools import partial
 
+    from .ha_services import ADD_DEVICE_SCHEMA  # Schemas; Handlers
     from .ha_services import (
-        # Schemas
-        ADD_DEVICE_SCHEMA,
         ADD_SCHEDULE_SCHEMA,
         BOOST_MODE_SCHEMA,
         CANCEL_BOOST_SCHEMA,
@@ -345,7 +340,6 @@ async def async_setup_services(  # NOSONAR
         async_handle_enable_area,
         async_handle_enable_schedule,
         async_handle_enable_vacation_mode,
-        # Handlers
         async_handle_refresh,
         async_handle_remove_device,
         async_handle_remove_presence_sensor,
@@ -374,9 +368,7 @@ async def async_setup_services(  # NOSONAR
     hass.services.async_register(
         DOMAIN,
         SERVICE_ADD_DEVICE_TO_AREA,
-        partial(
-            async_handle_add_device, area_manager=area_manager, coordinator=coordinator
-        ),
+        partial(async_handle_add_device, area_manager=area_manager, coordinator=coordinator),
         schema=ADD_DEVICE_SCHEMA,
     )
     hass.services.async_register(
@@ -402,9 +394,7 @@ async def async_setup_services(  # NOSONAR
     hass.services.async_register(
         DOMAIN,
         SERVICE_ENABLE_AREA,
-        partial(
-            async_handle_enable_area, area_manager=area_manager, coordinator=coordinator
-        ),
+        partial(async_handle_enable_area, area_manager=area_manager, coordinator=coordinator),
         schema=ZONE_ID_SCHEMA,
     )
     hass.services.async_register(

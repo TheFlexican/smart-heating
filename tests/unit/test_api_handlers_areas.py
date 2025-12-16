@@ -4,6 +4,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
 from smart_heating.api_handlers.areas import (
     handle_disable_area,
     handle_enable_area,

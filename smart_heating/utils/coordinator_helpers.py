@@ -1,8 +1,8 @@
 """Coordinator data utilities for Smart Heating."""
 
+import inspect
 import logging
 from typing import Any, Dict, Optional
-import inspect
 
 from homeassistant.core import HomeAssistant
 

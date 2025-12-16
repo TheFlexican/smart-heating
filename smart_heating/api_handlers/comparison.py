@@ -37,9 +37,7 @@ async def handle_get_comparison(
 
         if area_id and area_id != "all":
             # Single area comparison
-            comparison = await comparison_engine.compare_periods(
-                area_id, comparison_type, offset
-            )
+            comparison = await comparison_engine.compare_periods(area_id, comparison_type, offset)
             return web.json_response({"comparison": comparison})
         else:
             # All areas comparison
@@ -79,9 +77,7 @@ async def handle_get_custom_comparison(
 
         if not all([area_id, start_a, end_a, start_b, end_b]):
             return web.json_response(
-                {
-                    "error": "Missing required parameters: area_id, start_a, end_a, start_b, end_b"
-                },
+                {"error": "Missing required parameters: area_id, start_a, end_a, start_b, end_b"},
                 status=400,
             )
 
@@ -95,9 +91,7 @@ async def handle_get_custom_comparison(
             return web.json_response({"error": f"Invalid date format: {e}"}, status=400)
 
         if not all([start_a_dt, end_a_dt, start_b_dt, end_b_dt]):
-            return web.json_response(
-                {"error": "Invalid date format. Use ISO format."}, status=400
-            )
+            return web.json_response({"error": "Invalid date format. Use ISO format."}, status=400)
 
         # Get comparison
         comparison = await comparison_engine.compare_custom_periods(

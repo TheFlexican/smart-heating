@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant, ServiceCall
+
 from smart_heating.const import (
     ATTR_FROST_PROTECTION_ENABLED,
     ATTR_FROST_PROTECTION_TEMP,

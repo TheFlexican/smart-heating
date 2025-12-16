@@ -51,9 +51,7 @@ async def handle_get_areas(  # NOSONAR
             for dev_id, dev_data in stored_area.devices.items():
                 state = hass.states.get(dev_id)
                 coord_device = coordinator_devices.get(dev_id)
-                devices_list.append(
-                    build_device_info(dev_id, dev_data, state, coord_device)
-                )
+                devices_list.append(build_device_info(dev_id, dev_data, state, coord_device))
 
             # Build area response using utility
             area_response = build_area_response(stored_area, devices_list)
@@ -145,9 +143,7 @@ async def handle_set_temperature(
 
         old_temp = area.target_temperature
         old_effective = area.get_effective_target_temperature()
-        preset_context = (
-            f", preset={area.preset_mode}" if area.preset_mode != "none" else ""
-        )
+        preset_context = f", preset={area.preset_mode}" if area.preset_mode != "none" else ""
 
         _LOGGER.warning(
             "🌡️ API: SET TEMPERATURE for %s: %.1f°C → %.1f°C%s | Effective: %.1f°C → ?",
@@ -162,9 +158,7 @@ async def handle_set_temperature(
 
         # Clear manual override mode when user controls temperature via app
         if area and hasattr(area, "manual_override") and area.manual_override:
-            _LOGGER.warning(
-                "🔓 Clearing manual override for %s - app now in control", area.name
-            )
+            _LOGGER.warning("🔓 Clearing manual override for %s - app now in control", area.name)
             area.manual_override = False
 
         await area_manager.async_save()
@@ -216,9 +210,7 @@ async def handle_enable_area(
         if safety_monitor and area_manager.is_safety_alert_active():
             # If area being enabled, check if we should clear global safety alert
             area_manager.set_safety_alert_active(False)
-            _LOGGER.info(
-                "Safety alert cleared - area '%s' manually re-enabled", area_id
-            )
+            _LOGGER.info("Safety alert cleared - area '%s' manually re-enabled", area_id)
 
         # Trigger immediate climate control
         climate_controller = hass.data.get(DOMAIN, {}).get("climate_controller")
@@ -394,9 +386,7 @@ async def handle_set_switch_shutdown(
         area.shutdown_switches_when_idle = shutdown
         await area_manager.async_save()
 
-        _LOGGER.info(
-            "Area %s: shutdown_switches_when_idle set to %s", area_id, shutdown
-        )
+        _LOGGER.info("Area %s: shutdown_switches_when_idle set to %s", area_id, shutdown)
 
         # Refresh coordinator
         coordinator = get_coordinator(hass)
@@ -435,9 +425,7 @@ async def handle_set_area_hysteresis(
         if use_global:
             # Use global hysteresis setting
             area.hysteresis_override = None
-            _LOGGER.info(
-                "Area %s: Setting hysteresis_override to None (global)", area_id
-            )
+            _LOGGER.info("Area %s: Setting hysteresis_override to None (global)", area_id)
         else:
             # Use area-specific hysteresis
             hysteresis = data.get("hysteresis")
@@ -454,9 +442,7 @@ async def handle_set_area_hysteresis(
                 )
 
             area.hysteresis_override = float(hysteresis)
-            _LOGGER.info(
-                "Area %s: Setting hysteresis_override to %.1f°C", area_id, hysteresis
-            )
+            _LOGGER.info("Area %s: Setting hysteresis_override to %.1f°C", area_id, hysteresis)
 
         await area_manager.async_save()
 
@@ -548,9 +534,7 @@ async def handle_set_heating_type(
             heating_type = data["heating_type"]
             if heating_type not in ["radiator", "floor_heating", "airco"]:
                 return web.json_response(
-                    {
-                        "error": "heating_type must be 'radiator', 'floor_heating' or 'airco'"
-                    },
+                    {"error": "heating_type must be 'radiator', 'floor_heating' or 'airco'"},
                     status=400,
                 )
             area.heating_type = heating_type
@@ -720,11 +704,7 @@ async def handle_set_area_preset_config(
     if not area:
         return web.json_response({"error": f"Area {area_id} not found"}, status=404)
 
-    changes = {
-        k: v
-        for k, v in data.items()
-        if k.startswith("use_global_") or k.endswith("_temp")
-    }
+    changes = {k: v for k, v in data.items() if k.startswith("use_global_") or k.endswith("_temp")}
     _LOGGER.warning("⚙️  API: SET PRESET CONFIG for %s: %s", area.name, changes)
 
     # Update use_global_* flags and temperature values

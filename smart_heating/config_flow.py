@@ -18,9 +18,7 @@ class SmartHeatingConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step.
 
         This is a simple config flow that doesn't require any user input.
@@ -87,9 +85,7 @@ class SmartHeatingConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class SmartHeatingOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for Smart Heating."""
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage the options.
 
         All configuration is now done via Global Settings in the Smart Heating UI.
@@ -107,9 +103,7 @@ class SmartHeatingOptionsFlowHandler(config_entries.OptionsFlow):
         # Offer an option to select an OpenTherm Gateway if present in Home Assistant
         gw_entries = self.hass.config_entries.async_entries(domain="opentherm_gw")
         if gw_entries:
-            gateway_ids = [
-                entry.data.get("id") for entry in gw_entries if entry.data.get("id")
-            ]
+            gateway_ids = [entry.data.get("id") for entry in gw_entries if entry.data.get("id")]
             schema = vol.Schema({"opentherm_gateway_id": vol.In([""] + gateway_ids)})
         else:
             schema = vol.Schema({})

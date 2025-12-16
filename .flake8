@@ -1,0 +1,4 @@
+[flake8]
+exclude = .git,__pycache__,.venv,frontend/node_modules,smart_heating/frontend/node_modules,dist
+max-line-length = 127
+extend-ignore = E203

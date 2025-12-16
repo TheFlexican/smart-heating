@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from smart_heating.config_manager import CURRENT_VERSION, ConfigManager
 from smart_heating.const import DOMAIN
 

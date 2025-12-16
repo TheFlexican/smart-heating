@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
 from smart_heating.const import DOMAIN, STATE_INITIALIZED
 from smart_heating.sensor import (
     AreaCurrentConsumptionSensor,

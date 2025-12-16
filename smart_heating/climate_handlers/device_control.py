@@ -3,25 +3,17 @@
 import logging
 from typing import Any, Optional
 
-from homeassistant.components.climate.const import (
-    DOMAIN as CLIMATE_DOMAIN,
-)
-from homeassistant.components.climate.const import (
-    SERVICE_SET_TEMPERATURE,
-)
-from homeassistant.const import (
-    ATTR_TEMPERATURE,
-    SERVICE_TURN_OFF,
-    SERVICE_TURN_ON,
-)
+from homeassistant.components.climate.const import DOMAIN as CLIMATE_DOMAIN
+from homeassistant.components.climate.const import SERVICE_SET_TEMPERATURE
+from homeassistant.const import ATTR_TEMPERATURE, SERVICE_TURN_OFF, SERVICE_TURN_ON
 from homeassistant.core import HomeAssistant
 
 from ..area_manager import AreaManager
-from ..models import Area
 from ..heating_curve import HeatingCurve
+from ..minimum_setpoint import MinimumSetpoint
+from ..models import Area
 from ..pid import PID, Error
 from ..pwm import PWM
-from ..minimum_setpoint import MinimumSetpoint
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -107,9 +99,7 @@ class DeviceControlHandler:
 
         state = self.hass.states.get(entity_id)
         if not state:
-            _LOGGER.warning(
-                "Cannot determine capabilities for %s: entity not found", entity_id
-            )
+            _LOGGER.warning("Cannot determine capabilities for %s: entity not found", entity_id)
             self._device_capabilities[entity_id] = capabilities
             return capabilities
 
@@ -139,10 +129,7 @@ class DeviceControlHandler:
                 )
 
             # Check if it supports temperature
-            if (
-                "temperature" in state.attributes
-                or "target_temp_low" in state.attributes
-            ):
+            if "temperature" in state.attributes or "target_temp_low" in state.attributes:
                 capabilities["supports_temperature"] = True
                 _LOGGER.debug("Valve %s supports temperature control", entity_id)
 
@@ -264,9 +251,7 @@ class DeviceControlHandler:
                     target_temp,
                 )
                 if heating and target_temp is not None:
-                    await self._handle_thermostat_heating(
-                        thermostat_id, target_temp, hvac_mode
-                    )
+                    await self._handle_thermostat_heating(thermostat_id, target_temp, hvac_mode)
                 elif target_temp is not None:
                     await self._handle_thermostat_idle(area, thermostat_id, target_temp)
                 else:
@@ -333,9 +318,7 @@ class DeviceControlHandler:
 
         current_temp_raw = getattr(area, "current_temperature", None)
         try:
-            current_temp = (
-                float(current_temp_raw) if current_temp_raw is not None else None
-            )
+            current_temp = float(current_temp_raw) if current_temp_raw is not None else None
         except Exception:
             current_temp = None
 
@@ -466,9 +449,7 @@ class DeviceControlHandler:
             min_temp,
         )
 
-    async def _async_set_climate_temperature(
-        self, entity_id: str, temperature: float
-    ) -> None:
+    async def _async_set_climate_temperature(self, entity_id: str, temperature: float) -> None:
         """Helper to set climate temperature on an entity (non-blocking service call)."""
         await self.hass.services.async_call(
             CLIMATE_DOMAIN,
@@ -515,9 +496,7 @@ class DeviceControlHandler:
             area_id, candidate, outside_temp, advanced_enabled, heating_curve_enabled
         )
 
-        candidate = self._apply_pid_adjustment(
-            area_id, candidate, pid_enabled, advanced_enabled
-        )
+        candidate = self._apply_pid_adjustment(area_id, candidate, pid_enabled, advanced_enabled)
 
         return candidate
 
@@ -533,13 +512,10 @@ class DeviceControlHandler:
             return candidate
         area = self.area_manager.get_area(area_id)
         coefficient = (
-            area.heating_curve_coefficient
-            or self.area_manager.default_heating_curve_coefficient
+            area.heating_curve_coefficient or self.area_manager.default_heating_curve_coefficient
         )
         hc = self._heating_curves.get(area_id) or HeatingCurve(
-            heating_system=(
-                "underfloor" if area.heating_type == "floor_heating" else "radiator"
-            ),
+            heating_system=("underfloor" if area.heating_type == "floor_heating" else "radiator"),
             coefficient=coefficient,
         )
         self._heating_curves[area_id] = hc
@@ -637,24 +613,13 @@ class DeviceControlHandler:
         domain = capabilities["entity_domain"]
 
         if domain == "number":
-            position = (
-                capabilities["position_max"]
-                if heating
-                else capabilities["position_min"]
-            )
+            position = capabilities["position_max"] if heating else capabilities["position_min"]
             await self._set_valve_number_position(valve_id, position)
             action = "Opened" if heating else "Closed"
             _LOGGER.debug(f"{action} valve %s to %.0f%%", valve_id, position)
 
-        elif (
-            domain == "climate"
-            and "position" in self.hass.states.get(valve_id).attributes
-        ):
-            position = (
-                capabilities["position_max"]
-                if heating
-                else capabilities["position_min"]
-            )
+        elif domain == "climate" and "position" in self.hass.states.get(valve_id).attributes:
+            position = capabilities["position_max"] if heating else capabilities["position_min"]
             try:
                 await self._set_valve_climate_position(valve_id, position)
                 _LOGGER.debug("Set valve %s position to %.0f%%", valve_id, position)
@@ -692,18 +657,11 @@ class DeviceControlHandler:
 
                 # Prefer position control if available
                 if capabilities["supports_position"]:
-                    await self._control_valve_by_position(
-                        valve_id, capabilities, heating
-                    )
+                    await self._control_valve_by_position(valve_id, capabilities, heating)
 
                 # Fall back to temperature control
-                if (
-                    not capabilities["supports_position"]
-                    and capabilities["supports_temperature"]
-                ):
-                    await self._control_valve_by_temperature(
-                        valve_id, heating, target_temp
-                    )
+                if not capabilities["supports_position"] and capabilities["supports_temperature"]:
+                    await self._control_valve_by_temperature(valve_id, heating, target_temp)
 
                 if (
                     not capabilities["supports_position"]
@@ -802,9 +760,7 @@ class DeviceControlHandler:
                 boiler_state.return_temperature = gateway_state.attributes.get(
                     "return_water_temp"
                 ) or gateway_state.attributes.get("boiler_water_temp")
-                boiler_state.flow_temperature = gateway_state.attributes.get(
-                    "ch_water_temp"
-                )
+                boiler_state.flow_temperature = gateway_state.attributes.get("ch_water_temp")
                 boiler_state.flame_active = gateway_state.attributes.get("flame_on")
                 boiler_state.setpoint = boiler_setpoint
                 minsp.calculate(boiler_state)
@@ -823,9 +779,7 @@ class DeviceControlHandler:
 
     def _get_heating_type_counts(self, heating_types: dict) -> tuple[int, int]:
         """Get floor heating and radiator counts from heating types dict."""
-        floor_heating_count = sum(
-            1 for ht in heating_types.values() if ht == "floor_heating"
-        )
+        floor_heating_count = sum(1 for ht in heating_types.values() if ht == "floor_heating")
         radiator_count = sum(1 for ht in heating_types.values() if ht == "radiator")
         return floor_heating_count, radiator_count
 
@@ -833,11 +787,7 @@ class DeviceControlHandler:
         self, boiler_setpoint: float, boiler_temp: float, heating_types: dict
     ) -> float:
         """Calculate PWM duty cycle based on boiler temperature."""
-        base_offset = (
-            20.0
-            if any(ht == "floor_heating" for ht in heating_types.values())
-            else 27.2
-        )
+        base_offset = 20.0 if any(ht == "floor_heating" for ht in heating_types.values()) else 27.2
         if (boiler_temp - base_offset) == 0:
             return 1.0
         duty = (boiler_setpoint - base_offset) / (boiler_temp - base_offset)
@@ -879,9 +829,7 @@ class DeviceControlHandler:
             )
             return boiler_setpoint
 
-    async def _set_gateway_setpoint(
-        self, gateway_device_id: str, temperature: float
-    ) -> None:
+    async def _set_gateway_setpoint(self, gateway_device_id: str, temperature: float) -> None:
         """Set OpenTherm gateway setpoint via service call."""
         try:
             await self.hass.services.async_call(
@@ -975,9 +923,7 @@ class DeviceControlHandler:
         )
 
         # Get heating type counts
-        floor_heating_count, radiator_count = self._get_heating_type_counts(
-            heating_types
-        )
+        floor_heating_count, radiator_count = self._get_heating_type_counts(heating_types)
 
         if not gateway_device_id:
             _LOGGER.error(
@@ -1017,9 +963,7 @@ class DeviceControlHandler:
                 radiator_count=radiator_count,
             )
 
-    async def _control_gateway_heating_off(
-        self, gateway_device_id: str, opentherm_logger
-    ) -> None:
+    async def _control_gateway_heating_off(self, gateway_device_id: str, opentherm_logger) -> None:
         """Handle gateway control when heating is OFF."""
         if not gateway_device_id:
             _LOGGER.warning("OpenTherm Gateway ID not configured, cannot turn off")
@@ -1084,15 +1028,13 @@ class DeviceControlHandler:
         try:
             if any_heating:
                 # Collect heating areas (excludes airco areas)
-                heating_area_ids, heating_types, overhead_temps = (
-                    self._collect_heating_areas(opentherm_logger)
+                heating_area_ids, heating_types, overhead_temps = self._collect_heating_areas(
+                    opentherm_logger
                 )
 
                 # If no non-airco areas need heating, turn off gateway
                 if not heating_area_ids:
-                    await self._control_gateway_heating_off(
-                        gateway_id, opentherm_logger
-                    )
+                    await self._control_gateway_heating_off(gateway_id, opentherm_logger)
                 else:
                     # Control boiler for heating
                     await self._control_gateway_heating_on(

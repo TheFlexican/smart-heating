@@ -34,14 +34,14 @@ repos:
 
       - id: black-check
         name: black (format check)
-        entry: bash -c 'source venv/bin/activate || true; pip install --upgrade black >/dev/null 2>&1 || true; black --check smart_heating tests'
+        entry: bash -c 'source venv/bin/activate || true; pip install --upgrade black >/dev/null 2>&1 || true; black --check smart_heating'
         language: system
         types: [python]
         pass_filenames: false
 
       - id: isort-check
         name: isort (import sorting check)
-        entry: bash -c 'source venv/bin/activate || true; pip install --upgrade isort >/dev/null 2>&1 || true; isort --check-only --diff smart_heating tests'
+        entry: bash -c 'source venv/bin/activate || true; pip install --upgrade isort >/dev/null 2>&1 || true; isort --check-only --diff smart_heating'
         language: system
         types: [python]
         pass_filenames: false

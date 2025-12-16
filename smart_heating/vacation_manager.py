@@ -125,9 +125,7 @@ class VacationManager:
 
         # Set up listener for each person entity
         for entity_id in self._data["person_entities"]:
-            unsub = async_track_state_change_event(
-                self.hass, [entity_id], person_state_changed
-            )
+            unsub = async_track_state_change_event(self.hass, [entity_id], person_state_changed)
             self._unsub_person_listeners.append(unsub)
 
         _LOGGER.debug("Set up %d person listeners", len(self._unsub_person_listeners))

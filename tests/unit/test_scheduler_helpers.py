@@ -7,6 +7,7 @@ from datetime import datetime, time
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from smart_heating.const import (
     PRESET_AWAY,
     PRESET_COMFORT,

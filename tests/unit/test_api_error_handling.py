@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiohttp.test_utils import make_mocked_request
+
 from smart_heating.api import SmartHeatingAPIView
 from smart_heating.const import DOMAIN
 

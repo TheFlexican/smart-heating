@@ -7,6 +7,7 @@ device control, sensor handling, and temperature management.
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from smart_heating.climate_controller import ClimateController
 
 
@@ -658,13 +659,13 @@ class TestDeviceControl:
         mock_area_manager.heating_curve_enabled = False
         mock_area_manager.pid_enabled = False
         mock_area_manager.pwm_enabled = False
-        
+
         # Mock the gateway state to return None to avoid minimum setpoint calculation
         mock_hass.states.get.return_value = None
 
         await controller._async_control_opentherm_gateway(True, 21.0)
 
-# Should set to target + 20°C overhead
+        # Should set to target + 20°C overhead
         mock_hass.services.async_call.assert_called_once_with(
             "opentherm_gw",
             "set_control_setpoint",

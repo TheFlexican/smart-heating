@@ -60,9 +60,7 @@ class EfficiencyCalculator:
 
         # Fetch historical data from HistoryTracker
         try:
-            history_data = self.history_tracker.get_history(
-                area_id, start_time=start, end_time=end
-            )
+            history_data = self.history_tracker.get_history(area_id, start_time=start, end_time=end)
 
             if not history_data:
                 _LOGGER.warning(

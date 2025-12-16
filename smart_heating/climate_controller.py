@@ -77,9 +77,7 @@ class ClimateController:
         """Convert Fahrenheit to Celsius (delegates to handler)."""
         return self.temp_handler.convert_fahrenheit_to_celsius(temp)
 
-    def _get_temperature_from_sensor(self, sensor_id: str) -> Optional[float]:
-        """Get temperature from sensor (delegates to handler)."""
-        return self.temp_handler.get_temperature_from_sensor(sensor_id)
+    # _get_temperature_from_sensor already defined above; keep single definition
 
     def _check_window_sensors(self, area_id: str, area) -> bool:
         """Check window sensors (delegates to handler)."""

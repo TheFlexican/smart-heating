@@ -16,18 +16,18 @@ from sqlalchemy import (
     DateTime,
     Float,
     Integer,
+    MetaData,
     String,
     Table,
-    MetaData,
-    select,
     delete,
+    select,
 )
 
 from .const import (
     DEFAULT_HISTORY_RETENTION_DAYS,
-    MAX_HISTORY_RETENTION_DAYS,
-    HISTORY_STORAGE_JSON,
     HISTORY_STORAGE_DATABASE,
+    HISTORY_STORAGE_JSON,
+    MAX_HISTORY_RETENTION_DAYS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -43,9 +43,7 @@ DB_TABLE_NAME = "smart_heating_history"
 class HistoryTracker:
     """Track temperature history for areas with optional database storage."""
 
-    def __init__(
-        self, hass: HomeAssistant, storage_backend: str = HISTORY_STORAGE_JSON
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, storage_backend: str = HISTORY_STORAGE_JSON) -> None:
         """Initialize the history tracker.
 
         Args:
@@ -110,10 +108,7 @@ class HistoryTracker:
                 return
 
             # Supported: MariaDB, MySQL, PostgreSQL
-            if any(
-                db in db_url.lower()
-                for db in ["mysql", "mariadb", "postgresql", "postgres"]
-            ):
+            if any(db in db_url.lower() for db in ["mysql", "mariadb", "postgresql", "postgres"]):
                 db_type = (
                     "MariaDB/MySQL"
                     if "mysql" in db_url.lower() or "mariadb" in db_url.lower()
@@ -161,9 +156,7 @@ class HistoryTracker:
             _LOGGER.info("Database table '%s' ready for history storage", DB_TABLE_NAME)
 
         except Exception as e:
-            _LOGGER.error(
-                "Failed to initialize database table: %s, falling back to JSON", e
-            )
+            _LOGGER.error("Failed to initialize database table: %s, falling back to JSON", e)
             self._storage_backend = HISTORY_STORAGE_JSON
             self._db_table = None
             self._db_engine = None
@@ -180,10 +173,7 @@ class HistoryTracker:
             await self._async_validate_database_support()
 
         # Now load the actual data
-        if (
-            self._storage_backend == HISTORY_STORAGE_DATABASE
-            and self._db_table is not None
-        ):
+        if self._storage_backend == HISTORY_STORAGE_DATABASE and self._db_table is not None:
             await self._async_load_from_database()
         else:
             await self._async_load_from_json()
@@ -205,9 +195,7 @@ class HistoryTracker:
                 self._retention_days = data["retention_days"]
             if "storage_backend" in data:
                 # Preserve storage backend preference
-                self._storage_backend = data.get(
-                    "storage_backend", HISTORY_STORAGE_JSON
-                )
+                self._storage_backend = data.get("storage_backend", HISTORY_STORAGE_JSON)
 
             # Clean up old entries
             await self._async_cleanup_old_entries()
@@ -227,9 +215,7 @@ class HistoryTracker:
             def _load():
                 with recorder.engine.connect() as conn:
                     # Load retention setting from JSON config
-                    stmt = select(self._db_table).order_by(
-                        self._db_table.c.timestamp.desc()
-                    )
+                    stmt = select(self._db_table).order_by(self._db_table.c.timestamp.desc())
                     result = conn.execute(stmt)
 
                     history_dict = {}
@@ -272,10 +258,7 @@ class HistoryTracker:
         """Save history to storage."""
         _LOGGER.debug("Saving history to %s storage", self._storage_backend)
 
-        if (
-            self._storage_backend == HISTORY_STORAGE_DATABASE
-            and self._db_table is not None
-        ):
+        if self._storage_backend == HISTORY_STORAGE_DATABASE and self._db_table is not None:
             await self._async_save_to_database()
         else:
             await self._async_save_to_json()
@@ -308,10 +291,7 @@ class HistoryTracker:
 
     async def _async_cleanup_old_entries(self) -> None:
         """Remove entries older than retention period."""
-        if (
-            self._storage_backend == HISTORY_STORAGE_DATABASE
-            and self._db_table is not None
-        ):
+        if self._storage_backend == HISTORY_STORAGE_DATABASE and self._db_table is not None:
             await self._async_cleanup_database()
         else:
             await self._async_cleanup_json()
@@ -325,9 +305,7 @@ class HistoryTracker:
         for area_id in list(self._history.keys()):
             original_count = len(self._history[area_id])
             self._history[area_id] = [
-                entry
-                for entry in self._history[area_id]
-                if entry["timestamp"] > cutoff_iso
+                entry for entry in self._history[area_id] if entry["timestamp"] > cutoff_iso
             ]
             removed = original_count - len(self._history[area_id])
             total_removed += removed
@@ -355,9 +333,7 @@ class HistoryTracker:
 
             def _cleanup():
                 with recorder.engine.connect() as conn:
-                    stmt = delete(self._db_table).where(
-                        self._db_table.c.timestamp < cutoff
-                    )
+                    stmt = delete(self._db_table).where(self._db_table.c.timestamp < cutoff)
                     result = conn.execute(stmt)
                     conn.commit()
                     return result.rowcount
@@ -415,10 +391,7 @@ class HistoryTracker:
             self._history[area_id] = self._history[area_id][-1000:]
 
         # Persist to storage backend
-        if (
-            self._storage_backend == HISTORY_STORAGE_DATABASE
-            and self._db_table is not None
-        ):
+        if self._storage_backend == HISTORY_STORAGE_DATABASE and self._db_table is not None:
             await self._async_save_to_database_entry(
                 area_id, timestamp, current_temp, target_temp, state
             )
@@ -496,11 +469,7 @@ class HistoryTracker:
             # Hours-based query
             cutoff = datetime.now() - timedelta(hours=hours)
             cutoff_iso = cutoff.isoformat()
-            return [
-                entry
-                for entry in self._history[area_id]
-                if entry["timestamp"] > cutoff_iso
-            ]
+            return [entry for entry in self._history[area_id] if entry["timestamp"] > cutoff_iso]
         else:
             # Return all available history (within retention period)
             return self._history[area_id]
@@ -522,15 +491,11 @@ class HistoryTracker:
         if days < 1:
             raise ValueError("Retention period must be at least 1 day")
         if days > MAX_HISTORY_RETENTION_DAYS:
-            raise ValueError(
-                f"Retention period cannot exceed {MAX_HISTORY_RETENTION_DAYS} days"
-            )
+            raise ValueError(f"Retention period cannot exceed {MAX_HISTORY_RETENTION_DAYS} days")
 
         old_retention = self._retention_days
         self._retention_days = days
-        _LOGGER.info(
-            "History retention changed from %d to %d days", old_retention, days
-        )
+        _LOGGER.info("History retention changed from %d to %d days", old_retention, days)
 
     def get_retention_days(self) -> int:
         """Get the current retention period.
@@ -704,12 +669,8 @@ class HistoryTracker:
                     return {
                         "total_entries": total,
                         "entries_by_area": area_counts,
-                        "oldest_entry": (
-                            result.oldest.isoformat() if result.oldest else None
-                        ),
-                        "newest_entry": (
-                            result.newest.isoformat() if result.newest else None
-                        ),
+                        "oldest_entry": (result.oldest.isoformat() if result.oldest else None),
+                        "newest_entry": (result.newest.isoformat() if result.newest else None),
                     }
 
             stats = await recorder.async_add_executor_job(_get_stats)

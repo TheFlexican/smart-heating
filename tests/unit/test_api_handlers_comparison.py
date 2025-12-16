@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiohttp.test_utils import make_mocked_request
+
 from smart_heating.api_handlers.comparison import (
     handle_get_comparison,
     handle_get_custom_comparison,

@@ -13,9 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class MinimumSetpoint:
-    def __init__(
-        self, configured_minimum_setpoint: float = 30.0, adjustment_factor: float = 1.0
-    ):
+    def __init__(self, configured_minimum_setpoint: float = 30.0, adjustment_factor: float = 1.0):
         self._configured_minimum_setpoint = configured_minimum_setpoint
         self._adjustment_factor = adjustment_factor
         self._current_minimum_setpoint = self._configured_minimum_setpoint
@@ -48,9 +46,7 @@ class MinimumSetpoint:
             new_minimum = self._configured_minimum_setpoint
 
         self._current_minimum_setpoint = round(new_minimum, 1)
-        _LOGGER.debug(
-            "Calculated new minimum setpoint: %.1f°C.", self._current_minimum_setpoint
-        )
+        _LOGGER.debug("Calculated new minimum setpoint: %.1f°C.", self._current_minimum_setpoint)
 
     @property
     def current_minimum_setpoint(self) -> float:

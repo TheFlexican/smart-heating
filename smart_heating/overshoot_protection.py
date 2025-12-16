@@ -31,9 +31,7 @@ class OvershootProtection:
         """
         # If coordinator lacks modulation control, abort
         if not hasattr(self._coordinator, "async_set_control_max_relative_modulation"):
-            _LOGGER.debug(
-                "Coordinator does not support modulation control; cannot compute OPV"
-            )
+            _LOGGER.debug("Coordinator does not support modulation control; cannot compute OPV")
             return None
 
         # Try set 0 modulation and wait for a stable flow temperature
@@ -56,7 +54,5 @@ class OvershootProtection:
             return None
 
         avg = mean(samples)
-        _LOGGER.info(
-            f"Calculated OPV (average at 0%): {avg:.1f}°C from {len(samples)} samples"
-        )
+        _LOGGER.info(f"Calculated OPV (average at 0%): {avg:.1f}°C from {len(samples)} samples")
         return round(avg, 1)

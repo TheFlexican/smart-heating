@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import ServiceCall
+
 from smart_heating.ha_services.system_handlers import async_handle_refresh
 
 

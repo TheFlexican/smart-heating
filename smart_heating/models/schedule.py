@@ -189,9 +189,7 @@ class Schedule:
                 if isinstance(d, int):
                     return int(d % 7)
                 if not isinstance(d, str):
-                    raise ValueError(
-                        "Invalid 'days' entry: must be integer index or short code"
-                    )
+                    raise ValueError("Invalid 'days' entry: must be integer index or short code")
                 key = d.strip().lower()
                 short_to_idx = {
                     "mon": 0,
@@ -211,9 +209,7 @@ class Schedule:
             days_data = [map_day_any_to_index(d) for d in days_data]
 
         # Filter out None values to match type hint list[str] | None
-        filtered_days = (
-            [int(d) for d in days_data if d is not None] if days_data else None
-        )
+        filtered_days = [int(d) for d in days_data if d is not None] if days_data else None
 
         # Normalize input 'day' to index if provided as string short code
         day_val = data.get("day")

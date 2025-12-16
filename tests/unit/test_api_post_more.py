@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
+
 from smart_heating.api import (
     SmartHeatingAPIView,
     SmartHeatingStaticView,

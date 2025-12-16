@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
 from smart_heating.learning_engine import HeatingEvent, LearningEngine
 
 
@@ -74,6 +75,7 @@ statistics recording, and prediction functionality.
 
 
 import pytest
+
 from smart_heating.learning_engine import MIN_LEARNING_EVENTS
 
 

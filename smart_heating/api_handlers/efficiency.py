@@ -1,13 +1,13 @@
 """Efficiency report API handlers."""
 
 import logging
+from typing import Any, Tuple
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
 
 from ..area_manager import AreaManager
 from ..efficiency_calculator import EfficiencyCalculator
-from typing import Any, Tuple
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,9 +32,7 @@ def _build_single_area_response(area_metrics: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _transform_raw_report(
-    raw_report: dict[str, Any], area_manager: AreaManager
-) -> dict[str, Any]:
+def _transform_raw_report(raw_report: dict[str, Any], area_manager: AreaManager) -> dict[str, Any]:
     """Transform a raw report dictionary into the API response structure.
 
     This abstracts away repeated mapping logic and keeps the handler smaller.
@@ -68,13 +66,9 @@ def _calculate_summary_metrics(
     Returning a tuple keeps the callsites concise and easy to read.
     """
     total_energy_score = sum(r.get("energy_score", 0) for r in area_reports_raw)
-    total_heating_time = sum(
-        r.get("heating_time_percentage", 0) for r in area_reports_raw
-    )
+    total_heating_time = sum(r.get("heating_time_percentage", 0) for r in area_reports_raw)
     total_cycles = sum(r.get("heating_cycles", 0) for r in area_reports_raw)
-    total_temp_delta = sum(
-        r.get("average_temperature_delta", 0) for r in area_reports_raw
-    )
+    total_temp_delta = sum(r.get("average_temperature_delta", 0) for r in area_reports_raw)
     count = len(area_reports_raw)
 
     summary_metrics = {
@@ -86,9 +80,7 @@ def _calculate_summary_metrics(
 
     recommendations: list[str] = []
     if summary_metrics["energy_score"] < 60:
-        recommendations.append(
-            "Overall efficiency is low. Review individual areas for issues."
-        )
+        recommendations.append("Overall efficiency is low. Review individual areas for issues.")
     if summary_metrics["heating_time_percentage"] > 60:
         recommendations.append(
             "System heating time is high. Consider global temperature adjustments."
@@ -154,16 +146,12 @@ async def handle_get_efficiency_report(
 
         if area_id and area_id != "all":
             # Single area report
-            area_metrics = await efficiency_calculator.calculate_area_efficiency(
-                area_id, period
-            )
+            area_metrics = await efficiency_calculator.calculate_area_efficiency(area_id, period)
             # Build response using helper
             return web.json_response(_build_single_area_response(area_metrics))
         else:
             # All areas report - delegate to helper to reduce complexity
-            payload = await _handle_all_areas_report(
-                area_manager, efficiency_calculator, period
-            )
+            payload = await _handle_all_areas_report(area_manager, efficiency_calculator, period)
             return web.json_response(payload)
 
     except Exception as e:
@@ -197,6 +185,7 @@ async def handle_get_area_efficiency_history(
 
         # Calculate efficiency for each period
         from datetime import timedelta
+
         from homeassistant.util import dt as dt_util
 
         end = dt_util.now()
@@ -223,7 +212,5 @@ async def handle_get_area_efficiency_history(
         return web.json_response({"history": history_data})
 
     except Exception as e:
-        _LOGGER.error(
-            "Error getting efficiency history for %s: %s", area_id, e, exc_info=True
-        )
+        _LOGGER.error("Error getting efficiency history for %s: %s", area_id, e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)

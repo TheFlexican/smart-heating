@@ -62,9 +62,7 @@ async def handle_add_schedule(
                 area.area_manager = area_manager
                 area_manager.areas[area_id] = area
             else:
-                return web.json_response(
-                    {"error": f"Area {area_id} not found"}, status=404
-                )
+                return web.json_response({"error": f"Area {area_id} not found"}, status=404)
 
         # Create schedule from frontend data
         # Validate required fields - accept either 'time' (legacy) or 'start_time' (new)
@@ -165,11 +163,7 @@ async def handle_update_schedule(
             existing[k] = v
 
         # If days was provided and is an empty list, treat that as a full deletion request
-        if (
-            "days" in data
-            and isinstance(data.get("days"), list)
-            and len(data.get("days")) == 0
-        ):
+        if "days" in data and isinstance(data.get("days"), list) and len(data.get("days")) == 0:
             area.remove_schedule(schedule_id)
             await area_manager.async_save()
             return web.json_response({"success": True, "deleted": True})

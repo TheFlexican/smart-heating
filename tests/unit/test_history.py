@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
 from smart_heating.history import CLEANUP_INTERVAL, HistoryTracker
 
 

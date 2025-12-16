@@ -12,10 +12,7 @@ from .config_handlers import (
     async_handle_set_opentherm_gateway,
     async_handle_set_trv_temperatures,
 )
-from .device_handlers import (
-    async_handle_add_device,
-    async_handle_remove_device,
-)
+from .device_handlers import async_handle_add_device, async_handle_remove_device
 from .hvac_handlers import (
     async_handle_cancel_boost,
     async_handle_set_boost_mode,
@@ -64,9 +61,7 @@ from .sensor_handlers import (
     async_handle_remove_presence_sensor,
     async_handle_remove_window_sensor,
 )
-from .system_handlers import (
-    async_handle_refresh,
-)
+from .system_handlers import async_handle_refresh
 from .vacation_handlers import (
     async_handle_disable_vacation_mode,
     async_handle_enable_vacation_mode,

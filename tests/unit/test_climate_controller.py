@@ -1,6 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from smart_heating.climate_controller import ClimateController
 
 
@@ -89,6 +90,7 @@ async def test_async_control_heating_heating_path(mock_hass, mock_area_manager):
 import pytest
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
+
 from smart_heating.const import (
     DEFAULT_FROST_PROTECTION_TEMP,
     PRESET_AWAY,
@@ -724,7 +726,7 @@ class TestOpenThermControl:
         mock_area_manager.heating_curve_enabled = False
         mock_area_manager.pid_enabled = False
         mock_area_manager.pwm_enabled = False
-        
+
         # Mock the gateway state to return None to avoid minimum setpoint calculation
         mock_hass.states.get.return_value = None
 

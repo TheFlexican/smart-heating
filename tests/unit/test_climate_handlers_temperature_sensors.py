@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+
 from smart_heating.climate_handlers.temperature_sensors import TemperatureSensorHandler
 from smart_heating.models import Area
 

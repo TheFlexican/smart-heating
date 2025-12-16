@@ -185,9 +185,7 @@ async def handle_get_binary_sensor_entities(hass: HomeAssistant) -> web.Response
                     "entity_id": entity_id,
                     "state": state.state,
                     "attributes": {
-                        "friendly_name": state.attributes.get(
-                            "friendly_name", entity_id
-                        ),
+                        "friendly_name": state.attributes.get("friendly_name", entity_id),
                         "device_class": state.attributes.get("device_class"),
                     },
                 }
@@ -202,9 +200,7 @@ async def handle_get_binary_sensor_entities(hass: HomeAssistant) -> web.Response
                     "entity_id": entity_id,
                     "state": state.state,
                     "attributes": {
-                        "friendly_name": state.attributes.get(
-                            "friendly_name", entity_id
-                        ),
+                        "friendly_name": state.attributes.get("friendly_name", entity_id),
                         "device_class": "presence",  # Virtual device class for filtering
                     },
                 }
@@ -219,9 +215,7 @@ async def handle_get_binary_sensor_entities(hass: HomeAssistant) -> web.Response
                     "entity_id": entity_id,
                     "state": state.state,
                     "attributes": {
-                        "friendly_name": state.attributes.get(
-                            "friendly_name", entity_id
-                        ),
+                        "friendly_name": state.attributes.get("friendly_name", entity_id),
                         "device_class": "presence",  # Virtual device class for filtering
                     },
                 }
@@ -252,9 +246,7 @@ async def handle_get_weather_entities(hass: HomeAssistant) -> web.Response:
                     "entity_id": entity_id,
                     "state": state.state,
                     "attributes": {
-                        "friendly_name": state.attributes.get(
-                            "friendly_name", entity_id
-                        ),
+                        "friendly_name": state.attributes.get("friendly_name", entity_id),
                     },
                 }
             )

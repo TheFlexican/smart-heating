@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+
 from smart_heating.const import DOMAIN
 from smart_heating.opentherm_logger import OpenThermLogger
 from smart_heating.websocket import websocket_get_areas, websocket_subscribe_updates

@@ -390,7 +390,7 @@ class Area:
             )
 
             _LOGGER.debug(
-                "Area %s: preset=%s, use_global_home=%s, global_home_temp=%.1f°C, area_home_temp=%.1f°C, selected_home_temp=%.1f°C",
+                "Area %s: preset=%s use_global_home=%s home_temps global=%.1f area=%.1f selected=%.1f",
                 self.area_id,
                 self.preset_mode,
                 self.use_global_home,

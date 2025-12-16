@@ -8,39 +8,13 @@ on:
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
-  changes:
-    name: Detect changed areas
-    runs-on: ubuntu-latest
-    outputs:
-      frontend: ${{ steps.filter.outputs.frontend }}
-      backend: ${{ steps.filter.outputs.backend }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Check changed paths
-        id: filter
-        uses: dorny/paths-filter@v2
-        with:
-          filters: |
-            frontend:
-              - 'smart_heating/frontend/**'
-              - 'smart_heating/frontend/**' # coverage for nested patterns
-            backend:
-              - 'smart_heating/**/*.py'
-              - 'tests/**'
-
   backend-ci:
     name: Backend CI
-    needs: changes
-    if: needs.changes.outputs.backend == 'true'
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
   frontend-ci:
     name: Frontend CI
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true'
     uses: ./.github/workflows/frontend.yml
 
   integration-complete:

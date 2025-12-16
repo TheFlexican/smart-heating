@@ -25,9 +25,7 @@ async def async_handle_add_device(
     device_id = call.data[ATTR_DEVICE_ID]
     device_type = call.data[ATTR_DEVICE_TYPE]
 
-    _LOGGER.debug(
-        "Adding device %s (type: %s) to area %s", device_id, device_type, area_id
-    )
+    _LOGGER.debug("Adding device %s (type: %s) to area %s", device_id, device_type, area_id)
 
     try:
         area_manager.add_device_to_area(area_id, device_id, device_type)

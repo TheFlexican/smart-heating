@@ -129,9 +129,7 @@ class AreaHeatingCurveSensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{entry.entry_id}_heating_curve_{self._area.area_id}"
         self._curve = HeatingCurve(
             heating_system=(
-                "underfloor"
-                if self._area.heating_type == "floor_heating"
-                else "radiator"
+                "underfloor" if self._area.heating_type == "floor_heating" else "radiator"
             ),
             coefficient=1.0,
         )
