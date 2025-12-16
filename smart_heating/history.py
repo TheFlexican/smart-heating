@@ -7,8 +7,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from homeassistant.components.recorder import get_instance
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.recorder import get_instance
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from sqlalchemy import (
@@ -38,6 +38,11 @@ CLEANUP_INTERVAL = timedelta(hours=1)  # Run cleanup every hour
 
 # Database table name
 DB_TABLE_NAME = "smart_heating_history"
+
+# Error messages
+ERROR_RECORDER_NOT_AVAILABLE = "Recorder or database engine not available"
+ERROR_DB_ENGINE_NONE = "Database engine is None"
+ERROR_DB_TABLE_NONE = "Database table is None"
 
 
 class HistoryTracker:
@@ -152,8 +157,11 @@ class HistoryTracker:
             )
 
             # Create table if it doesn't exist
-            metadata.create_all(self._db_engine)
-            _LOGGER.info("Database table '%s' ready for history storage", DB_TABLE_NAME)
+            if self._db_engine is not None:
+                metadata.create_all(self._db_engine)
+                _LOGGER.info("Database table '%s' ready for history storage", DB_TABLE_NAME)
+            else:
+                raise RuntimeError("Database engine is None, cannot create table")
 
         except Exception as e:
             _LOGGER.error("Failed to initialize database table: %s, falling back to JSON", e)
@@ -211,8 +219,14 @@ class HistoryTracker:
         """Load history from database."""
         try:
             recorder = get_instance(self.hass)
+            if not recorder or not recorder.engine:
+                raise RuntimeError(ERROR_RECORDER_NOT_AVAILABLE)
 
             def _load():
+                if recorder.engine is None:
+                    raise RuntimeError(ERROR_DB_ENGINE_NONE)
+                if self._db_table is None:
+                    raise RuntimeError(ERROR_DB_TABLE_NONE)
                 with recorder.engine.connect() as conn:
                     # Load retention setting from JSON config
                     stmt = select(self._db_table).order_by(self._db_table.c.timestamp.desc())
@@ -302,7 +316,7 @@ class HistoryTracker:
         cutoff_iso = cutoff.isoformat()
 
         total_removed = 0
-        for area_id in list(self._history.keys()):
+        for area_id in self._history.keys():
             original_count = len(self._history[area_id])
             self._history[area_id] = [
                 entry for entry in self._history[area_id] if entry["timestamp"] > cutoff_iso
@@ -329,9 +343,15 @@ class HistoryTracker:
         """Clean up old entries in database storage."""
         try:
             recorder = get_instance(self.hass)
+            if not recorder or not recorder.engine:
+                raise RuntimeError(ERROR_RECORDER_NOT_AVAILABLE)
             cutoff = datetime.now() - timedelta(days=self._retention_days)
 
             def _cleanup():
+                if recorder.engine is None:
+                    raise RuntimeError(ERROR_DB_ENGINE_NONE)
+                if self._db_table is None:
+                    raise RuntimeError(ERROR_DB_TABLE_NONE)
                 with recorder.engine.connect() as conn:
                     stmt = delete(self._db_table).where(self._db_table.c.timestamp < cutoff)
                     result = conn.execute(stmt)
@@ -416,8 +436,14 @@ class HistoryTracker:
         """Save a single entry to the database."""
         try:
             recorder = get_instance(self.hass)
+            if not recorder or not recorder.engine:
+                raise RuntimeError(ERROR_RECORDER_NOT_AVAILABLE)
 
             def _insert():
+                if recorder.engine is None:
+                    raise RuntimeError(ERROR_DB_ENGINE_NONE)
+                if self._db_table is None:
+                    raise RuntimeError(ERROR_DB_TABLE_NONE)
                 with recorder.engine.connect() as conn:
                     stmt = self._db_table.insert().values(
                         area_id=area_id,
@@ -604,8 +630,14 @@ class HistoryTracker:
             self._init_database_table()
 
         recorder = get_instance(self.hass)
+        if not recorder or not recorder.engine:
+            raise RuntimeError(ERROR_RECORDER_NOT_AVAILABLE)
 
         def _batch_insert():
+            if recorder.engine is None:
+                raise RuntimeError(ERROR_DB_ENGINE_NONE)
+            if self._db_table is None:
+                raise RuntimeError(ERROR_DB_TABLE_NONE)
             with recorder.engine.connect() as conn:
                 for area_id, entries in self._history.items():
                     for entry in entries:
@@ -618,7 +650,7 @@ class HistoryTracker:
                             state=entry["state"],
                         )
                         conn.execute(stmt)
-                conn.commit()
+            conn.commit()
 
         await recorder.async_add_executor_job(_batch_insert)
         _LOGGER.info("Migrated all entries to database")
@@ -643,8 +675,14 @@ class HistoryTracker:
 
         try:
             recorder = get_instance(self.hass)
+            if not recorder or not recorder.engine:
+                raise RuntimeError(ERROR_RECORDER_NOT_AVAILABLE)
 
             def _get_stats():
+                if recorder.engine is None:
+                    raise RuntimeError(ERROR_DB_ENGINE_NONE)
+                if self._db_table is None:
+                    raise RuntimeError(ERROR_DB_TABLE_NONE)
                 with recorder.engine.connect() as conn:
                     # Count total entries
                     stmt = select(self._db_table.c.id)
@@ -669,8 +707,12 @@ class HistoryTracker:
                     return {
                         "total_entries": total,
                         "entries_by_area": area_counts,
-                        "oldest_entry": (result.oldest.isoformat() if result.oldest else None),
-                        "newest_entry": (result.newest.isoformat() if result.newest else None),
+                        "oldest_entry": (
+                            result.oldest.isoformat() if result and result.oldest else None
+                        ),
+                        "newest_entry": (
+                            result.newest.isoformat() if result and result.newest else None
+                        ),
                     }
 
             stats = await recorder.async_add_executor_job(_get_stats)

@@ -8,9 +8,9 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
-from homeassistant.components.recorder import get_instance
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.recorder import get_instance
 from sqlalchemy import (
     Boolean,
     Column,
@@ -122,6 +122,9 @@ class AdvancedMetricsCollector:
                 return False
 
             self._db_engine = recorder.engine
+            if not self._db_engine:
+                _LOGGER.warning("Database engine not available")
+                return False
 
             metadata = MetaData()
             self._db_table = Table(
@@ -312,6 +315,11 @@ class AdvancedMetricsCollector:
         Args:
             insert_data: Data to insert
         """
+        if self._db_engine is None or self._db_table is None:
+            return
+
+        assert self._db_engine is not None  # Type narrowing for mypy/pylance
+        assert self._db_table is not None  # Type narrowing for mypy/pylance
         with self._db_engine.begin() as conn:
             conn.execute(self._db_table.insert().values(**insert_data))
 
@@ -347,6 +355,8 @@ class AdvancedMetricsCollector:
         Returns:
             Number of deleted records
         """
+        assert self._db_engine is not None  # Type narrowing for mypy/pylance
+        assert self._db_table is not None  # Type narrowing for mypy/pylance
         with self._db_engine.begin() as conn:
             result = conn.execute(
                 delete(self._db_table).where(self._db_table.c.timestamp < cutoff_date)
@@ -394,6 +404,8 @@ class AdvancedMetricsCollector:
         Returns:
             List of metric records
         """
+        assert self._db_engine is not None  # Type narrowing for mypy/pylance
+        assert self._db_table is not None  # Type narrowing for mypy/pylance
         with self._db_engine.connect() as conn:
             stmt = (
                 select(self._db_table)

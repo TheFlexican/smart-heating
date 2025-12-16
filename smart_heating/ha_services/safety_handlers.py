@@ -29,6 +29,9 @@ async def async_handle_set_safety_sensor(
         safety_monitor = hass.data.get(DOMAIN, {}).get("safety_monitor")
 
         sensor_id = call.data.get("sensor_id")
+        if not sensor_id:
+            raise ValueError("sensor_id is required")
+
         attribute = call.data.get("attribute", "smoke")
         alert_value = call.data.get("alert_value", True)
         enabled = call.data.get("enabled", True)
@@ -68,6 +71,8 @@ async def async_handle_remove_safety_sensor(
         safety_monitor = hass.data.get(DOMAIN, {}).get("safety_monitor")
 
         sensor_id = call.data.get("sensor_id")
+        if not sensor_id:
+            raise ValueError("sensor_id is required")
 
         area_manager.remove_safety_sensor(sensor_id)
         await area_manager.async_save()

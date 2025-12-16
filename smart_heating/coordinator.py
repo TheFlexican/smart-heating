@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -257,15 +257,15 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
                 break
 
     @callback
-    def _handle_state_change(self, event: Event) -> None:
+    def _handle_state_change(self, event: Event[EventStateChangedData]) -> None:
         """Handle state changes of tracked entities.
 
         Args:
             event: State change event
         """
-        entity_id = event.data.get("entity_id")
-        old_state = event.data.get("old_state")
-        new_state = event.data.get("new_state")
+        entity_id = event.data["entity_id"]
+        old_state = event.data["old_state"]
+        new_state = event.data["new_state"]
 
         if not new_state:
             return
@@ -299,8 +299,9 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             self._unsub_state_listener = None
         # Cancel grace period task
         try:
-            if getattr(self, "_grace_period_task", None):
-                self._grace_period_task.cancel()
+            grace_period_task = getattr(self, "_grace_period_task", None)
+            if grace_period_task is not None:
+                grace_period_task.cancel()
                 self._grace_period_task = None
         except Exception:
             pass

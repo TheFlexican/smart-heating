@@ -225,13 +225,15 @@ class ClimateController:
 
         # Check for manual override mode
         if hasattr(area, "manual_override") and area.manual_override:
-            await self.protection_handler.async_handle_manual_override(
-                area_id, area, self.device_handler
-            )
+            if self.protection_handler:
+                await self.protection_handler.async_handle_manual_override(
+                    area_id, area, self.device_handler
+                )
             return None, None
 
         # Check for vacation mode (applies in place)
-        self.protection_handler.apply_vacation_mode(area_id, area)
+        if self.protection_handler:
+            self.protection_handler.apply_vacation_mode(area_id, area)
 
         # Get effective target temperature
         target_temp = self._get_and_log_target_temp(area_id, area, current_time)
@@ -307,13 +309,14 @@ class ClimateController:
     async def _handle_disabled_area(self, area_id, area, history_tracker, should_record_history):
         """Handle an area that is disabled and return True if processing should stop."""
         if not area.enabled:
-            await self.protection_handler.async_handle_disabled_area(
-                area_id,
-                area,
-                self.device_handler,
-                history_tracker,
-                should_record_history,
-            )
+            if self.protection_handler:
+                await self.protection_handler.async_handle_disabled_area(
+                    area_id,
+                    area,
+                    self.device_handler,
+                    history_tracker,
+                    should_record_history,
+                )
             return True
         return False
 
@@ -398,6 +401,9 @@ class ClimateController:
         should_stop_cool,
     ):
         """Handle the cycle action based on heating/cooling flags and returns possible heating list and max temp."""
+        if not self.cycle_handler:
+            return None, None
+
         if heating:
             (
                 area_heating,

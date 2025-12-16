@@ -812,7 +812,7 @@ class Area:
         area = cls(
             area_id=data[ATTR_AREA_ID],
             # Accept both 'area_name' and 'name' keys for compatibility with tests
-            name=data.get(ATTR_AREA_NAME, data.get("name")),
+            name=data.get(ATTR_AREA_NAME) or data.get("name") or "Unnamed Area",
             target_temperature=data.get(ATTR_TARGET_TEMPERATURE, 20.0),
             enabled=data.get(ATTR_ENABLED, True),
         )

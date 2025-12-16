@@ -6,7 +6,7 @@ Monitors smoke and carbon monoxide sensors to trigger emergency heating shutdown
 import logging
 from typing import TYPE_CHECKING
 
-from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
 
 from .const import DOMAIN
@@ -94,7 +94,7 @@ class SafetyMonitor:
             _LOGGER.warning("No enabled safety sensors configured, skipping listener setup")
 
     @callback
-    def _handle_safety_sensor_state_change(self, event: Event) -> None:
+    def _handle_safety_sensor_state_change(self, event: Event[EventStateChangedData]) -> None:
         """Handle state changes of safety sensor.
 
         Args:
@@ -132,7 +132,7 @@ class SafetyMonitor:
         """Check safety sensor status and trigger shutdown if needed."""
         is_alert, alerting_sensor_id = self.area_manager.check_safety_sensor_status()
 
-        if is_alert and not self._emergency_shutdown_active:
+        if is_alert and not self._emergency_shutdown_active and alerting_sensor_id:
             # Safety alert detected - trigger emergency shutdown
             _LOGGER.error(
                 "\ud83d\udea8 SAFETY ALERT DETECTED on %s! Triggering emergency heating shutdown!",

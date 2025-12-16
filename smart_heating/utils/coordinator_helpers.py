@@ -2,6 +2,7 @@
 
 import inspect
 import logging
+from collections.abc import Callable
 from typing import Any, Dict, Optional
 
 from homeassistant.core import HomeAssistant
@@ -36,7 +37,7 @@ def get_coordinator(hass: HomeAssistant) -> Optional[Any]:
     return None
 
 
-async def call_maybe_async(func: callable, /, *args, **kwargs) -> Any:
+async def call_maybe_async(func: Callable, /, *args, **kwargs) -> Any:
     """Call a function that may be sync or async and return the result.
 
     If the function returns an awaitable, await it and return the awaited

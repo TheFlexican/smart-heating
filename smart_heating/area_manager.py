@@ -361,7 +361,21 @@ class AreaManager:
         if area is None:
             raise ValueError(f"Area {area_id} does not exist")
 
-        schedule = Schedule(schedule_id, time, temperature, days)
+        # Convert day names to integers if provided
+        day_indices = None
+        if days is not None:
+            day_map = {
+                "monday": 0,
+                "tuesday": 1,
+                "wednesday": 2,
+                "thursday": 3,
+                "friday": 4,
+                "saturday": 5,
+                "sunday": 6,
+            }
+            day_indices = [day_map[day.lower()] for day in days if day.lower() in day_map]
+
+        schedule = Schedule(schedule_id, time, temperature, day_indices)
         area.add_schedule(schedule)
         _LOGGER.info("Added schedule %s to area %s", schedule_id, area_id)
         return schedule

@@ -1,13 +1,9 @@
 """Climate platform for Smart Heating integration."""
 
-import inspect
 import logging
 
-from homeassistant.components.climate import (
-    ClimateEntity,
-    ClimateEntityFeature,
-    HVACMode,
-)
+from homeassistant.components.climate import ClimateEntity
+from homeassistant.components.climate.const import ClimateEntityFeature, HVACMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
@@ -45,16 +41,15 @@ async def async_setup_entry(
     for _area_id, area in area_manager.get_all_areas().items():
         entities.append(AreaClimate(coordinator, entry, area))
 
-    # Add entities (handle both sync and async callbacks)
-    _maybe_result = async_add_entities(entities)
-    if inspect.isawaitable(_maybe_result):
-        await _maybe_result
+    # Add entities
+    async_add_entities(entities)
     _LOGGER.info("Smart Heating climate platform setup complete with %d areas", len(entities))
 
 
 class AreaClimate(CoordinatorEntity, ClimateEntity):
     """Representation of a Zone Climate control."""
 
+    coordinator: SmartHeatingCoordinator
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE

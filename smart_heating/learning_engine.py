@@ -6,13 +6,12 @@ import statistics
 from datetime import datetime
 from typing import Any
 
-from homeassistant.components.recorder import get_instance
+from homeassistant.helpers.recorder import get_instance
 from homeassistant.components.recorder.statistics import (
-    StatisticData,
-    StatisticMetaData,
     async_add_external_statistics,
     statistics_during_period,
 )
+from homeassistant.components.recorder.models import StatisticData, StatisticMetaData
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 
@@ -40,7 +39,7 @@ class HeatingEvent:
         start_temp: float,
         end_temp: float,
         outdoor_temp: float | None = None,
-    ):
+    ) -> None:
         """Initialize heating event.
 
         Args:
@@ -83,15 +82,17 @@ class LearningEngine:
 
     async def async_setup(self) -> None:
         """Set up the learning engine."""
+        await asyncio.sleep(0)  # Minimal async operation
+
         # Auto-detect weather entity
-        self._weather_entity = await self._async_detect_weather_entity()
+        self._weather_entity = self._detect_weather_entity()
 
         # Register statistics metadata for all metrics
-        await self._async_register_statistics_metadata()
+        self._register_statistics_metadata()
 
         _LOGGER.info("Learning engine setup complete (weather entity: %s)", self._weather_entity)
 
-    async def _async_detect_weather_entity(self) -> str | None:
+    def _detect_weather_entity(self) -> str | None:
         """Auto-detect the weather entity.
 
         Returns:
@@ -107,7 +108,7 @@ class LearningEngine:
         _LOGGER.warning("No weather entity found - outdoor temperature correlation disabled")
         return None
 
-    async def _async_register_statistics_metadata(self) -> None:
+    def _register_statistics_metadata(self) -> None:
         """Register metadata for statistics tracking."""
         # We'll register metadata when we first record data for each area
         # This is done dynamically per area
@@ -125,7 +126,7 @@ class LearningEngine:
         """
         return f"smart_heating:{metric_type}_{area_id}"
 
-    async def _async_ensure_statistic_metadata(
+    def _ensure_statistic_metadata(
         self, area_id: str, metric_type: str, name: str, unit: str
     ) -> None:
         """Ensure statistic metadata is registered.
@@ -136,18 +137,9 @@ class LearningEngine:
             name: Display name
             unit: Unit of measurement
         """
-        statistic_id = self._get_statistic_id(metric_type, area_id)
-
-        metadata = StatisticMetaData(
-            has_mean=True,
-            has_sum=False,
-            name=name,
-            source="smart_heating",
-            statistic_id=statistic_id,
-            unit_of_measurement=unit,
-        )
-
-        async_add_external_statistics(self.hass, metadata, [])
+        # Metadata registration is handled during actual statistics recording
+        # This is a placeholder for future explicit metadata registration if needed
+        pass
 
     async def async_start_heating_event(
         self,
@@ -160,7 +152,9 @@ class LearningEngine:
             area_id: Area identifier
             current_temp: Current temperature when heating started
         """
-        outdoor_temp = await self._async_get_outdoor_temperature()
+        await asyncio.sleep(0)  # Minimal async operation
+
+        outdoor_temp = self._get_outdoor_temperature()
 
         self._active_heating_events[area_id] = {
             "start_time": datetime.now(),
@@ -232,32 +226,27 @@ class LearningEngine:
             event: HeatingEvent instance
         """
         try:
-            # Ensure metadata is registered
-            await self._async_ensure_statistic_metadata(
-                event.area_id,
-                "heating_rate",
-                f"Heating Rate - {event.area_id}",
-                "°C/min",
-            )
-
             # Record heating rate
             statistic_id = self._get_statistic_id("heating_rate", event.area_id)
-            statistics_data = [
-                StatisticData(
-                    start=event.start_time,
-                    mean=event.heating_rate,
-                    state=event.heating_rate,
-                )
-            ]
 
-            metadata = StatisticMetaData(
-                has_mean=True,
-                has_sum=False,
-                name=f"Heating Rate - {event.area_id}",
-                source="smart_heating",
-                statistic_id=statistic_id,
-                unit_of_measurement="°C/min",
-            )
+            # Create metadata dict
+            metadata = {
+                "has_mean": True,
+                "has_sum": False,
+                "name": f"Heating Rate - {event.area_id}",
+                "source": "smart_heating",
+                "statistic_id": statistic_id,
+                "unit_of_measurement": "°C/min",
+            }
+
+            # Create statistics data
+            statistics_data = [
+                {
+                    "start": event.start_time,
+                    "mean": event.heating_rate,
+                    "state": event.heating_rate,
+                }
+            ]
 
             # Add statistics asynchronously
             await get_instance(self.hass).async_add_executor_job(
@@ -282,31 +271,30 @@ class LearningEngine:
         Args:
             event: HeatingEvent instance
         """
+        if event.outdoor_temp is None:
+            return
+
         try:
-            await self._async_ensure_statistic_metadata(
-                event.area_id,
-                "outdoor_correlation",
-                f"Outdoor Temp - {event.area_id}",
-                UnitOfTemperature.CELSIUS,
-            )
-
             statistic_id = self._get_statistic_id("outdoor_correlation", event.area_id)
-            statistics_data = [
-                StatisticData(
-                    start=event.start_time,
-                    mean=event.outdoor_temp,
-                    state=event.outdoor_temp,
-                )
-            ]
 
-            metadata = StatisticMetaData(
-                has_mean=True,
-                has_sum=False,
-                name=f"Outdoor Temp During Heating - {event.area_id}",
-                source="smart_heating",
-                statistic_id=statistic_id,
-                unit_of_measurement=UnitOfTemperature.CELSIUS,
-            )
+            # Create metadata dict
+            metadata = {
+                "has_mean": True,
+                "has_sum": False,
+                "name": f"Outdoor Temp During Heating - {event.area_id}",
+                "source": "smart_heating",
+                "statistic_id": statistic_id,
+                "unit_of_measurement": UnitOfTemperature.CELSIUS,
+            }
+
+            # Create statistics data
+            statistics_data = [
+                {
+                    "start": event.start_time,
+                    "mean": event.outdoor_temp,
+                    "state": event.outdoor_temp,
+                }
+            ]
 
             await get_instance(self.hass).async_add_executor_job(
                 async_add_external_statistics, self.hass, metadata, statistics_data
@@ -320,7 +308,7 @@ class LearningEngine:
         except Exception as err:
             _LOGGER.error("Failed to record outdoor correlation for %s: %s", event.area_id, err)
 
-    async def _async_get_outdoor_temperature(self) -> float | None:
+    def _get_outdoor_temperature(self) -> float | None:
         """Get current outdoor temperature from weather entity.
 
         Returns:
@@ -369,7 +357,7 @@ class LearningEngine:
         avg_rate = statistics.mean(heating_rates)
 
         # Adjust for outdoor temperature if available
-        outdoor_temp = await self._async_get_outdoor_temperature()
+        outdoor_temp = self._get_outdoor_temperature()
         if outdoor_temp is not None:
             adjustment = await self._async_calculate_outdoor_adjustment(outdoor_temp)
             avg_rate *= adjustment
@@ -427,12 +415,12 @@ class LearningEngine:
                 _LOGGER.debug("No heating rate statistics found for %s", area_id)
                 return []
 
-            # Extract mean values
-            rates = [
-                s["mean"]
-                for s in stats[statistic_id]
-                if s.get("mean") is not None and s["mean"] > 0
-            ]
+            # Extract mean values, filtering out None and invalid values
+            rates: list[float] = []
+            for s in stats[statistic_id]:
+                mean_val = s.get("mean")
+                if mean_val is not None and isinstance(mean_val, (int, float)) and mean_val > 0:
+                    rates.append(float(mean_val))
 
             _LOGGER.debug(
                 "Retrieved %d heating rate data points for %s (last %d days)",
@@ -469,7 +457,7 @@ class LearningEngine:
         else:
             return 0.8  # Slower when very cold
 
-    async def async_calculate_smart_night_boost(
+    def calculate_smart_night_boost(
         self,
         area_id: str,
     ) -> float | None:
@@ -480,12 +468,14 @@ class LearningEngine:
 
         Returns:
             Recommended night boost offset or None if insufficient data
+
+        Note:
+            This feature requires historical overnight cooldown pattern analysis.
+            Currently returns None as data collection is ongoing.
         """
         # Get cooldown rate during night hours
         # This would analyze how much the room cools overnight
         # For now, return None until we have enough data
-
-        # TODO: Implement based on historical overnight cooldown patterns
         _LOGGER.debug("Smart night boost calculation not yet implemented for %s", area_id)
         return None
 

@@ -2,13 +2,100 @@
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Sequence
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class Schedule:
     """Representation of a temperature schedule."""
+
+    @staticmethod
+    def _normalize_single_day(day: int | str) -> int:
+        """Normalize a single day value to numeric index (0=Monday).
+
+        Args:
+            day: Day as int index or string short code
+
+        Returns:
+            Normalized day index (0-6)
+        """
+        if isinstance(day, int):
+            return int(day % 7)
+
+        if isinstance(day, str):
+            day_key = day.strip().lower()
+            short_to_index = {
+                "mon": 0,
+                "tue": 1,
+                "wed": 2,
+                "thu": 3,
+                "fri": 4,
+                "sat": 5,
+                "sun": 6,
+            }
+            if day_key in short_to_index:
+                return short_to_index[day_key]
+            raise ValueError(
+                "Invalid 'day' string format: use numeric index (0=Monday) or short code 'mon'"
+            )
+
+        return int(day)
+
+    @staticmethod
+    def _normalize_day_list(days: Sequence[int | str]) -> list[int]:
+        """Normalize a list of days to numeric indices.
+
+        Args:
+            days: Sequence of days as int indices or string short codes
+
+        Returns:
+            List of normalized day indices (0-6)
+        """
+        result = []
+        for d in days:
+            if isinstance(d, int):
+                result.append(int(d % 7))
+            elif isinstance(d, str):
+                key = d.strip().lower()
+                short_to_index = {
+                    "mon": 0,
+                    "tue": 1,
+                    "wed": 2,
+                    "thu": 3,
+                    "fri": 4,
+                    "sat": 5,
+                    "sun": 6,
+                }
+                if key in short_to_index:
+                    result.append(short_to_index[key])
+                else:
+                    raise ValueError(
+                        "Invalid 'days' string format: use numeric indices (0=Monday) or short codes (mon)"
+                    )
+        return result
+
+    def _init_days(self, day: int | str | None, days: list[int] | None, date: str | None) -> None:
+        """Initialize day/days attributes based on input parameters.
+
+        Args:
+            day: Single day (int or string)
+            days: List of days
+            date: Specific date (if set, day/days are not used)
+        """
+        if date:
+            self.day = None
+            self.days = None
+        elif day is not None:
+            normalized_day = self._normalize_single_day(day)
+            self.day = normalized_day
+            self.days = [normalized_day]
+        elif days:
+            self.days = self._normalize_day_list(days)
+            self.day = self.days[0] if self.days else 0
+        else:
+            self.days = [0, 1, 2, 3, 4, 5, 6]
+            self.day = 0
 
     def __init__(
         self,
@@ -38,78 +125,16 @@ class Schedule:
             date: Specific date for one-time schedules (YYYY-MM-DD format)
         """
         self.schedule_id = schedule_id
-        # Support both old and new formats
         self.time = start_time or time
         self.start_time = start_time or time
-        self.end_time = end_time or "23:59"  # Default end time
+        self.end_time = end_time or "23:59"
         self.temperature = temperature
         self.preset_mode = preset_mode
-        self.date = date  # Specific date for one-time schedules
-
-        # Use numeric indices internally: 0=Monday .. 6=Sunday
-
-        # If date is specified, this is a date-specific schedule (not recurring weekly)
-        if date:
-            self.day = None
-            self.days = None
-        elif day is not None:
-            # Normalize localized day to English full name if possible
-            if isinstance(day, int):
-                normalized_day = int(day % 7)
-            elif isinstance(day, str):
-                day_key = day.strip().lower()
-                short_codes = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
-                if day_key in short_codes:
-                    short_to_index = {
-                        "mon": 0,
-                        "tue": 1,
-                        "wed": 2,
-                        "thu": 3,
-                        "fri": 4,
-                        "sat": 5,
-                        "sun": 6,
-                    }
-                    normalized_day = short_to_index[day_key]
-                else:
-                    raise ValueError(
-                        "Invalid 'day' string format: use numeric index (0=Monday) or short code 'mon'"
-                    )
-            else:
-                normalized_day = day
-            self.day = int(normalized_day)
-            self.days = [int(normalized_day)]
-        elif days:
-            # Accept days as list of short codes ("mon") or numeric indices (0=Monday)
-            def normalize_day_item(d):
-                if isinstance(d, int):
-                    return int(d % 7)
-                if isinstance(d, str):
-                    key = d.strip().lower()
-                    if key in {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}:
-                        short_to_index = {
-                            "mon": 0,
-                            "tue": 1,
-                            "wed": 2,
-                            "thu": 3,
-                            "fri": 4,
-                            "sat": 5,
-                            "sun": 6,
-                        }
-                        return short_to_index.get(key)
-                    # Reject full English or localized day names to enforce indices/short codes
-                    raise ValueError(
-                        "Invalid 'days' string format: use numeric indices (0=Monday) or short codes (mon)"
-                    )
-                return d
-
-            self.days = [normalize_day_item(x) for x in days]
-            # Use first day for display (as index)
-            self.day = int(self.days[0]) if self.days else 0
-        else:
-            self.days = [0, 1, 2, 3, 4, 5, 6]
-            self.day = 0
-
+        self.date = date
         self.enabled = enabled
+
+        # Initialize day/days attributes
+        self._init_days(day, days, date)
 
     def is_active(self, current_time: datetime) -> bool:
         """Check if schedule is active at given time.

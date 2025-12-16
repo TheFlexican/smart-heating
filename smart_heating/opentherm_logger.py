@@ -113,7 +113,7 @@ class OpenThermLogger:
         floor_heating_count: Optional[int] = None,
         radiator_count: Optional[int] = None,
     ) -> dict[str, Any]:
-        data = {"state": state}
+        data: dict[str, Any] = {"state": state}
         if setpoint is not None:
             data["setpoint"] = round(setpoint, 1)
         if heating_areas is not None:

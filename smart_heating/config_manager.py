@@ -50,7 +50,7 @@ class ConfigManager:
         global_settings = {
             "frost_protection": {
                 "enabled": self.area_manager.frost_protection_enabled,
-                "min_temperature": self.area_manager.frost_protection_min_temp,
+                "min_temperature": self.area_manager.frost_protection_temp,
             },
             "global_presets": {
                 "away_temp": self.area_manager.global_away_temp,
@@ -203,7 +203,7 @@ class ConfigManager:
         if "frost_protection" in settings:
             fp = settings["frost_protection"]
             self.area_manager.frost_protection_enabled = fp.get("enabled", True)
-            self.area_manager.frost_protection_min_temp = fp.get("min_temperature", 10.0)
+            self.area_manager.frost_protection_temp = fp.get("min_temperature", 10.0)
 
         # Global presets
         if "global_presets" in settings:
@@ -230,7 +230,7 @@ class ConfigManager:
 
         # Safety sensors
         if "safety_sensors" in settings:
-            self.area_manager.set_safety_sensors(settings["safety_sensors"])
+            self.area_manager.safety_sensors = settings["safety_sensors"]
 
         # Save to storage
         await self.area_manager.async_save()
@@ -258,12 +258,19 @@ class ConfigManager:
                     self._apply_update_to_area(area, area_data)
                     changes["areas_updated"] += 1
             else:
-                # Create new area and apply configuration
-                self.area_manager.create_area(area_id, area_data.get("name", area_id))
-                area = self.area_manager.get_area(area_id)
-                if area:
-                    self._apply_update_to_area(area, area_data)
-                    changes["areas_created"] += 1
+                # Create new area instance and apply configuration
+                from .models import Area
+
+                area = Area(
+                    area_id=area_id,
+                    name=area_data.get("name", area_id),
+                    target_temperature=area_data.get("target_temperature", 20.0),
+                    enabled=area_data.get("enabled", True),
+                )
+                area.area_manager = self.area_manager
+                self.area_manager.areas[area_id] = area
+                self._apply_update_to_area(area, area_data)
+                changes["areas_created"] += 1
 
         # Note: We don't automatically delete areas that aren't in the import
         # This is a safety feature - user must manually delete if desired

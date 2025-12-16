@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime, time, timedelta
-from typing import Optional
+from typing import Optional, Any, Dict
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
@@ -43,7 +43,9 @@ class ScheduleExecutor:
         self.area_manager = area_manager
         self.learning_engine = learning_engine
         self._unsub_interval = None
-        self._last_applied_schedule = {}  # Track last applied schedule per area
+        self._last_applied_schedule: Dict[str, str] = {}  # Track last applied schedule per area
+        # Optional area-level logger (injected by caller)
+        self.area_logger: Optional[Any] = None
         _LOGGER.info("Schedule executor initialized")
 
     async def async_start(self) -> None:
@@ -112,43 +114,45 @@ class ScheduleExecutor:
         areas = self.area_manager.get_all_areas()
 
         for area_id, area in areas.items():
-            if not area.enabled:
-                _LOGGER.debug("Area %s is disabled, skipping schedule check", area.name)
-                continue
+            await self._process_area_schedule(area_id, area, current_time, current_day_idx, now)
 
-            # Handle smart night boost prediction
-            if area.smart_night_boost_enabled and self.learning_engine:
-                await self._handle_smart_night_boost(area, now)
+    async def _process_area_schedule(
+        self, area_id: str, area: Area, current_time: time, current_day_idx: int, now: datetime
+    ) -> None:
+        """Process schedules and smart night boost for a single area."""
+        if not area.enabled:
+            _LOGGER.debug("Area %s is disabled, skipping schedule check", area.name)
+            return
 
-            if not area.schedules:
-                continue
+        # Handle smart night boost prediction
+        if area.smart_night_boost_enabled and self.learning_engine:
+            await self._handle_smart_night_boost(area, now)
 
-            # Find active schedule for current day/time
-            active_schedule = self._find_active_schedule(
-                area.schedules,
-                current_day_idx,
-                current_time,
-            )
+        if not area.schedules:
+            return
 
-            if active_schedule:
-                schedule_key = f"{area_id}_{active_schedule.schedule_id}"
+        # Find active schedule for current day/time
+        active_schedule = self._find_active_schedule(area.schedules, current_day_idx, current_time)
 
-                # Only apply if this schedule hasn't been applied yet
-                # (to avoid setting temperature every minute)
-                if self._last_applied_schedule.get(area_id) != schedule_key:
-                    await self._apply_schedule(area, active_schedule)
-                    self._last_applied_schedule[area_id] = schedule_key
+        if active_schedule:
+            schedule_key = f"{area_id}_{active_schedule.schedule_id}"
 
-            else:
-                # No active schedule, clear the tracking
-                if area_id in self._last_applied_schedule:
-                    del self._last_applied_schedule[area_id]
-                    _LOGGER.debug(
-                        "No active schedule for area %s at %s %s",
-                        area.name,
-                        DAYS_OF_WEEK[current_day_idx],
-                        current_time.strftime("%H:%M"),
-                    )
+            # Only apply if this schedule hasn't been applied yet
+            # (to avoid setting temperature every minute)
+            if self._last_applied_schedule.get(area_id) != schedule_key:
+                await self._apply_schedule(area, active_schedule)
+                self._last_applied_schedule[area_id] = schedule_key
+
+        else:
+            # No active schedule, clear the tracking
+            if area_id in self._last_applied_schedule:
+                del self._last_applied_schedule[area_id]
+                _LOGGER.debug(
+                    "No active schedule for area %s at %s %s",
+                    area.name,
+                    DAYS_OF_WEEK[current_day_idx],
+                    current_time.strftime("%H:%M"),
+                )
 
     def _get_previous_day(self, current_day: "str | int") -> int:
         """Get the previous day name.
@@ -212,7 +216,7 @@ class ScheduleExecutor:
         raise ValueError("Invalid day input: expected int index or day name/short code")
 
     def _is_time_in_midnight_crossing_schedule_from_previous_day(
-        self, schedule: dict, current_time: time
+        self, schedule: Schedule, current_time: time
     ) -> bool:
         """Check if current time falls in a midnight-crossing schedule from previous day.
 
@@ -239,7 +243,7 @@ class ScheduleExecutor:
         return False
 
     def _is_time_in_midnight_crossing_schedule_today(
-        self, schedule: dict, current_time: time
+        self, schedule: Schedule, current_time: time
     ) -> bool:
         """Check if current time falls in a midnight-crossing schedule starting today.
 
@@ -265,7 +269,7 @@ class ScheduleExecutor:
                 return True
         return False
 
-    def _is_time_in_normal_schedule(self, schedule: dict, current_time: time) -> bool:
+    def _is_time_in_normal_schedule(self, schedule: Schedule, current_time: time) -> bool:
         """Check if current time falls in a normal (non-midnight-crossing) schedule.
 
         Args:
@@ -291,10 +295,10 @@ class ScheduleExecutor:
 
     def _find_active_schedule(
         self,
-        schedules: dict,
+        schedules: Dict[str, Schedule],
         current_day: "str | int",
         current_time: time,
-    ) -> Optional[dict]:
+    ) -> Optional[Schedule]:
         """Find the active schedule for the given day and time.
 
         Handles schedules that cross midnight (e.g., Saturday 22:00 - Sunday 07:00).
@@ -325,8 +329,8 @@ class ScheduleExecutor:
         return self._find_normal_schedule(schedules, current_day_normalized, current_time)
 
     def _find_previous_day_schedule(
-        self, schedules: dict, previous_day: int, current_time: time
-    ) -> Optional[dict]:
+        self, schedules: Dict[str, Schedule], previous_day: int, current_time: time
+    ) -> Optional[Schedule]:
         for schedule in schedules.values():
             if (
                 schedule.day == previous_day
@@ -338,8 +342,8 @@ class ScheduleExecutor:
         return None
 
     def _find_midnight_crossing_today_schedule(
-        self, schedules: dict, current_day: int, current_time: time
-    ) -> Optional[dict]:
+        self, schedules: Dict[str, Schedule], current_day: int, current_time: time
+    ) -> Optional[Schedule]:
         for schedule in schedules.values():
             if schedule.day == current_day and self._is_time_in_midnight_crossing_schedule_today(
                 schedule, current_time
@@ -348,8 +352,8 @@ class ScheduleExecutor:
         return None
 
     def _find_normal_schedule(
-        self, schedules: dict, current_day: int, current_time: time
-    ) -> Optional[dict]:
+        self, schedules: Dict[str, Schedule], current_day: int, current_time: time
+    ) -> Optional[Schedule]:
         for schedule in schedules.values():
             if schedule.day == current_day and self._is_time_in_normal_schedule(
                 schedule, current_time
@@ -389,7 +393,7 @@ class ScheduleExecutor:
             morning_schedule.start_time,
             target_temp,
         )
-        if hasattr(self, "area_logger") and self.area_logger:
+        if self.area_logger:
             self.area_logger.log_event(
                 area.area_id,
                 "smart_boost",
@@ -500,7 +504,10 @@ class ScheduleExecutor:
         self._get_outdoor_temperature(area)
 
         # Predict heating time using learning engine
-        predicted_minutes = await self.learning_engine.async_predict_heating_time(
+        if not self.learning_engine:
+            return
+        learning = self.learning_engine
+        predicted_minutes = await learning.async_predict_heating_time(
             area_id=area.area_id, current_temp=current_temp, target_temp=target_temp
         )
 
@@ -533,7 +540,7 @@ class ScheduleExecutor:
                 target_time.strftime("%H:%M"),
                 target_temp,
             )
-            if hasattr(self, "area_logger") and self.area_logger:
+            if self.area_logger:
                 self.area_logger.log_event(
                     area.area_id,
                     "smart_boost",
@@ -558,7 +565,9 @@ class ScheduleExecutor:
                     target_temp,
                 )
 
-    def _find_first_morning_schedule(self, schedules: dict, now: datetime) -> Optional[object]:
+    def _find_first_morning_schedule(
+        self, schedules: Dict[str, Schedule], now: datetime
+    ) -> Optional[Schedule]:
         """Find the first schedule entry in the morning (after midnight, before noon).
 
         This is used by smart night boost to determine when to start heating.
@@ -627,7 +636,7 @@ class ScheduleExecutor:
         # Default fallback
         return area.target_temperature
 
-    async def _apply_preset_schedule(self, area, schedule, climate_entity_id: str) -> None:
+    async def _apply_preset_schedule(self, area, schedule) -> None:
         """Apply a schedule that uses a preset mode.
 
         Args:
@@ -644,7 +653,7 @@ class ScheduleExecutor:
             schedule.end_time,
             schedule.preset_mode,
         )
-        if hasattr(self, "area_logger") and self.area_logger:
+        if self.area_logger:
             msg = (
                 f"Schedule activated: {schedule.start_time}-{schedule.end_time} @ "
                 f"preset '{schedule.preset_mode}' ({preset_temp:.1f}°C)"
@@ -683,26 +692,26 @@ class ScheduleExecutor:
 
         # If we cleared manual override, immediately update thermostat with preset temperature
         if manual_override_cleared and preset_temp is not None:
-            climate_entity_id = f"climate.{area.area_id}"
+            entity_id = f"climate.{area.area_id}"
             try:
                 await self.hass.services.async_call(
                     "climate",
                     "set_temperature",
                     {
-                        "entity_id": climate_entity_id,
+                        "entity_id": entity_id,
                         "temperature": preset_temp,
                     },
                     blocking=False,
                 )
                 _LOGGER.info(
                     "Updated thermostat %s to preset temperature %.1f°C after clearing manual override",
-                    climate_entity_id,
+                    entity_id,
                     preset_temp,
                 )
             except Exception as err:
                 _LOGGER.debug(
                     "Climate entity %s not found or error updating: %s (will be handled by climate controller)",
-                    climate_entity_id,
+                    entity_id,
                     err,
                 )
 
@@ -729,7 +738,7 @@ class ScheduleExecutor:
             schedule.end_time,
             target_temp,
         )
-        if hasattr(self, "area_logger") and self.area_logger:
+        if self.area_logger:
             self.area_logger.log_event(
                 area.area_id,
                 "schedule",
@@ -789,7 +798,7 @@ class ScheduleExecutor:
 
         # Apply preset mode if specified
         if schedule.preset_mode:
-            await self._apply_preset_schedule(area, schedule, climate_entity_id)
+            await self._apply_preset_schedule(area, schedule)
         else:
             # Apply temperature directly
             await self._apply_temperature_schedule(area, schedule, climate_entity_id)

@@ -4,10 +4,10 @@ import logging
 
 import aiofiles
 from aiohttp import web
-from homeassistant.components.http import HomeAssistantView
+from homeassistant.helpers.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 
-from .api_handlers import (  # Schedules; Sensors; Logs; Areas; Config; Devices; History; System
+from .api_handlers import (
     handle_add_device,
     handle_add_presence_sensor,
     handle_add_schedule,

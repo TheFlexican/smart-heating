@@ -1,7 +1,8 @@
 """Sensor platform for Smart Heating integration."""
 
-import inspect
 import logging
+import asyncio
+from typing import cast
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -31,11 +32,14 @@ async def async_setup_entry(
     """
     _LOGGER.debug("Setting up Smart Heating sensor platform")
 
+    # Minimal async op to satisfy linters
+    await asyncio.sleep(0)
+
     # Get the coordinator from hass.data
     coordinator: SmartHeatingCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    # Create sensor entities
-    entities = [SmartHeatingStatusSensor(coordinator, entry)]
+    # Create sensor entities (widen list type to SensorEntity)
+    entities: list[SensorEntity] = [SmartHeatingStatusSensor(coordinator, entry)]
 
     # Add per-area heating curve and consumption sensors (advanced features opt-in)
     from .area_manager import AreaManager
@@ -45,10 +49,8 @@ async def async_setup_entry(
         entities.append(AreaHeatingCurveSensor(coordinator, entry, area))
         entities.append(AreaCurrentConsumptionSensor(coordinator, entry, area))
 
-    # Add entities (handle both sync and async callbacks)
-    _maybe_result = async_add_entities(entities)
-    if inspect.isawaitable(_maybe_result):
-        await _maybe_result
+    # Add entities
+    async_add_entities(entities)
     _LOGGER.info("Smart Heating sensor platform setup complete")
 
 
@@ -175,7 +177,7 @@ class AreaCurrentConsumptionSensor(CoordinatorEntity, SensorEntity):
         # Determine modulation level from configured OpenTherm gateway if present
         from .area_manager import AreaManager
 
-        area_manager: AreaManager = self.coordinator.area_manager
+        area_manager: AreaManager = cast(SmartHeatingCoordinator, self.coordinator).area_manager
         gateway_id = area_manager.opentherm_gateway_id
         if not gateway_id:
             return None

@@ -6,7 +6,6 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN
 
@@ -18,7 +17,7 @@ class SmartHeatingConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None):
         """Handle the initial step.
 
         This is a simple config flow that doesn't require any user input.
@@ -85,7 +84,7 @@ class SmartHeatingConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class SmartHeatingOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for Smart Heating."""
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Manage the options.
 
         All configuration is now done via Global Settings in the Smart Heating UI.
