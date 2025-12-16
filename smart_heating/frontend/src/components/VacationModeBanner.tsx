@@ -45,7 +45,12 @@ export const VacationModeBanner: React.FC = () => {
       severity="info"
       sx={{ mb: 2 }}
       action={
-        <Button color="inherit" size="small" onClick={handleDisable}>
+        <Button
+          color="inherit"
+          size="small"
+          onClick={handleDisable}
+          data-testid="vacation-disable-button"
+        >
           {t('common.disable')}
         </Button>
       }
