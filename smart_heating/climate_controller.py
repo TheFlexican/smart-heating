@@ -280,7 +280,6 @@ class ClimateController:
 
         current_temp = area.current_temperature
         if current_temp is None:
-            _LOGGER.warning("No temperature data for area %s", area_id)
             return None, None
 
         # Calculate modes and thresholds
