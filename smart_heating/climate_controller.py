@@ -260,11 +260,22 @@ class ClimateController:
         # Apply frost protection
         target_temp = self._apply_frost_protection(area_id, target_temp)
 
-        # Apply HVAC mode
+        # Apply HVAC mode - turn off thermostats when hvac_mode is "off"
         if hasattr(area, "hvac_mode") and area.hvac_mode == "off":
-            await self._async_set_area_heating(area, False)
+            _LOGGER.info("Area %s: HVAC mode is OFF - turning off all thermostats", area_id)
+            # Turn off all thermostats in the area
+            thermostats = area.get_thermostats()
+            for thermostat_id in thermostats:
+                try:
+                    await self.device_handler._handle_thermostat_turn_off(thermostat_id)
+                    _LOGGER.debug("Turned off thermostat %s in area %s", thermostat_id, area_id)
+                except Exception as err:
+                    _LOGGER.error("Failed to turn off thermostat %s: %s", thermostat_id, err)
+            # Turn off switches and valves too
+            await self.device_handler.async_control_switches(area, False)
+            await self.device_handler.async_control_valves(area, False, None)
             area.state = "off"
-            _LOGGER.debug("Area %s: HVAC mode is OFF - skipping", area_id)
+            _LOGGER.debug("Area %s: All climate devices turned off", area_id)
             return None, None
 
         current_temp = area.current_temperature

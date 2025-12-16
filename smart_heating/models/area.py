@@ -203,7 +203,7 @@ class Area:
         return [
             device_id
             for device_id, device in self.devices.items()
-            if device["type"] == DEVICE_TYPE_THERMOSTAT
+            if device["type"] in (DEVICE_TYPE_THERMOSTAT, "climate")
         ]
 
     def get_opentherm_gateways(self) -> list[str]:

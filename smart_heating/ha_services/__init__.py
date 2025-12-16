@@ -5,6 +5,7 @@ from .area_handlers import (
     async_handle_enable_area,
     async_handle_set_temperature,
 )
+from .diagnostic_handlers import async_handle_force_thermostat_update
 from .config_handlers import (
     async_handle_set_frost_protection,
     async_handle_set_history_retention,
@@ -37,6 +38,7 @@ from .schemas import (
     BOOST_MODE_SCHEMA,
     CANCEL_BOOST_SCHEMA,
     COPY_SCHEDULE_SCHEMA,
+    FORCE_THERMOSTAT_SCHEMA,
     FROST_PROTECTION_SCHEMA,
     HISTORY_RETENTION_SCHEMA,
     HVAC_MODE_SCHEMA,
@@ -72,6 +74,7 @@ __all__ = [
     "async_handle_enable_area",
     "async_handle_disable_area",
     "async_handle_set_temperature",
+    "async_handle_force_thermostat_update",
     # Config handlers
     "async_handle_set_hysteresis",
     "async_handle_set_opentherm_gateway",
@@ -129,4 +132,5 @@ __all__ = [
     "HISTORY_RETENTION_SCHEMA",
     "VACATION_MODE_SCHEMA",
     "SAFETY_SENSOR_SCHEMA",
+    "FORCE_THERMOSTAT_SCHEMA",
 ]

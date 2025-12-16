@@ -46,6 +46,7 @@ from .const import (
     SERVICE_SET_PRESET_MODE,
     SERVICE_SET_SAFETY_SENSOR,
     SERVICE_SET_TRV_TEMPERATURES,
+    SERVICE_FORCE_THERMOSTAT_UPDATE,
 )
 from .coordinator import SmartHeatingCoordinator
 from .efficiency_calculator import EfficiencyCalculator
@@ -328,6 +329,8 @@ async def async_setup_services(  # NOSONAR
         VACATION_MODE_SCHEMA,
         WINDOW_SENSOR_SCHEMA,
         ZONE_ID_SCHEMA,
+        FORCE_THERMOSTAT_SCHEMA,
+        async_handle_force_thermostat_update,
         async_handle_add_device,
         async_handle_add_presence_sensor,
         async_handle_add_schedule,
@@ -502,6 +505,14 @@ async def async_setup_services(  # NOSONAR
             coordinator=coordinator,
         ),
         schema=BOOST_MODE_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_FORCE_THERMOSTAT_UPDATE,
+        partial(
+            async_handle_force_thermostat_update, area_manager=area_manager, coordinator=coordinator
+        ),
+        schema=FORCE_THERMOSTAT_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,

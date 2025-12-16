@@ -65,7 +65,11 @@
     "deviceCount": "{{count}} device(s)",
     "dropToAdd": "Drop here to add",
     "hideArea": "Hide Area",
-    "unhideArea": "Unhide Area"
+    "unhideArea": "Unhide Area",
+    "hvacMode": "Mode",
+    "hvacModeHeat": "Heat",
+    "hvacModeCool": "Cool",
+    "hvacModeOff": "Off"
   },
   "tabs": {
     "overview": "Overview",

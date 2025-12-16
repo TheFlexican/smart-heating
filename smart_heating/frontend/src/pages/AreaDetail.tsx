@@ -1112,7 +1112,6 @@ const ZoneDetail = () => {
                   onChange={async e => {
                     e.stopPropagation()
                     const newValue = e.target.checked
-                    console.log('Setting use_global_presence to:', newValue)
                     try {
                       await setAreaPresenceConfig(area.id, newValue)
                       // Force reload to get updated data
@@ -1588,32 +1587,24 @@ const ZoneDetail = () => {
                   value={area.weather_entity_id || ''}
                   onChange={async e => {
                     const newValue = e.target.value || null // Convert empty string to null
-                    console.log('Weather sensor onChange - Selected value:', newValue)
-                    console.log(
-                      'Weather sensor onChange - Current area.weather_entity_id:',
-                      area.weather_entity_id,
-                    )
                     try {
                       const serviceCallBody = {
                         service: 'set_night_boost',
                         area_id: area.id,
                         weather_entity_id: newValue,
                       }
-                      console.log('Weather sensor onChange - Service call body:', serviceCallBody)
 
                       const response = await fetch('/api/smart_heating/call_service', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(serviceCallBody),
                       })
-                      const result = await response.json()
-                      console.log('Weather sensor onChange - Service call response:', result)
+                      await response.json()
 
                       // Wait a bit for the backend to save
                       await new Promise(resolve => setTimeout(resolve, 500))
 
                       await loadData()
-                      console.log('Weather sensor onChange - After loadData complete')
                     } catch (error) {
                       console.error('Weather sensor onChange - Failed to update:', error)
                     }
@@ -2252,9 +2243,7 @@ const ZoneDetail = () => {
                   onChange={async e => {
                     try {
                       const value = e.target.value === 'auto' ? null : e.target.value
-                      console.log('Setting primary temperature sensor:', value)
                       await setPrimaryTemperatureSensor(area.id, value)
-                      console.log('Primary temperature sensor set successfully')
                       await loadData()
                     } catch (error) {
                       console.error('Failed to set primary temperature sensor:', error)

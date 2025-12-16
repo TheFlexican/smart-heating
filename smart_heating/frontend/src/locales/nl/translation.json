@@ -65,7 +65,11 @@
     "deviceCount": "{{count}} apparaat/apparaten",
     "dropToAdd": "Sleep hierheen om toe te voegen",
     "hideArea": "Zone Verbergen",
-    "unhideArea": "Zone Tonen"
+    "unhideArea": "Zone Tonen",
+    "hvacMode": "Modus",
+    "hvacModeHeat": "Verwarmen",
+    "hvacModeCool": "Koelen",
+    "hvacModeOff": "Uit"
   },
   "tabs": {
     "overview": "Overzicht",

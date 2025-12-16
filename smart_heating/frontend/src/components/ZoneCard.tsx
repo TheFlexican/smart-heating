@@ -19,6 +19,10 @@ import {
   Switch,
   Tooltip,
   alpha,
+  Select,
+  FormControl,
+  InputLabel,
+  SelectChangeEvent,
 } from '@mui/material'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -45,6 +49,7 @@ import {
   setManualOverride,
   setBoostMode,
   cancelBoost,
+  setZoneHvacMode,
 } from '../api/areas'
 import { getEntityState } from '../api/config'
 
@@ -178,6 +183,17 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
       onUpdate()
     } catch (error) {
       console.error('Failed to toggle boost mode:', error)
+    }
+  }
+
+  const handleHvacModeChange = async (event: SelectChangeEvent) => {
+    event.stopPropagation()
+    try {
+      const newMode = event.target.value
+      await setZoneHvacMode(area.id, newMode)
+      onUpdate()
+    } catch (error) {
+      console.error('Failed to set HVAC mode:', error)
     }
   }
 
@@ -440,6 +456,44 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
             </IconButton>
           </Box>
         </Box>
+
+        {/* HVAC Mode Selector for Air Conditioned Areas */}
+        {area.heating_type === 'airco' && (
+          <Box mb={2} onClick={e => e.stopPropagation()}>
+            <FormControl fullWidth size="small">
+              <InputLabel id={`hvac-mode-label-${area.id}`}>
+                {t('area.hvacMode', { defaultValue: 'Mode' })}
+              </InputLabel>
+              <Select
+                labelId={`hvac-mode-label-${area.id}`}
+                data-testid={`hvac-mode-select-${area.id}`}
+                value={area.hvac_mode || 'auto'}
+                label={t('area.hvacMode', { defaultValue: 'Mode' })}
+                onChange={handleHvacModeChange}
+                disabled={!area.enabled || area.devices.length === 0}
+              >
+                <MenuItem value="heat" data-testid="hvac-mode-heat">
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <LocalFireDepartmentIcon fontSize="small" color="error" />
+                    <span>{t('area.hvacModeHeat', { defaultValue: 'Heat' })}</span>
+                  </Box>
+                </MenuItem>
+                <MenuItem value="cool" data-testid="hvac-mode-cool">
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <AcUnitIcon fontSize="small" color="info" />
+                    <span>{t('area.hvacModeCool', { defaultValue: 'Cool' })}</span>
+                  </Box>
+                </MenuItem>
+                <MenuItem value="off" data-testid="hvac-mode-off">
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <RemoveCircleOutlineIcon fontSize="small" />
+                    <span>{t('area.hvacModeOff', { defaultValue: 'Off' })}</span>
+                  </Box>
+                </MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        )}
 
         <Box my={{ xs: 2, sm: 3 }} onClick={handleSliderClick}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>

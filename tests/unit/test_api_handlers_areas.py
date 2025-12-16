@@ -182,6 +182,9 @@ class TestAreaHandlers:
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         mock_climate = AsyncMock()
+        # Provide a device_handler with async_control_thermostats
+        mock_climate.device_handler = MagicMock()
+        mock_climate.device_handler.async_control_thermostats = AsyncMock()
         mock_hass.data[DOMAIN]["climate_controller"] = mock_climate
 
         data = {"temperature": 22.5}
@@ -209,6 +212,8 @@ class TestAreaHandlers:
             )
             mock_area_manager.async_save.assert_called_once()
             mock_climate.async_control_heating.assert_called_once()
+            # Proactive immediate thermostat update should be called
+            mock_climate.device_handler.async_control_thermostats.assert_awaited()
 
     @pytest.mark.asyncio
     async def test_handle_set_temperature_invalid_area_id(self, mock_hass, mock_area_manager):

@@ -175,6 +175,14 @@ HVAC_MODE_SCHEMA = vol.Schema(
     }
 )
 
+FORCE_THERMOSTAT_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_AREA_ID): cv.string,
+        vol.Optional(ATTR_TEMPERATURE): vol.Coerce(float),
+        vol.Optional(ATTR_HVAC_MODE): vol.In(HVAC_MODES),
+    }
+)
+
 COPY_SCHEDULE_SCHEMA = vol.Schema(
     {
         vol.Required("source_area_id"): cv.string,

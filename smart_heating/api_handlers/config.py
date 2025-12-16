@@ -586,6 +586,19 @@ async def handle_set_hvac_mode(
         if coordinator:
             await coordinator.async_request_refresh()
 
+        # When hvac_mode is set to "off", immediately turn off thermostats and power switches
+        if hvac_mode == "off":
+            climate_controller = hass.data.get(DOMAIN, {}).get("climate_controller")
+            if climate_controller:
+                thermostats = area.get_thermostats()
+                for thermostat_id in thermostats:
+                    try:
+                        await climate_controller.device_handler._handle_thermostat_turn_off(
+                            thermostat_id
+                        )
+                    except Exception as err:
+                        _LOGGER.error("Failed to turn off thermostat %s: %s", thermostat_id, err)
+
         return web.json_response({"success": True, "hvac_mode": hvac_mode})
     except ValueError as err:
         return web.json_response({"error": str(err)}, status=400)
