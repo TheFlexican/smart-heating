@@ -296,7 +296,17 @@ class DeviceControlHandler:
                 if heating and target_temp is not None:
                     await self._handle_thermostat_heating(thermostat_id, target_temp, hvac_mode)
                 elif target_temp is not None:
-                    await self._handle_thermostat_idle(area, thermostat_id, target_temp)
+                    # Skip hysteresis idle logic for AC/climate areas (hvac_mode != "heat")
+                    # AC devices have their own control logic and don't need hysteresis band adjustments
+                    area_hvac = getattr(area, "hvac_mode", "heat")
+                    if area_hvac == "heat":
+                        await self._handle_thermostat_idle(area, thermostat_id, target_temp)
+                    else:
+                        _LOGGER.debug(
+                            "Skipping idle hysteresis for AC area %s (hvac_mode=%s)",
+                            getattr(area, "name", "<unknown>"),
+                            area_hvac,
+                        )
                 else:
                     await self._handle_thermostat_turn_off(thermostat_id)
             except Exception as err:
