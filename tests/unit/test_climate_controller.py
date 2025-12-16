@@ -1,8 +1,14 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
+from homeassistant.const import STATE_OFF, STATE_ON
+from homeassistant.core import HomeAssistant
 from smart_heating.climate_controller import ClimateController
+from smart_heating.const import (
+    DEFAULT_FROST_PROTECTION_TEMP,
+    PRESET_AWAY,
+)
+from smart_heating.models.area import Area
 
 
 @pytest.mark.asyncio
@@ -82,20 +88,6 @@ async def test_async_control_heating_heating_path(mock_hass, mock_area_manager):
     cc.protection_handler.async_handle_manual_override = AsyncMock()
     await cc.async_control_heating()
     cc.cycle_handler.async_handle_heating_required.assert_called()
-
-
-"""Test climate_controller.py module."""
-
-
-import pytest
-from homeassistant.const import STATE_OFF, STATE_ON
-from homeassistant.core import HomeAssistant
-
-from smart_heating.const import (
-    DEFAULT_FROST_PROTECTION_TEMP,
-    PRESET_AWAY,
-)
-from smart_heating.models.area import Area
 
 
 @pytest.fixture

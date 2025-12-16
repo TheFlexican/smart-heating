@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from homeassistant.helpers import entity_registry as er
-
 from smart_heating.utils.device_registry import DeviceRegistry, build_device_dict
 
 

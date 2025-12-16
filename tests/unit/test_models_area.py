@@ -6,9 +6,9 @@ from datetime import datetime
 from unittest.mock import Mock
 
 import pytest
-
 from smart_heating.models.area import Area
 from smart_heating.models.schedule import Schedule
+
 from tests.unit.const import (
     PRESET_COMFORT,
     PRESET_ECO,

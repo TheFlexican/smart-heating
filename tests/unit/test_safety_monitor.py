@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import Event, HomeAssistant, State
-
 from smart_heating.const import DOMAIN
 from smart_heating.safety_monitor import SafetyMonitor
+
 from tests.unit.const import TEST_AREA_ID
 
 

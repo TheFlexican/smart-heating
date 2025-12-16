@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
-
 from smart_heating.area_manager import AreaManager
 from smart_heating.const import (
     DEFAULT_AWAY_TEMP,
@@ -17,6 +16,7 @@ from smart_heating.const import (
     STORAGE_VERSION,
 )
 from smart_heating.models import Area
+
 from tests.unit.const import TEST_AREA_ID, TEST_AREA_NAME
 
 

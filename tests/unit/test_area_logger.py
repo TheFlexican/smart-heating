@@ -10,8 +10,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
-
 from smart_heating.area_logger import MAX_LOG_ENTRIES_PER_FILE, AreaLogger
+
 from tests.unit.const import TEST_AREA_ID
 
 

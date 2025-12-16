@@ -4,7 +4,6 @@ import json
 from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 import pytest
-
 from smart_heating.api_handlers.import_export import (
     handle_export_config,
     handle_import_config,

@@ -11,7 +11,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
-
 from smart_heating.vacation_manager import VacationManager
 
 

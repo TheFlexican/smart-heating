@@ -2,7 +2,6 @@ from unittest.mock import patch
 
 import pytest
 from aiohttp.test_utils import make_mocked_request
-
 from smart_heating.api import SmartHeatingStaticView, SmartHeatingUIView
 
 

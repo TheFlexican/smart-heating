@@ -4,7 +4,6 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from smart_heating.api_handlers.sensors import (
     handle_add_presence_sensor,
     handle_add_window_sensor,

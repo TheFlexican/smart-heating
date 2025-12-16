@@ -50,12 +50,8 @@ class ClimateController:
             area_logger: Area logger instance
         """
         self.area_logger = area_logger
-        self.sensor_handler = SensorMonitoringHandler(
-            self.hass, self.area_manager, area_logger
-        )
-        self.protection_handler = ProtectionHandler(
-            self.hass, self.area_manager, area_logger
-        )
+        self.sensor_handler = SensorMonitoringHandler(self.hass, self.area_manager, area_logger)
+        self.protection_handler = ProtectionHandler(self.hass, self.area_manager, area_logger)
         self.cycle_handler = HeatingCycleHandler(
             self.hass, self.area_manager, self.learning_engine, area_logger
         )
@@ -85,9 +81,7 @@ class ClimateController:
             return False
         return self.sensor_handler.check_window_sensors(area_id, area)
 
-    def _log_window_state_change(
-        self, area_id: str, area, any_window_open: bool
-    ) -> None:
+    def _log_window_state_change(self, area_id: str, area, any_window_open: bool) -> None:
         """Log window state change (delegates to handler)."""
         if self.sensor_handler:
             self.sensor_handler.log_window_state_change(area_id, area, any_window_open)
@@ -104,9 +98,7 @@ class ClimateController:
             return False
         return self.sensor_handler.check_presence_sensors(area_id, sensors)
 
-    async def _handle_auto_preset_change(
-        self, area_id: str, area, presence: bool
-    ) -> None:
+    async def _handle_auto_preset_change(self, area_id: str, area, presence: bool) -> None:
         """Handle auto preset change (delegates to handler)."""
         if self.sensor_handler:
             await self.sensor_handler.handle_auto_preset_change(area_id, area, presence)
@@ -158,9 +150,7 @@ class ClimateController:
         self, any_heating: bool, max_target_temp: float
     ) -> None:
         """Control OpenTherm gateway (delegates to handler)."""
-        await self.device_handler.async_control_opentherm_gateway(
-            any_heating, max_target_temp
-        )
+        await self.device_handler.async_control_opentherm_gateway(any_heating, max_target_temp)
 
     async def _async_get_outdoor_temperature(self, area):
         """Get outdoor temperature (delegates to handler)."""
@@ -228,13 +218,9 @@ class ClimateController:
         Returns:
             Tuple(list of heating area ids, max target temperature)
         """
-        await self._record_area_history(
-            area_id, area, should_record_history, history_tracker
-        )
+        await self._record_area_history(area_id, area, should_record_history, history_tracker)
 
-        if await self._handle_disabled_area(
-            area_id, area, history_tracker, should_record_history
-        ):
+        if await self._handle_disabled_area(area_id, area, history_tracker, should_record_history):
             return None, None
 
         # Check for manual override mode
@@ -311,22 +297,14 @@ class ClimateController:
             should_stop_cool,
         )
 
-    async def _record_area_history(
-        self, area_id, area, should_record_history, history_tracker
-    ):
+    async def _record_area_history(self, area_id, area, should_record_history, history_tracker):
         """Record history if enabled and available."""
-        if (
-            should_record_history
-            and history_tracker
-            and area.current_temperature is not None
-        ):
+        if should_record_history and history_tracker and area.current_temperature is not None:
             await history_tracker.async_record_temperature(
                 area_id, area.current_temperature, area.target_temperature, area.state
             )
 
-    async def _handle_disabled_area(
-        self, area_id, area, history_tracker, should_record_history
-    ):
+    async def _handle_disabled_area(self, area_id, area, history_tracker, should_record_history):
         """Handle an area that is disabled and return True if processing should stop."""
         if not area.enabled:
             await self.protection_handler.async_handle_disabled_area(
@@ -367,9 +345,7 @@ class ClimateController:
     def _calculate_modes(self, area, current_temp, target_temp):
         """Calculate hysteresis and determine heating/cooling flags."""
         hysteresis = (
-            area.hysteresis_override
-            if area.hysteresis_override is not None
-            else self._hysteresis
+            area.hysteresis_override if area.hysteresis_override is not None else self._hysteresis
         )
         hvac_mode = area.hvac_mode if hasattr(area, "hvac_mode") else "heat"
         should_heat = current_temp < (target_temp - hysteresis)
@@ -405,9 +381,7 @@ class ClimateController:
                             "hysteresis": hysteresis,
                             "heat_threshold": target_temp - hysteresis,
                             "cool_threshold": target_temp + hysteresis,
-                            "hvac_mode": (
-                                area.hvac_mode if hasattr(area, "hvac_mode") else "heat"
-                            ),
+                            "hvac_mode": (area.hvac_mode if hasattr(area, "hvac_mode") else "heat"),
                             "reason": reason,
                         },
                     )

@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock
 
+import pytest
 from smart_heating.minimum_setpoint import MinimumSetpoint
 
 
@@ -26,9 +27,6 @@ def test_minimum_setpoint_calculate_basic():
     b.flow_temperature = 30.0
     ms.calculate(b)
     assert ms.current_minimum_setpoint >= 30.0
-
-
-import pytest
 
 
 def test_minimum_setpoint_initial_value():

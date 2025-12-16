@@ -2,8 +2,7 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
-from smart_heating.learning_engine import HeatingEvent, LearningEngine
+from smart_heating.learning_engine import MIN_LEARNING_EVENTS, HeatingEvent, LearningEngine
 
 
 def test_heating_event_metrics():
@@ -21,7 +20,7 @@ def test_get_statistic_id_and_outdoor_adjustment():
 
     # test outdoor adjustments - skip complex assertion for now
     # This test needs proper async handling
-    assert True  # NOSONAR - placeholder for outdoor adjustment test
+    pass  # placeholder for outdoor adjustment test
 
 
 @pytest.mark.asyncio
@@ -72,11 +71,6 @@ async def test_start_end_heating_event_records(monkeypatch):
 Tests the adaptive learning engine including heating event tracking,
 statistics recording, and prediction functionality.
 """
-
-
-import pytest
-
-from smart_heating.learning_engine import MIN_LEARNING_EVENTS
 
 
 @pytest.fixture

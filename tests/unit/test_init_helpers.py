@@ -1,7 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from smart_heating.__init__ import async_register_panel, async_setup_services
 
 

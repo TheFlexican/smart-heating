@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 from homeassistant.core import HomeAssistant
-
 from smart_heating.user_manager import UserManager
 
 

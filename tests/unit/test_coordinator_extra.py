@@ -2,7 +2,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
-
 from smart_heating.coordinator import SmartHeatingCoordinator
 
 

@@ -11,7 +11,6 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.core import HomeAssistant
-
 from smart_heating.climate import (
     AreaClimate,
     async_setup_entry,
@@ -19,6 +18,7 @@ from smart_heating.climate import (
 from smart_heating.const import (
     PRESET_COMFORT,
 )
+
 from tests.unit.const import TEST_AREA_ID, TEST_AREA_NAME
 
 

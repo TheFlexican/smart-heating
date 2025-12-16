@@ -3,7 +3,6 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from smart_heating.climate_handlers.device_control import DeviceControlHandler
 from smart_heating.models import Area
 

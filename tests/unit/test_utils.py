@@ -13,6 +13,7 @@ from smart_heating.utils.validators import (
     validate_schedule_data,
     validate_temperature,
 )
+
 from tests.unit.const import TEST_TEMPERATURE
 
 

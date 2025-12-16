@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock
 
 import pytest
-
 from smart_heating.climate_handlers.temperature_sensors import TemperatureSensorHandler
 
 

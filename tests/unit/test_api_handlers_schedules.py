@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
-
 from smart_heating.api_handlers.schedules import (
     handle_add_schedule,
     handle_cancel_boost,

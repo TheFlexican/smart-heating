@@ -1,7 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from smart_heating.climate_handlers.protection import ProtectionHandler
 
 

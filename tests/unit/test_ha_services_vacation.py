@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant, ServiceCall
-
 from smart_heating.const import DOMAIN
 from smart_heating.ha_services.vacation_handlers import (
     async_handle_disable_vacation_mode,

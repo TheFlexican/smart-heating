@@ -7,7 +7,6 @@ device control, sensor handling, and temperature management.
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from smart_heating.climate_controller import ClimateController
 
 
