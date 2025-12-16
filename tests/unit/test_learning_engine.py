@@ -503,7 +503,9 @@ class TestLearningStats:
             assert result is None
 
         # Sufficient data should return a small positive boost
-        rates = [0.1] * MIN_LEARNING_EVENTS  # 0.1°C/min
+        # Use realistic heating rates (0.01°C/min) so the calculation yields a
+        # small overnight offset when cooling_fraction=0.05 and an 8-hour night.
+        rates = [0.01] * MIN_LEARNING_EVENTS  # 0.01°C/min
         with patch.object(
             learning_engine,
             "_async_get_recent_heating_rates",
@@ -515,5 +517,19 @@ class TestLearningStats:
                 result2 = await learning_engine.async_calculate_smart_night_boost("living_room")
 
         assert result2 is not None
-        # Expect a reasonable small boost (e.g., between 0.3 and 3.0°C)
-        assert 0.3 <= result2 <= 3.0
+        # Expect a small boost (e.g., between 0.1 and 3.0°C)
+        assert 0.1 <= result2 <= 3.0
+
+        # Very large heating rates should be capped at max_boost
+        rates_large = [10.0] * MIN_LEARNING_EVENTS
+        with patch.object(
+            learning_engine,
+            "_async_get_recent_heating_rates",
+            AsyncMock(return_value=rates_large),
+        ):
+            with patch.object(
+                learning_engine, "_async_get_outdoor_temperature", AsyncMock(return_value=None)
+            ):
+                result3 = await learning_engine.async_calculate_smart_night_boost("living_room")
+
+        assert result3 == 3.0

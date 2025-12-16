@@ -507,13 +507,14 @@ class LearningEngine:
         # Average heating rate (°C/min)
         avg_rate = statistics.mean(heating_rates)
 
-        # Estimate overnight cooling: assume an 8-hour night and that cooling is a
-        # fraction of the heating rate (rooms heat slower than they cool). The
-        # 0.6 factor is conservative and tunable later. Note we use °C/min * hours
-        # directly (no extra 60x multiplier) so results are in °C.
+        # Estimate overnight cooling: assume an 8-hour night and convert to minutes
+        # so that °C/min × minutes = °C. Cooling is a small fraction of the heating
+        # rate since heating is an active process while cooling is passive.
         hours_night = 8
-        cooling_fraction = 0.6
-        estimated_overnight_cooling = avg_rate * hours_night * cooling_fraction
+        minutes_night = hours_night * 60
+        # Cooling fraction is intentionally small (5% here) and can be tuned later
+        cooling_fraction = 0.05
+        estimated_overnight_cooling = avg_rate * minutes_night * cooling_fraction
 
         # Adjust estimate by outdoor temperature if available (colder outside -> more cooling)
         outdoor_temp = await self._async_get_outdoor_temperature()
@@ -523,7 +524,10 @@ class LearningEngine:
             adjustment += max(0.0, (10.0 - outdoor_temp) * 0.02)
             adjustment = min(adjustment, 1.5)  # cap
 
+        # Apply adjustment and cap to avoid unrealistic offsets
+        max_boost = 3.0  # °C - safety cap
         boost = estimated_overnight_cooling * adjustment
+        boost = min(boost, max_boost)
 
         # If the suggested boost is negligible, don't recommend anything
         if boost < 0.1:
