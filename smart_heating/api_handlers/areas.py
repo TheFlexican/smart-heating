@@ -51,5 +51,3 @@ def _apply_custom_overhead(area: Area, area_id: str, custom_overhead) -> None:
     else:
         area.custom_overhead_temp = None
         _LOGGER.info("Area %s: Clearing custom_overhead_temp", area_id)
-
-*** End Patch
