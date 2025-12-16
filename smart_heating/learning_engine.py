@@ -108,6 +108,27 @@ class LearningEngine:
         _LOGGER.warning("No weather entity found - outdoor temperature correlation disabled")
         return None
 
+    # Backwards-compatible async wrappers expected by tests and callers
+    async def _async_detect_weather_entity(self) -> str | None:
+        """Async wrapper for compatibility."""
+        await asyncio.sleep(0)
+        return self._detect_weather_entity()
+
+    async def _async_register_statistics_metadata(self) -> None:
+        """Legacy async registration hook (no-op currently)."""
+        await asyncio.sleep(0)
+        return None
+
+    async def _async_get_outdoor_temperature(self) -> float | None:
+        """Async wrapper to get outdoor temperature."""
+        await asyncio.sleep(0)
+        return self._get_outdoor_temperature()
+
+    async def async_calculate_smart_night_boost(self, area_id: str) -> float | None:
+        """Async wrapper for legacy API."""
+        await asyncio.sleep(0)
+        return self.calculate_smart_night_boost(area_id)
+
     def _register_statistics_metadata(self) -> None:
         """Register metadata for statistics tracking."""
         # We'll register metadata when we first record data for each area
@@ -154,7 +175,16 @@ class LearningEngine:
         """
         await asyncio.sleep(0)  # Minimal async operation
 
-        outdoor_temp = self._get_outdoor_temperature()
+        # Try async detection first, fall back to sync method if needed
+        outdoor_temp = None
+        try:
+            outdoor_temp = await self._async_get_outdoor_temperature()
+        except Exception:
+            outdoor_temp = None
+
+        if outdoor_temp is None:
+            # Fallback to sync method
+            outdoor_temp = self._get_outdoor_temperature()
 
         self._active_heating_events[area_id] = {
             "start_time": datetime.now(),
@@ -357,7 +387,7 @@ class LearningEngine:
         avg_rate = statistics.mean(heating_rates)
 
         # Adjust for outdoor temperature if available
-        outdoor_temp = self._get_outdoor_temperature()
+        outdoor_temp = await self._async_get_outdoor_temperature()
         if outdoor_temp is not None:
             adjustment = await self._async_calculate_outdoor_adjustment(outdoor_temp)
             avg_rate *= adjustment

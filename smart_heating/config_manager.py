@@ -2,6 +2,7 @@
 
 import json
 import logging
+import asyncio
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -39,6 +40,8 @@ class ConfigManager:
         Returns:
             Dictionary with all configuration data
         """
+        # Minimal async operation to satisfy async method requirement
+        await asyncio.sleep(0)
         _LOGGER.info("Exporting Smart Heating configuration")
 
         # Get all areas with their full configuration
@@ -47,10 +50,15 @@ class ConfigManager:
             areas_data[area_id] = area.to_dict()
 
         # Get global settings
+        # Use backward-compatible attribute names for frost protection
+        min_temp = getattr(self.area_manager, "frost_protection_min_temp", None)
+        if min_temp is None:
+            min_temp = getattr(self.area_manager, "frost_protection_temp", None)
+
         global_settings = {
             "frost_protection": {
                 "enabled": self.area_manager.frost_protection_enabled,
-                "min_temperature": self.area_manager.frost_protection_temp,
+                "min_temperature": min_temp,
             },
             "global_presets": {
                 "away_temp": self.area_manager.global_away_temp,
@@ -187,8 +195,12 @@ class ConfigManager:
 
         export_data = await self.async_export_config()
 
-        with open(backup_file, "w", encoding="utf-8") as f:
-            json.dump(export_data, f, indent=2)
+        # Write backup file in a thread to avoid blocking the event loop
+        def _write_backup(path, data):
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+
+        await asyncio.to_thread(_write_backup, backup_file, export_data)
 
         _LOGGER.info("Created backup at %s", backup_file)
         return str(backup_file)

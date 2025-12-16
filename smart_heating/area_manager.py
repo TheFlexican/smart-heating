@@ -340,7 +340,7 @@ class AreaManager:
         schedule_id: str,
         time: str,
         temperature: float,
-        days: list[str] | None = None,
+        days: list[int | str] | None = None,
     ) -> Schedule:
         """Add a schedule to an area.
 
@@ -349,7 +349,7 @@ class AreaManager:
             schedule_id: Unique schedule identifier
             time: Time in HH:MM format
             temperature: Target temperature
-            days: Days of week or None for all days
+            days: Days of week (ints 0-6 or names) or None for all days
 
         Returns:
             Created schedule
@@ -362,23 +362,37 @@ class AreaManager:
             raise ValueError(f"Area {area_id} does not exist")
 
         # Convert day names to integers if provided
-        day_indices = None
-        if days is not None:
-            day_map = {
-                "monday": 0,
-                "tuesday": 1,
-                "wednesday": 2,
-                "thursday": 3,
-                "friday": 4,
-                "saturday": 5,
-                "sunday": 6,
-            }
-            day_indices = [day_map[day.lower()] for day in days if day.lower() in day_map]
+        day_indices = self._parse_days(days) if days is not None else None
 
         schedule = Schedule(schedule_id, time, temperature, day_indices)
         area.add_schedule(schedule)
         _LOGGER.info("Added schedule %s to area %s", schedule_id, area_id)
         return schedule
+
+    def _parse_days(self, days: list[int | str] | None) -> list[int] | None:
+        """Parse a list of days (int or string) into list of day indices."""
+        if days is None:
+            return None
+
+        day_map = {
+            "monday": 0,
+            "tuesday": 1,
+            "wednesday": 2,
+            "thursday": 3,
+            "friday": 4,
+            "saturday": 5,
+            "sunday": 6,
+        }
+        result: list[int] = []
+        for day in days:
+            if isinstance(day, int):
+                if 0 <= day <= 6:
+                    result.append(day)
+            elif isinstance(day, str):
+                key = day.lower()
+                if key in day_map:
+                    result.append(day_map[key])
+        return result
 
     def remove_schedule_from_area(self, area_id: str, schedule_id: str) -> None:
         """Remove a schedule from an area.

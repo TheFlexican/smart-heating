@@ -263,11 +263,14 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         Args:
             event: State change event
         """
-        entity_id = event.data["entity_id"]
-        old_state = event.data["old_state"]
-        new_state = event.data["new_state"]
+        entity_id = event.data.get("entity_id")
+        old_state = event.data.get("old_state")
+        new_state = event.data.get("new_state")
 
         if not new_state:
+            return
+
+        if not entity_id:
             return
 
         # Check for target temperature changes (for thermostats) - handle with debouncing

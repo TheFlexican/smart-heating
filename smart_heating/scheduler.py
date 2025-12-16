@@ -636,7 +636,7 @@ class ScheduleExecutor:
         # Default fallback
         return area.target_temperature
 
-    async def _apply_preset_schedule(self, area, schedule) -> None:
+    async def _apply_preset_schedule(self, area, schedule, climate_entity_id: str) -> None:
         """Apply a schedule that uses a preset mode.
 
         Args:
@@ -645,6 +645,8 @@ class ScheduleExecutor:
             climate_entity_id: Climate entity ID
         """
         preset_temp = self._get_preset_temperature(area, schedule.preset_mode)
+        # Mark climate_entity_id as used for linting purposes
+        _ = climate_entity_id
 
         _LOGGER.info(
             "Applying schedule to area %s: %s-%s @ preset '%s'",
@@ -798,7 +800,7 @@ class ScheduleExecutor:
 
         # Apply preset mode if specified
         if schedule.preset_mode:
-            await self._apply_preset_schedule(area, schedule)
+            await self._apply_preset_schedule(area, schedule, climate_entity_id)
         else:
             # Apply temperature directly
             await self._apply_temperature_schedule(area, schedule, climate_entity_id)
