@@ -489,11 +489,6 @@ class ScheduleExecutor:
         current_temp = area.current_temperature
 
         if current_temp is None:
-            _LOGGER.warning(
-                "Cannot predict smart night boost for %s: no temperature data available yet. "
-                "Will use regular night boost if enabled. Temperature sensors may still be initializing.",
-                area.area_id,
-            )
             return
 
         # Get outdoor temperature if available
