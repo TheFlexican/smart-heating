@@ -255,47 +255,10 @@ async def async_handle_copy_schedule(
                 )
                 target_area.add_schedule(new_schedule)
         else:
-            # Copy with same days
-            # Normalize source schedule day to integer index for constructor
-            def _normalize_day_to_index(d):
-                idx_map_full = {
-                    "Monday": 0,
-                    "Tuesday": 1,
-                    "Wednesday": 2,
-                    "Thursday": 3,
-                    "Friday": 4,
-                    "Saturday": 5,
-                    "Sunday": 6,
-                }
-                short_to_idx = {
-                    "mon": 0,
-                    "tue": 1,
-                    "wed": 2,
-                    "thu": 3,
-                    "fri": 4,
-                    "sat": 5,
-                    "sun": 6,
-                }
-                if isinstance(d, int):
-                    return d
-                if isinstance(d, str):
-                    key = d.strip().lower()
-                    if key in short_to_idx:
-                        return short_to_idx[key]
-                    # Maybe full name available
-                    return idx_map_full.get(d, None)
-                return None
-
+            # Copy with same days (normalize day value)
             source_day_index = _normalize_day_to_index(source_schedule.day)
-            new_schedule = Schedule(
-                schedule_id=f"copied_{uuid.uuid4().hex[:8]}",
-                time=source_schedule.start_time,
-                temperature=source_schedule.temperature,
-                day=source_day_index,
-                start_time=source_schedule.start_time,
-                end_time=source_schedule.end_time,
-                enabled=source_schedule.enabled,
-            )
+            new_schedule = _build_copied_schedule_from_source(source_schedule, prefix="copied_")
+            new_schedule.day = source_day_index
             target_area.add_schedule(new_schedule)
 
         await area_manager.async_save()
@@ -303,3 +266,55 @@ async def async_handle_copy_schedule(
         _LOGGER.info("Copied schedule from area %s to area %s", source_area_id, target_area_id)
     except Exception as err:
         _LOGGER.error("Failed to copy schedule: %s", err)
+
+
+def _normalize_day_to_index(d):
+    """Normalize a day identifier to an integer index (0=Monday).
+
+    Accepts int (returned as-is), short names ("mon") or full names ("Monday").
+    Returns None when unknown.
+    """
+    idx_map_full = {
+        "Monday": 0,
+        "Tuesday": 1,
+        "Wednesday": 2,
+        "Thursday": 3,
+        "Friday": 4,
+        "Saturday": 5,
+        "Sunday": 6,
+    }
+    short_to_idx = {
+        "mon": 0,
+        "tue": 1,
+        "wed": 2,
+        "thu": 3,
+        "fri": 4,
+        "sat": 5,
+        "sun": 6,
+    }
+    if isinstance(d, int):
+        return d
+    if isinstance(d, str):
+        key = d.strip().lower()
+        if key in short_to_idx:
+            return short_to_idx[key]
+        # Maybe full name available
+        return idx_map_full.get(d, None)
+    return None
+
+
+def _build_copied_schedule_from_source(source_schedule: Schedule, prefix: str = "") -> Schedule:
+    """Build a copied Schedule instance from a source schedule.
+
+    The returned Schedule shares time/temperature/start/end and enabled flag.
+    A caller may adjust `day` after creation.
+    """
+    return Schedule(
+        schedule_id=f"{prefix}{uuid.uuid4().hex[:8]}",
+        time=source_schedule.start_time,
+        temperature=source_schedule.temperature,
+        day=source_schedule.day,
+        start_time=source_schedule.start_time,
+        end_time=source_schedule.end_time,
+        enabled=source_schedule.enabled,
+    )

@@ -175,7 +175,7 @@ class AreaClimate(CoordinatorEntity, ClimateEntity):
             "area_name": self._area.name,
             "area_state": self._area.state,
             "device_count": len(self._area.devices),
-            "devices": list(self._area.devices.keys()),
+            "devices": list(self._area.devices),
         }
 
         # Add device type counts

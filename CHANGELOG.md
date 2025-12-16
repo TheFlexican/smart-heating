@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - Compatible with LG ThinQ AC and other climate integrations
   - Fixes issue where temperature changes would send commands to AC even when turned off
 - **Improved Thermostat Recognition:** Climate entities now properly recognized as thermostats alongside traditional thermostat devices
+
+### 🧪 Tests & Fixes
+- **Import/Export:** Fix restore backup handler to correctly read Path-like objects in tests and fall back to synchronous read when async helpers are not available; resolves failing unit tests for backup restore (all pytests now pass locally). ([#42](https://github.com/TheFlexican/smart-heating/pull/42))
 - **Smart Temperature Updates:** When user manually sets temperature via API, preset mode is automatically cleared to prevent override
 - **Proactive AC Control:** Temperature changes immediately update AC devices instead of waiting for next control cycle
 

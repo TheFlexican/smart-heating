@@ -164,38 +164,7 @@ class DeviceControlHandler:
         for switch_id in power_switch_patterns:
             state = self.hass.states.get(switch_id)
             if state:
-                # Found a power switch, ensure it's on
-                if state.state != "on":
-                    _LOGGER.info(
-                        "Turning on power switch %s for climate entity %s",
-                        switch_id,
-                        climate_entity_id,
-                    )
-                    await self.hass.services.async_call(
-                        "switch",
-                        "turn_on",
-                        {"entity_id": switch_id},
-                        blocking=False,
-                    )
-                    # Wait a short time for the switch to actually turn on.
-                    # Some devices take a moment to become available after power-on
-                    # and will ignore subsequent climate commands until ready.
-                    for _ in range(6):
-                        await asyncio.sleep(0.25)
-                        state = self.hass.states.get(switch_id)
-                        if state and getattr(state, "state", None) == "on":
-                            _LOGGER.debug("Power switch %s is now on", switch_id)
-                            break
-                    else:
-                        _LOGGER.debug(
-                            "Power switch %s did not become 'on' within timeout", switch_id
-                        )
-                else:
-                    _LOGGER.debug(
-                        "Power switch %s already on for %s",
-                        switch_id,
-                        climate_entity_id,
-                    )
+                await self._handle_power_switch(switch_id, climate_entity_id, state)
                 return  # Found and handled the switch
 
         # No power switch found, which is normal for most thermostats
@@ -217,6 +186,34 @@ class DeviceControlHandler:
         except Exception:
             # Be defensive - do not raise from best-effort fallback
             _LOGGER.debug("Failed to turn on climate entity %s (fallback)", climate_entity_id)
+
+    async def _handle_power_switch(
+        self, switch_id: str, climate_entity_id: str, state: Any
+    ) -> None:
+        """Handle a found power switch: turn it on if necessary and wait briefly."""
+        if state.state != "on":
+            _LOGGER.info(
+                "Turning on power switch %s for climate entity %s",
+                switch_id,
+                climate_entity_id,
+            )
+            await self.hass.services.async_call(
+                "switch",
+                "turn_on",
+                {"entity_id": switch_id},
+                blocking=False,
+            )
+            # Wait a short time for the switch to actually turn on.
+            for _ in range(6):
+                await asyncio.sleep(0.25)
+                state = self.hass.states.get(switch_id)
+                if state and getattr(state, "state", None) == "on":
+                    _LOGGER.debug("Power switch %s is now on", switch_id)
+                    break
+            else:
+                _LOGGER.debug("Power switch %s did not become 'on' within timeout", switch_id)
+        else:
+            _LOGGER.debug("Power switch %s already on for %s", switch_id, climate_entity_id)
 
     async def _async_turn_off_climate_power(self, climate_entity_id: str) -> None:
         """Turn off climate device power switch if it exists.
@@ -340,25 +337,9 @@ class DeviceControlHandler:
 
         # Set HVAC mode only if it needs to change
         ha_hvac_mode = HVAC_MODE_HEAT if hvac_mode == "heat" else HVAC_MODE_COOL
-        if current_hvac_mode != ha_hvac_mode:
-            try:
-                await self.hass.services.async_call(
-                    CLIMATE_DOMAIN,
-                    "set_hvac_mode",
-                    {"entity_id": thermostat_id, "hvac_mode": ha_hvac_mode},
-                    blocking=False,
-                )
-                _LOGGER.debug("Set thermostat %s to %s mode", thermostat_id, hvac_mode)
-            except Exception as err:
-                # Some integrations (e.g., LG ThinQ) reject redundant commands even when
-                # state shows it should change - ignore these errors
-                _LOGGER.debug(
-                    "Failed to set hvac_mode for %s (may already be in target mode): %s",
-                    thermostat_id,
-                    err,
-                )
-        else:
-            _LOGGER.debug("Thermostat %s already in %s mode, skipping", thermostat_id, hvac_mode)
+        await self._set_hvac_mode_if_needed(
+            thermostat_id, current_hvac_mode, ha_hvac_mode, hvac_mode
+        )
 
         # Only set temperature when it differs sufficiently from current value
         # Check both cached value and actual entity state for robustness
@@ -375,36 +356,64 @@ class DeviceControlHandler:
         except (TypeError, AttributeError):
             # Handle test mocks or invalid values
             pass
+        await self._set_temperature_if_needed(thermostat_id, target_temp, hvac_mode, needs_update)
 
-        if needs_update:
+    async def _set_temperature_if_needed(
+        self, thermostat_id: str, target_temp: float, hvac_mode: str, needs_update: bool
+    ) -> None:
+        """Set thermostat temperature if an update is required."""
+        if not needs_update:
+            _LOGGER.debug(
+                "Skipping thermostat %s update - already at %.1f°C", thermostat_id, target_temp
+            )
+            return
+
+        try:
+            await self.hass.services.async_call(
+                CLIMATE_DOMAIN,
+                SERVICE_SET_TEMPERATURE,
+                {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp},
+                blocking=False,
+            )
+            self._last_set_temperatures[thermostat_id] = target_temp
+            _LOGGER.debug(
+                "Set thermostat %s to %.1f°C (%s mode)", thermostat_id, target_temp, hvac_mode
+            )
+        except Exception as err:
+            # Some integrations reject temperature changes under certain conditions
+            _LOGGER.debug(
+                "Failed to set temperature for %s to %.1f°C: %s",
+                thermostat_id,
+                target_temp,
+                err,
+            )
+
+    async def _set_hvac_mode_if_needed(
+        self,
+        thermostat_id: str,
+        current_hvac_mode: Optional[str],
+        ha_hvac_mode: str,
+        hvac_mode: str,
+    ) -> None:
+        """Set HVAC mode if it differs from current mode, defensively handling errors."""
+        if current_hvac_mode != ha_hvac_mode:
             try:
                 await self.hass.services.async_call(
                     CLIMATE_DOMAIN,
-                    SERVICE_SET_TEMPERATURE,
-                    {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp},
+                    "set_hvac_mode",
+                    {"entity_id": thermostat_id, "hvac_mode": ha_hvac_mode},
                     blocking=False,
                 )
-                self._last_set_temperatures[thermostat_id] = target_temp
-                _LOGGER.debug(
-                    "Set thermostat %s to %.1f°C (%s mode)",
-                    thermostat_id,
-                    target_temp,
-                    hvac_mode,
-                )
+                _LOGGER.debug("Set thermostat %s to %s mode", thermostat_id, hvac_mode)
             except Exception as err:
-                # Some integrations reject temperature changes under certain conditions
+                # Some integrations reject redundant commands even when state shows it should change
                 _LOGGER.debug(
-                    "Failed to set temperature for %s to %.1f°C: %s",
+                    "Failed to set hvac_mode for %s (may already be in target mode): %s",
                     thermostat_id,
-                    target_temp,
                     err,
                 )
         else:
-            _LOGGER.debug(
-                "Skipping thermostat %s update - already at %.1f°C",
-                thermostat_id,
-                target_temp,
-            )
+            _LOGGER.debug("Thermostat %s already in %s mode, skipping", thermostat_id, hvac_mode)
 
     async def _handle_thermostat_idle(
         self, area: Area, thermostat_id: str, target_temp: float

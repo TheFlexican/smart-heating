@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import aiofiles
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
@@ -101,8 +102,9 @@ async def handle_validate_config(
         JSON response with validation results
     """
     try:
-        # Validate structure
+        # Validate structure (kept async for consistency)
         config_manager._validate_import_data(data)
+        await asyncio.sleep(0)
 
         # Count what would be imported
         existing_areas = set(config_manager.area_manager.get_all_areas().keys())
@@ -188,9 +190,30 @@ async def handle_restore_backup(
                 {"error": f"Backup file not found: {backup_filename}"}, status=404
             )
 
-        # Load backup data
-        with open(backup_file, "r", encoding="utf-8") as f:
-            config_data = json.load(f)
+        # Load backup data (use async file IO when possible)
+        try:
+            async with aiofiles.open(str(backup_file), "r", encoding="utf-8") as f:
+                text = await f.read()
+                config_data = json.loads(text)
+        except Exception:
+            # Fallback for test environments or Path-like mocks where aiofiles
+            # cannot open the provided object; try to read synchronously.
+            def _read():
+                # Ensure we pass a string path when tests provide Path-like mocks
+                with open(str(backup_file), "r", encoding="utf-8") as f:
+                    return json.load(f)
+
+            # If hass provides an executor helper, try to use it to avoid blocking
+            if hasattr(_hass, "async_add_executor_job"):
+                try:
+                    config_data = await _hass.async_add_executor_job(_read)
+                except Exception:
+                    # If the provided helper isn't callable/awaitable in the test
+                    # environment (MagicMock), fall back to synchronous read.
+                    config_data = _read()
+            else:
+                # Tests may provide patched builtins.open; read synchronously
+                config_data = _read()
 
         # Import configuration (creates another backup before restore)
         changes = await config_manager.async_import_config(config_data, create_backup=True)

@@ -44,38 +44,44 @@ async def handle_get_areas(  # NOSONAR
         stored_area = area_manager.get_area(area_id)
 
         if stored_area:
-            # Build devices list with coordinator data
-            devices_list = []
-            coordinator_devices = get_coordinator_devices(hass, area_id)
-
-            for dev_id, dev_data in stored_area.devices.items():
-                state = hass.states.get(dev_id)
-                coord_device = coordinator_devices.get(dev_id)
-                devices_list.append(build_device_info(dev_id, dev_data, state, coord_device))
-
-            # Build area response using utility
+            # Build devices list and area response using helpers
+            devices_list = _build_devices_list(hass, stored_area, area_id)
             area_response = build_area_response(stored_area, devices_list)
-            # Override name with HA area name
             area_response["name"] = area_name
             areas_data.append(area_response)
         else:
-            # Default data for HA area without stored settings
-            areas_data.append(
-                {
-                    "id": area_id,
-                    "name": area_name,
-                    "enabled": True,
-                    "hidden": False,
-                    "state": "idle",
-                    "target_temperature": 20.0,
-                    "current_temperature": None,
-                    "devices": [],
-                    "schedules": [],
-                    "manual_override": False,
-                }
-            )
+            areas_data.append(_default_area_dict(area_id, area_name))
 
     return web.json_response({"areas": areas_data})
+
+
+def _build_devices_list(hass: HomeAssistant, stored_area: Area, area_id: str) -> list:
+    """Build a list of device info dicts for a stored area."""
+    devices_list: list = []
+    coordinator_devices = get_coordinator_devices(hass, area_id)
+
+    for dev_id, dev_data in stored_area.devices.items():
+        state = hass.states.get(dev_id)
+        coord_device = coordinator_devices.get(dev_id)
+        devices_list.append(build_device_info(dev_id, dev_data, state, coord_device))
+
+    return devices_list
+
+
+def _default_area_dict(area_id: str, area_name: str) -> dict:
+    """Return default area payload for HA area without stored settings."""
+    return {
+        "id": area_id,
+        "name": area_name,
+        "enabled": True,
+        "hidden": False,
+        "state": "idle",
+        "target_temperature": 20.0,
+        "current_temperature": None,
+        "devices": [],
+        "schedules": [],
+        "manual_override": False,
+    }
 
 
 # noqa: ASYNC109 - Web API handlers must be async per aiohttp convention
@@ -185,64 +191,11 @@ async def handle_set_temperature(
         # Trigger immediate climate control
         climate_controller = hass.data.get(DOMAIN, {}).get("climate_controller")
         # Log area device/thermostat state to aid debugging when devices don't respond
-        try:
-            thermostats = area.get_thermostats()
-            _LOGGER.info(
-                "Area %s devices=%s thermostats=%s current_temperature=%s hvac_mode=%s enabled=%s",
-                area.name,
-                list(area.devices.keys()),
-                thermostats,
-                getattr(area, "current_temperature", None),
-                getattr(area, "hvac_mode", None),
-                getattr(area, "enabled", None),
-            )
-        except Exception:
-            _LOGGER.debug("Failed to log area device/thermostat state for %s", area.name)
+        _log_area_devices_state(area)
 
         if climate_controller:
             await climate_controller.async_control_heating()
-
-            # Proactively update thermostats immediately for user-initiated changes.
-            # This helps when area temperature data is missing or when the device
-            # needs an immediate command (e.g., airco units that ignore delayed commands).
-            # Use the user-set temperature directly, not preset-overridden effective temperature.
-            # Skip proactive update if hvac_mode is "off" - don't send commands to disabled devices.
-            try:
-                thermostats = area.get_thermostats()
-                area_hvac = getattr(area, "hvac_mode", "heat")
-
-                # Don't send commands to thermostats when hvac_mode is "off"
-                if thermostats and area_hvac != "off":
-                    current_temp = getattr(area, "current_temperature", None)
-                    # Use the actual temperature the user just set, not effective (which may be preset-overridden)
-                    user_target = temperature
-                    heating_needed = current_temp is None or current_temp < user_target
-                    # Determine hvac_mode: use "heat" or "cool" based on heating_needed,
-                    # since some integrations (like LG ThinQ) don't handle "auto" when off
-                    if area_hvac == "auto" or area_hvac not in ("heat", "cool"):
-                        hvac_mode = "heat" if heating_needed else "cool"
-                    else:
-                        hvac_mode = area_hvac
-                    _LOGGER.info(
-                        "Forcing immediate thermostat update for %s (heating=%s target=%.1f hvac_mode=%s)",
-                        area.name,
-                        heating_needed,
-                        user_target,
-                        hvac_mode,
-                    )
-                    # Use device handler on controller when available to perform immediate update
-                    try:
-                        await climate_controller.device_handler.async_control_thermostats(
-                            area, heating_needed, user_target, hvac_mode=hvac_mode
-                        )
-                    except Exception as err:
-                        _LOGGER.exception(
-                            "Failed to proactively update thermostats for %s: %s",
-                            area.name,
-                            err,
-                        )
-            except Exception:
-                _LOGGER.debug("Failed to evaluate proactive thermostat update for %s", area.name)
+            await _proactive_thermostat_update(climate_controller, area, temperature)
 
         # Request coordinator refresh
         coordinator = get_coordinator(hass)
@@ -254,6 +207,64 @@ async def handle_set_temperature(
         return web.json_response({"success": True})
     except ValueError as err:
         return web.json_response({"error": str(err)}, status=400)
+
+
+def _log_area_devices_state(area: Area) -> None:
+    """Log area devices and thermostat state for debugging."""
+    try:
+        thermostats = area.get_thermostats()
+        _LOGGER.info(
+            "Area %s devices=%s thermostats=%s current_temperature=%s hvac_mode=%s enabled=%s",
+            area.name,
+            list(area.devices),
+            thermostats,
+            getattr(area, "current_temperature", None),
+            getattr(area, "hvac_mode", None),
+            getattr(area, "enabled", None),
+        )
+    except Exception:
+        _LOGGER.debug("Failed to log area device/thermostat state for %s", area.name)
+
+
+async def _proactive_thermostat_update(
+    climate_controller: Any, area: Area, temperature: float
+) -> None:
+    """Perform immediate thermostat update for user-initiated changes."""
+    try:
+        thermostats = area.get_thermostats()
+        area_hvac = getattr(area, "hvac_mode", "heat")
+
+        # Don't send commands to thermostats when hvac_mode is "off"
+        if not thermostats or area_hvac == "off":
+            return
+
+        current_temp = getattr(area, "current_temperature", None)
+        user_target = temperature
+        heating_needed = current_temp is None or current_temp < user_target
+
+        # Determine hvac_mode: use "heat" or "cool" based on heating_needed
+        if area_hvac == "auto" or area_hvac not in ("heat", "cool"):
+            hvac_mode = "heat" if heating_needed else "cool"
+        else:
+            hvac_mode = area_hvac
+
+        _LOGGER.info(
+            "Forcing immediate thermostat update for %s (heating=%s target=%.1f hvac_mode=%s)",
+            area.name,
+            heating_needed,
+            user_target,
+            hvac_mode,
+        )
+
+        # Use device handler on controller when available to perform immediate update
+        try:
+            await climate_controller.device_handler.async_control_thermostats(
+                area, heating_needed, user_target, hvac_mode=hvac_mode
+            )
+        except Exception as err:
+            _LOGGER.exception("Failed to proactively update thermostats for %s: %s", area.name, err)
+    except Exception:
+        _LOGGER.debug("Failed to evaluate proactive thermostat update for %s", area.name)
 
 
 async def handle_enable_area(
@@ -597,45 +608,13 @@ async def handle_set_heating_type(
         if not area:
             return web.json_response({"error": f"Area {area_id} not found"}, status=404)
 
-        # Validate and set heating type
-        if "heating_type" in data:
-            heating_type = data["heating_type"]
-            if heating_type not in ["radiator", "floor_heating", "airco"]:
-                return web.json_response(
-                    {"error": "heating_type must be 'radiator', 'floor_heating' or 'airco'"},
-                    status=400,
-                )
-            area.heating_type = heating_type
-            _LOGGER.info("Area %s: Setting heating_type to %s", area_id, heating_type)
-
-            # If area is switched to air conditioning, clear/disable
-            # settings that apply only to radiator/floor heating systems
-            if heating_type == "airco":
-                area.custom_overhead_temp = None
-                area.heating_curve_coefficient = None
-                area.hysteresis_override = None
-                # Avoid shutting down switches by default for airco
-                area.shutdown_switches_when_idle = False
-
-        # Set custom overhead temperature (optional)
-        if "custom_overhead_temp" in data:
-            custom_overhead = data["custom_overhead_temp"]
-            if custom_overhead is not None:
-                # Validate range
-                if custom_overhead < 0 or custom_overhead > 30:
-                    return web.json_response(
-                        {"error": "custom_overhead_temp must be between 0 and 30°C"},
-                        status=400,
-                    )
-                area.custom_overhead_temp = float(custom_overhead)
-                _LOGGER.info(
-                    "Area %s: Setting custom_overhead_temp to %.1f°C",
-                    area_id,
-                    custom_overhead,
-                )
-            else:
-                area.custom_overhead_temp = None
-                _LOGGER.info("Area %s: Clearing custom_overhead_temp", area_id)
+        # Apply heating type and overhead temperature changes
+        err_resp = _apply_heating_type_changes(area, data, area_id)
+        if err_resp:
+            return err_resp
+        err_resp = _apply_custom_overhead(area, data, area_id)
+        if err_resp:
+            return err_resp
 
         await area_manager.async_save()
 
@@ -650,6 +629,54 @@ async def handle_set_heating_type(
     except Exception as err:
         _LOGGER.error("Error setting heating type for area %s: %s", area_id, err)
         return web.json_response({"error": str(err)}, status=500)
+
+
+def _apply_heating_type_changes(area: Area, data: dict, area_id: str) -> web.Response | None:
+    """Validate and apply heating type changes on an area. Returns web.Response on error."""
+    if "heating_type" not in data:
+        return None
+
+    heating_type = data["heating_type"]
+    if heating_type not in ["radiator", "floor_heating", "airco"]:
+        return web.json_response(
+            {"error": "heating_type must be 'radiator', 'floor_heating' or 'airco'"},
+            status=400,
+        )
+
+    area.heating_type = heating_type
+    _LOGGER.info("Area %s: Setting heating_type to %s", area_id, heating_type)
+
+    # If area is switched to air conditioning, clear/disable
+    # settings that apply only to radiator/floor heating systems
+    if heating_type == "airco":
+        area.custom_overhead_temp = None
+        area.heating_curve_coefficient = None
+        area.hysteresis_override = None
+        # Avoid shutting down switches by default for airco
+        area.shutdown_switches_when_idle = False
+
+    return None
+
+
+def _apply_custom_overhead(area: Area, data: dict, area_id: str) -> web.Response | None:
+    """Apply custom overhead temperature changes; return web.Response on error."""
+    if "custom_overhead_temp" not in data:
+        return None
+
+    custom_overhead = data["custom_overhead_temp"]
+    if custom_overhead is not None:
+        # Validate range
+        if custom_overhead < 0 or custom_overhead > 30:
+            return web.json_response(
+                {"error": "custom_overhead_temp must be between 0 and 30°C"}, status=400
+            )
+        area.custom_overhead_temp = float(custom_overhead)
+        _LOGGER.info("Area %s: Setting custom_overhead_temp to %.1f°C", area_id, custom_overhead)
+    else:
+        area.custom_overhead_temp = None
+        _LOGGER.info("Area %s: Clearing custom_overhead_temp", area_id)
+
+    return None
 
 
 def _validate_heating_curve_coefficient(coeff_str: str) -> tuple[bool, str | float]:
