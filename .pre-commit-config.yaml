@@ -18,6 +18,36 @@ repos:
 
   - repo: local
     hooks:
+      - id: flake8-syntax
+        name: flake8 (syntax checks)
+        entry: bash -c 'source venv/bin/activate || true; pip install --upgrade flake8 >/dev/null 2>&1 || true; flake8 smart_heating --count --select=E9,F63,F7,F82 --show-source --statistics'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: flake8-warnings
+        name: flake8 (warnings)
+        entry: bash -c 'source venv/bin/activate || true; pip install --upgrade flake8 >/dev/null 2>&1 || true; flake8 smart_heating --count --exit-zero --max-complexity=25 --max-line-length=127 --statistics'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: black-check
+        name: black (format check)
+        entry: bash -c 'source venv/bin/activate || true; pip install --upgrade black >/dev/null 2>&1 || true; black --check smart_heating tests'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: isort-check
+        name: isort (import sorting check)
+        entry: bash -c 'source venv/bin/activate || true; pip install --upgrade isort >/dev/null 2>&1 || true; isort --check-only --diff smart_heating tests'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+  - repo: local
+    hooks:
       # Frontend ESLint
       - id: eslint
         name: ESLint
