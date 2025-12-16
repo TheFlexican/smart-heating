@@ -40,6 +40,10 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 - **Slimme Nacht Boost:** Een conservatieve, op leerdata gebaseerde nachtboost-berekening is toegevoegd aan de backend learning engine om kleine temperatuurcompensaties voor nachts te adviseren op basis van historische verwarmings-/afkoelgegevens. Werkt alleen wanneer er voldoende data aanwezig is.
 
 ### 🐛 Opgeloste bugs & Verbeteringen
+
+- **Zone logger:** Voorkom onnodige waarschuwingen "Unknown event type" door `cooling` en `climate_control` te erkennen als geldige event-typen die door climate handlers worden gebruikt (lost runtime-waarschuwingen op bij koel-/hysteresis-events).
+
+### 🐛 Opgeloste bugs & Verbeteringen
 ## [0.5.14] - 2025-12-13
 
 ### 🐛 Opgeloste bugs & Verbeteringen

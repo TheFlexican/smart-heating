@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **Smart Night Boost:** Implemented a conservative learning-based night boost calculation in the backend learning engine to recommend small overnight temperature offsets based on historical heating/cooling data. This improves comfort during night hours while remaining conservative when data is insufficient.
 
+### 🐛 Bug Fixes & Improvements
+
+- **Area logger:** Avoid spurious "Unknown event type" warnings by recognising `cooling` and `climate_control` event types emitted by the climate handlers (fixes runtime warnings when cooling/hysteresis events are logged).
+
 
 
 ## [0.5.14] - 2025-12-13
