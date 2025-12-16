@@ -24,6 +24,28 @@ it('shows cooling series when history contains cooling state', async () => {
   // The hidden indicator should reflect cooling
   await waitFor(() => expect(screen.getByTestId('history-has-cooling').textContent).toBe('1'))
 
+  it('defaults to 4h selector and exposes range buttons', async () => {
+    const now = new Date().toISOString()
+    vi.spyOn(api, 'getHistory').mockResolvedValue({
+      entries: [{ timestamp: now, current_temperature: 22, target_temperature: 21, state: 'idle' }],
+    })
+
+    render(<HistoryChart areaId="a1" />)
+
+    // Check selector buttons exist
+    expect(screen.getByTestId('history-range-1h')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-2h')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-4h')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-8h')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-24h')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-custom')).toBeInTheDocument()
+
+    // The 4h button should be selected by default (aria-pressed === true)
+    await waitFor(() =>
+      expect(screen.getByTestId('history-range-4h').getAttribute('aria-pressed')).toBe('true'),
+    )
+  })
+
   render(<HistoryChart areaId="a1" />)
 
   // Wait for chart to render data and indicate cooling presence
