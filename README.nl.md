@@ -19,7 +19,8 @@ Een Home Assistant custom integratie voor intelligente multi-zone verwarmingsreg
 
 ### 🏠 Slimme Zone Controle
 - **Multi-zone verwarmingsbeheer** - Creëer en beheer onbeperkte verwarmingszones
-- **Universele apparaatondersteuning** - Werkt met ELKE Home Assistant climate integratie (Nest, Ecobee, Zigbee2MQTT, etc.)
+- **Universele apparaatondersteuning** - Werkt met ELKE Home Assistant climate integratie (Nest, Ecobee, LG ThinQ AC, Zigbee2MQTT, etc.)
+- **AC/Warmtepomp besturing** - Volledige ondersteuning voor koelmodus met Verwarmen/Koelen/Uit keuzelijst voor zones met airconditioning
 - **Real-time status updates** - WebSocket-gebaseerde live monitoring met <3s responstijd
 - **Handmatige override detectie** - Detecteert automatisch en respecteert externe thermostaat wijzigingen
 

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### ✨ Features
+- **AC HVAC Mode Control:** Added Heat/Cool/Off dropdown selector for air-conditioned areas in ZoneCard, allowing direct control of AC operation mode without changing temperature
+  - Heat mode: Activates heating
+  - Cool mode: Activates cooling
+  - Off mode: Turns off both climate entity and power switch
+  - Automatically detects and controls associated power switches (e.g., `switch.xxx_power`)
+  - Compatible with LG ThinQ AC and other climate integrations
+  - Fixes issue where temperature changes would send commands to AC even when turned off
+- **Improved Thermostat Recognition:** Climate entities now properly recognized as thermostats alongside traditional thermostat devices
+- **Smart Temperature Updates:** When user manually sets temperature via API, preset mode is automatically cleared to prevent override
+- **Proactive AC Control:** Temperature changes immediately update AC devices instead of waiting for next control cycle
+
 ### ⚡ Major Upgrades
 - **React 19.2:** Upgraded from React 18.3.1 to 19.2.3 with full React 19 support including new JSX transform, concurrent features, and improved TypeScript types
 - **Material-UI v7:** Upgraded from MUI 6.1.9 to 7.3.6 with React 19 compatibility, updated component APIs, and improved theming

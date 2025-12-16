@@ -7,6 +7,18 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 
 ## [Niet Uitgebracht]
 
+### ✨ Functies
+- **AC HVAC Modus Besturing:** Keuzelijst voor Verwarmen/Koelen/Uit toegevoegd voor zones met airconditioning in de ZoneCard, voor directe controle over de AC-modus zonder temperatuurwijziging
+  - Verwarmen-modus: Activeert verwarming
+  - Koelen-modus: Activeert koeling
+  - Uit-modus: Schakelt zowel de climate entiteit als de stroomschakelaar uit
+  - Detecteert en bestuurt automatisch gekoppelde stroomschakelaars (bijv. `switch.xxx_power`)
+  - Compatibel met LG ThinQ AC en andere climate integraties
+  - Lost probleem op waarbij temperatuurwijzigingen commando's naar AC stuurden zelfs wanneer uitgeschakeld
+- **Verbeterde Thermostaat Herkenning:** Climate entiteiten worden nu correct herkend als thermostaten naast traditionele thermostaat apparaten
+- **Slimme Temperatuur Updates:** Wanneer gebruiker handmatig temperatuur instelt via API, wordt preset modus automatisch gewist om overschrijven te voorkomen
+- **Proactieve AC Besturing:** Temperatuurwijzigingen updaten AC apparaten onmiddellijk in plaats van te wachten op volgende controlecyclus
+
 ### ⚡ Belangrijke Upgrades
 - **React 19.2:** Geüpgraded van React 18.3.1 naar 19.2.3 met volledige React 19 ondersteuning inclusief nieuwe JSX transform, concurrent features en verbeterde TypeScript types
 - **Material-UI v7:** Geüpgraded van MUI 6.1.9 naar 7.3.6 met React 19 compatibiliteit, bijgewerkte component APIs en verbeterde theming
