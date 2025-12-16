@@ -144,7 +144,10 @@ class TestValidateHandler:
         data = {
             "version": "0.6.0",
             "export_date": "2024-01-15T10:30:00",
-            "areas": {"living_room": {"name": "Living Room"}, "bedroom": {"name": "Bedroom"}},
+            "areas": {
+                "living_room": {"name": "Living Room"},
+                "bedroom": {"name": "Bedroom"},
+            },
             "global_settings": {},
             "vacation_mode": {},
         }

@@ -262,25 +262,33 @@ async def async_handle_copy_schedule(
             # Copy with same days
             # Normalize source schedule day to integer index for constructor
             def _normalize_day_to_index(d):
-                    idx_map_full = {
-                        "Monday": 0,
-                        "Tuesday": 1,
-                        "Wednesday": 2,
-                        "Thursday": 3,
-                        "Friday": 4,
-                        "Saturday": 5,
-                        "Sunday": 6,
-                    }
-                    short_to_idx = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
-                    if isinstance(d, int):
-                        return d
-                    if isinstance(d, str):
-                        key = d.strip().lower()
-                        if key in short_to_idx:
-                            return short_to_idx[key]
-                        # Maybe full name available
-                        return idx_map_full.get(d, None)
-                    return None
+                idx_map_full = {
+                    "Monday": 0,
+                    "Tuesday": 1,
+                    "Wednesday": 2,
+                    "Thursday": 3,
+                    "Friday": 4,
+                    "Saturday": 5,
+                    "Sunday": 6,
+                }
+                short_to_idx = {
+                    "mon": 0,
+                    "tue": 1,
+                    "wed": 2,
+                    "thu": 3,
+                    "fri": 4,
+                    "sat": 5,
+                    "sun": 6,
+                }
+                if isinstance(d, int):
+                    return d
+                if isinstance(d, str):
+                    key = d.strip().lower()
+                    if key in short_to_idx:
+                        return short_to_idx[key]
+                    # Maybe full name available
+                    return idx_map_full.get(d, None)
+                return None
 
             source_day_index = _normalize_day_to_index(source_schedule.day)
             new_schedule = Schedule(

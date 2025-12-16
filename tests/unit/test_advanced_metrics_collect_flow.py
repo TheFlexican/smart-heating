@@ -31,7 +31,8 @@ async def test_collect_metrics_full_flow(monkeypatch):
     fake_recorder = MagicMock()
     fake_recorder.async_add_executor_job = AsyncMock(return_value=None)
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance", lambda hass: fake_recorder
+        "smart_heating.advanced_metrics_collector.get_instance",
+        lambda hass: fake_recorder,
     )
 
     await collector._async_collect_metrics(None)
@@ -53,7 +54,8 @@ async def test_async_get_metrics_wrapper(monkeypatch):
         return_value=[{"timestamp": datetime.now().isoformat()}]
     )
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance", lambda hass: fake_recorder
+        "smart_heating.advanced_metrics_collector.get_instance",
+        lambda hass: fake_recorder,
     )
 
     results = await collector.async_get_metrics(days=7)

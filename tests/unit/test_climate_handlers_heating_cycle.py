@@ -276,7 +276,12 @@ class TestAsyncHandleHeatingRequired:
 
     @pytest.mark.asyncio
     async def test_handle_heating_required_without_learning_engine(
-        self, mock_hass, mock_area_manager, mock_area, mock_device_handler, mock_temp_handler
+        self,
+        mock_hass,
+        mock_area_manager,
+        mock_area,
+        mock_device_handler,
+        mock_temp_handler,
     ):
         """Test heating required without learning engine."""
         handler = HeatingCycleHandler(
@@ -308,7 +313,12 @@ class TestAsyncHandleHeatingRequired:
         mock_temp_handler.async_get_outdoor_temperature.return_value = 5.0
 
         heating_areas, max_target = await heating_cycle_handler.async_handle_heating_required(
-            "living_room", mock_area, 18.5, 21.5, mock_device_handler, mock_temp_handler
+            "living_room",
+            mock_area,
+            18.5,
+            21.5,
+            mock_device_handler,
+            mock_temp_handler,
         )
 
         assert len(heating_areas) == 1
@@ -469,7 +479,10 @@ class TestAsyncHandleHeatingStop:
     ):
         """Test stopping heating without learning engine."""
         handler = HeatingCycleHandler(
-            hass=mock_hass, area_manager=mock_area_manager, learning_engine=None, area_logger=None
+            hass=mock_hass,
+            area_manager=mock_area_manager,
+            learning_engine=None,
+            area_logger=None,
         )
 
         await handler.async_handle_heating_stop(
@@ -487,7 +500,10 @@ class TestAsyncHandleHeatingStop:
     ):
         """Test stopping heating without area logger."""
         handler = HeatingCycleHandler(
-            hass=mock_hass, area_manager=mock_area_manager, learning_engine=None, area_logger=None
+            hass=mock_hass,
+            area_manager=mock_area_manager,
+            learning_engine=None,
+            area_logger=None,
         )
 
         await handler.async_handle_heating_stop(
@@ -529,7 +545,12 @@ class TestHeatingCycleIntegration:
 
         # 2. Start heating
         heating_areas, max_target = await heating_cycle_handler.async_handle_heating_required(
-            "living_room", mock_area, 18.0, 21.0, mock_device_handler, mock_temp_handler
+            "living_room",
+            mock_area,
+            18.0,
+            21.0,
+            mock_device_handler,
+            mock_temp_handler,
         )
 
         assert mock_area.state == "heating"
@@ -556,7 +577,11 @@ class TestHeatingCycleIntegration:
 
     @pytest.mark.asyncio
     async def test_multiple_areas_heating_independently(
-        self, heating_cycle_handler, mock_temp_handler, mock_sensor_handler, mock_device_handler
+        self,
+        heating_cycle_handler,
+        mock_temp_handler,
+        mock_sensor_handler,
+        mock_device_handler,
     ):
         """Test multiple areas can heat independently."""
         # Create two areas

@@ -208,7 +208,9 @@ class TestHeatingEventTracking:
     async def test_start_heating_event(self, learning_engine):
         """Test starting a heating event."""
         with patch.object(
-            learning_engine, "_async_get_outdoor_temperature", AsyncMock(return_value=12.0)
+            learning_engine,
+            "_async_get_outdoor_temperature",
+            AsyncMock(return_value=12.0),
         ):
             await learning_engine.async_start_heating_event("living_room", 19.0)
 
@@ -222,7 +224,9 @@ class TestHeatingEventTracking:
     async def test_start_heating_event_no_outdoor_temp(self, learning_engine):
         """Test starting event without outdoor temperature."""
         with patch.object(
-            learning_engine, "_async_get_outdoor_temperature", AsyncMock(return_value=None)
+            learning_engine,
+            "_async_get_outdoor_temperature",
+            AsyncMock(return_value=None),
         ):
             await learning_engine.async_start_heating_event("bedroom", 18.0)
 
@@ -383,7 +387,9 @@ class TestPredictions:
     async def test_predict_heating_time_insufficient_data(self, learning_engine):
         """Test prediction with insufficient data."""
         with patch.object(
-            learning_engine, "_async_get_recent_heating_rates", AsyncMock(return_value=[])
+            learning_engine,
+            "_async_get_recent_heating_rates",
+            AsyncMock(return_value=[]),
         ):
             result = await learning_engine.async_predict_heating_time("living_room", 18.0, 21.0)
 
@@ -401,7 +407,9 @@ class TestPredictions:
             AsyncMock(return_value=heating_rates),
         ):
             with patch.object(
-                learning_engine, "_async_get_outdoor_temperature", AsyncMock(return_value=None)
+                learning_engine,
+                "_async_get_outdoor_temperature",
+                AsyncMock(return_value=None),
             ):
                 result = await learning_engine.async_predict_heating_time("living_room", 18.0, 21.0)
 
@@ -419,7 +427,9 @@ class TestPredictions:
             AsyncMock(return_value=heating_rates),
         ):
             with patch.object(
-                learning_engine, "_async_get_outdoor_temperature", AsyncMock(return_value=15.0)
+                learning_engine,
+                "_async_get_outdoor_temperature",
+                AsyncMock(return_value=15.0),
             ):
                 with patch.object(
                     learning_engine,
@@ -455,7 +465,9 @@ class TestLearningStats:
     async def test_get_learning_stats_no_data(self, learning_engine):
         """Test getting learning stats with no data."""
         with patch.object(
-            learning_engine, "_async_get_recent_heating_rates", AsyncMock(return_value=[])
+            learning_engine,
+            "_async_get_recent_heating_rates",
+            AsyncMock(return_value=[]),
         ):
             stats = await learning_engine.async_get_learning_stats("living_room")
 

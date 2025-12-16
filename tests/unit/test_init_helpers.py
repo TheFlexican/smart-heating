@@ -63,16 +63,25 @@ async def test_climate_controller_heating_paths(monkeypatch):
     areas = {
         "disabled": make_area(enabled=False, current_temperature=20.0, target_temperature=22.0),
         "manual": make_area(
-            enabled=True, manual_override=True, current_temperature=20.0, target_temperature=22.0
+            enabled=True,
+            manual_override=True,
+            current_temperature=20.0,
+            target_temperature=22.0,
         ),
         "offmode": make_area(
-            enabled=True, hvac_mode="off", current_temperature=20.0, target_temperature=22.0
+            enabled=True,
+            hvac_mode="off",
+            current_temperature=20.0,
+            target_temperature=22.0,
         ),
         "notemp": make_area(enabled=True, current_temperature=None, target_temperature=22.0),
         "within_hyst": make_area(enabled=True, current_temperature=21.3, target_temperature=21.5),
         "heating": make_area(enabled=True, current_temperature=18.0, target_temperature=21.0),
         "cooling": make_area(
-            enabled=True, current_temperature=25.0, target_temperature=21.0, hvac_mode="cool"
+            enabled=True,
+            current_temperature=25.0,
+            target_temperature=21.0,
+            hvac_mode="cool",
         ),
     }
 

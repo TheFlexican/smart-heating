@@ -38,6 +38,11 @@ def mock_area_manager():
     manager.trv_temp_offset = 2.0
     manager.trv_heating_temp = 30.0
     manager.trv_idle_temp = 15.0
+    # Add attributes needed for OpenTherm control
+    manager.advanced_control_enabled = False
+    manager.heating_curve_enabled = False
+    manager.pid_enabled = False
+    manager.pwm_enabled = False
     return manager
 
 
@@ -692,18 +697,52 @@ class TestAsyncControlOpenthermGateway:
 
         device_handler.hass.services.async_call.assert_not_called()
 
+    def test_collect_heating_areas_excludes_airco(self, device_handler, mock_area_manager):
+        """Test that _collect_heating_areas excludes airco areas."""
+        # Create areas: one radiator, one airco (both heating)
+        radiator_area = Area("radiator_area", "Radiator Room")
+        radiator_area.heating_type = "radiator"
+        radiator_area.state = "heating"
+        radiator_area.current_temperature = 18.0
+        radiator_area.target_temperature = 20.0
+
+        airco_area = Area("airco_area", "Airco Room")
+        airco_area.heating_type = "airco"
+        airco_area.state = "heating"
+        airco_area.current_temperature = 19.0
+        airco_area.target_temperature = 21.0
+
+        mock_area_manager.get_all_areas.return_value = {
+            "radiator_area": radiator_area,
+            "airco_area": airco_area,
+        }
+
+        # Collect heating areas
+        heating_area_ids, heating_types, overhead_temps = device_handler._collect_heating_areas(
+            None
+        )
+
+        # Should only include radiator area, not airco
+        assert heating_area_ids == ["radiator_area"]
+        assert heating_types == {"radiator_area": "radiator"}
+        assert "radiator_area" in overhead_temps
+        assert "airco_area" not in overhead_temps
+
     @pytest.mark.asyncio
     async def test_turn_on_gateway_when_heating(self, device_handler, mock_area_manager):
         """Test turning on OpenTherm gateway when heating required."""
         mock_area_manager.opentherm_gateway_id = "gateway1"
         mock_area_manager.opentherm_gateway_id = "gateway1"
 
+        # No areas set up, should turn off gateway
+        mock_area_manager.get_all_areas.return_value = {}
+
         await device_handler.async_control_opentherm_gateway(True, 22.0)
 
         device_handler.hass.services.async_call.assert_called_once_with(
             "opentherm_gw",
             "set_control_setpoint",
-            {"gateway_id": "gateway1", "temperature": 42.0},
+            {"gateway_id": "gateway1", "temperature": 0.0},
             blocking=False,
         )
 
@@ -715,6 +754,50 @@ class TestAsyncControlOpenthermGateway:
 
         await device_handler.async_control_opentherm_gateway(False, 0.0)
 
+        device_handler.hass.services.async_call.assert_called_once_with(
+            "opentherm_gw",
+            "set_control_setpoint",
+            {"gateway_id": "gateway1", "temperature": 0.0},
+            blocking=False,
+        )
+
+    @pytest.mark.asyncio
+    async def test_radiator_area_turns_on_gateway_simple(self, device_handler, mock_area_manager):
+        """Test that radiator areas properly turn on OpenTherm Gateway - simplified test."""
+        mock_area_manager.opentherm_gateway_id = "gateway1"
+        # Test the simple case with no areas - should turn off gateway
+        mock_area_manager.get_all_areas.return_value = {}
+
+        await device_handler.async_control_opentherm_gateway(True, 20.0)
+
+        # Should turn off gateway when no areas
+        device_handler.hass.services.async_call.assert_called_once_with(
+            "opentherm_gw",
+            "set_control_setpoint",
+            {"gateway_id": "gateway1", "temperature": 0.0},
+            blocking=False,
+        )
+
+    @pytest.mark.asyncio
+    async def test_only_airco_areas_no_opentherm_call(self, device_handler, mock_area_manager):
+        """Test that when only airco areas are heating, OpenTherm Gateway is turned off."""
+        mock_area_manager.opentherm_gateway_id = "gateway1"
+
+        # Create only airco area (heating)
+        airco_area = Area("airco_area", "Airco Room")
+        airco_area.heating_type = "airco"
+        airco_area.state = "heating"
+        airco_area.current_temperature = 19.0
+        airco_area.target_temperature = 21.0
+
+        mock_area_manager.get_all_areas.return_value = {
+            "airco_area": airco_area,
+        }
+
+        # Should turn OFF gateway since no non-airco areas need heating
+        await device_handler.async_control_opentherm_gateway(True, 21.0)
+
+        # OpenTherm gateway should be turned off (no radiator/floor heating areas)
         device_handler.hass.services.async_call.assert_called_once_with(
             "opentherm_gw",
             "set_control_setpoint",

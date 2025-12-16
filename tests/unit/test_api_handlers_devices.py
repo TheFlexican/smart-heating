@@ -31,7 +31,10 @@ def mock_area_manager():
     mock_area = MagicMock()
     mock_area.id = "living_room"
     mock_area.name = "Living Room"
-    mock_area.devices = {"climate.heater": {"type": "climate"}, "switch.pump": {"type": "switch"}}
+    mock_area.devices = {
+        "climate.heater": {"type": "climate"},
+        "switch.pump": {"type": "switch"},
+    }
 
     manager.get_area.return_value = mock_area
     manager.get_all_areas.return_value = {"living_room": mock_area}
@@ -167,13 +170,16 @@ class TestDeviceHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.devices.er.async_get", return_value=mock_entity_registry
+                "smart_heating.api_handlers.devices.er.async_get",
+                return_value=mock_entity_registry,
             ),
             patch(
-                "smart_heating.api_handlers.devices.dr.async_get", return_value=mock_device_registry
+                "smart_heating.api_handlers.devices.dr.async_get",
+                return_value=mock_device_registry,
             ),
             patch(
-                "smart_heating.api_handlers.devices.ar.async_get", return_value=mock_area_registry
+                "smart_heating.api_handlers.devices.ar.async_get",
+                return_value=mock_area_registry,
             ),
         ):
             response = await handle_get_devices(mock_hass, mock_area_manager)
@@ -213,13 +219,16 @@ class TestDeviceHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.devices.er.async_get", return_value=mock_entity_registry
+                "smart_heating.api_handlers.devices.er.async_get",
+                return_value=mock_entity_registry,
             ),
             patch(
-                "smart_heating.api_handlers.devices.dr.async_get", return_value=mock_device_registry
+                "smart_heating.api_handlers.devices.dr.async_get",
+                return_value=mock_device_registry,
             ),
             patch(
-                "smart_heating.api_handlers.devices.ar.async_get", return_value=mock_area_registry
+                "smart_heating.api_handlers.devices.ar.async_get",
+                return_value=mock_area_registry,
             ),
         ):
             response = await _discover_devices(mock_hass, mock_area_manager)
@@ -253,13 +262,16 @@ class TestDeviceHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.devices.er.async_get", return_value=mock_entity_registry
+                "smart_heating.api_handlers.devices.er.async_get",
+                return_value=mock_entity_registry,
             ),
             patch(
-                "smart_heating.api_handlers.devices.dr.async_get", return_value=mock_device_registry
+                "smart_heating.api_handlers.devices.dr.async_get",
+                return_value=mock_device_registry,
             ),
             patch(
-                "smart_heating.api_handlers.devices.ar.async_get", return_value=mock_area_registry
+                "smart_heating.api_handlers.devices.ar.async_get",
+                return_value=mock_area_registry,
             ),
         ):
             response = await handle_refresh_devices(mock_hass, mock_area_manager)
@@ -338,7 +350,8 @@ class TestDeviceHandlers:
         data = {"device_id": "climate.heater", "device_type": "climate"}
 
         with patch(
-            "smart_heating.api_handlers.devices.ar.async_get", return_value=mock_area_registry
+            "smart_heating.api_handlers.devices.ar.async_get",
+            return_value=mock_area_registry,
         ):
             response = await handle_add_device(mock_hass, area_manager, "nonexistent", data)
 
@@ -358,7 +371,8 @@ class TestDeviceHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.devices.ar.async_get", return_value=mock_area_registry
+                "smart_heating.api_handlers.devices.ar.async_get",
+                return_value=mock_area_registry,
             ),
             patch("smart_heating.api_handlers.devices.Area") as mock_area_class,
         ):

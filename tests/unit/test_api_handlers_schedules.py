@@ -76,7 +76,8 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id", return_value=(True, None)
+                "smart_heating.api_handlers.schedules.validate_area_id",
+                return_value=(True, None),
             ),
             patch(
                 "smart_heating.api_handlers.schedules.validate_temperature",
@@ -110,7 +111,8 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id", return_value=(True, None)
+                "smart_heating.api_handlers.schedules.validate_area_id",
+                return_value=(True, None),
             ),
             patch("smart_heating.api_handlers.schedules.Schedule") as mock_schedule_class,
         ):
@@ -147,7 +149,8 @@ class TestScheduleHandlers:
         data = {"time": "08:00", "days": [0]}
 
         with patch(
-            "smart_heating.api_handlers.schedules.validate_area_id", return_value=(True, None)
+            "smart_heating.api_handlers.schedules.validate_area_id",
+            return_value=(True, None),
         ):
             response = await handle_add_schedule(mock_hass, mock_area_manager, "living_room", data)
 
@@ -162,7 +165,8 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id", return_value=(True, None)
+                "smart_heating.api_handlers.schedules.validate_area_id",
+                return_value=(True, None),
             ),
             patch(
                 "smart_heating.api_handlers.schedules.validate_temperature",
@@ -187,14 +191,16 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id", return_value=(True, None)
+                "smart_heating.api_handlers.schedules.validate_area_id",
+                return_value=(True, None),
             ),
             patch(
                 "smart_heating.api_handlers.schedules.validate_temperature",
                 return_value=(True, None),
             ),
             patch(
-                "smart_heating.api_handlers.schedules.ar.async_get", return_value=mock_area_registry
+                "smart_heating.api_handlers.schedules.ar.async_get",
+                return_value=mock_area_registry,
             ),
             patch("smart_heating.api_handlers.schedules.Area") as mock_area_class,
             patch("smart_heating.api_handlers.schedules.Schedule") as mock_schedule_class,
@@ -232,13 +238,17 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id", return_value=(True, None)
+                "smart_heating.api_handlers.schedules.validate_area_id",
+                return_value=(True, None),
             ),
             patch(
                 "smart_heating.api_handlers.schedules.validate_temperature",
                 return_value=(True, None),
             ),
-            patch("smart_heating.api_handlers.schedules.ar.async_get", return_value=registry),
+            patch(
+                "smart_heating.api_handlers.schedules.ar.async_get",
+                return_value=registry,
+            ),
         ):
             response = await handle_add_schedule(mock_hass, area_manager, "nonexistent", data)
 
@@ -253,7 +263,8 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id", return_value=(True, None)
+                "smart_heating.api_handlers.schedules.validate_area_id",
+                return_value=(True, None),
             ),
             patch(
                 "smart_heating.api_handlers.schedules.validate_temperature",
@@ -273,7 +284,8 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id", return_value=(True, None)
+                "smart_heating.api_handlers.schedules.validate_area_id",
+                return_value=(True, None),
             ),
             patch(
                 "smart_heating.api_handlers.schedules.validate_temperature",

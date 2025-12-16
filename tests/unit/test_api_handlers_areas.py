@@ -91,8 +91,14 @@ class TestAreaHandlers:
     async def test_handle_get_areas(self, mock_hass, mock_area_manager, mock_area_registry):
         """Test getting all areas."""
         with (
-            patch("smart_heating.api_handlers.areas.ar.async_get", return_value=mock_area_registry),
-            patch("smart_heating.api_handlers.areas.get_coordinator_devices", return_value={}),
+            patch(
+                "smart_heating.api_handlers.areas.ar.async_get",
+                return_value=mock_area_registry,
+            ),
+            patch(
+                "smart_heating.api_handlers.areas.get_coordinator_devices",
+                return_value={},
+            ),
             patch(
                 "smart_heating.api_handlers.areas.build_device_info",
                 return_value={"id": "climate.heater"},
@@ -123,7 +129,8 @@ class TestAreaHandlers:
         area_manager.get_area.return_value = None  # No stored data
 
         with patch(
-            "smart_heating.api_handlers.areas.ar.async_get", return_value=mock_area_registry
+            "smart_heating.api_handlers.areas.ar.async_get",
+            return_value=mock_area_registry,
         ):
             response = await handle_get_areas(mock_hass, area_manager)
 
@@ -180,8 +187,14 @@ class TestAreaHandlers:
         data = {"temperature": 22.5}
 
         with (
-            patch("smart_heating.utils.validators.validate_area_id", return_value=(True, None)),
-            patch("smart_heating.utils.validators.validate_temperature", return_value=(True, None)),
+            patch(
+                "smart_heating.utils.validators.validate_area_id",
+                return_value=(True, None),
+            ),
+            patch(
+                "smart_heating.utils.validators.validate_temperature",
+                return_value=(True, None),
+            ),
         ):
             response = await handle_set_temperature(
                 mock_hass, mock_area_manager, "living_room", data
@@ -218,7 +231,10 @@ class TestAreaHandlers:
         data = {"temperature": 100}
 
         with (
-            patch("smart_heating.utils.validators.validate_area_id", return_value=(True, None)),
+            patch(
+                "smart_heating.utils.validators.validate_area_id",
+                return_value=(True, None),
+            ),
             patch(
                 "smart_heating.utils.validators.validate_temperature",
                 return_value=(False, "Temperature out of range"),
@@ -241,8 +257,14 @@ class TestAreaHandlers:
         data = {"temperature": 22.5}
 
         with (
-            patch("smart_heating.utils.validators.validate_area_id", return_value=(True, None)),
-            patch("smart_heating.utils.validators.validate_temperature", return_value=(True, None)),
+            patch(
+                "smart_heating.utils.validators.validate_area_id",
+                return_value=(True, None),
+            ),
+            patch(
+                "smart_heating.utils.validators.validate_temperature",
+                return_value=(True, None),
+            ),
         ):
             response = await handle_set_temperature(mock_hass, area_manager, "nonexistent", data)
 
@@ -267,8 +289,14 @@ class TestAreaHandlers:
         data = {"temperature": 22.5}
 
         with (
-            patch("smart_heating.utils.validators.validate_area_id", return_value=(True, None)),
-            patch("smart_heating.utils.validators.validate_temperature", return_value=(True, None)),
+            patch(
+                "smart_heating.utils.validators.validate_area_id",
+                return_value=(True, None),
+            ),
+            patch(
+                "smart_heating.utils.validators.validate_temperature",
+                return_value=(True, None),
+            ),
         ):
             response = await handle_set_temperature(
                 mock_hass, mock_area_manager, "living_room", data
@@ -389,7 +417,10 @@ class TestAreaHandlers:
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         with (
-            patch("smart_heating.api_handlers.areas.ar.async_get", return_value=mock_area_registry),
+            patch(
+                "smart_heating.api_handlers.areas.ar.async_get",
+                return_value=mock_area_registry,
+            ),
             patch("smart_heating.api_handlers.areas.Area") as mock_area_class,
         ):
             mock_new_area = MagicMock()
@@ -450,7 +481,10 @@ class TestAreaHandlers:
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
         with (
-            patch("smart_heating.api_handlers.areas.ar.async_get", return_value=mock_area_registry),
+            patch(
+                "smart_heating.api_handlers.areas.ar.async_get",
+                return_value=mock_area_registry,
+            ),
             patch("smart_heating.api_handlers.areas.Area") as mock_area_class,
         ):
             mock_new_area = MagicMock()
@@ -663,7 +697,11 @@ class TestAreaHandlers:
         mock_coordinator.async_request_refresh = AsyncMock()
         mock_hass.data[DOMAIN]["test_coordinator"] = mock_coordinator
 
-        data = {"use_global_away": False, "use_global_eco": True, "use_global_comfort": False}
+        data = {
+            "use_global_away": False,
+            "use_global_eco": True,
+            "use_global_comfort": False,
+        }
         response = await handle_set_area_preset_config(
             mock_hass, mock_area_manager, "living_room", data
         )
@@ -800,7 +838,9 @@ class TestHandleSetPrimaryTemperatureSensor:
     @pytest.mark.asyncio
     async def test_set_primary_sensor_success(self, mock_hass, mock_area_manager):
         """Test setting primary temperature sensor successfully."""
-        from smart_heating.api_handlers.areas import handle_set_primary_temperature_sensor
+        from smart_heating.api_handlers.areas import (
+            handle_set_primary_temperature_sensor,
+        )
 
         area = MagicMock()
         area.id = "area1"
@@ -842,7 +882,9 @@ class TestHandleSetPrimaryTemperatureSensor:
     @pytest.mark.asyncio
     async def test_set_primary_thermostat_success(self, mock_hass, mock_area_manager):
         """Test setting primary thermostat successfully."""
-        from smart_heating.api_handlers.areas import handle_set_primary_temperature_sensor
+        from smart_heating.api_handlers.areas import (
+            handle_set_primary_temperature_sensor,
+        )
 
         area = MagicMock()
         area.id = "area1"
@@ -881,7 +923,9 @@ class TestHandleSetPrimaryTemperatureSensor:
     @pytest.mark.asyncio
     async def test_reset_to_auto_mode(self, mock_hass, mock_area_manager):
         """Test resetting to auto mode (None)."""
-        from smart_heating.api_handlers.areas import handle_set_primary_temperature_sensor
+        from smart_heating.api_handlers.areas import (
+            handle_set_primary_temperature_sensor,
+        )
 
         area = MagicMock()
         area.id = "area1"
@@ -919,7 +963,9 @@ class TestHandleSetPrimaryTemperatureSensor:
     @pytest.mark.asyncio
     async def test_sensor_not_in_area(self, mock_hass, mock_area_manager):
         """Test setting sensor that doesn't exist in area."""
-        from smart_heating.api_handlers.areas import handle_set_primary_temperature_sensor
+        from smart_heating.api_handlers.areas import (
+            handle_set_primary_temperature_sensor,
+        )
 
         area = MagicMock()
         area.id = "area1"
@@ -942,7 +988,9 @@ class TestHandleSetPrimaryTemperatureSensor:
     @pytest.mark.asyncio
     async def test_area_not_found(self, mock_hass):
         """Test setting primary sensor for non-existent area."""
-        from smart_heating.api_handlers.areas import handle_set_primary_temperature_sensor
+        from smart_heating.api_handlers.areas import (
+            handle_set_primary_temperature_sensor,
+        )
 
         area_manager = MagicMock()
         area_manager.get_area.return_value = None

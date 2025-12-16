@@ -31,16 +31,24 @@ def disable_time_interval(monkeypatch):
             return None
 
         monkeypatch.setattr(
-            scheduler_mod, "async_track_time_interval", lambda hass, func, interval: dummy_unsub
+            scheduler_mod,
+            "async_track_time_interval",
+            lambda hass, func, interval: dummy_unsub,
         )
         monkeypatch.setattr(
-            amc_mod, "async_track_time_interval", lambda hass, func, interval: dummy_unsub
+            amc_mod,
+            "async_track_time_interval",
+            lambda hass, func, interval: dummy_unsub,
         )
         monkeypatch.setattr(
-            init_mod, "async_track_time_interval", lambda hass, func, interval: dummy_unsub
+            init_mod,
+            "async_track_time_interval",
+            lambda hass, func, interval: dummy_unsub,
         )
         monkeypatch.setattr(
-            history_mod, "async_track_time_interval", lambda hass, func, interval: dummy_unsub
+            history_mod,
+            "async_track_time_interval",
+            lambda hass, func, interval: dummy_unsub,
         )
     except Exception:
         # If modules are not importable in certain test contexts, ignore
@@ -293,7 +301,15 @@ def mock_climate_device() -> dict[str, Any]:
             "current_temperature": 20.0,
             "hvac_action": "heating",
             "hvac_modes": ["heat", "cool", "auto", "off"],
-            "preset_modes": ["eco", "comfort", "away", "home", "sleep", "activity", "boost"],
+            "preset_modes": [
+                "eco",
+                "comfort",
+                "away",
+                "home",
+                "sleep",
+                "activity",
+                "boost",
+            ],
             "preset_mode": "comfort",
             "min_temp": 5.0,
             "max_temp": 35.0,

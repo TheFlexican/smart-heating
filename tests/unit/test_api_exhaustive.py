@@ -30,7 +30,10 @@ async def test_api_exhaustive_endpoints(hass, mock_area_manager):
         ("global_presets", "smart_heating.api.handle_get_global_presets"),
         ("vacation_mode", "smart_heating.api.handle_get_vacation_mode"),
         ("efficiency/report/area1", "smart_heating.api.handle_get_efficiency_report"),
-        ("efficiency/history/area1", "smart_heating.api.handle_get_area_efficiency_history"),
+        (
+            "efficiency/history/area1",
+            "smart_heating.api.handle_get_area_efficiency_history",
+        ),
         ("comparison/day", "smart_heating.api.handle_get_comparison"),
         ("opentherm/logs", "smart_heating.api.handle_get_opentherm_logs"),
     ]
@@ -57,7 +60,11 @@ async def test_api_exhaustive_endpoints(hass, mock_area_manager):
     with ExitStack() as stack:
         for handler in all_handlers:
             stack.enter_context(
-                patch(handler, AsyncMock(return_value=web.json_response({"ok": True})), create=True)
+                patch(
+                    handler,
+                    AsyncMock(return_value=web.json_response({"ok": True})),
+                    create=True,
+                )
             )
 
         for endpoint, _ in get_endpoints:

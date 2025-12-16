@@ -70,7 +70,9 @@ class TestHistoryTrackerLoad:
 
             # Should schedule cleanup
             mock_track.assert_called_once_with(
-                history_tracker.hass, history_tracker._async_periodic_cleanup, CLEANUP_INTERVAL
+                history_tracker.hass,
+                history_tracker._async_periodic_cleanup,
+                CLEANUP_INTERVAL,
             )
 
     @pytest.mark.asyncio

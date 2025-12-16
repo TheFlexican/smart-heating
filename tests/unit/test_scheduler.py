@@ -292,7 +292,9 @@ class TestApplySchedule:
             await scheduler._apply_schedule(mock_area_with_schedule, mock_schedule)
 
         mock_apply.assert_called_once_with(
-            mock_area_with_schedule, mock_schedule, f"climate.smart_heating_{TEST_AREA_ID}"
+            mock_area_with_schedule,
+            mock_schedule,
+            f"climate.smart_heating_{TEST_AREA_ID}",
         )
 
     async def test_apply_preset_schedule(
@@ -310,7 +312,9 @@ class TestApplySchedule:
             await scheduler._apply_schedule(mock_area_with_schedule, mock_schedule)
 
         mock_apply.assert_called_once_with(
-            mock_area_with_schedule, mock_schedule, f"climate.smart_heating_{TEST_AREA_ID}"
+            mock_area_with_schedule,
+            mock_schedule,
+            f"climate.smart_heating_{TEST_AREA_ID}",
         )
 
     async def test_apply_temperature_schedule_updates_area(
@@ -351,7 +355,11 @@ class TestScheduleChecking:
         assert TEST_AREA_ID not in scheduler._last_applied_schedule
 
     async def test_check_schedules_applies_active(
-        self, scheduler: ScheduleExecutor, mock_area_with_schedule, mock_schedule, mock_area_manager
+        self,
+        scheduler: ScheduleExecutor,
+        mock_area_with_schedule,
+        mock_schedule,
+        mock_area_manager,
     ):
         """Test that active schedules are applied."""
         mock_schedule.day = 0
@@ -369,7 +377,11 @@ class TestScheduleChecking:
         mock_apply.assert_called_once_with(mock_area_with_schedule, mock_schedule)
 
     async def test_check_schedules_cache_prevents_reapply(
-        self, scheduler: ScheduleExecutor, mock_area_with_schedule, mock_schedule, mock_area_manager
+        self,
+        scheduler: ScheduleExecutor,
+        mock_area_with_schedule,
+        mock_schedule,
+        mock_area_manager,
     ):
         """Test that schedule cache prevents reapplying same schedule."""
         mock_schedule.day = 0

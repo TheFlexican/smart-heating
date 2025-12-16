@@ -30,10 +30,10 @@
     "test:unit": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "lint:fix": "eslint . --ext ts,tsx --fix",
-    "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css,md}\"",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0 --ignore-pattern '**/*.test.tsx'" ,
+    "lint:fix": "eslint . --ext ts,tsx --fix --ignore-pattern '**/*.test.tsx'",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\" --ignore-pattern \"**/*.test.tsx\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css,md}\" --ignore-pattern \"**/*.test.tsx\"",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {

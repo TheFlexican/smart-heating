@@ -177,7 +177,10 @@ class TestTemperatureMethods:
         # Mock thermostat
         thermostat_state = MagicMock()
         thermostat_state.state = "heating"
-        thermostat_state.attributes = {"current_temperature": 21.0, "unit_of_measurement": "°C"}
+        thermostat_state.attributes = {
+            "current_temperature": 21.0,
+            "unit_of_measurement": "°C",
+        }
 
         mock_hass.states.get.side_effect = lambda entity_id: {
             "sensor.temp": sensor_state,
@@ -634,9 +637,34 @@ class TestDeviceControl:
             "climate.boiler"  # Corrected to reflect the intended gateway ID
         )
 
+        # Add a radiator area that needs heating to trigger OpenTherm
+        from smart_heating.models.area import Area
+
+        radiator_area = Area("test_area", "Test Room")
+        radiator_area.heating_type = "radiator"
+        radiator_area.state = "heating"
+        radiator_area.current_temperature = 18.0
+        radiator_area.target_temperature = 21.0
+        radiator_area.custom_overhead_temp = None  # Use default 20°C for radiator
+        radiator_area.weather_entity_id = None  # No weather entity
+        # Ensure area manager can find the area
+        mock_area_manager.get_area.return_value = radiator_area
+
+        mock_area_manager.get_all_areas.return_value = {
+            "test_area": radiator_area,
+        }
+        # Add missing attributes
+        mock_area_manager.advanced_control_enabled = False
+        mock_area_manager.heating_curve_enabled = False
+        mock_area_manager.pid_enabled = False
+        mock_area_manager.pwm_enabled = False
+        
+        # Mock the gateway state to return None to avoid minimum setpoint calculation
+        mock_hass.states.get.return_value = None
+
         await controller._async_control_opentherm_gateway(True, 21.0)
 
-        # Should set to target + 20°C overhead
+# Should set to target + 20°C overhead
         mock_hass.services.async_call.assert_called_once_with(
             "opentherm_gw",
             "set_control_setpoint",

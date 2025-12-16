@@ -15,7 +15,8 @@ async def test_async_init_database_mysql(monkeypatch):
 
     # Patch the function reference used by the collector module
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance", lambda hass: FakeRecorder()
+        "smart_heating.advanced_metrics_collector.get_instance",
+        lambda hass: FakeRecorder(),
     )
 
     # Prevent real metadata create_all from running

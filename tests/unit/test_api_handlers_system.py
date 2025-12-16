@@ -66,7 +66,10 @@ class TestSystemHandlers:
         # Create mock state object
         mock_state = MagicMock()
         mock_state.state = "20.5"
-        mock_state.attributes = {"unit_of_measurement": "°C", "friendly_name": "Temperature"}
+        mock_state.attributes = {
+            "unit_of_measurement": "°C",
+            "friendly_name": "Temperature",
+        }
         mock_state.last_changed = datetime(2024, 1, 1, 12, 0, 0)
         mock_state.last_updated = datetime(2024, 1, 1, 12, 5, 0)
 

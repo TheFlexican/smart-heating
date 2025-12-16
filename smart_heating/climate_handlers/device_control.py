@@ -742,7 +742,9 @@ class DeviceControlHandler:
         overhead_temps: dict[str, float] = {}
 
         for area_id, area in self.area_manager.get_all_areas().items():
-            if area.state == "heating":
+            # Only include non-airco areas in OpenTherm Gateway control
+            # Air conditioner areas should bypass boiler/radiator logic
+            if area.state == "heating" and area.heating_type != "airco":
                 heating_area_ids.append(area_id)
                 heating_types[area_id] = area.heating_type
 
@@ -1081,19 +1083,25 @@ class DeviceControlHandler:
 
         try:
             if any_heating:
-                # Collect heating areas
+                # Collect heating areas (excludes airco areas)
                 heating_area_ids, heating_types, overhead_temps = (
                     self._collect_heating_areas(opentherm_logger)
                 )
 
-                # Control boiler for heating
-                await self._control_gateway_heating_on(
-                    heating_area_ids,
-                    heating_types,
-                    overhead_temps,
-                    max_target_temp,
-                    opentherm_logger,
-                )
+                # If no non-airco areas need heating, turn off gateway
+                if not heating_area_ids:
+                    await self._control_gateway_heating_off(
+                        gateway_id, opentherm_logger
+                    )
+                else:
+                    # Control boiler for heating
+                    await self._control_gateway_heating_on(
+                        heating_area_ids,
+                        heating_types,
+                        overhead_temps,
+                        max_target_temp,
+                        opentherm_logger,
+                    )
             else:
                 # Turn off boiler
                 await self._control_gateway_heating_off(gateway_id, opentherm_logger)

@@ -252,7 +252,11 @@ class TestStateChangeHandling:
         mock_new_state.state = "heat"
 
         event = MagicMock()
-        event.data = {"entity_id": "climate.test", "old_state": None, "new_state": mock_new_state}
+        event.data = {
+            "entity_id": "climate.test",
+            "old_state": None,
+            "new_state": mock_new_state,
+        }
 
         import asyncio as _asyncio
 

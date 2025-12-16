@@ -58,7 +58,11 @@ async def test_api_view_post_many_branches(hass, mock_area_manager):
     with ExitStack() as stack:
         for h in all_handlers:
             stack.enter_context(
-                patch(h, AsyncMock(return_value=web.json_response({"ok": True})), create=True)
+                patch(
+                    h,
+                    AsyncMock(return_value=web.json_response({"ok": True})),
+                    create=True,
+                )
             )
 
         # call many endpoints with JSON bodies as needed

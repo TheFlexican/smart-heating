@@ -279,7 +279,10 @@ class TestTemperatureSensorReading:
         """Test reading current temperature from thermostat in Celsius."""
         mock_state = MagicMock()
         mock_state.state = "heat"
-        mock_state.attributes = {"current_temperature": 22.0, "unit_of_measurement": "°C"}
+        mock_state.attributes = {
+            "current_temperature": 22.0,
+            "unit_of_measurement": "°C",
+        }
         mock_hass.states.get = MagicMock(return_value=mock_state)
 
         temp = climate_controller._get_temperature_from_thermostat("climate.living_room")
@@ -290,7 +293,10 @@ class TestTemperatureSensorReading:
         """Test reading current temperature from thermostat in Fahrenheit."""
         mock_state = MagicMock()
         mock_state.state = "heat"
-        mock_state.attributes = {"current_temperature": 72.0, "unit_of_measurement": "°F"}
+        mock_state.attributes = {
+            "current_temperature": 72.0,
+            "unit_of_measurement": "°F",
+        }
         mock_hass.states.get = MagicMock(return_value=mock_state)
 
         temp = climate_controller._get_temperature_from_thermostat("climate.living_room")
@@ -314,7 +320,10 @@ class TestAreaTemperatureCollection:
 
     def test_collect_area_temperatures_from_sensors(self, climate_controller, mock_area, mock_hass):
         """Test collecting temperatures from sensors only."""
-        mock_area.get_temperature_sensors.return_value = ["sensor.temp1", "sensor.temp2"]
+        mock_area.get_temperature_sensors.return_value = [
+            "sensor.temp1",
+            "sensor.temp2",
+        ]
         mock_area.get_thermostats.return_value = []
 
         # Mock sensor states
@@ -344,7 +353,10 @@ class TestAreaTemperatureCollection:
 
         mock_state = MagicMock()
         mock_state.state = "heat"
-        mock_state.attributes = {"current_temperature": 20.5, "unit_of_measurement": "°C"}
+        mock_state.attributes = {
+            "current_temperature": 20.5,
+            "unit_of_measurement": "°C",
+        }
         mock_hass.states.get = MagicMock(return_value=mock_state)
 
         temps = climate_controller._collect_area_temperatures(mock_area)
@@ -366,7 +378,10 @@ class TestAreaTemperatureCollection:
                 mock_state.attributes = {"unit_of_measurement": "°C"}
             elif entity_id == "climate.therm1":
                 mock_state.state = "heat"
-                mock_state.attributes = {"current_temperature": 20.0, "unit_of_measurement": "°C"}
+                mock_state.attributes = {
+                    "current_temperature": 20.0,
+                    "unit_of_measurement": "°C",
+                }
             return mock_state
 
         mock_hass.states.get = MagicMock(side_effect=get_state)
@@ -386,7 +401,10 @@ class TestAsyncUpdateAreaTemperatures:
         self, climate_controller, mock_area, mock_area_manager, mock_hass
     ):
         """Test updating temperature for a single area."""
-        mock_area.get_temperature_sensors.return_value = ["sensor.temp1", "sensor.temp2"]
+        mock_area.get_temperature_sensors.return_value = [
+            "sensor.temp1",
+            "sensor.temp2",
+        ]
         mock_area.get_thermostats.return_value = []
         mock_area_manager.get_all_areas.return_value = {"living_room": mock_area}
 
@@ -422,7 +440,10 @@ class TestAsyncUpdateAreaTemperatures:
         area2.get_temperature_sensors = MagicMock(return_value=["sensor.br_temp"])
         area2.get_thermostats = MagicMock(return_value=[])
 
-        mock_area_manager.get_all_areas.return_value = {"living_room": area1, "bedroom": area2}
+        mock_area_manager.get_all_areas.return_value = {
+            "living_room": area1,
+            "bedroom": area2,
+        }
 
         def get_state(entity_id):
             mock_state = MagicMock()
@@ -575,7 +596,10 @@ class TestPresenceSensorCheck:
 
     def test_check_presence_sensors_none_detected(self, climate_controller, mock_hass):
         """Test checking when no presence is detected."""
-        sensors = [{"entity_id": "binary_sensor.motion1"}, {"entity_id": "binary_sensor.motion2"}]
+        sensors = [
+            {"entity_id": "binary_sensor.motion1"},
+            {"entity_id": "binary_sensor.motion2"},
+        ]
 
         mock_state = MagicMock()
         mock_state.state = STATE_OFF
@@ -678,6 +702,31 @@ class TestOpenThermControl:
         """Test OpenTherm control when heating is required."""
         mock_area_manager.opentherm_gateway_id = "gateway1"
         mock_area_manager.opentherm_gateway_id = "gateway1"
+
+        # Add a radiator area that needs heating to trigger OpenTherm
+        from smart_heating.models.area import Area
+
+        radiator_area = Area("test_area", "Test Room")
+        radiator_area.heating_type = "radiator"
+        radiator_area.state = "heating"
+        radiator_area.current_temperature = 18.0
+        radiator_area.target_temperature = 45.0
+        radiator_area.custom_overhead_temp = None  # Use default 20°C for radiator
+        radiator_area.weather_entity_id = None  # No weather entity
+        # Ensure area manager can find the area
+        mock_area_manager.get_area.return_value = radiator_area
+
+        mock_area_manager.get_all_areas.return_value = {
+            "test_area": radiator_area,
+        }
+        # Add missing attributes
+        mock_area_manager.advanced_control_enabled = False
+        mock_area_manager.heating_curve_enabled = False
+        mock_area_manager.pid_enabled = False
+        mock_area_manager.pwm_enabled = False
+        
+        # Mock the gateway state to return None to avoid minimum setpoint calculation
+        mock_hass.states.get.return_value = None
 
         await climate_controller._async_control_opentherm_gateway(True, 45.0)
 

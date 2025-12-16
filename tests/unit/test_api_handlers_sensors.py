@@ -141,7 +141,10 @@ class TestRemoveWindowSensor:
         mock_area_manager.get_area.return_value = mock_area
 
         response = await handle_remove_window_sensor(
-            mock_hass, mock_area_manager, "living_room", "binary_sensor.living_room_window"
+            mock_hass,
+            mock_area_manager,
+            "living_room",
+            "binary_sensor.living_room_window",
         )
 
         assert response.status == 200

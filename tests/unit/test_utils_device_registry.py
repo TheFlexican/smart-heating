@@ -245,7 +245,12 @@ class TestBuildDeviceDict:
         }
 
         result = build_device_dict(
-            entity, state, "thermostat", "climate", ("area123", "Living Room"), ["zone1"]
+            entity,
+            state,
+            "thermostat",
+            "climate",
+            ("area123", "Living Room"),
+            ["zone1"],
         )
 
         assert result["id"] == "climate.living_room"

@@ -184,7 +184,9 @@ class TestConfigManagerBasics:
         }
 
         with patch.object(
-            config_manager, "_async_create_backup", new=AsyncMock(return_value="backup.json")
+            config_manager,
+            "_async_create_backup",
+            new=AsyncMock(return_value="backup.json"),
         ):
             result = await config_manager.async_import_config(data, create_backup=True)
 

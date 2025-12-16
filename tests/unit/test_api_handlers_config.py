@@ -446,7 +446,11 @@ class TestConfigHandlers:
         mock_vacation.get_data.return_value = {"enabled": True}
         mock_hass.data[DOMAIN]["vacation_manager"] = mock_vacation
 
-        data = {"start_date": "2024-01-01", "end_date": "2024-01-07", "temperature": 15.0}
+        data = {
+            "start_date": "2024-01-01",
+            "end_date": "2024-01-07",
+            "temperature": 15.0,
+        }
         response = await handle_enable_vacation_mode(mock_hass, data)
 
         assert response.status == 200

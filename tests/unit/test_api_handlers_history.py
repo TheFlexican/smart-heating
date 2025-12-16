@@ -140,7 +140,10 @@ class TestHistoryHandlers:
         self, mock_hass, mock_history_tracker, mock_request
     ):
         """Test getting history with invalid time format."""
-        mock_request.query = {"start_time": "invalid", "end_time": "2024-01-02T00:00:00"}
+        mock_request.query = {
+            "start_time": "invalid",
+            "end_time": "2024-01-02T00:00:00",
+        }
 
         response = await handle_get_history(mock_hass, "living_room", mock_request)
 

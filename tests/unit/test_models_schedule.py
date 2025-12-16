@@ -117,7 +117,11 @@ class TestIsActive:
     def test_is_active_date_specific_correct_date_in_range(self):
         """Test date-specific schedule on correct date and time."""
         schedule = Schedule(
-            "schedule1", "08:00", date="2024-01-15", start_time="08:00", end_time="12:00"
+            "schedule1",
+            "08:00",
+            date="2024-01-15",
+            start_time="08:00",
+            end_time="12:00",
         )
         current_time = datetime(2024, 1, 15, 10, 0)  # 2024-01-15 10:00
 
@@ -126,7 +130,11 @@ class TestIsActive:
     def test_is_active_date_specific_correct_date_before_range(self):
         """Test date-specific schedule on correct date but before time range."""
         schedule = Schedule(
-            "schedule1", "08:00", date="2024-01-15", start_time="08:00", end_time="12:00"
+            "schedule1",
+            "08:00",
+            date="2024-01-15",
+            start_time="08:00",
+            end_time="12:00",
         )
         current_time = datetime(2024, 1, 15, 7, 0)  # 2024-01-15 07:00
 
@@ -135,7 +143,11 @@ class TestIsActive:
     def test_is_active_date_specific_correct_date_after_range(self):
         """Test date-specific schedule on correct date but after time range."""
         schedule = Schedule(
-            "schedule1", "08:00", date="2024-01-15", start_time="08:00", end_time="12:00"
+            "schedule1",
+            "08:00",
+            date="2024-01-15",
+            start_time="08:00",
+            end_time="12:00",
         )
         current_time = datetime(2024, 1, 15, 13, 0)  # 2024-01-15 13:00
 
@@ -144,7 +156,11 @@ class TestIsActive:
     def test_is_active_date_specific_wrong_date(self):
         """Test date-specific schedule on wrong date."""
         schedule = Schedule(
-            "schedule1", "08:00", date="2024-01-15", start_time="08:00", end_time="12:00"
+            "schedule1",
+            "08:00",
+            date="2024-01-15",
+            start_time="08:00",
+            end_time="12:00",
         )
         current_time = datetime(2024, 1, 16, 10, 0)  # 2024-01-16 10:00
 
@@ -179,7 +195,11 @@ class TestToDict:
     def test_to_dict_date_specific(self):
         """Test to_dict for date-specific schedule."""
         schedule = Schedule(
-            "schedule1", "08:00", date="2024-12-25", start_time="08:00", end_time="12:00"
+            "schedule1",
+            "08:00",
+            date="2024-12-25",
+            start_time="08:00",
+            end_time="12:00",
         )
 
         result = schedule.to_dict()

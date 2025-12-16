@@ -18,7 +18,8 @@ async def test_async_init_database_supported(monkeypatch):
             self.engine = MagicMock()
 
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance", lambda hass: FakeRecorder()
+        "smart_heating.advanced_metrics_collector.get_instance",
+        lambda hass: FakeRecorder(),
     )
 
     ok = await collector._async_init_database()

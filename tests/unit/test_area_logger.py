@@ -47,7 +47,10 @@ class TestLogging:
         with patch.object(area_logger._hass, "async_create_task") as mock_task:
             mock_task.side_effect = lambda coro: orig(coro)
             area_logger.log_event(
-                TEST_AREA_ID, "temperature", "Temperature changed to 20.5°C", {"temperature": 20.5}
+                TEST_AREA_ID,
+                "temperature",
+                "Temperature changed to 20.5°C",
+                {"temperature": 20.5},
             )
 
         # Should schedule async write
@@ -95,7 +98,9 @@ class TestLogging:
 
         # Use a path that will fail to write
         with patch.object(
-            area_logger, "_get_log_file_path", return_value=Path("/nonexistent/invalid/path.jsonl")
+            area_logger,
+            "_get_log_file_path",
+            return_value=Path("/nonexistent/invalid/path.jsonl"),
         ):
             with patch.object(area_logger, "_async_rotate_if_needed", new_callable=AsyncMock):
                 # Should not raise exception despite the invalid path
