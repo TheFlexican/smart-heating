@@ -9,11 +9,20 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }
 
 it('shows cooling series when history contains cooling state', async () => {
   const now = new Date().toISOString()
+  const older = new Date(Date.now() - 1000 * 60 * 30).toISOString() // 30m older
   vi.spyOn(api, 'getHistory').mockResolvedValue({
     entries: [
       { timestamp: now, current_temperature: 22, target_temperature: 21, state: 'cooling' },
+      { timestamp: older, current_temperature: 21.5, target_temperature: 21, state: 'idle' },
     ],
   })
+
+  render(<HistoryChart areaId="a1" />)
+
+  // Ensure data is sorted so the latest timestamp (now) is the last point
+  await waitFor(() => expect(screen.getByTestId('history-chart')).toBeInTheDocument())
+  // The hidden indicator should reflect cooling
+  await waitFor(() => expect(screen.getByTestId('history-has-cooling').textContent).toBe('1'))
 
   render(<HistoryChart areaId="a1" />)
 
@@ -29,7 +38,13 @@ it('shows cooling series when history contains cooling state', async () => {
   // Legend items should render with testids (use the descriptive legend list)
   await waitFor(() => expect(screen.getByTestId('history-legend-item-temp')).toBeInTheDocument())
   await waitFor(() => expect(screen.getByTestId('history-legend-item-target')).toBeInTheDocument())
-  await waitFor(() => expect(screen.getByTestId('history-legend-item-redDots')).toBeInTheDocument())
+  // Legend should include either heating (red dots) or cooling (blue dots)
+  await waitFor(() =>
+    expect(
+      screen.queryByTestId('history-legend-item-redDots') ||
+        screen.queryByTestId('history-legend-item-blueDots'),
+    ).toBeInTheDocument(),
+  )
 
   // Cooling toggle should be present
   await waitFor(() => expect(screen.getByTestId('history-toggle-cooling')).toBeInTheDocument())

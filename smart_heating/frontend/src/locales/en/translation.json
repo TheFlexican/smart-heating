@@ -423,6 +423,8 @@
     "heatingActiveLineShort": "Heating",
     "coolingActiveLine": "Cooling active periods",
     "coolingActiveLineShort": "Cooling",
+    "blueDots": "Blue dots:",
+    "blueDotsDesc": "Cooling active periods",
     "stateInactive": "Inactive",
     "avgTargetLine": "Average target temperature",
     "weeklyScheduleTitle": "Weekly Schedule for {{area}}",
