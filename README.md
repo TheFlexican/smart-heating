@@ -19,7 +19,8 @@ A Home Assistant custom integration for intelligent multi-zone heating control w
 
 ### 🏠 Smart Zone Control
 - **Multi-zone heating management** - Create and manage unlimited heating zones
-- **Universal device support** - Works with ANY Home Assistant climate integration (Nest, Ecobee, Zigbee2MQTT, etc.)
+- **Universal device support** - Works with ANY Home Assistant climate integration (Nest, Ecobee, LG ThinQ AC, Zigbee2MQTT, etc.)
+- **AC/Heat pump control** - Full support for cooling mode with Heat/Cool/Off selector for air-conditioned areas
 - **Real-time status updates** - WebSocket-based live monitoring with <3s response time
 - **Manual override detection** - Automatically detects and respects external thermostat changes
 
