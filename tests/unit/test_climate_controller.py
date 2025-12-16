@@ -1187,16 +1187,125 @@ class TestManualOverride:
         assert mock_area.state == "manual"
 
 
-class TestDisabledAreaHandling:
-    """Test disabled area handling."""
+class TestHvacModeOff:
+    """Test HVAC mode off handling."""
 
     @pytest.mark.asyncio
-    async def test_handle_disabled_area(self, climate_controller, mock_area, mock_hass):
-        """Test handling disabled area turns off heating."""
+    async def test_hvac_mode_off_turns_off_thermostats(
+        self, climate_controller, mock_area, mock_hass
+    ):
+        """Test that hvac_mode=off turns off all thermostats in area."""
         mock_area.area_id = "living_room"
-        mock_area.get_valves = MagicMock(return_value=[])
-        mock_area.get_thermostats = MagicMock(return_value=[])
+        mock_area.hvac_mode = "off"
+        mock_area.current_temperature = 22.0
+        mock_area.target_temperature = 20.0
+        mock_area.get_thermostats = MagicMock(
+            return_value=["climate.thermostat1", "climate.thermostat2"]
+        )
         mock_area.get_switches = MagicMock(return_value=[])
+        mock_area.get_valves = MagicMock(return_value=[])
+
+        # Mock device handler methods
+        climate_controller.device_handler._handle_thermostat_turn_off = AsyncMock()
+        climate_controller.device_handler.async_control_switches = AsyncMock()
+        climate_controller.device_handler.async_control_valves = AsyncMock()
+
+        # Process area with hvac_mode=off
+        result = await climate_controller._process_area(
+            "living_room", mock_area, MagicMock(), False, None
+        )
+
+        # Should turn off both thermostats
+        assert climate_controller.device_handler._handle_thermostat_turn_off.call_count == 2
+        climate_controller.device_handler._handle_thermostat_turn_off.assert_any_call(
+            "climate.thermostat1"
+        )
+        climate_controller.device_handler._handle_thermostat_turn_off.assert_any_call(
+            "climate.thermostat2"
+        )
+
+        # Should turn off switches and valves
+        climate_controller.device_handler.async_control_switches.assert_called_once_with(
+            mock_area, False
+        )
+        climate_controller.device_handler.async_control_valves.assert_called_once_with(
+            mock_area, False, None
+        )
+
+        # Should set area state to off
+        assert mock_area.state == "off"
+
+        # Should return None to skip further processing
+        assert result == (None, None)
+
+    @pytest.mark.asyncio
+    async def test_hvac_mode_off_works_without_temperature_data(
+        self, climate_controller, mock_area, mock_hass
+    ):
+        """Test that hvac_mode=off works even when temperature data is unavailable."""
+        mock_area.area_id = "living_room"
+        mock_area.hvac_mode = "off"
+        mock_area.current_temperature = None  # No temperature data
+        mock_area.target_temperature = 20.0
+        mock_area.get_thermostats = MagicMock(return_value=["climate.thermostat1"])
+        mock_area.get_switches = MagicMock(return_value=[])
+        mock_area.get_valves = MagicMock(return_value=[])
+
+        # Mock device handler methods
+        climate_controller.device_handler._handle_thermostat_turn_off = AsyncMock()
+        climate_controller.device_handler.async_control_switches = AsyncMock()
+        climate_controller.device_handler.async_control_valves = AsyncMock()
+
+        # Process area with hvac_mode=off and no temperature
+        result = await climate_controller._process_area(
+            "living_room", mock_area, MagicMock(), False, None
+        )
+
+        # Should still turn off thermostat even without temperature data
+        climate_controller.device_handler._handle_thermostat_turn_off.assert_called_once_with(
+            "climate.thermostat1"
+        )
+
+        # Should set area state to off
+        assert mock_area.state == "off"
+
+        # Should return None to skip further processing
+        assert result == (None, None)
+
+    @pytest.mark.asyncio
+    async def test_hvac_mode_heat_allows_normal_control(
+        self, climate_controller, mock_area, mock_hass
+    ):
+        """Test that hvac_mode=heat allows normal temperature-based control."""
+        mock_area.area_id = "living_room"
+        mock_area.hvac_mode = "heat"
+        mock_area.current_temperature = 18.0  # Below target
+        mock_area.target_temperature = 20.0
+        mock_area.boost_mode_active = False
+        mock_area.preset_mode = "none"
+        mock_area.hysteresis_override = None
+        mock_area.weather_entity_id = None
+        mock_area.get_thermostats = MagicMock(return_value=["climate.thermostat1"])
+        mock_area.get_switches = MagicMock(return_value=[])
+        mock_area.get_valves = MagicMock(return_value=[])
+        mock_area.get_effective_target_temperature = MagicMock(return_value=20.0)
+
+        # Mock device handler methods
+        climate_controller.device_handler._handle_thermostat_turn_off = AsyncMock()
+        climate_controller.cycle_handler.async_handle_heating_required = AsyncMock(
+            return_value=(["living_room"], 20.0)
+        )
+
+        # Process area with hvac_mode=heat
+        result = await climate_controller._process_area(
+            "living_room", mock_area, MagicMock(), False, None
+        )
+
+        # Should NOT turn off thermostat (normal heating control should proceed)
+        climate_controller.device_handler._handle_thermostat_turn_off.assert_not_called()
+
+        # Result should indicate heating is required
+        assert result == (["living_room"], 20.0)
 
         await climate_controller._async_handle_disabled_area("living_room", mock_area, None, False)
 

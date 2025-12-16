@@ -25,6 +25,10 @@ export const setZoneTemperature = async (areaId: string, temperature: number): P
   await axios.post(`${API_BASE}/areas/${areaId}/temperature`, { temperature })
 }
 
+export const setZoneHvacMode = async (areaId: string, hvacMode: string): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/hvac_mode`, { hvac_mode: hvacMode })
+}
+
 export const enableZone = async (areaId: string): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/enable`)
 }
