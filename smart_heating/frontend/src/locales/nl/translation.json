@@ -423,6 +423,8 @@
     "heatingActiveLineShort": "Verwarmen",
     "coolingActiveLine": "Koelingsactieve periodes",
     "coolingActiveLineShort": "Koelen",
+    "blueDots": "Blauwe stippen:",
+    "blueDotsDesc": "Actieve koelperioden",
     "stateInactive": "Inactief",
     "avgTargetLine": "Gemiddelde doel temperatuur",
     "weeklyScheduleTitle": "Weekschema voor {{area}}",
