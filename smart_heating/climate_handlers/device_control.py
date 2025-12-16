@@ -201,6 +201,22 @@ class DeviceControlHandler:
                 pass
         return current_hvac_mode, current_temp
 
+    def _should_update_temperature(
+        self, current_temp: Optional[float], last_temp: Optional[float], target_temp: float
+    ) -> bool:
+        """Return True when temperature should be updated based on current and last set values."""
+        try:
+            if current_temp is not None and isinstance(current_temp, (int, float)):
+                if abs(current_temp - target_temp) < 0.1:
+                    return False
+            if last_temp is not None and abs(last_temp - target_temp) < 0.1:
+                return False
+        except (TypeError, AttributeError):
+            # Handle test mocks or invalid values
+            return True
+
+        return True
+
     async def _set_hvac_mode_if_needed(
         self, thermostat_id: str, desired_mode: str, current_mode: Optional[str], hvac_mode_str: str
     ) -> None:
@@ -397,19 +413,7 @@ class DeviceControlHandler:
         # Check both cached value and actual entity state for robustness
         last_temp = self._last_set_temperatures.get(thermostat_id)
 
-        # Safely check if current_temp is a valid number (handle test mocks)
-        needs_update = True
-        try:
-            if current_temp is not None and isinstance(current_temp, (int, float)):
-                if abs(current_temp - target_temp) < 0.1:
-                    needs_update = False
-            if last_temp is not None and abs(last_temp - target_temp) < 0.1:
-                needs_update = False
-        except (TypeError, AttributeError):
-            # Handle test mocks or invalid values
-            pass
-
-        if needs_update:
+        if self._should_update_temperature(current_temp, last_temp, target_temp):
             try:
                 await self.hass.services.async_call(
                     CLIMATE_DOMAIN,
