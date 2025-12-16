@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -53,17 +53,7 @@ export default function AdvancedMetricsDashboard() {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
   const [mounted, setMounted] = useState(true)
 
-  // WebSocket for real-time updates
-  useWebSocket({
-    onZonesUpdate: () => {
-      // Only reload if component is still mounted and auto-refresh is enabled
-      if (mounted && autoRefresh) {
-        loadData()
-      }
-    },
-  })
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setError(null)
       const [metricsData, areasData] = await Promise.all([
@@ -87,7 +77,7 @@ export default function AdvancedMetricsDashboard() {
         setLoading(false)
       }
     }
-  }
+  }, [timeRange, mounted])
 
   useEffect(() => {
     setMounted(true)
@@ -96,7 +86,7 @@ export default function AdvancedMetricsDashboard() {
     return () => {
       setMounted(false)
     }
-  }, [timeRange])
+  }, [timeRange, loadData])
 
   useEffect(() => {
     if (!autoRefresh || !mounted) return
@@ -108,7 +98,17 @@ export default function AdvancedMetricsDashboard() {
     }, 30000) // 30 seconds
 
     return () => clearInterval(interval)
-  }, [autoRefresh, timeRange, mounted])
+  }, [autoRefresh, timeRange, mounted, loadData])
+
+  // WebSocket for real-time updates
+  useWebSocket({
+    onZonesUpdate: () => {
+      // Only reload if component is still mounted and auto-refresh is enabled
+      if (mounted && autoRefresh) {
+        loadData()
+      }
+    },
+  })
 
   // Transform metrics for charts
   const heatingCurveData = metrics.map(m => ({

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Box,
@@ -49,7 +49,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
   const [showHeating, setShowHeating] = useState(true)
   const [showCooling, setShowCooling] = useState(true)
 
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -73,7 +73,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [areaId, timeRange, customRange, startTime, endTime])
 
   useEffect(() => {
     loadHistory()
@@ -81,7 +81,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
     // Refresh every 5 minutes
     const interval = setInterval(loadHistory, 5 * 60 * 1000)
     return () => clearInterval(interval)
-  }, [areaId, timeRange, customRange, startTime, endTime])
+  }, [loadHistory])
 
   if (loading) {
     return (

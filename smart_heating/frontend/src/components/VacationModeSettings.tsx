@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -38,55 +38,58 @@ export const VacationModeSettings: React.FC = () => {
   const [autoDisable, setAutoDisable] = useState<boolean>(true)
   const [frostProtection, setFrostProtection] = useState<boolean>(true)
 
+  const loadVacationMode = useCallback(
+    async (retryCount = 0) => {
+      try {
+        setLoading(true)
+        const data = await getVacationMode()
+        setVacationMode(data)
+
+        if (data.start_date) {
+          setStartDate(new Date(data.start_date))
+        }
+        if (data.end_date) {
+          setEndDate(new Date(data.end_date))
+        }
+        setPresetMode(data.preset_mode || 'away')
+        setMinTemp(data.min_temperature || 10)
+        setAutoDisable(data.auto_disable)
+        setFrostProtection(data.frost_protection_override)
+      } catch (err) {
+        // Retry on network errors (common during page visibility changes)
+        if (
+          err &&
+          typeof err === 'object' &&
+          'code' in err &&
+          err.code === 'ERR_NETWORK' &&
+          retryCount < 3
+        ) {
+          console.warn(
+            `Failed to load vacation mode (network error), retrying (${retryCount + 1}/3)...`,
+          )
+          // Exponential backoff: 500ms, 1s, 2s
+          const delay = 500 * Math.pow(2, retryCount)
+          setTimeout(() => loadVacationMode(retryCount + 1), delay)
+          return
+        }
+
+        // Show error to user only after retries exhausted
+        if (err && typeof err === 'object' && 'code' in err && err.code === 'ERR_NETWORK') {
+          console.error('Failed to load vacation mode after retries (network error):', err)
+        } else {
+          setError(t('errors.loadFailed'))
+          console.error('Failed to load vacation mode:', err)
+        }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [t],
+  )
+
   useEffect(() => {
     loadVacationMode()
-  }, [])
-
-  const loadVacationMode = async (retryCount = 0) => {
-    try {
-      setLoading(true)
-      const data = await getVacationMode()
-      setVacationMode(data)
-
-      if (data.start_date) {
-        setStartDate(new Date(data.start_date))
-      }
-      if (data.end_date) {
-        setEndDate(new Date(data.end_date))
-      }
-      setPresetMode(data.preset_mode || 'away')
-      setMinTemp(data.min_temperature || 10)
-      setAutoDisable(data.auto_disable)
-      setFrostProtection(data.frost_protection_override)
-    } catch (err) {
-      // Retry on network errors (common during page visibility changes)
-      if (
-        err &&
-        typeof err === 'object' &&
-        'code' in err &&
-        err.code === 'ERR_NETWORK' &&
-        retryCount < 3
-      ) {
-        console.warn(
-          `Failed to load vacation mode (network error), retrying (${retryCount + 1}/3)...`,
-        )
-        // Exponential backoff: 500ms, 1s, 2s
-        const delay = 500 * Math.pow(2, retryCount)
-        setTimeout(() => loadVacationMode(retryCount + 1), delay)
-        return
-      }
-
-      // Show error to user only after retries exhausted
-      if (err && typeof err === 'object' && 'code' in err && err.code === 'ERR_NETWORK') {
-        console.error('Failed to load vacation mode after retries (network error):', err)
-      } else {
-        setError(t('errors.loadFailed'))
-        console.error('Failed to load vacation mode:', err)
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [loadVacationMode])
 
   const handleEnable = async () => {
     try {

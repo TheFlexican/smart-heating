@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -179,12 +179,7 @@ const ZoneDetail = () => {
     },
   })
 
-  useEffect(() => {
-    loadData()
-    loadHistoryConfig()
-  }, [areaId])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!areaId) return
 
     try {
@@ -197,9 +192,7 @@ const ZoneDetail = () => {
         return
       }
 
-      // Removed noisy debug log to reduce console spam in production
       setArea(currentZone)
-      // If preset is active, show effective temperature, otherwise base target
       const displayTemp =
         !currentZone.enabled || currentZone.state === 'off'
           ? currentZone.target_temperature
@@ -209,7 +202,6 @@ const ZoneDetail = () => {
             ? currentZone.effective_target_temperature
             : currentZone.target_temperature
       setTemperature(displayTemp)
-
       // Load global presets for preset configuration section
       try {
         const presets = await getGlobalPresets()
@@ -236,11 +228,39 @@ const ZoneDetail = () => {
       // Load available devices
       await loadAvailableDevices(currentZone)
     } catch (error) {
-      console.error('Failed to load area:', error)
+      console.error('Failed to load area data:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [areaId, navigate])
+
+  const loadHistoryConfig = useCallback(async () => {
+    try {
+      const config = await getHistoryConfig()
+      if (config) {
+        setHistoryRetention(config.retention_days)
+        setStorageBackend(config.storage_backend || 'json')
+        setRecordInterval(config.record_interval_minutes)
+
+        // Load database stats if using database backend
+        if (config.storage_backend === 'database') {
+          try {
+            const stats = await getDatabaseStats()
+            setDatabaseStats(stats)
+          } catch (error) {
+            console.error('Failed to load database stats:', error)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load history config:', error)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+    loadHistoryConfig()
+  }, [areaId, loadData, loadHistoryConfig])
 
   const loadEntityStates = async (currentZone: Zone) => {
     try {
@@ -326,28 +346,7 @@ const ZoneDetail = () => {
     }
   }
 
-  const loadHistoryConfig = async () => {
-    try {
-      const config = await getHistoryConfig()
-      setHistoryRetention(config.retention_days)
-      setStorageBackend(config.storage_backend || 'json')
-      setRecordInterval(config.record_interval_minutes)
-
-      // Load database stats if using database backend
-      if (config.storage_backend === 'database') {
-        try {
-          const stats = await getDatabaseStats()
-          setDatabaseStats(stats)
-        } catch (error) {
-          console.error('Failed to load database stats:', error)
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load history config:', error)
-    }
-  }
-
-  const loadLogs = async () => {
+  const loadLogs = useCallback(async () => {
     if (!areaId) return
 
     try {
@@ -363,7 +362,7 @@ const ZoneDetail = () => {
     } finally {
       setLogsLoading(false)
     }
-  }
+  }, [areaId, logFilter])
 
   // Load logs when tab is switched to Logs tab
   useEffect(() => {
@@ -371,7 +370,7 @@ const ZoneDetail = () => {
       // Logs tab index
       loadLogs()
     }
-  }, [tabValue, logFilter])
+  }, [tabValue, loadLogs])
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)

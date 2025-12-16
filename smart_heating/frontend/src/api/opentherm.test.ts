@@ -19,8 +19,8 @@ describe('API - OpenTherm', () => {
       return map[id] || { data: { state: '0' } }
     }
     ;(mockedAxios.get as any) = vi.fn().mockImplementation((url: string) => {
-      const id = url.split('/').pop()
-      return Promise.resolve(responses(id!))
+      const id = url.split('/').pop() || ''
+      return Promise.resolve(responses(id))
     })
 
     const result = await api.getOpenThermSensorStates()

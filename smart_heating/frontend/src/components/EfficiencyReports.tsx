@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -42,11 +42,7 @@ const EfficiencyReports: React.FC = () => {
   const [selectedArea, setSelectedArea] = useState<string | null>(null)
   const [areaReport, setAreaReport] = useState<EfficiencyReport | null>(null)
 
-  useEffect(() => {
-    loadEfficiencyData()
-  }, [period])
-
-  const loadEfficiencyData = async () => {
+  const loadEfficiencyData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -63,7 +59,11 @@ const EfficiencyReports: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [period, selectedArea])
+
+  useEffect(() => {
+    loadEfficiencyData()
+  }, [loadEfficiencyData])
 
   const handleAreaSelect = async (areaId: string) => {
     setSelectedArea(areaId)

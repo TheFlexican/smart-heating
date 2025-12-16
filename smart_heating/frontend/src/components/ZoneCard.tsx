@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -63,7 +63,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   })
 
   // Get displayed temperature: use effective temperature when in preset mode, otherwise use target
-  const getDisplayTemperature = () => {
+  const getDisplayTemperature = useCallback(() => {
     // If the area is off/disabled, always show the area target temperature
     if (!area.enabled || area.state === 'off') return area.target_temperature
 
@@ -78,7 +78,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
     }
     // Otherwise show the base target temperature
     return area.target_temperature
-  }
+  }, [area])
 
   const [temperature, setTemperature] = useState(getDisplayTemperature())
   const [presenceState, setPresenceState] = useState<string | null>(null)
@@ -87,13 +87,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   useEffect(() => {
     const displayTemp = getDisplayTemperature()
     setTemperature(displayTemp)
-  }, [
-    area.target_temperature,
-    area.effective_target_temperature,
-    area.manual_override,
-    area.preset_mode,
-    area.name,
-  ])
+  }, [getDisplayTemperature])
 
   useEffect(() => {
     const loadPresenceState = async () => {

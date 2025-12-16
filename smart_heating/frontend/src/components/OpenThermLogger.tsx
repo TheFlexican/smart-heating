@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -63,7 +63,7 @@ export default function OpenThermLogger() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
   const [autoRefresh, setAutoRefresh] = useState(true)
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     try {
       const data = await getOpenThermLogs(100) // Last 100 logs
       setLogs(data.logs)
@@ -72,9 +72,9 @@ export default function OpenThermLogger() {
       setError(t('opentherm.error.fetchLogs', 'Failed to load OpenTherm logs'))
       console.error(err)
     }
-  }
+  }, [t])
 
-  const fetchSensorStates = async () => {
+  const fetchSensorStates = useCallback(async () => {
     try {
       // Check for configured OT gateways; if none, skip sensor state polling to avoid 404 noise
       const gateways = await getOpenthermGateways()
@@ -90,16 +90,16 @@ export default function OpenThermLogger() {
     } catch (err) {
       console.error('Failed to load sensor states:', err)
     }
-  }
+  }, [])
 
-  const fetchCapabilities = async () => {
+  const fetchCapabilities = useCallback(async () => {
     try {
       const data = await getOpenThermCapabilities()
       setCapabilities(data)
     } catch (err) {
       console.error('Failed to load capabilities:', err)
     }
-  }
+  }, [])
 
   const handleDiscoverCapabilities = async () => {
     try {
@@ -140,7 +140,7 @@ export default function OpenThermLogger() {
       setLoading(false)
     }
     loadData()
-  }, [])
+  }, [fetchLogs, fetchCapabilities, fetchSensorStates])
 
   useEffect(() => {
     if (!autoRefresh) return
@@ -151,7 +151,7 @@ export default function OpenThermLogger() {
     }, 5000) // Refresh every 5 seconds
 
     return () => clearInterval(interval)
-  }, [autoRefresh])
+  }, [autoRefresh, fetchLogs, fetchSensorStates])
 
   const getEventIcon = (eventType: string) => {
     switch (eventType) {

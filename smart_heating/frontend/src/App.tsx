@@ -306,7 +306,7 @@ function App() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [loadData])
 
   const handleZonesUpdate = () => {
     loadData()

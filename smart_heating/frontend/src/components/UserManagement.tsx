@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Paper,
@@ -77,19 +77,27 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
     priority: false,
   })
 
-  useEffect(() => {
-    loadUsers()
-    loadPersonEntities()
-  }, [])
-
-  const loadPersonEntities = async () => {
+  const loadPersonEntities = useCallback(async () => {
     try {
       const entities = await getPersonEntities()
       setPersonEntities(entities)
     } catch (err) {
       console.error('Error loading person entities:', err)
     }
-  }
+  }, [])
+
+  const loadUsers = useCallback(async () => {
+    try {
+      setLoading(true)
+      const users = await getUsers()
+      setUserData(users)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load users')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   // Validate form fields
   const validateField = (field: string, value: string | number): string => {
@@ -151,19 +159,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
     }
   }
 
-  const loadUsers = async () => {
-    try {
-      setLoading(true)
-      const data = await getUsers()
-      setUserData(data)
-      setError(null)
-    } catch (err) {
-      setError(t('users.errorLoading', 'Failed to load users'))
-      console.error('Error loading users:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  useEffect(() => {
+    loadUsers()
+    loadPersonEntities()
+  }, [loadUsers, loadPersonEntities])
 
   const handleOpenCreateDialog = () => {
     setEditingUser(null)
