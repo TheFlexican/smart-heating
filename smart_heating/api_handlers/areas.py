@@ -206,16 +206,19 @@ async def handle_set_temperature(
             # This helps when area temperature data is missing or when the device
             # needs an immediate command (e.g., airco units that ignore delayed commands).
             # Use the user-set temperature directly, not preset-overridden effective temperature.
+            # Skip proactive update if hvac_mode is "off" - don't send commands to disabled devices.
             try:
                 thermostats = area.get_thermostats()
-                if thermostats:
+                area_hvac = getattr(area, "hvac_mode", "heat")
+
+                # Don't send commands to thermostats when hvac_mode is "off"
+                if thermostats and area_hvac != "off":
                     current_temp = getattr(area, "current_temperature", None)
                     # Use the actual temperature the user just set, not effective (which may be preset-overridden)
                     user_target = temperature
                     heating_needed = current_temp is None or current_temp < user_target
                     # Determine hvac_mode: use "heat" or "cool" based on heating_needed,
                     # since some integrations (like LG ThinQ) don't handle "auto" when off
-                    area_hvac = getattr(area, "hvac_mode", "heat")
                     if area_hvac == "auto" or area_hvac not in ("heat", "cool"):
                         hvac_mode = "heat" if heating_needed else "cool"
                     else:
