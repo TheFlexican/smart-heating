@@ -10,3 +10,7 @@ pytest-mock
 pytest-homeassistant-custom-component
 
 aiofiles
+
+# Dev tools
+ruff
+pre-commit
