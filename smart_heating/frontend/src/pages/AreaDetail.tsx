@@ -736,6 +736,7 @@ const ZoneDetail = () => {
               <Button
                 variant="outlined"
                 color="error"
+                data-testid="cancel-boost-button"
                 onClick={async () => {
                   try {
                     await cancelBoost(area.id)
@@ -771,6 +772,7 @@ const ZoneDetail = () => {
               <Button
                 variant="contained"
                 color="primary"
+                data-testid="activate-boost-button"
                 onClick={async () => {
                   try {
                     const tempInput = document.getElementById(
@@ -1089,6 +1091,7 @@ const ZoneDetail = () => {
                 setSensorDialogType('window')
                 setSensorDialogOpen(true)
               }}
+              data-testid="add-window-sensor-button"
             >
               Add Window Sensor
             </Button>
@@ -1221,6 +1224,7 @@ const ZoneDetail = () => {
                 setSensorDialogType('presence')
                 setSensorDialogOpen(true)
               }}
+              data-testid="add-presence-sensor-button"
             >
               {t('settingsCards.addPresenceSensor')}
             </Button>
@@ -1403,6 +1407,7 @@ const ZoneDetail = () => {
                   label={t('settingsCards.startTime')}
                   type="time"
                   value={area.night_boost_start_time ?? '22:00'}
+                  data-testid="night-boost-start-time-input"
                   onChange={async e => {
                     try {
                       await fetch('/api/smart_heating/call_service', {
@@ -1427,6 +1432,7 @@ const ZoneDetail = () => {
                   label={t('settingsCards.endTime')}
                   type="time"
                   value={area.night_boost_end_time ?? '06:00'}
+                  data-testid="night-boost-end-time-input"
                   onChange={async e => {
                     try {
                       await fetch('/api/smart_heating/call_service', {
@@ -1553,6 +1559,7 @@ const ZoneDetail = () => {
                 label={t('settingsCards.targetWakeupTime')}
                 type="time"
                 value={area.smart_night_boost_target_time ?? '06:00'}
+                data-testid="smart-night-boost-target-time-input"
                 onChange={async e => {
                   try {
                     await fetch('/api/smart_heating/call_service', {
@@ -1977,7 +1984,12 @@ const ZoneDetail = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">Zone not found</Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/')} sx={{ mt: 2 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/')}
+          sx={{ mt: 2 }}
+          data-testid="area-back-button"
+        >
           Back to Zones
         </Button>
       </Box>

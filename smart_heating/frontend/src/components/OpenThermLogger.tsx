@@ -205,10 +205,21 @@ export default function OpenThermLogger() {
         <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
           <Typography variant="h6">{t('opentherm.title', 'OpenTherm Gateway Monitor')}</Typography>
           <Stack direction="row" spacing={1}>
-            <Button size="small" startIcon={<RefreshIcon />} onClick={fetchLogs} variant="outlined">
+            <Button
+              size="small"
+              startIcon={<RefreshIcon />}
+              onClick={fetchLogs}
+              variant="outlined"
+              data-testid="opentherm-refresh-button"
+            >
               {t('common.refresh', 'Refresh')}
             </Button>
-            <Button size="small" onClick={handleDiscoverCapabilities} variant="outlined">
+            <Button
+              size="small"
+              onClick={handleDiscoverCapabilities}
+              variant="outlined"
+              data-testid="opentherm-discover-button"
+            >
               {t('opentherm.discoverCapabilities', 'Discover Capabilities')}
             </Button>
             <Button
@@ -217,6 +228,7 @@ export default function OpenThermLogger() {
               onClick={handleClearLogs}
               color="error"
               variant="outlined"
+              data-testid="opentherm-clear-logs-button"
             >
               {t('common.clear', 'Clear')}
             </Button>
@@ -228,6 +240,7 @@ export default function OpenThermLogger() {
             label={`${t('opentherm.autoRefresh', 'Auto-refresh')}: ${autoRefresh ? 'ON' : 'OFF'}`}
             color={autoRefresh ? 'success' : 'default'}
             onClick={() => setAutoRefresh(!autoRefresh)}
+            data-testid="opentherm-auto-refresh-chip"
             size="small"
           />
           <Chip label={`${logs.length} ${t('opentherm.logs', 'logs')}`} size="small" />
