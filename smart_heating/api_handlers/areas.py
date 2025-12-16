@@ -1,1 +1,1 @@
-<whole-file content omitted for brevity; change already applied locally>
+<file content omitted>
