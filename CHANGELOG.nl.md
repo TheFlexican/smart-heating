@@ -42,6 +42,7 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 ### 🐛 Opgeloste bugs & Verbeteringen
 
 - **Zone logger:** Voorkom onnodige waarschuwingen "Unknown event type" door `cooling` en `climate_control` te erkennen als geldige event-typen die door climate handlers worden gebruikt (lost runtime-waarschuwingen op bij koel-/hysteresis-events).
+- **Slimme Nachtboost:** Zorg dat de geselecteerde buitentemperatuursensor wordt opgehaald en zichtbaar is bij het laden van de pagina (zelfs wanneer de volledige lijst met weather-entities nog niet is opgehaald), zodat de selectie behouden blijft na verversen van de browser. ✅
 
 ### 🐛 Opgeloste bugs & Verbeteringen
 ## [0.5.14] - 2025-12-13

@@ -310,6 +310,35 @@ const ZoneDetail = () => {
     }
   }
 
+  // Ensure the currently-selected weather entity is visible even when the
+  // full weather entity list hasn't been loaded yet. This makes the selected
+  // outdoor sensor persistently visible across page reloads.
+  useEffect(() => {
+    const ensureSelectedWeatherEntityVisible = async () => {
+      if (!area || !area.weather_entity_id) return
+      // If we already have the full list or the selected entity is present, nothing to do
+      if (weatherEntities.find(e => e.entity_id === area.weather_entity_id)) return
+
+      try {
+        const state = await getEntityState(area.weather_entity_id)
+        // Create a HassEntity object matching the full interface
+        const entity: HassEntity = {
+          entity_id: area.weather_entity_id,
+          name: state.attributes?.friendly_name || area.weather_entity_id,
+          state: state.state || 'unknown',
+          attributes: state.attributes || {},
+        }
+        setWeatherEntities(prev => [entity, ...prev])
+      } catch (err) {
+        // Ignore - it's okay if the entity can't be fetched
+        console.error('Failed to load selected weather entity state:', err)
+      }
+    }
+
+    ensureSelectedWeatherEntityVisible()
+    // Only re-run when area or weatherEntities changes
+  }, [area, weatherEntities])
+
   const loadAvailableDevices = async (currentZone: Zone) => {
     try {
       const allDevices = await getDevices()
