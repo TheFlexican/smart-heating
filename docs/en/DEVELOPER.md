@@ -109,6 +109,10 @@ For OpenTherm Gateway specific testing guidelines, see [OpenTherm Integration](O
 - For devices that do not implement `turn_off`, the handler now catches the error and falls back to setting the minimum/frost-protection setpoint instead of leaving an unhandled exception.
 - The frontend now rounds temperature commits for air-conditioned areas to 0.5°C and uses a 0.5°C slider step. This avoids sending unsupported decimal setpoints (e.g., 24.7°C) to AC integrations which may only accept 0.5°C increments. Add tests that verify rounding and slider step when `area.heating_type === 'airco'`.
 
+### Device Logs UI
+
+- A new "Device Logs" panel is available under Global Settings → Device Logs. It surfaces recent thermostat failure/backoff events collected by the advanced metrics collector so operators can quickly identify thermostats that are repeatedly failing to accept commands or are in backoff. The panel displays area, thermostat entity, failure count, last failure timestamp, and current backoff interval.
+
 
 - `temperature-control.spec.ts` - Temperature adjustment tests
 - `boost-mode.spec.ts` - Boost mode functionality

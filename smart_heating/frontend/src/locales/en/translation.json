@@ -112,6 +112,13 @@
     "boost": "Boost",
     "none": "None"
   },
+  "deviceLogs": {
+    "title": "Device Logs",
+    "autoRefresh": "Auto-refresh",
+    "latest": "Latest device failure/backoff entries",
+    "noData": "No logs available yet",
+    "noFailures": "No device failures recorded"
+  },
   "globalSettings": {
     "title": "Global Settings",
     "tabs": {
@@ -122,7 +129,8 @@
       "safety": "Safety",
       "advanced": "Advanced",
       "importExport": "Import/Export",
-      "opentherm": "OpenTherm"
+      "opentherm": "OpenTherm",
+      "deviceLogs": "Device Logs"
     },
     "saveSuccess": "Settings saved successfully",
     "presets": {

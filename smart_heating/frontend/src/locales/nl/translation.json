@@ -112,6 +112,13 @@
     "boost": "Boost",
     "none": "Geen"
   },
+  "deviceLogs": {
+    "title": "Apparaatlogs",
+    "autoRefresh": "Automatisch verversen",
+    "latest": "Laatste apparaat fouten/backoff meldingen",
+    "noData": "Nog geen logs beschikbaar",
+    "noFailures": "Geen apparaatfouten geregistreerd"
+  },
   "globalSettings": {
     "title": "Globale Instellingen",
     "tabs": {
@@ -122,7 +129,8 @@
       "safety": "Veiligheid",
       "advanced": "Geavanceerd",
       "importExport": "Importeren/Exporteren",
-      "opentherm": "OpenTherm"
+      "opentherm": "OpenTherm",
+      "deviceLogs": "Device Logs"
     },
     "saveSuccess": "Instellingen succesvol opgeslagen",
     "presets": {

@@ -132,6 +132,10 @@ Voor OpenTherm Gateway gerelateerde tests, zie ook `docs/nl/OPENTHERM.md`.
 - Voor apparaten die `turn_off` niet implementeren, vangt de handler nu de fout op en valt terug op het minimum/frost-protection setpoint in plaats van een ongehandelde uitzondering te laten staan.
 - De frontend rondt nu temperatuurcommits voor airco-zones af op 0,5°C en gebruikt een 0,5°C sliderstap. Dit voorkomt het sturen van niet-ondersteunde decimalen (bijv. 24.7°C) naar AC-integraties die mogelijk alleen 0,5°C stappen accepteren. Voeg tests toe die afronding en sliderstap verifiëren wanneer `area.heating_type === 'airco'`.
 
+### Device Logs UI
+
+- Een nieuw paneel "Device Logs" is beschikbaar onder Globale Instellingen → Device Logs. Dit paneel toont recente thermostaat fouten/backoff-events die door de advanced metrics collector zijn verzameld, zodat beheerders snel thermostaten kunnen identificeren die herhaaldelijk commando's weigeren of in backoff zijn. Het paneel toont gebied, thermostaat entity, foutenaantal, laatste fouttijd en huidig backoff-interval.
+
 
 **Test Dekking:**
 - 109 totale tests
