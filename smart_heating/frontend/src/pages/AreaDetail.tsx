@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -120,6 +119,9 @@ const ZoneDetail = () => {
   const { t } = useTranslation()
   const { areaId } = useParams<{ areaId: string }>()
   const navigate = useNavigate()
+  // Helper: accepts boolean or string forms of enabled and returns boolean true only
+  const isEnabledVal = (v: boolean | string | undefined | null) =>
+    v === true || String(v) === 'true'
   const [area, setArea] = useState<Zone | null>(null)
   const [availableDevices, setAvailableDevices] = useState<Device[]>([])
   const [showOnlyHeating, setShowOnlyHeating] = useState(true)
@@ -153,7 +155,7 @@ const ZoneDetail = () => {
       if (updatedZone.id === areaId) {
         setArea(updatedZone)
         const displayTemp =
-          String(updatedZone.enabled) !== 'true' || updatedZone.state === 'off'
+          !isEnabledVal(updatedZone.enabled) || updatedZone.state === 'off'
             ? updatedZone.target_temperature
             : updatedZone.preset_mode &&
                 updatedZone.preset_mode !== 'none' &&
@@ -168,7 +170,7 @@ const ZoneDetail = () => {
       if (currentZone) {
         setArea(currentZone)
         const displayTemp =
-          String(currentZone.enabled) !== 'true' || currentZone.state === 'off'
+          !isEnabledVal(currentZone.enabled) || currentZone.state === 'off'
             ? currentZone.target_temperature
             : currentZone.preset_mode &&
                 currentZone.preset_mode !== 'none' &&
@@ -195,7 +197,7 @@ const ZoneDetail = () => {
 
       setArea(currentZone)
       const displayTemp =
-        String(currentZone.enabled) !== 'true' || currentZone.state === 'off'
+        !isEnabledVal(currentZone.enabled) || currentZone.state === 'off'
           ? currentZone.target_temperature
           : currentZone.preset_mode &&
               currentZone.preset_mode !== 'none' &&
@@ -545,7 +547,7 @@ const ZoneDetail = () => {
   // Generate settings sections for draggable layout
   const getSettingsSections = (): SettingSection[] => {
     if (!area) return []
-    const areaEnabled = area.enabled === true || String(area.enabled) === 'true'
+    const areaEnabled = isEnabledVal(area.enabled)
 
     return [
       {
@@ -2020,7 +2022,7 @@ const ZoneDetail = () => {
   }
 
   // Normalize enabled - accept boolean true or string 'true'
-  const enabled = area.enabled === true || String(area.enabled) === 'true'
+  const enabled = isEnabledVal(area.enabled)
 
   return (
     <Box

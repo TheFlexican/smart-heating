@@ -62,7 +62,9 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   // Treat explicit boolean true or string 'true' as enabled; string 'false' should be falsy
-  const enabled = area.enabled === true || String(area.enabled) === 'true'
+  const isEnabledVal = (v: boolean | string | undefined | null) =>
+    v === true || String(v) === 'true'
+  const enabled = isEnabledVal(area.enabled)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -679,7 +681,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
       </CardContent>
 
       <Menu
-        data-testid={`zone-menu-${area.id}`} 
+        data-testid={`zone-menu-${area.id}`}
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
