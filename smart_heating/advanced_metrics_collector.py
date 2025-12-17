@@ -269,6 +269,26 @@ class AdvancedMetricsCollector:
                     "hysteresis_override": getattr(area, "hysteresis_override", None),
                 }
 
+                # Include thermostat failure/backoff state if available from climate controller
+                try:
+                    climate_controller = self.hass.data.get(DOMAIN, {}).get("climate_controller")
+                    if climate_controller and hasattr(area, "get_thermostats"):
+                        device_handler = getattr(climate_controller, "device_handler", None)
+                        if device_handler:
+                            failures: dict[str, dict] = {}
+                            for tid in area.get_thermostats():
+                                try:
+                                    st = device_handler.get_thermostat_failure_state(tid)
+                                except Exception:
+                                    st = None
+                                if st:
+                                    failures[tid] = st
+                            if failures:
+                                area_metrics[area_id]["thermostat_failures"] = failures
+                except Exception:
+                    # Non-critical; log debug and continue
+                    _LOGGER.debug("Error collecting thermostat failure state for area %s", area_id)
+
         except Exception as err:  # pylint: disable=broad-except
             _LOGGER.debug("Error getting area metrics: %s", err)
 

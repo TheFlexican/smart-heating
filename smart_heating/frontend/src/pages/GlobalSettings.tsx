@@ -35,6 +35,7 @@ import TuneIcon from '@mui/icons-material/Tune'
 import SecurityIcon from '@mui/icons-material/Security'
 import BackupIcon from '@mui/icons-material/Backup'
 import FireplaceIcon from '@mui/icons-material/Fireplace'
+import ListAltIcon from '@mui/icons-material/ListAlt'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 
 import { useNavigate } from 'react-router-dom'
@@ -59,6 +60,7 @@ import HysteresisHelpModal from '../components/HysteresisHelpModal'
 import ImportExport from '../components/ImportExport'
 import OpenThermLogger from '../components/OpenThermLogger'
 import { UserManagement } from '../components/UserManagement'
+import DeviceLogsPanel from '../components/DeviceLogsPanel'
 // additional advanced control apis already imported above
 
 interface TabPanelProps {
@@ -539,6 +541,11 @@ export default function GlobalSettings({
             icon={<BackupIcon />}
             iconPosition="start"
             label={t('globalSettings.tabs.importExport', 'Import/Export')}
+          />
+          <Tab
+            icon={<ListAltIcon />}
+            iconPosition="start"
+            label={t('globalSettings.tabs.deviceLogs', 'Device Logs')}
           />
           <Tab
             icon={<FireplaceIcon />}
@@ -1181,8 +1188,13 @@ export default function GlobalSettings({
           </Paper>
         </TabPanel>
 
-        {/* OpenTherm Tab */}
+        {/* Device Logs Tab */}
         <TabPanel value={activeTab} index={7}>
+          <DeviceLogsPanel />
+        </TabPanel>
+
+        {/* OpenTherm Tab */}
+        <TabPanel value={activeTab} index={8}>
           <Accordion defaultExpanded={false}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6">

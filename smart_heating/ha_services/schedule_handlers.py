@@ -18,9 +18,62 @@ from ..const import (
     ATTR_TIME,
 )
 from ..coordinator import SmartHeatingCoordinator
-from ..models import Schedule
+from ..models import Schedule, Area
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _normalize_day_to_index(d: int | str) -> int | None:
+    """Normalize different day representations to an index (0=Monday).
+
+    Args:
+        d: Day representation as int or str
+
+    Returns:
+        Integer day index (0=Monday) or None if not resolvable
+    """
+    idx_map_full = {
+        "Monday": 0,
+        "Tuesday": 1,
+        "Wednesday": 2,
+        "Thursday": 3,
+        "Friday": 4,
+        "Saturday": 5,
+        "Sunday": 6,
+    }
+    short_to_idx = {
+        "mon": 0,
+        "tue": 1,
+        "wed": 2,
+        "thu": 3,
+        "fri": 4,
+        "sat": 5,
+        "sun": 6,
+    }
+    if isinstance(d, int):
+        return int(d)
+    if isinstance(d, str):
+        key = d.strip().lower()
+        if key in short_to_idx:
+            return short_to_idx[key]
+        # Maybe full name available
+        return idx_map_full.get(d, None)
+    return None
+
+
+def _create_and_add_schedule(
+    target: Area, schedule_id_prefix: str, source_schedule: Schedule, day_index: int | None = None
+) -> None:
+    new_schedule = Schedule(
+        schedule_id=f"{schedule_id_prefix}_{uuid.uuid4().hex[:8]}",
+        time=source_schedule.start_time,
+        temperature=source_schedule.temperature,
+        day=day_index,
+        start_time=source_schedule.start_time,
+        end_time=source_schedule.end_time,
+        enabled=source_schedule.enabled,
+    )
+    target.add_schedule(new_schedule)
 
 
 async def async_handle_add_schedule(
@@ -240,56 +293,14 @@ async def async_handle_copy_schedule(
             _LOGGER.error("Schedule %s not found in area %s", source_schedule_id, source_area_id)
             return
 
-        def _normalize_day_to_index(d):
-            """Normalize different day representations to an index (0=Monday)."""
-            idx_map_full = {
-                "Monday": 0,
-                "Tuesday": 1,
-                "Wednesday": 2,
-                "Thursday": 3,
-                "Friday": 4,
-                "Saturday": 5,
-                "Sunday": 6,
-            }
-            short_to_idx = {
-                "mon": 0,
-                "tue": 1,
-                "wed": 2,
-                "thu": 3,
-                "fri": 4,
-                "sat": 5,
-                "sun": 6,
-            }
-            if isinstance(d, int):
-                return int(d)
-            if isinstance(d, str):
-                key = d.strip().lower()
-                if key in short_to_idx:
-                    return short_to_idx[key]
-                # Maybe full name available
-                return idx_map_full.get(d, None)
-            return None
-
-        def _create_and_add_schedule(target, schedule_id_prefix, day_index=None):
-            new_schedule = Schedule(
-                schedule_id=f"{schedule_id_prefix}_{uuid.uuid4().hex[:8]}",
-                time=source_schedule.start_time,
-                temperature=source_schedule.temperature,
-                day=day_index,
-                start_time=source_schedule.start_time,
-                end_time=source_schedule.end_time,
-                enabled=source_schedule.enabled,
-            )
-            target.add_schedule(new_schedule)
-
         # Create new schedule(s) for target days
         if target_days:
             for day in target_days:
                 # day is expected to be an integer index (0=Monday)
-                _create_and_add_schedule(target_area, str(day), int(day))
+                _create_and_add_schedule(target_area, str(day), source_schedule, int(day))
         else:
             source_day_index = _normalize_day_to_index(source_schedule.day)
-            _create_and_add_schedule(target_area, "copied", source_day_index)
+            _create_and_add_schedule(target_area, "copied", source_schedule, source_day_index)
 
         await area_manager.async_save()
         await coordinator.async_request_refresh()

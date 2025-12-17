@@ -103,6 +103,16 @@ For OpenTherm Gateway specific testing guidelines, see [OpenTherm Integration](O
 - The device control logic will set the thermostat setpoint to the current area temperature when the area current temperature >= (target - hysteresis). This prevents the thermostat from reporting `heating` while the area is close to target.
 - Tests should assert `climate.set_temperature` invocation and check the passed `temperature` parameter precisely (use `pytest.approx` for floats). Additionally, check call count and cached last-set setpoint behavior to ensure duplicate calls are not made.
 
+### Device control resiliency and AC rounding
+
+- The backend now tracks device control failures per-thermostat and applies exponential backoff after repeated failures. This prevents repeated retries (and noisy AC beeps) when an integration rejects a command or the device returns a control error. Use `DeviceControlHandler.get_thermostat_failure_state(thermostat_id)` in tests to inspect failure counts and backoff intervals.
+- For devices that do not implement `turn_off`, the handler now catches the error and falls back to setting the minimum/frost-protection setpoint instead of leaving an unhandled exception.
+- The frontend now rounds temperature commits for air-conditioned areas to 0.5°C and uses a 0.5°C slider step. This avoids sending unsupported decimal setpoints (e.g., 24.7°C) to AC integrations which may only accept 0.5°C increments. Add tests that verify rounding and slider step when `area.heating_type === 'airco'`.
+
+### Device Logs UI
+
+- A new "Device Logs" panel is available under Global Settings → Device Logs. It surfaces recent thermostat failure/backoff events collected by the advanced metrics collector so operators can quickly identify thermostats that are repeatedly failing to accept commands or are in backoff. The panel displays area, thermostat entity, failure count, last failure timestamp, and current backoff interval.
+
 
 - `temperature-control.spec.ts` - Temperature adjustment tests
 - `boost-mode.spec.ts` - Boost mode functionality
