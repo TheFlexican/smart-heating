@@ -61,7 +61,8 @@ interface ZoneCardProps {
 const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const enabled = Boolean(area.enabled)
+  // Treat explicit boolean true or string 'true' as enabled; string 'false' should be falsy
+  const enabled = area.enabled === true || String(area.enabled) === 'true'
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -84,7 +85,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
     }
     // Otherwise show the base target temperature
     return area.target_temperature
-  }, [area])
+  }, [area, enabled])
 
   const [temperature, setTemperature] = useState(getDisplayTemperature())
   const [presenceState, setPresenceState] = useState<string | null>(null)
