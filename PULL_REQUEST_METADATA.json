@@ -1,0 +1,5 @@
+### Pull Request
+- **Title:** fix(frontend): disable manual-override when area is disabled (#13)
+- **Body**: See `PULL_REQUEST_BODY.md` in repo root for full description.
+
+This PR includes a small frontend change + unit tests, all tests pass locally.
