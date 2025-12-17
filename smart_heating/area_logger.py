@@ -14,7 +14,19 @@ _LOGGER = logging.getLogger(__name__)
 MAX_LOG_ENTRIES_PER_FILE = 1000
 
 # Valid event types
-EVENT_TYPES = ["temperature", "heating", "schedule", "smart_boost", "sensor", "mode"]
+# NOTE: 'cooling' and 'climate_control' are legitimate event types used by
+# the climate handlers (e.g., heating_cycle and climate_controller). Add them
+# here to avoid spurious warnings when those handlers log events.
+EVENT_TYPES = [
+    "temperature",
+    "heating",
+    "cooling",
+    "climate_control",
+    "schedule",
+    "smart_boost",
+    "sensor",
+    "mode",
+]
 
 
 class AreaLogger:

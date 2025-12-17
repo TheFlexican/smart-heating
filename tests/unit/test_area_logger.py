@@ -4,6 +4,7 @@ Tests logging functionality, file operations, log rotation, and querying.
 """
 
 import asyncio
+import logging
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -65,6 +66,20 @@ class TestLogging:
 
         # Should still schedule write with type changed to 'mode'
         mock_task.assert_called_once()
+
+    def test_log_event_known_types_no_warning(self, area_logger: AreaLogger, caplog):
+        """Test that known climate event types do not emit warnings."""
+        orig = area_logger._hass.async_create_task
+        with patch.object(area_logger._hass, "async_create_task") as mock_task:
+            mock_task.side_effect = lambda coro: orig(coro)
+            with caplog.at_level(logging.WARNING):
+                area_logger.log_event(TEST_AREA_ID, "cooling", "Cooling started")
+                area_logger.log_event(TEST_AREA_ID, "climate_control", "Waiting for hysteresis")
+
+        # No unknown-type warnings should be emitted
+        assert "Unknown event type" not in caplog.text
+        # Both events should have been scheduled
+        assert mock_task.call_count == 2
 
     @pytest.mark.asyncio
     async def test_async_write_log(self, area_logger: AreaLogger, hass: HomeAssistant):
