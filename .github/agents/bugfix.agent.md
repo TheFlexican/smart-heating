@@ -420,6 +420,120 @@ runSubagent({
 - ✅ **Do check code coverage** (80%+ for modified code)
 - ✅ **Do verify no regressions** (all existing tests pass)
 
+### Code Anti-Patterns to AVOID
+
+**⚠️ CRITICAL: These patterns cause bugs, security issues, and production failures**
+
+#### React/Frontend Anti-Patterns
+
+**🚨 Infinite Render Loops**
+- ❌ **NEVER include state in useEffect dependencies if the effect modifies that state**
+  ```typescript
+  // ❌ WRONG - Creates infinite loop
+  useEffect(() => {
+    setItems(prev => [...prev, newItem])
+  }, [items])  // items changes → effect runs → items changes → infinite loop
+
+  // ✅ CORRECT - Only include actual triggers
+  useEffect(() => {
+    setItems(prev => [...prev, newItem])
+  }, [newItem])  // Only runs when newItem changes
+  ```
+
+- ❌ **NEVER blindly follow ESLint exhaustive-deps warnings**
+  - ESLint suggests adding all dependencies, but this can cause infinite loops
+  - Analyze: Does this effect modify this dependency? If yes, DON'T add it
+  - Use `prev => ...` pattern to access current state without dependencies
+
+**🚨 Incomplete Type Implementations**
+- ❌ **NEVER create partial objects when interface requires more fields**
+  ```typescript
+  // ❌ WRONG - Missing required properties
+  const entity = { entity_id: id, attributes: {} }
+
+  // ✅ CORRECT - All HassEntity properties included
+  const entity: HassEntity = {
+    entity_id: id,
+    name: friendlyName || id,
+    state: state || 'unknown',
+    attributes: attributes || {}
+  }
+  ```
+- ✅ **Always include ALL required interface properties**
+- ✅ **Use TypeScript strict mode to catch missing properties**
+- ✅ **Fix TypeScript errors immediately, don't ignore or suppress them**
+
+#### Documentation Anti-Patterns
+
+**🚨 Markdown Formatting Issues**
+- ❌ **NEVER add leading spaces before bullet points**
+  ```markdown
+  # ❌ WRONG - Causes rendering issues
+   - Item one
+   - Item two
+
+  # ✅ CORRECT
+  - Item one
+  - Item two
+  ```
+
+- ❌ **NEVER add duplicate section headers**
+  - Always read existing CHANGELOG before adding entries
+  - Check for duplicate "### Bug Fixes & Improvements" headers
+  - Merge entries into existing sections
+
+- ✅ **Always maintain consistent formatting**
+  - Match existing indentation style exactly
+  - Use same emoji/formatting conventions
+  - Preview markdown rendering if possible
+  - Respect language-specific conventions (EN vs NL)
+
+#### Backend/Python Anti-Patterns
+
+**🚨 Async/Concurrency Issues**
+- ❌ **NEVER create recursive calls without termination conditions**
+- ❌ **NEVER forget to await async functions**
+- ❌ **NEVER modify state in async callbacks without locks**
+- ✅ **Always set timeouts for external API calls**
+- ✅ **Always clean up resources in finally blocks**
+
+**🚨 Memory Leaks**
+- ❌ **NEVER create unbounded lists or caches**
+- ❌ **NEVER keep references to closed connections**
+- ✅ **Always implement cleanup in __del__ or context managers**
+- ✅ **Always cancel background tasks on shutdown**
+
+### Pre-Implementation Checklist
+
+**Before writing ANY fix, ask yourself:**
+
+1. **Infinite Loop Risk?**
+   - [ ] Does my useEffect modify state in its dependency array?
+   - [ ] Could this create a circular update pattern?
+   - [ ] Have I tested for rapid re-renders?
+
+2. **Type Completeness?**
+   - [ ] Did I include ALL required interface properties?
+   - [ ] Does TypeScript compile without errors?
+   - [ ] Am I using `any` when I should use a specific type?
+
+3. **Documentation Quality?**
+   - [ ] No leading spaces in markdown bullets?
+   - [ ] No duplicate section headers?
+   - [ ] Consistent formatting with existing docs?
+   - [ ] Updated BOTH EN and NL versions?
+
+4. **Testing Coverage?**
+   - [ ] Does my test actually reproduce the bug?
+   - [ ] Does the test fail before my fix?
+   - [ ] Does the test pass after my fix?
+   - [ ] Are edge cases covered?
+
+5. **Performance Impact?**
+   - [ ] Could this cause excessive re-renders?
+   - [ ] Could this create memory leaks?
+   - [ ] Could this block the UI thread?
+
 ### Verification Steps Before Approval
 
 1. **Build Verification**
@@ -445,9 +559,6 @@ runSubagent({
 
 3. **Quality Verification**
    ```bash
-   # SonarQube analysis (if available)
-   # Check for new BLOCKER/HIGH issues
-
    # TypeScript strict checks
    cd smart_heating/frontend && npx tsc --noEmit
 
@@ -455,7 +566,50 @@ runSubagent({
    cd smart_heating/frontend && npm run lint
    ```
 
-4. **Manual Testing Verification**
+4. **🚨 MANDATORY: SonarQube Quality Check**
+
+   **ALWAYS call the sonarqube-quality agent on ALL changed code before proceeding:**
+
+   ```markdown
+   # Use runSubagent to delegate quality analysis
+   runSubagent({
+     agentName: "sonarqube-quality",
+     description: "Analyze bugfix code quality",
+     prompt: "Analyze the following files for code quality issues and fix any BLOCKER or HIGH severity issues:
+
+     Changed files:
+     - [list all changed files]
+
+     Focus areas:
+     - Check for code smells introduced by the bugfix
+     - Verify no security vulnerabilities
+     - Ensure cognitive complexity is acceptable
+     - Check for proper error handling
+     - Verify no deprecated APIs used
+
+     See .github/agents/sonarqube.agent.md for guidelines."
+   })
+   ```
+
+   **SonarQube Quality Gate Requirements:**
+   - ❌ **No BLOCKER issues** (must be fixed immediately)
+   - ❌ **No HIGH severity issues** (must be fixed immediately)
+   - ⚠️ **Minimize MEDIUM severity issues** (fix if time permits)
+   - ℹ️ **Document LOW/INFO issues** (can defer to future work)
+
+   **If SonarQube finds issues:**
+   - Fix BLOCKER and HIGH severity issues immediately
+   - Re-run tests to ensure fixes don't break anything
+   - Re-run SonarQube analysis to verify issues resolved
+   - Only proceed with deployment after quality gate passes
+
+   **When to run SonarQube analysis:**
+   - ✅ **ALWAYS after implementing the fix** (before any other verification)
+   - ✅ **After making any code changes** (including test code)
+   - ✅ **Before deploying to test environment**
+   - ✅ **Before requesting user approval**
+
+5. **Manual Testing Verification**
    ```bash
    # Deploy to test environment
    bash scripts/deploy_test.sh
@@ -465,6 +619,17 @@ runSubagent({
    # Test the specific bug scenario
    # Test related workflows for regressions
    ```
+
+**When in Doubt:**
+- ✅ Test in browser with React DevTools BEFORE committing
+- ✅ Check for infinite re-renders in component tree
+- ✅ Check for console errors or warnings
+- ✅ Ask: "Could this cause an infinite loop?"
+- ✅ Ask: "Did I include all required properties?"
+- ✅ Ask: "Is this formatting consistent?"
+- ✅ Run full test suite locally
+- ✅ **ALWAYS run SonarQube quality analysis**
+- ✅ Review your own code before requesting approval
 
 ## PR Description Template
 
