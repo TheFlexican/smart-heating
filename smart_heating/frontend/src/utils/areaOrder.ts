@@ -20,18 +20,23 @@ export function mergeZones(
 
   if (savedOrderJson) {
     try {
-      const orderIds = JSON.parse(savedOrderJson) as string[]
-      const ordered: Zone[] = []
-      for (const id of orderIds) {
-        const z = updatedMap.get(id)
-        if (z) ordered.push(z)
+      const parsed = JSON.parse(savedOrderJson)
+      // Validate it's an array of strings
+      if (Array.isArray(parsed) && parsed.every(p => typeof p === 'string')) {
+        const orderIds = parsed as string[]
+        const ordered: Zone[] = []
+        for (const id of orderIds) {
+          const z = updatedMap.get(id)
+          if (z) ordered.push(z)
+        }
+        // Append any zones that are new (not in saved order)
+        const orderedIds = new Set(orderIds)
+        for (const z of updatedZones) {
+          if (!orderedIds.has(z.id)) ordered.push(z)
+        }
+        return ordered
       }
-      // Append any zones that are new (not in saved order)
-      const orderedIds = new Set(orderIds)
-      for (const z of updatedZones) {
-        if (!orderedIds.has(z.id)) ordered.push(z)
-      }
-      return ordered
+      // If validation failed, fall through to preserve-prev behavior
     } catch {
       // Fallthrough to preserve-prev behavior
     }
@@ -40,9 +45,10 @@ export function mergeZones(
   // No saved order -> try to preserve previous client order
   if (prevZones && prevZones.length > 0) {
     const prevIds = new Set(prevZones.map(z => z.id))
+    // Only include zones that still exist in the updated list
     const merged: Zone[] = prevZones
-      .map(p => updatedMap.get(p.id) ?? p)
-      .filter(z => z !== undefined)
+      .map(p => updatedMap.get(p.id))
+      .filter((z): z is Zone => z !== undefined)
     // Append any new zones that didn't exist before
     for (const z of updatedZones) {
       if (!prevIds.has(z.id)) merged.push(z)

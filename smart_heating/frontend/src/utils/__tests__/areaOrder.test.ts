@@ -32,4 +32,13 @@ describe('mergeZones', () => {
 
     expect(result.map(z => z.id)).toEqual(['x', 'y'])
   })
+
+  it('removes zones that no longer exist in updated list', () => {
+    const prev = [makeZone('a'), makeZone('b'), makeZone('c')]
+    const updated = [makeZone('b', 'B'), makeZone('c', 'C')]
+
+    const result = mergeZones(prev as any, updated as any, null)
+
+    expect(result.map(z => z.id)).toEqual(['b', 'c'])
+  })
 })
