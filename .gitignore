@@ -75,4 +75,4 @@ ideas
 coverage
 .tmp_logs
 test-results
-wait-10.sh
+.continue
