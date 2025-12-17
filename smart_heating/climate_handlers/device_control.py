@@ -18,6 +18,8 @@ from ..pwm import PWM
 
 _LOGGER = logging.getLogger(__name__)
 
+UNKNOWN_AREA_NAME = "<unknown>"
+
 
 class DeviceControlHandler:
     """Handle device control operations (thermostats, switches, valves)."""
@@ -816,7 +818,7 @@ class DeviceControlHandler:
         if not (pid_enabled and advanced_enabled):
             return candidate
         area = self.area_manager.get_area(area_id)
-        if area.current_temperature is None:
+        if area is None or area.current_temperature is None:
             return candidate
         pid = self._pids.get(area_id)
         if not pid:
@@ -913,18 +915,30 @@ class DeviceControlHandler:
     ) -> None:
         """Control valve using temperature control."""
         if heating and target_temp is not None:
-            # Set valve to area target temperature
-            # Valve will naturally close when room reaches setpoint
-            await self._set_valve_temperature(valve_id, target_temp)
-            _LOGGER.debug(
-                "Set TRV %s to area target %.1f°C",
-                valve_id,
-                target_temp,
-            )
+            # For TRV devices, apply configured heating temp and offset:
+            # Use max(target + offset, configured_trv_heating_temp)
+            if self._is_trv_device(valve_id):
+                trv_temp = max(
+                    target_temp + getattr(self.area_manager, "trv_temp_offset", 0.0),
+                    getattr(self.area_manager, "trv_heating_temp", target_temp),
+                )
+                await self._set_valve_temperature(valve_id, trv_temp)
+                _LOGGER.debug(
+                    "Set TRV %s to %.1f°C (heating - applied offset/limit)", valve_id, trv_temp
+                )
+            else:
+                # Non-TRV temperature-controlled valves: set to area target temperature
+                await self._set_valve_temperature(valve_id, target_temp)
+                _LOGGER.debug("Set valve %s to area target %.1f°C", valve_id, target_temp)
         else:
-            # When not heating, set to 0°C to ensure valve stays closed
-            await self._set_valve_temperature(valve_id, 0.0)
-            _LOGGER.debug("Set TRV %s to 0°C (off)", valve_id)
+            # When not heating: for TRVs use configured idle temp, otherwise set to 0°C
+            if self._is_trv_device(valve_id):
+                idle = getattr(self.area_manager, "trv_idle_temp", 0.0)
+                await self._set_valve_temperature(valve_id, idle)
+                _LOGGER.debug("Set TRV %s to %.1f°C (idle)", valve_id, idle)
+            else:
+                await self._set_valve_temperature(valve_id, 0.0)
+                _LOGGER.debug("Set valve %s to 0°C (off)", valve_id)
 
     async def async_control_valves(
         self, area: Area, heating: bool, target_temp: Optional[float]

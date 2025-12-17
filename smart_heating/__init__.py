@@ -14,7 +14,6 @@ from .area_logger import AreaLogger
 from .area_manager import AreaManager
 from .climate_controller import ClimateController
 from .comparison_engine import ComparisonEngine
-from .device_capability_detector import DeviceCapabilityDetector
 from .const import (
     DOMAIN,
     PLATFORMS,
@@ -50,6 +49,7 @@ from .const import (
     SERVICE_SET_TRV_TEMPERATURES,
 )
 from .coordinator import SmartHeatingCoordinator
+from .device_capability_detector import DeviceCapabilityDetector
 from .efficiency_calculator import EfficiencyCalculator
 from .history import HistoryTracker
 from .learning_engine import LearningEngine

@@ -5,9 +5,8 @@ import logging
 from homeassistant.core import ServiceCall
 
 from ..area_manager import AreaManager
-from ..const import ATTR_AREA_ID, ATTR_TEMPERATURE
+from ..const import ATTR_AREA_ID, ATTR_TEMPERATURE, DOMAIN
 from ..coordinator import SmartHeatingCoordinator
-from ..const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 

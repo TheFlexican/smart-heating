@@ -1,11 +1,10 @@
 """Tests for device capability detector."""
 
-import pytest
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
+import pytest
 from homeassistant.core import State
-
 from smart_heating.device_capability_detector import (
     DeviceCapabilities,
     DeviceCapabilityDetector,
@@ -260,7 +259,8 @@ class TestDeviceCapabilityDetector:
                 mock_er.return_value.async_get.return_value = None
                 mock_dr.return_value.async_get.return_value = None
 
-                profile = await detector.discover_and_cache("climate.test_trv")
+                # The discovery is performed and cached; we don't need the return value here
+                await detector.discover_and_cache("climate.test_trv")
 
                 # Check cached
                 cached = detector.get_profile("climate.test_trv")

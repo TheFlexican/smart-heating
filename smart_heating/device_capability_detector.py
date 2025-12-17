@@ -4,14 +4,14 @@ This module provides capability discovery for heating/cooling devices,
 detecting what features they support and determining optimal control parameters.
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime
 import logging
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from homeassistant.core import HomeAssistant, State
-from homeassistant.helpers.device_registry import DeviceRegistry
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 
 from .area_manager import AreaManager
 

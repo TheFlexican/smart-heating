@@ -18,7 +18,7 @@ from ..const import (
     ATTR_TIME,
 )
 from ..coordinator import SmartHeatingCoordinator
-from ..models import Schedule, Area
+from ..models import Area, Schedule
 
 _LOGGER = logging.getLogger(__name__)
 
