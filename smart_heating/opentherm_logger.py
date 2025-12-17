@@ -306,7 +306,7 @@ class OpenThermLogger:
             # Get entity state
             state = self._hass.states.get(gateway_entity_id)
             if not state:
-                _LOGGER.warning("Gateway entity %s not found", gateway_entity_id)
+                _LOGGER.debug("Gateway entity %s not found", gateway_entity_id)
                 return {}
 
             # Extract capabilities from entity attributes

@@ -294,7 +294,7 @@ class AreaManager:
 
         old_temp = area.target_temperature
         area.target_temperature = temperature
-        _LOGGER.warning(
+        _LOGGER.info(
             "TARGET TEMP CHANGE for %s: %.1f°C → %.1f°C (preset: %s)",
             area_id,
             old_temp,
@@ -498,7 +498,7 @@ class AreaManager:
 
             state = self.hass.states.get(sensor_id)
             if not state:
-                _LOGGER.warning("Safety sensor %s not found", sensor_id)
+                _LOGGER.debug("Safety sensor %s not found", sensor_id)
                 continue
 
             # Check the specified attribute or state
@@ -540,7 +540,7 @@ class AreaManager:
         """
         if self._safety_alert_active != active:
             self._safety_alert_active = active
-            _LOGGER.warning("Safety alert state changed to: %s", active)
+            _LOGGER.info("Safety alert state changed to: %s", active)
 
     def set_trv_temperatures(
         self, heating_temp: float, idle_temp: float, temp_offset: float | None = None

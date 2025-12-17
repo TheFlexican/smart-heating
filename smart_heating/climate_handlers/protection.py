@@ -123,12 +123,13 @@ class ProtectionHandler:
 
         # Turn off all heating/cooling devices
         if device_handler:
-            # Turn off thermostats/AC units
+            # Turn off thermostats/AC units (falls back to minimum setpoint if needed)
             await device_handler.async_control_thermostats(area, False, None)
             # Turn off switches
             await device_handler.async_control_switches(area, False)
-            # Turn off valves
-            await device_handler.async_control_valves(area, False, None)
+            # Turn off valves - explicitly set valves to an "off" temperature/position
+            # Use 0.0°C for temperature-controlled TRVs so they close themselves
+            await device_handler.async_set_valves_to_off(area, off_temperature=0.0)
 
         area.state = "off"
 

@@ -106,7 +106,7 @@ class LearningEngine:
                 _LOGGER.info("Auto-detected weather entity: %s", entity_id)
                 return entity_id
 
-        _LOGGER.warning("No weather entity found - outdoor temperature correlation disabled")
+        _LOGGER.debug("No weather entity found - outdoor temperature correlation disabled")
         return None
 
     async def _async_register_statistics_metadata(

@@ -59,21 +59,21 @@ class AdvancedMetricsCollector:
         Returns:
             True if setup successful, False otherwise
         """
-        _LOGGER.warning("🔵 Advanced metrics collector async_setup called")
+        _LOGGER.debug("Advanced metrics collector async_setup called")
         try:
             # Initialize database table
-            _LOGGER.warning("🔵 Attempting to initialize database...")
+            _LOGGER.debug("Attempting to initialize advanced metrics database...")
             if not await self._async_init_database():
-                _LOGGER.warning("Advanced metrics collection disabled - database not available")
+                _LOGGER.info("Advanced metrics collection disabled - database not available")
                 return False
 
-            _LOGGER.warning("🔵 Database initialized successfully")
+            _LOGGER.debug("Advanced metrics database initialized successfully")
 
             # Schedule periodic collection every 5 minutes
             self._collection_unsub = async_track_time_interval(
                 self.hass, self._async_collect_metrics, COLLECTION_INTERVAL
             )
-            _LOGGER.warning("🔵 Collection scheduled every 5 minutes")
+            _LOGGER.debug("Advanced metrics collection scheduled every 5 minutes")
 
             # Schedule daily cleanup at 3 AM
             self._cleanup_unsub = async_track_time_interval(
@@ -82,14 +82,14 @@ class AdvancedMetricsCollector:
 
             # Mark as initialized BEFORE collecting initial metrics
             self._initialized = True
-            _LOGGER.warning("🔵 Marked as initialized")
+            _LOGGER.debug("Advanced metrics collector marked as initialized")
 
             # Collect initial metrics
-            _LOGGER.warning("🔵 Collecting initial metrics...")
+            _LOGGER.debug("Collecting initial advanced metrics (initial)")
             await self._async_collect_metrics(None)
-            _LOGGER.warning("🔵 Initial metrics collected")
+            _LOGGER.debug("Initial advanced metrics collected")
 
-            _LOGGER.warning("🔵 Advanced metrics collector initialized (5-minute interval)")
+            _LOGGER.info("Advanced metrics collector initialized (5-minute interval)")
             return True
 
         except Exception as err:  # pylint: disable=broad-except
@@ -105,20 +105,20 @@ class AdvancedMetricsCollector:
         try:
             recorder = get_instance(self.hass)
             if not recorder:
-                _LOGGER.warning("Recorder not available")
+                _LOGGER.debug("Recorder not available for advanced metrics")
                 return False
 
             db_url = str(recorder.db_url)
 
             # Only support MariaDB/MySQL and PostgreSQL
             if "sqlite" in db_url.lower():
-                _LOGGER.warning("SQLite not supported for advanced metrics")
+                _LOGGER.debug("SQLite not supported for advanced metrics")
                 return False
 
             if not any(
                 db in db_url.lower() for db in ["mysql", "mariadb", "postgresql", "postgres"]
             ):
-                _LOGGER.warning("Unsupported database type for advanced metrics")
+                _LOGGER.debug("Unsupported database type for advanced metrics")
                 return False
 
             self._db_engine = recorder.engine
@@ -155,34 +155,33 @@ class AdvancedMetricsCollector:
         Args:
             _now: Current time (unused, required by async_track_time_interval)
         """
-        _LOGGER.warning("🔵 _async_collect_metrics called")
+        _LOGGER.debug("_async_collect_metrics called")
         try:
             if not self._initialized or self._db_table is None:
-                _LOGGER.warning("🔵 Skipping collection - not initialized or no table")
+                _LOGGER.debug("Skipping advanced metrics collection - not initialized or no table")
                 return
 
             # Get area manager and coordinator
             area_manager = self.hass.data.get(DOMAIN, {}).get("area_manager")
             if not area_manager:
-                _LOGGER.warning(
-                    "🔵 No area_manager found in hass.data - components still initializing, will retry on next cycle"
+                _LOGGER.debug(
+                    "No area_manager found in hass.data - components still initializing, will retry on next cycle"
                 )
                 return
 
-            _LOGGER.warning("🔵 Collecting OpenTherm metrics...")
-            # Collect global OpenTherm metrics
+            _LOGGER.debug("Collecting OpenTherm metrics")
             opentherm_metrics = await self._async_get_opentherm_metrics()
-            _LOGGER.warning(f"🔵 OpenTherm metrics: {opentherm_metrics}")
+            _LOGGER.debug("OpenTherm metrics: %s", opentherm_metrics)
 
             # Collect per-area metrics
-            _LOGGER.warning("🔵 Collecting area metrics...")
+            _LOGGER.debug("Collecting area metrics...")
             area_metrics = await self._async_get_area_metrics(area_manager)
-            _LOGGER.warning(f"🔵 Area metrics count: {len(area_metrics)}")
+            _LOGGER.debug("Area metrics count: %d", len(area_metrics))
 
             # Insert into database
-            _LOGGER.warning("🔵 Inserting metrics into database...")
+            _LOGGER.debug("Inserting metrics into database")
             await self._async_insert_metrics(opentherm_metrics, area_metrics)
-            _LOGGER.warning("🔵 Metrics successfully inserted into database")
+            _LOGGER.info("Advanced metrics successfully inserted into database")
 
         except Exception as err:  # pylint: disable=broad-except
             _LOGGER.error("❌ Error collecting metrics: %s", err, exc_info=True)

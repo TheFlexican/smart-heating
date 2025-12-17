@@ -278,7 +278,7 @@ class TestAsyncControlThermostats:
                 "entity_id": "climate.thermo1",
                 "temperature": 20.0,
             },
-            blocking=False,
+            blocking=True,
         )
 
     @pytest.mark.asyncio
@@ -299,7 +299,7 @@ class TestAsyncControlThermostats:
                 "entity_id": "climate.thermo1",
                 "temperature": 20.0,
             },
-            blocking=False,
+            blocking=True,
         )
 
     @pytest.mark.asyncio
@@ -318,7 +318,7 @@ class TestAsyncControlThermostats:
                 "entity_id": "climate.thermo1",
                 "temperature": 22.0,
             },
-            blocking=False,
+            blocking=True,
         )
 
     @pytest.mark.asyncio
@@ -377,7 +377,7 @@ class TestAsyncControlThermostats:
                 "entity_id": "climate.thermo1",
                 "temperature": 20.0,
             },
-            blocking=False,
+            blocking=True,
         )
 
     @pytest.mark.asyncio

@@ -37,7 +37,7 @@ class SafetyMonitor:
 
     async def async_setup(self) -> None:
         """Set up the safety monitor with state change listeners."""
-        _LOGGER.warning("SafetyMonitor async_setup called")
+        _LOGGER.debug("SafetyMonitor async_setup called")
         await self._setup_state_listener()
         # Expose on hass.data for integration tests and cleanup
         try:
@@ -59,31 +59,31 @@ class SafetyMonitor:
         # Filter for enabled sensors
         enabled_sensors = [s for s in safety_sensors if s.get("enabled", True)]
 
-        _LOGGER.warning("Setting up listeners for %d enabled safety sensors", len(enabled_sensors))
+        _LOGGER.debug("Setting up listeners for %d enabled safety sensors", len(enabled_sensors))
 
         if enabled_sensors:
             # Collect all sensor IDs
             sensor_ids = [s["sensor_id"] for s in enabled_sensors]
 
-            _LOGGER.warning("Monitoring safety sensors: %s", sensor_ids)
+            _LOGGER.debug("Monitoring safety sensors: %s", sensor_ids)
 
             # Check if sensors exist
             for sensor_id in sensor_ids:
                 sensor_state = self.hass.states.get(sensor_id)
                 if sensor_state:
-                    _LOGGER.warning(
-                        "Sensor %s exists! Current state: %s",
+                    _LOGGER.debug(
+                        "Sensor %s exists. Current state: %s",
                         sensor_id,
                         sensor_state.state,
                     )
                 else:
-                    _LOGGER.warning("WARNING: Sensor %s does not exist yet!", sensor_id)
+                    _LOGGER.debug("Sensor %s does not exist yet", sensor_id)
 
             # Set up listener for all sensors
             self._state_unsub = async_track_state_change_event(
                 self.hass, sensor_ids, self._handle_safety_sensor_state_change
             )
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "Safety sensor listeners registered successfully for %d sensors",
                 len(sensor_ids),
             )
@@ -91,7 +91,7 @@ class SafetyMonitor:
             # Check initial state
             await self._check_safety_status()
         else:
-            _LOGGER.warning("No enabled safety sensors configured, skipping listener setup")
+            _LOGGER.debug("No enabled safety sensors configured, skipping listener setup")
 
     @callback
     def _handle_safety_sensor_state_change(self, event: Event) -> None:
@@ -104,10 +104,10 @@ class SafetyMonitor:
         old_state = event.data.get("old_state")
         new_state = event.data.get("new_state")
 
-        _LOGGER.warning("🔥 SAFETY SENSOR STATE CHANGE DETECTED!")
-        _LOGGER.warning("Entity: %s", entity_id)
-        _LOGGER.warning("Old state: %s", old_state.state if old_state else "None")
-        _LOGGER.warning("New state: %s", new_state.state if new_state else "None")
+        _LOGGER.info("Safety sensor state change detected")
+        _LOGGER.debug("Entity: %s", entity_id)
+        _LOGGER.debug("Old state: %s", old_state.state if old_state else "None")
+        _LOGGER.debug("New state: %s", new_state.state if new_state else "None")
 
         if not new_state:
             return
@@ -251,6 +251,6 @@ class SafetyMonitor:
 
         Note: Areas remain disabled and must be manually re-enabled.
         """
-        _LOGGER.warning("Emergency shutdown state reset - areas remain disabled")
+        _LOGGER.info("Emergency shutdown state reset - areas remain disabled")
         self._emergency_shutdown_active = False
         self.area_manager.set_safety_alert_active(False)

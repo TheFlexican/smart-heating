@@ -87,7 +87,6 @@ from .api_handlers import (  # Schedules; Sensors; Logs; Areas; Config; Devices;
     handle_update_user_settings,
     handle_validate_config,
 )
-from .comparison_engine import ComparisonEngine
 from .api_handlers.opentherm import (
     handle_calibrate_opentherm,
     handle_clear_opentherm_logs,
@@ -97,6 +96,7 @@ from .api_handlers.opentherm import (
     handle_get_opentherm_logs,
 )
 from .area_manager import AreaManager
+from .comparison_engine import ComparisonEngine
 from .const import DOMAIN
 from .coordinator import SmartHeatingCoordinator
 

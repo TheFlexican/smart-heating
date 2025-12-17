@@ -22,7 +22,11 @@ class ClimateController:
     """Control heating based on area settings and schedules."""
 
     def __init__(
-        self, hass: HomeAssistant, area_manager: AreaManager, learning_engine=None
+        self,
+        hass: HomeAssistant,
+        area_manager: AreaManager,
+        learning_engine=None,
+        capability_detector=None,
     ) -> None:
         """Initialize the climate controller.
 
@@ -30,15 +34,17 @@ class ClimateController:
             hass: Home Assistant instance
             area_manager: Area manager instance
             learning_engine: Optional learning engine for adaptive features
+            capability_detector: Optional device capability detector
         """
         self.hass = hass
         self.area_manager = area_manager
         self.learning_engine = learning_engine
+        self.capability_detector = capability_detector
         self._hysteresis = 0.5  # Temperature hysteresis in °C
 
         # Initialize handlers
         self.temp_handler = TemperatureSensorHandler(hass)
-        self.device_handler = DeviceControlHandler(hass, area_manager)
+        self.device_handler = DeviceControlHandler(hass, area_manager, capability_detector)
         self.sensor_handler = None  # Set by set_area_logger
         self.protection_handler = None  # Set by set_area_logger
         self.cycle_handler = None  # Set by set_area_logger

@@ -134,7 +134,7 @@ class TemperatureSensorHandler:
             if temp is not None:
                 return [temp]
 
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "Primary temperature sensor %s unavailable for area %s, falling back to all sensors",
                 area.primary_temperature_sensor,
                 area.area_id,

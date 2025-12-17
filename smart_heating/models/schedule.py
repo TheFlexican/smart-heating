@@ -162,7 +162,9 @@ class Schedule:
         elif self.days:
             # Already stored as indices
             result["days"] = [int(d) for d in self.days]
-            if self.day is not None:
+            # Only include 'day' if it's a single-day schedule
+            # If days has multiple values, don't save 'day' to avoid overriding on reload
+            if self.day is not None and len(self.days) == 1:
                 result["day"] = int(self.day)
 
         if self.temperature is not None:

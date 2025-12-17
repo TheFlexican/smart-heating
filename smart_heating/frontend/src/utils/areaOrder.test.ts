@@ -1,4 +1,4 @@
-import mergeZones from '../areaOrder'
+import mergeZones from './areaOrder'
 
 const makeZone = (id: string, name = '') => ({ id, name }) as any
 

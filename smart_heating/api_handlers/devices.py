@@ -218,7 +218,7 @@ async def handle_refresh_devices(hass: HomeAssistant, area_manager: AreaManager)
                         area.devices[device_id]["type"] = device_info["type"]
                         updated_count += 1
                 else:
-                    _LOGGER.warning(
+                    _LOGGER.debug(
                         "Device %s assigned to area %s no longer exists",
                         device_id,
                         area.name,

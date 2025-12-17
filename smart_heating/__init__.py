@@ -49,6 +49,7 @@ from .const import (
     SERVICE_SET_TRV_TEMPERATURES,
 )
 from .coordinator import SmartHeatingCoordinator
+from .device_capability_detector import DeviceCapabilityDetector
 from .efficiency_calculator import EfficiencyCalculator
 from .history import HistoryTracker
 from .learning_engine import LearningEngine
@@ -105,6 +106,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Store area_manager in hass.data for other components
     hass.data[DOMAIN]["area_manager"] = area_manager
+
+    # Create device capability detector
+    device_capability_detector = DeviceCapabilityDetector(hass, area_manager)
+    hass.data[DOMAIN]["device_capability_detector"] = device_capability_detector
+    _LOGGER.info("Device capability detector initialized")
 
     # Create history tracker
     history_tracker = HistoryTracker(hass)
@@ -184,8 +190,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _LOGGER.debug("Smart Heating coordinator stored in hass.data")
 
+    # Discover capabilities for all existing climate devices
+    async def discover_existing_devices():
+        """Discover capabilities for existing devices at startup."""
+        await asyncio.sleep(5)  # Wait for HA to be fully started
+        try:
+            areas = area_manager.get_all_areas()
+            for area in areas.values():
+                for device_id in area.get_thermostats():
+                    try:
+                        await device_capability_detector.discover_and_cache(device_id)
+                        _LOGGER.debug("Discovered capabilities for %s", device_id)
+                    except Exception as err:
+                        _LOGGER.debug("Could not discover capabilities for %s: %s", device_id, err)
+            _LOGGER.info("Device capability discovery complete")
+        except Exception as err:
+            _LOGGER.error("Error during device discovery: %s", err)
+
+    hass.data[DOMAIN]["discover_devices_task"] = hass.async_create_task(discover_existing_devices())
+
     # Create and start climate controller
-    climate_controller = ClimateController(hass, area_manager, learning_engine)
+    climate_controller = ClimateController(
+        hass, area_manager, learning_engine, device_capability_detector
+    )
 
     # Initialize handlers with area_logger
     climate_controller.set_area_logger(area_logger)

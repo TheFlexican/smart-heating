@@ -258,7 +258,7 @@ class Area:
         # Check if sensor already exists
         existing = [s for s in self.window_sensors if s.get("entity_id") == entity_id]
         if existing:
-            _LOGGER.warning("Window sensor %s already exists in area %s", entity_id, self.area_id)
+            _LOGGER.debug("Window sensor %s already exists in area %s", entity_id, self.area_id)
             return
 
         sensor_config: dict[str, str | float] = {
@@ -303,7 +303,7 @@ class Area:
         # Check if sensor already exists
         existing = [s for s in self.presence_sensors if s.get("entity_id") == entity_id]
         if existing:
-            _LOGGER.warning("Presence sensor %s already exists in area %s", entity_id, self.area_id)
+            _LOGGER.debug("Presence sensor %s already exists in area %s", entity_id, self.area_id)
             return
 
         sensor_config = {
@@ -368,9 +368,7 @@ class Area:
             )
         else:
             # Fallback to area-specific temperatures if no area_manager
-            _LOGGER.warning(
-                "Area %s: No area_manager reference! Using fallback temps", self.area_id
-            )
+            _LOGGER.debug("Area %s: No area_manager reference - using fallback temps", self.area_id)
             away_temp = self.away_temp
             eco_temp = self.eco_temp
             comfort_temp = self.comfort_temp
@@ -402,7 +400,7 @@ class Area:
         self.preset_mode = preset_mode
         new_effective = self.get_effective_target_temperature()
 
-        _LOGGER.warning(
+        _LOGGER.info(
             "Area %s: Preset mode %s → %s | Effective temp: %.1f°C → %.1f°C (base: %.1f°C)",
             self.area_id,
             old_mode,

@@ -90,7 +90,7 @@ class HistoryTracker:
         try:
             recorder = get_instance(self.hass)
             if not recorder:
-                _LOGGER.warning("Recorder not available, falling back to JSON storage")
+                _LOGGER.debug("Recorder not available, falling back to JSON storage")
                 self._storage_backend = HISTORY_STORAGE_JSON
                 self._db_validated = True
                 return
@@ -99,7 +99,7 @@ class HistoryTracker:
 
             # Check if it's SQLite (not supported for database storage)
             if "sqlite" in db_url.lower():
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "SQLite database detected. Database storage not supported, "
                     "falling back to JSON storage"
                 )
@@ -118,9 +118,7 @@ class HistoryTracker:
                 self._init_database_table()
                 self._db_validated = True
             else:
-                _LOGGER.warning(
-                    "Unsupported database type for history storage, falling back to JSON"
-                )
+                _LOGGER.debug("Unsupported database type for history storage, falling back to JSON")
                 self._storage_backend = HISTORY_STORAGE_JSON
                 self._db_validated = True
 
