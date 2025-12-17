@@ -63,3 +63,38 @@ it('shows preset chip and effective temperature when area is enabled', () => {
   // Displayed temperature should be the effective target temperature
   expect(screen.queryByText('23.5°C')).not.toBeNull()
 })
+
+it('treats non-boolean `enabled` as falsy and disables controls', () => {
+  const area: any = {
+    id: 'area1',
+    name: 'Living Room',
+    enabled: 'false', // string value that should be coerced to boolean(false)
+    state: 'idle',
+    manual_override: false,
+    preset_mode: 'none',
+    effective_target_temperature: null,
+    target_temperature: 21,
+    devices: [],
+    presence_sensors: [],
+    boost_mode_active: false,
+    boost_temp: null,
+    boost_duration: null,
+    heating_type: 'radiator',
+    hvac_mode: undefined,
+    hidden: false,
+  }
+
+  render(<ZoneCard area={area} onUpdate={vi.fn()} />)
+
+  // Slider should be present and have disabled styling when area is disabled
+  const slider = screen.getByTestId('temperature-slider')
+  expect(slider.classList.contains('Mui-disabled')).toBe(true)
+
+  // Preset badge should not be rendered for disabled area
+  const badge = screen.queryByTestId('preset-mode-badge')
+  expect(badge).toBeNull()
+
+  // Target temperature display should still show the configured target
+  const display = screen.getByTestId('target-temperature-display')
+  expect(display.textContent).toContain('21')
+})

@@ -119,6 +119,9 @@ const ZoneDetail = () => {
   const { t } = useTranslation()
   const { areaId } = useParams<{ areaId: string }>()
   const navigate = useNavigate()
+  // Helper: accepts boolean or string forms of enabled and returns boolean true only
+  const isEnabledVal = (v: boolean | string | undefined | null) =>
+    v === true || String(v) === 'true'
   const [area, setArea] = useState<Zone | null>(null)
   const [availableDevices, setAvailableDevices] = useState<Device[]>([])
   const [showOnlyHeating, setShowOnlyHeating] = useState(true)
@@ -152,7 +155,7 @@ const ZoneDetail = () => {
       if (updatedZone.id === areaId) {
         setArea(updatedZone)
         const displayTemp =
-          !updatedZone.enabled || updatedZone.state === 'off'
+          !isEnabledVal(updatedZone.enabled) || updatedZone.state === 'off'
             ? updatedZone.target_temperature
             : updatedZone.preset_mode &&
                 updatedZone.preset_mode !== 'none' &&
@@ -167,7 +170,7 @@ const ZoneDetail = () => {
       if (currentZone) {
         setArea(currentZone)
         const displayTemp =
-          !currentZone.enabled || currentZone.state === 'off'
+          !isEnabledVal(currentZone.enabled) || currentZone.state === 'off'
             ? currentZone.target_temperature
             : currentZone.preset_mode &&
                 currentZone.preset_mode !== 'none' &&
@@ -194,7 +197,7 @@ const ZoneDetail = () => {
 
       setArea(currentZone)
       const displayTemp =
-        !currentZone.enabled || currentZone.state === 'off'
+        !isEnabledVal(currentZone.enabled) || currentZone.state === 'off'
           ? currentZone.target_temperature
           : currentZone.preset_mode &&
               currentZone.preset_mode !== 'none' &&
@@ -410,7 +413,8 @@ const ZoneDetail = () => {
     if (!area) return
 
     try {
-      if (area.enabled) {
+      const currentlyEnabled = area.enabled === true || String(area.enabled) === 'true'
+      if (currentlyEnabled) {
         await disableZone(area.id)
       } else {
         await enableZone(area.id)
@@ -543,6 +547,7 @@ const ZoneDetail = () => {
   // Generate settings sections for draggable layout
   const getSettingsSections = (): SettingSection[] => {
     if (!area) return []
+    const areaEnabled = isEnabledVal(area.enabled)
 
     return [
       {
@@ -551,7 +556,7 @@ const ZoneDetail = () => {
         description: t('settingsCards.presetModesDescription'),
         icon: <BookmarkIcon />,
         badge:
-          !area.enabled || area.state === 'off' || area.preset_mode === 'none'
+          !areaEnabled || area.state === 'off' || area.preset_mode === 'none'
             ? undefined
             : t(`presets.${area.preset_mode}`),
         defaultExpanded: false,
@@ -561,7 +566,7 @@ const ZoneDetail = () => {
               <InputLabel>{t('settingsCards.currentPreset')}</InputLabel>
               <Select
                 data-testid="preset-mode-select"
-                disabled={!area.enabled || area.state === 'off'}
+                disabled={!areaEnabled || area.state === 'off'}
                 value={area.preset_mode || 'none'}
                 label={t('settingsCards.currentPreset')}
                 onChange={async e => {
@@ -608,7 +613,7 @@ const ZoneDetail = () => {
               </Select>
             </FormControl>
 
-            {area.enabled && area.state !== 'off' && (
+            {areaEnabled && area.state !== 'off' && (
               <Alert severity="info">
                 {t('settingsCards.currentPresetInfo', {
                   preset: t(`presets.${area.preset_mode || 'none'}`),
@@ -2016,6 +2021,9 @@ const ZoneDetail = () => {
     )
   }
 
+  // Normalize enabled - accept boolean true or string 'true'
+  const enabled = isEnabledVal(area.enabled)
+
   return (
     <Box
       sx={{
@@ -2069,8 +2077,8 @@ const ZoneDetail = () => {
                   sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
                 />
                 <Chip
-                  label={area.enabled ? 'ENABLED' : 'DISABLED'}
-                  color={area.enabled ? 'success' : 'default'}
+                  label={enabled ? 'ENABLED' : 'DISABLED'}
+                  color={enabled ? 'success' : 'default'}
                   size="small"
                   sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
                 />
@@ -2087,15 +2095,15 @@ const ZoneDetail = () => {
           >
             <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
               <Typography variant="body2" color="text.primary">
-                {area.enabled ? 'Heating Active' : 'Heating Disabled'}
+                {enabled ? 'Heating Active' : 'Heating Disabled'}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {area.enabled ? 'Area is being controlled' : 'No temperature control'}
+                {enabled ? 'Area is being controlled' : 'No temperature control'}
               </Typography>
             </Box>
             <Switch
               data-testid="area-enable-switch"
-              checked={area.enabled}
+              checked={enabled}
               onChange={handleToggle}
               color="primary"
             />
@@ -2197,9 +2205,9 @@ const ZoneDetail = () => {
                   { value: 30, label: '30°' },
                 ]}
                 valueLabelDisplay="auto"
-                disabled={!area.enabled || !!(area.preset_mode && area.preset_mode !== 'none')}
+                disabled={!enabled || !!(area.preset_mode && area.preset_mode !== 'none')}
               />
-              {area.enabled &&
+              {enabled &&
                 area.state !== 'off' &&
                 area.preset_mode &&
                 area.preset_mode !== 'none' && (

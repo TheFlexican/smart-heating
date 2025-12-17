@@ -61,6 +61,10 @@ interface ZoneCardProps {
 const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  // Treat explicit boolean true or string 'true' as enabled; string 'false' should be falsy
+  const isEnabledVal = (v: boolean | string | undefined | null) =>
+    v === true || String(v) === 'true'
+  const enabled = isEnabledVal(area.enabled)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -70,7 +74,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   // Get displayed temperature: use effective temperature when in preset mode, otherwise use target
   const getDisplayTemperature = useCallback(() => {
     // If the area is off/disabled, always show the area target temperature
-    if (!area.enabled || area.state === 'off') return area.target_temperature
+    if (!enabled || area.state === 'off') return area.target_temperature
 
     // When using preset mode (not manual override), show effective temperature
     if (
@@ -83,7 +87,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
     }
     // Otherwise show the base target temperature
     return area.target_temperature
-  }, [area])
+  }, [area, enabled])
 
   const [temperature, setTemperature] = useState(getDisplayTemperature())
   const [presenceState, setPresenceState] = useState<string | null>(null)
@@ -470,7 +474,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
                 value={area.hvac_mode || 'auto'}
                 label={t('area.hvacMode', { defaultValue: 'Mode' })}
                 onChange={handleHvacModeChange}
-                disabled={!area.enabled || area.devices.length === 0}
+                disabled={!enabled || area.devices.length === 0}
               >
                 <MenuItem value="heat" data-testid="hvac-mode-heat">
                   <Box display="flex" alignItems="center" gap={1}>
@@ -503,7 +507,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
               sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
             >
               {t('area.targetTemperature')}
-              {area.enabled &&
+              {enabled &&
                 area.state !== 'off' &&
                 area.preset_mode &&
                 area.preset_mode !== 'none' && (
@@ -538,7 +542,7 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
               { value: 30, label: '30°' },
             ]}
             valueLabelDisplay="auto"
-            disabled={!area.enabled || area.devices.length === 0 || !area.manual_override}
+            disabled={!enabled || area.devices.length === 0 || !area.manual_override}
             sx={{
               '& .MuiSlider-thumb': {
                 width: { xs: 24, sm: 20 },
