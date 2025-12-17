@@ -799,6 +799,215 @@ if (isArea(data)) {
 4. ✅ Verify dark/light mode
 5. ✅ Check translations (EN + NL)
 
+### TypeScript/React Anti-Patterns to AVOID
+
+**⚠️ CRITICAL: These patterns cause bugs, performance issues, and runtime failures**
+
+#### React Hooks Issues
+
+**🚨 NEVER include state in useEffect dependencies if the effect modifies that state**
+```typescript
+// ❌ WRONG - Infinite render loop
+useEffect(() => {
+  setItems(prev => [...prev, newItem])
+}, [items])  // items changes → effect runs → items changes → infinite loop
+
+// ✅ CORRECT - Only include actual triggers
+useEffect(() => {
+  setItems(prev => [...prev, newItem])
+}, [newItem])  // Only runs when newItem changes
+```
+
+**🚨 NEVER blindly follow ESLint exhaustive-deps warnings**
+```typescript
+// ❌ WRONG - Adding state that the effect modifies
+useEffect(() => {
+  setCount(count + 1)
+}, [count])  // ESLint suggests this, but creates infinite loop!
+
+// ✅ CORRECT - Use updater function
+useEffect(() => {
+  setCount(prev => prev + 1)
+}, [])  // Runs once, no dependency needed
+```
+
+**🚨 NEVER forget dependencies that trigger the effect**
+```typescript
+// ❌ WRONG - Stale closure, uses old userId
+useEffect(() => {
+  fetchUserData(userId)  // Always uses initial userId!
+}, [])
+
+// ✅ CORRECT - Re-fetch when userId changes
+useEffect(() => {
+  fetchUserData(userId)
+}, [userId])
+```
+
+#### Type Safety Issues
+
+**🚨 NEVER create partial objects for complete interfaces**
+```typescript
+// ❌ WRONG - Missing required properties
+interface HassEntity {
+  entity_id: string
+  name: string
+  state: string
+  attributes: Record<string, unknown>
+}
+
+const entity = {
+  entity_id: id,
+  attributes: {}
+}  // TypeScript error! Missing name and state
+
+// ✅ CORRECT - All required properties
+const entity: HassEntity = {
+  entity_id: id,
+  name: friendlyName || id,
+  state: state || 'unknown',
+  attributes: attributes || {}
+}
+```
+
+**🚨 NEVER use `any` type**
+```typescript
+// ❌ WRONG - Loses all type safety
+function processData(data: any) {
+  return data.value.toString()  // No type checking!
+}
+
+// ✅ CORRECT - Use proper types
+interface ApiResponse {
+  value: string | number
+}
+
+function processData(data: ApiResponse) {
+  return data.value.toString()  // Type-safe!
+}
+```
+
+**🚨 NEVER ignore TypeScript errors**
+```typescript
+// ❌ WRONG - Suppressing errors
+// @ts-ignore
+const result = functionWithWrongTypes(data)
+
+// ✅ CORRECT - Fix the types
+const result = functionWithCorrectTypes(data as ProperType)
+```
+
+#### State Management Issues
+
+**🚨 NEVER mutate state directly**
+```typescript
+// ❌ WRONG - Direct mutation doesn't trigger re-render
+const [items, setItems] = useState<Item[]>([])
+items.push(newItem)  // React won't detect this change!
+
+// ✅ CORRECT - Create new array
+setItems(prev => [...prev, newItem])
+```
+
+**🚨 NEVER forget to handle loading and error states**
+```typescript
+// ❌ WRONG - No loading/error handling
+function MyComponent() {
+  const [data, setData] = useState<Data>()
+
+  useEffect(() => {
+    fetchData().then(setData)
+  }, [])
+
+  return <div>{data.value}</div>  // Crashes if data is undefined!
+}
+
+// ✅ CORRECT - Proper state management
+function MyComponent() {
+  const [data, setData] = useState<Data>()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string>()
+
+  useEffect(() => {
+    fetchData()
+      .then(setData)
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return <CircularProgress />
+  if (error) return <Alert severity="error">{error}</Alert>
+  if (!data) return null
+
+  return <div>{data.value}</div>
+}
+```
+
+#### Performance Issues
+
+**🚨 NEVER create functions/objects in render without memoization**
+```typescript
+// ❌ WRONG - New function every render, breaks child memoization
+function Parent() {
+  return <Child onClick={() => handleClick()} />
+}
+
+// ✅ CORRECT - Memoize callbacks
+function Parent() {
+  const handleClick = useCallback(() => {
+    // handle click
+  }, [])
+
+  return <Child onClick={handleClick} />
+}
+```
+
+**🚨 NEVER pass new objects/arrays as props without memoization**
+```typescript
+// ❌ WRONG - New object every render
+function Parent() {
+  return <Child config={{ mode: 'dark' }} />
+}
+
+// ✅ CORRECT - Memoize objects
+function Parent() {
+  const config = useMemo(() => ({ mode: 'dark' }), [])
+  return <Child config={config} />
+}
+```
+
+### Pre-Implementation Checklist
+
+**Before writing ANY component:**
+
+1. **Infinite Loop Risk?**
+   - [ ] useEffect dependencies don't include state modified by the effect?
+   - [ ] Using updater functions (prev =>) when appropriate?
+   - [ ] No circular dependencies in effects?
+
+2. **Type Completeness?**
+   - [ ] All props interfaces defined?
+   - [ ] All required properties included?
+   - [ ] No `any` types used?
+   - [ ] Proper null/undefined handling?
+
+3. **State Management?**
+   - [ ] No direct state mutations?
+   - [ ] Loading states handled?
+   - [ ] Error states handled?
+   - [ ] Proper initial state values?
+
+4. **Performance?**
+   - [ ] Callbacks memoized with useCallback?
+   - [ ] Complex computations memoized with useMemo?
+   - [ ] Child components won't re-render unnecessarily?
+
+5. **Accessibility?**
+   - [ ] Semantic HTML used?
+   - [ ] ARIA labels provided?
+   - [ ] Keyboard navigation works?
+   - [ ] Screen reader friendly?
+
 ### What NOT to Do
 - ❌ Use `any` type (use `unknown` instead)
 - ❌ Ignore TypeScript errors

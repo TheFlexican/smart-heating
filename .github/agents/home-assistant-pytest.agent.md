@@ -423,6 +423,186 @@ open coverage_html/index.html
 4. ✅ Review for test quality
 5. ✅ Ensure tests are maintainable
 
+### Python Testing Anti-Patterns to AVOID
+
+**⚠️ CRITICAL: These patterns cause flaky tests, false positives, and test failures**
+
+#### Async Testing Issues
+
+**🚨 NEVER forget to await async functions in tests**
+```python
+# ❌ WRONG - Returns coroutine, test passes falsely
+async def test_wrong():
+    result = async_function()  # Returns <coroutine>, doesn't run!
+    assert result  # Passes because coroutine is truthy
+
+# ✅ CORRECT - Actually tests the function
+async def test_correct():
+    result = await async_function()  # Executes and returns result
+    assert result == expected_value
+```
+
+**🚨 NEVER use time.sleep() in async tests**
+```python
+# ❌ WRONG - Blocks event loop
+async def test_wrong():
+    trigger_event()
+    time.sleep(1)  # Blocks everything!
+    assert state_changed
+
+# ✅ CORRECT - Use asyncio.sleep or await directly
+async def test_correct():
+    trigger_event()
+    await asyncio.sleep(0.1)  # Non-blocking
+    assert state_changed
+```
+
+**🚨 NEVER forget to await asyncio.gather**
+```python
+# ❌ WRONG - Tasks don't complete
+async def test_wrong():
+    tasks = [async_task1(), async_task2()]
+    asyncio.gather(*tasks)  # Returns immediately!
+    assert all_done  # Fails, tasks haven't run
+
+# ✅ CORRECT - Wait for completion
+async def test_correct():
+    tasks = [async_task1(), async_task2()]
+    await asyncio.gather(*tasks)  # Actually waits
+    assert all_done
+```
+
+#### Mock Issues
+
+**🚨 NEVER use MagicMock for numeric comparisons**
+```python
+# ❌ WRONG - MagicMock(20) > 15 is always True
+mock_temp = MagicMock(return_value=20)
+if mock_temp > 15:  # Always True! MagicMock.__gt__ returns MagicMock
+    do_something()
+
+# ✅ CORRECT - Return actual numeric values
+mock_temp = Mock(return_value=20)
+mock_temp.return_value = 20  # Or use PropertyMock
+actual_value = mock_temp.return_value
+if actual_value > 15:  # Correctly evaluates to True
+    do_something()
+```
+
+**🚨 NEVER over-mock, use real HA fixtures**
+```python
+# ❌ WRONG - Mocking everything loses integration testing value
+@patch("homeassistant.core.HomeAssistant")
+@patch("homeassistant.helpers.entity.Entity")
+@patch("homeassistant.helpers.coordinator.DataUpdateCoordinator")
+def test_wrong(mock_coord, mock_entity, mock_hass):
+    # Testing mock interactions, not real code!
+
+# ✅ CORRECT - Use HA test fixtures
+async def test_correct(hass):  # Real HA instance from fixture
+    # Test actual integration behavior
+    coordinator = DataUpdateCoordinator(hass, ...)
+    await coordinator.async_refresh()
+    assert coordinator.data == expected
+```
+
+#### Test Isolation
+
+**🚨 NEVER share mutable state between tests**
+```python
+# ❌ WRONG - Tests affect each other
+shared_data = []  # Module-level mutable
+
+def test_first():
+    shared_data.append("item")
+    assert len(shared_data) == 1
+
+def test_second():
+    # Fails if test_first ran first!
+    assert len(shared_data) == 0
+
+# ✅ CORRECT - Use fixtures for isolation
+@pytest.fixture
+def data():
+    return []
+
+def test_first(data):
+    data.append("item")
+    assert len(data) == 1
+
+def test_second(data):
+    assert len(data) == 0  # Fresh data each test
+```
+
+**🚨 NEVER depend on test execution order**
+```python
+# ❌ WRONG - Tests must run in specific order
+def test_step_1():
+    global state
+    state = "initialized"
+
+def test_step_2():
+    # Fails if test_step_1 doesn't run first!
+    assert state == "initialized"
+
+# ✅ CORRECT - Each test is independent
+@pytest.fixture
+def initialized_state():
+    return "initialized"
+
+def test_step_1():
+    state = "initialized"
+    assert state == "initialized"
+
+def test_step_2(initialized_state):
+    assert initialized_state == "initialized"
+```
+
+#### Coverage Pitfalls
+
+**🚨 NEVER test implementation details**
+```python
+# ❌ WRONG - Tests internal method names
+def test_wrong():
+    obj = MyClass()
+    assert obj._internal_method() == value  # Breaks on refactor
+
+# ✅ CORRECT - Test public behavior
+def test_correct():
+    obj = MyClass()
+    result = obj.public_method()  # Tests what users interact with
+    assert result == expected
+```
+
+### Pre-Test-Writing Checklist
+
+**Before writing ANY test:**
+
+1. **Test Independence?**
+   - [ ] No shared mutable state?
+   - [ ] No dependency on other test order?
+   - [ ] Fresh fixtures for each test?
+
+2. **Async Correctness?**
+   - [ ] All async functions awaited?
+   - [ ] No time.sleep() calls?
+   - [ ] Using await asyncio.sleep() if delays needed?
+
+3. **Mock Appropriateness?**
+   - [ ] Not over-mocking HA fixtures?
+   - [ ] Numeric values are actual numbers, not MagicMock?
+   - [ ] Mocking external dependencies only?
+
+4. **Test Quality?**
+   - [ ] Testing behavior, not implementation?
+   - [ ] Clear test name describing what's tested?
+   - [ ] Single assertion per test (when possible)?
+
+5. **Coverage Goal?**
+   - [ ] Test covers new code paths?
+   - [ ] Edge cases handled?
+   - [ ] Error conditions tested?
+
 ### What NOT to Do
 - ❌ Write tests that depend on test execution order
 - ❌ Use time.sleep() (use async await properly)
