@@ -6,9 +6,10 @@ vi.mock('../api/metrics', () => ({
   getAdvancedMetrics: vi.fn(),
 }))
 
+import { getAdvancedMetrics } from '../api/metrics'
+
 it('displays thermostat failure rows when metrics contain failures', async () => {
-  const { getAdvancedMetrics } = require('../api/metrics')
-  getAdvancedMetrics.mockResolvedValue({
+  ;(getAdvancedMetrics as any).mockResolvedValue({
     metrics: [
       {
         timestamp: new Date().toISOString(),
