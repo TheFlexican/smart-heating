@@ -592,7 +592,10 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
               <Switch
                 data-testid="area-enable-toggle"
                 checked={!area.manual_override}
+                disabled={!enabled}
                 onChange={async e => {
+                  // If area is disabled, prevent toggling manual override
+                  if (!enabled) return
                   try {
                     // Toggle: if checked (not manual), user wants to use preset mode
                     await setManualOverride(area.id, !e.target.checked)

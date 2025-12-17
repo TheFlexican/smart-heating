@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { vi, it, expect } from 'vitest'
 import ZoneCard from './ZoneCard'
+import * as areasApi from '../api/areas'
 
 // Mock react-i18next to provide a basic translation function
 vi.mock('react-i18next', () => ({
@@ -97,4 +98,30 @@ it('treats non-boolean `enabled` as falsy and disables controls', () => {
   // Target temperature display should still show the configured target
   const display = screen.getByTestId('target-temperature-display')
   expect(display.textContent).toContain('21')
+})
+
+it('manual override switch is disabled when area is disabled and does not call API', async () => {
+  const apiSpy = vi.spyOn(areasApi, 'setManualOverride')
+  const areaDisabled: any = {
+    id: 'area2',
+    name: 'Bedroom',
+    enabled: false,
+    state: 'off',
+    manual_override: false,
+    preset_mode: 'none',
+    target_temperature: 21,
+    devices: [],
+    presence_sensors: [],
+  }
+
+  render(<ZoneCard area={areaDisabled} onUpdate={vi.fn()} />)
+
+  const switchWrapper = screen.getByTestId('area-enable-toggle') as HTMLElement
+  // MUI Switch renders an input inside the wrapper; the input should be disabled
+  const input = switchWrapper.querySelector('input') as HTMLInputElement | null
+  expect(input).not.toBeNull()
+  expect(input!.disabled).toBe(true)
+
+  // Since the switch is disabled, the API should not be called (no interaction possible)
+  expect(apiSpy).not.toHaveBeenCalled()
 })
