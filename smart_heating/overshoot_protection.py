@@ -50,7 +50,7 @@ class OvershootProtection:
                 samples.append(tmp)
 
         if not samples:
-            _LOGGER.warning("No samples read while calculating OPV")
+            _LOGGER.debug("No samples read while calculating OPV")
             return None
 
         avg = mean(samples)

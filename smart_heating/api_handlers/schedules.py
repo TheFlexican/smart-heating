@@ -216,8 +216,8 @@ async def handle_set_preset_mode(
         old_target = area.target_temperature
         old_effective = area.get_effective_target_temperature()
 
-        _LOGGER.warning(
-            "🎛️  API: SET PRESET MODE for %s: '%s' → '%s' | Current temp: %.1f°C, Effective: %.1f°C",
+        _LOGGER.info(
+            "API: SET PRESET MODE for %s: '%s' → '%s' | Current temp: %.1f°C, Effective: %.1f°C",
             area.name,
             old_preset,
             preset_mode,
@@ -229,8 +229,8 @@ async def handle_set_preset_mode(
 
         # Clear manual override mode when user sets preset via app
         if hasattr(area, "manual_override") and area.manual_override:
-            _LOGGER.warning(
-                "🔓 Clearing manual override for %s - preset mode now in control",
+            _LOGGER.info(
+                "Clearing manual override for %s - preset mode now in control",
                 area.name,
             )
             area.manual_override = False
@@ -240,7 +240,7 @@ async def handle_set_preset_mode(
         # Get new effective temperature
         new_effective = area.get_effective_target_temperature()
 
-        _LOGGER.warning(
+        _LOGGER.info(
             "✓ Preset applied: %s → '%s' | Effective temp: %.1f°C → %.1f°C (base: %.1f°C)",
             area.name,
             preset_mode,

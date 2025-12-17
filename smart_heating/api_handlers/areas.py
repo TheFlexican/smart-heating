@@ -58,8 +58,8 @@ def _log_set_temperature_start(area: Area, temperature: float) -> None:
     old_effective = area.get_effective_target_temperature()
     preset_context = f", preset={area.preset_mode}" if area.preset_mode != "none" else ""
 
-    _LOGGER.warning(
-        "🌡️ API: SET TEMPERATURE for %s: %.1f°C → %.1f°C%s | Effective: %.1f°C → ?",
+    _LOGGER.info(
+        "API: SET TEMPERATURE for %s: %.1f°C → %.1f°C%s | Effective: %.1f°C → ?",
         area.name,
         old_temp,
         temperature,
@@ -72,8 +72,8 @@ def _clear_presets_and_overrides(area: Area, temperature: float) -> None:
     # When user manually sets temperature, clear preset mode to use the explicit temperature
     # Otherwise preset temperature will override the user's choice
     if area and area.preset_mode != "none":
-        _LOGGER.warning(
-            "🔓 Clearing preset %s for %s - using manual temperature %.1f°C",
+        _LOGGER.info(
+            "Clearing preset %s for %s - using manual temperature %.1f°C",
             area.preset_mode,
             area.name,
             temperature,
@@ -88,7 +88,7 @@ def _clear_presets_and_overrides(area: Area, temperature: float) -> None:
 
 def _log_set_temperature_completed(area: Area) -> None:
     new_effective = area.get_effective_target_temperature()
-    _LOGGER.warning(
+    _LOGGER.info(
         "✓ Temperature set: %s | Effective: ? → %.1f°C",
         area.name,
         new_effective,
@@ -795,7 +795,7 @@ async def handle_set_area_preset_config(
         return web.json_response({"error": f"Area {area_id} not found"}, status=404)
 
     changes = {k: v for k, v in data.items() if k.startswith("use_global_") or k.endswith("_temp")}
-    _LOGGER.warning("⚙️  API: SET PRESET CONFIG for %s: %s", area.name, changes)
+    _LOGGER.info("API: SET PRESET CONFIG for %s: %s", area.name, changes)
 
     # Update use_global_* flags and temperature values
     _update_area_global_flags(area, data)
@@ -804,7 +804,7 @@ async def handle_set_area_preset_config(
     # Save to storage
     await area_manager.async_save()
 
-    _LOGGER.warning("✓ Preset config saved for %s", area.name)
+    _LOGGER.info("✓ Preset config saved for %s", area.name)
 
     # Refresh coordinator to update frontend
     coordinator = get_coordinator(hass)
@@ -841,8 +841,8 @@ async def handle_set_manual_override(
     old_state = area.manual_override
     area.manual_override = bool(enabled)
 
-    _LOGGER.warning(
-        "🎛️ API: MANUAL OVERRIDE for %s: %s → %s",
+    _LOGGER.info(
+        "API: MANUAL OVERRIDE for %s: %s → %s",
         area.name,
         "ON" if old_state else "OFF",
         "ON" if area.manual_override else "OFF",
@@ -912,8 +912,8 @@ async def handle_set_primary_temperature_sensor(
     old_sensor = area.primary_temperature_sensor
     area.primary_temperature_sensor = sensor_id
 
-    _LOGGER.warning(
-        "🌡️ API: PRIMARY TEMP SENSOR for %s: %s → %s",
+    _LOGGER.info(
+        "API: PRIMARY TEMP SENSOR for %s: %s → %s",
         area.name,
         old_sensor or "Auto (all sensors)",
         sensor_id or "Auto (all sensors)",

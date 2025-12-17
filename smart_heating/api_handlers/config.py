@@ -81,40 +81,38 @@ async def handle_set_global_presets(area_manager: AreaManager, data: dict) -> we
     """
     # Log what's changing
     changes = {k: v for k, v in data.items() if k.endswith("_temp")}
-    _LOGGER.warning("🌍 API: SET GLOBAL PRESETS: %s", changes)
+    _LOGGER.info("🌍 API: SET GLOBAL PRESETS: %s", changes)
 
     # Update global preset temperatures
     if "away_temp" in data:
         old = area_manager.global_away_temp
         area_manager.global_away_temp = float(data["away_temp"])
-        _LOGGER.warning("  Global Away: %.1f°C → %.1f°C", old, area_manager.global_away_temp)
+        _LOGGER.info("  Global Away: %.1f°C → %.1f°C", old, area_manager.global_away_temp)
     if "eco_temp" in data:
         old = area_manager.global_eco_temp
         area_manager.global_eco_temp = float(data["eco_temp"])
-        _LOGGER.warning("  Global Eco: %.1f°C → %.1f°C", old, area_manager.global_eco_temp)
+        _LOGGER.info("  Global Eco: %.1f°C → %.1f°C", old, area_manager.global_eco_temp)
     if "comfort_temp" in data:
         old = area_manager.global_comfort_temp
         area_manager.global_comfort_temp = float(data["comfort_temp"])
-        _LOGGER.warning("  Global Comfort: %.1f°C → %.1f°C", old, area_manager.global_comfort_temp)
+        _LOGGER.info("  Global Comfort: %.1f°C → %.1f°C", old, area_manager.global_comfort_temp)
     if "home_temp" in data:
         old = area_manager.global_home_temp
         area_manager.global_home_temp = float(data["home_temp"])
-        _LOGGER.warning("  Global Home: %.1f°C → %.1f°C", old, area_manager.global_home_temp)
+        _LOGGER.info("  Global Home: %.1f°C → %.1f°C", old, area_manager.global_home_temp)
     if "sleep_temp" in data:
         old = area_manager.global_sleep_temp
         area_manager.global_sleep_temp = float(data["sleep_temp"])
-        _LOGGER.warning("  Global Sleep: %.1f°C → %.1f°C", old, area_manager.global_sleep_temp)
+        _LOGGER.info("  Global Sleep: %.1f°C → %.1f°C", old, area_manager.global_sleep_temp)
     if "activity_temp" in data:
         old = area_manager.global_activity_temp
         area_manager.global_activity_temp = float(data["activity_temp"])
-        _LOGGER.warning(
-            "  Global Activity: %.1f°C → %.1f°C", old, area_manager.global_activity_temp
-        )
+        _LOGGER.info("  Global Activity: %.1f°C → %.1f°C", old, area_manager.global_activity_temp)
 
     # Save to storage
     await area_manager.async_save()
 
-    _LOGGER.warning("✓ Global presence saved")
+    _LOGGER.info("✓ Global presence saved")
 
     return web.json_response({"success": True})
 
@@ -318,11 +316,11 @@ async def handle_set_global_presence(area_manager: AreaManager, data: dict) -> w
     Returns:
         JSON response
     """
-    _LOGGER.warning("🌍 API: SET GLOBAL PRESENCE: %s", data)
+    _LOGGER.info("API: SET GLOBAL PRESENCE: %s", data)
 
     if "sensors" in data:
         area_manager.global_presence_sensors = data["sensors"]
-        _LOGGER.warning(
+        _LOGGER.info(
             "  Global presence sensors updated: %d sensors",
             len(area_manager.global_presence_sensors),
         )

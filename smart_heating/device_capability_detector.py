@@ -427,7 +427,7 @@ class DeviceCapabilityDetector:
                 self._profiles[entity_id] = profile
                 _LOGGER.debug("Loaded profile for %s", entity_id)
             except Exception as err:
-                _LOGGER.warning("Failed to load profile for %s: %s", entity_id, err)
+                _LOGGER.debug("Failed to load profile for %s: %s", entity_id, err)
 
     def get_all_profiles(self) -> dict[str, dict[str, Any]]:
         """Get all profiles as dictionaries for storage.
