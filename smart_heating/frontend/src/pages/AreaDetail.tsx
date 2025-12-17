@@ -336,8 +336,8 @@ const ZoneDetail = () => {
     }
 
     ensureSelectedWeatherEntityVisible()
-    // Only re-run when area or weatherEntities changes
-  }, [area, weatherEntities])
+    // Only re-run when area changes (specifically when weather_entity_id changes)
+  }, [area])
 
   const loadAvailableDevices = async (currentZone: Zone) => {
     try {
