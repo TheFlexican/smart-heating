@@ -1,0 +1,6 @@
+{
+  "title": "fix(frontend): disable manual-override when area is disabled (#13)",
+  "body_path": "PULL_REQUEST_BODY.md",
+  "base": "main",
+  "head": "bugfix/13-disabled-area-active-fresh"
+}
