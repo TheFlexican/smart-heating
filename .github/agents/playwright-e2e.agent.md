@@ -547,6 +547,249 @@ export const test = base.extend<TestFixtures>({
 4. ✅ Review screenshots/traces for failures
 5. ✅ Ensure tests clean up properly
 
+### Playwright E2E Testing Anti-Patterns to AVOID
+
+**⚠️ CRITICAL: These patterns cause flaky tests, slow execution, and maintenance nightmares**
+
+#### Locator Issues
+
+**🚨 NEVER use brittle CSS selectors**
+```typescript
+// ❌ WRONG - Breaks on any class name change
+await page.locator('.MuiButton-root.MuiButton-contained').click()
+await page.locator('div > div > button:nth-child(3)').click()
+
+// ✅ CORRECT - Use testids first (most stable), then semantic locators
+// Priority 1: testid (frontend has testids for all major components)
+await page.getByTestId('save-button').click()
+await page.getByTestId('temperature-input').fill('20')
+
+// Priority 2: role/label (when testid not available)
+await page.getByRole('button', { name: /save/i }).click()
+await page.getByLabel('Temperature').fill('20')
+```
+
+**🚨 ALWAYS use testids when available**
+```typescript
+// ❌ WRONG - Ignoring available testid, using fragile selector
+await page.locator('div[role="tablist"] button:nth-child(2)').click()
+
+// ✅ CORRECT - Frontend has testids, use them!
+await page.getByTestId('area-detail-tab-settings').click()
+```
+
+**🚨 NEVER use XPath unless absolutely necessary**
+```typescript
+// ❌ WRONG - Fragile and hard to read
+await page.locator('//div[@class="container"]//button[text()="Submit"]').click()
+
+// ✅ CORRECT - Use role or test IDs
+await page.getByRole('button', { name: 'Submit' }).click()
+await page.getByTestId('submit-button').click()
+```
+
+#### Timing Issues
+
+**🚨 NEVER use arbitrary timeouts**
+```typescript
+// ❌ WRONG - Flaky and slow
+await page.waitForTimeout(3000)  // Hope something loads by then
+await page.locator('button').click()
+
+// ✅ CORRECT - Wait for specific conditions
+await page.waitForLoadState('networkidle')
+await page.getByRole('button').waitFor({ state: 'visible' })
+await page.getByRole('button').click()
+```
+
+**🚨 NEVER assume instant state changes**
+```typescript
+// ❌ WRONG - Click might not be processed yet
+await page.getByRole('button').click()
+const text = await page.getByTestId('result').textContent()
+expect(text).toBe('Success')  // Might fail if slow
+
+// ✅ CORRECT - Wait for expected state
+await page.getByRole('button').click()
+await expect(page.getByTestId('result')).toHaveText('Success')
+```
+
+#### Test Isolation Issues
+
+**🚨 NEVER share state between tests**
+```typescript
+// ❌ WRONG - Tests affect each other
+let userData: any
+
+test('create user', async ({ page }) => {
+  userData = await createUser()  // Affects next test!
+})
+
+test('delete user', async ({ page }) => {
+  await deleteUser(userData.id)  // Depends on previous test
+})
+
+// ✅ CORRECT - Each test is independent
+test('create user', async ({ page }) => {
+  const userData = await createUser()
+  // Test logic...
+  await deleteUser(userData.id)  // Cleanup in same test
+})
+
+test('delete user', async ({ page }) => {
+  const userData = await createUser()  // Fresh data
+  await deleteUser(userData.id)
+})
+```
+
+**🚨 NEVER depend on test execution order**
+```typescript
+// ❌ WRONG - Tests must run in specific sequence
+test.describe.serial('user workflow', () => {
+  test('step 1', async ({ page }) => { /* ... */ })
+  test('step 2', async ({ page }) => { /* ... */ })  // Depends on step 1
+})
+
+// ✅ CORRECT - Test complete workflows independently
+test('complete user workflow', async ({ page }) => {
+  // Step 1
+  await page.goto('/signup')
+  await page.getByRole('button', { name: 'Sign Up' }).click()
+
+  // Step 2
+  await page.getByLabel('Email').fill('test@example.com')
+  await page.getByRole('button', { name: 'Submit' }).click()
+
+  // Assert complete workflow
+  await expect(page.getByText('Welcome')).toBeVisible()
+})
+```
+
+#### Navigation Issues
+
+**🚨 NEVER navigate without waiting for load**
+```typescript
+// ❌ WRONG - Page might not be loaded
+await page.goto('/dashboard')
+await page.getByRole('button').click()  // Might fail
+
+// ✅ CORRECT - Wait for page to be ready
+await page.goto('/dashboard')
+await page.waitForLoadState('networkidle')
+await expect(page.getByRole('heading')).toBeVisible()
+await page.getByRole('button').click()
+```
+
+**🚨 NEVER assume navigation is instant**
+```typescript
+// ❌ WRONG - Might check before navigation completes
+await page.getByRole('link', { name: 'Profile' }).click()
+await expect(page).toHaveURL('/profile')  // Might fail
+
+// ✅ CORRECT - Wait for navigation
+await Promise.all([
+  page.waitForURL('/profile'),
+  page.getByRole('link', { name: 'Profile' }).click()
+])
+```
+
+#### Assertion Issues
+
+**🚨 NEVER use non-awaited assertions**
+```typescript
+// ❌ WRONG - Doesn't wait, can be flaky
+const isVisible = await page.getByText('Success').isVisible()
+expect(isVisible).toBe(true)
+
+// ✅ CORRECT - Use Playwright's built-in assertions
+await expect(page.getByText('Success')).toBeVisible()
+```
+
+**🚨 NEVER check for absence without waiting**
+```typescript
+// ❌ WRONG - Might check before element is removed
+await page.getByRole('button').click()
+expect(await page.getByText('Loading').count()).toBe(0)
+
+// ✅ CORRECT - Wait for element to be removed
+await page.getByRole('button').click()
+await expect(page.getByText('Loading')).not.toBeVisible()
+```
+
+#### Performance Issues
+
+**🚨 NEVER fetch multiple elements when one is enough**
+```typescript
+// ❌ WRONG - Fetches all buttons, slower
+const buttons = await page.getByRole('button').all()
+await buttons[2].click()
+
+// ✅ CORRECT - Use specific locator
+await page.getByRole('button', { name: 'Submit' }).click()
+```
+
+**🚨 NEVER skip page object patterns for complex workflows**
+```typescript
+// ❌ WRONG - Duplicate locators, hard to maintain
+test('scenario 1', async ({ page }) => {
+  await page.getByRole('textbox', { name: 'Username' }).fill('user')
+  await page.getByRole('textbox', { name: 'Password' }).fill('pass')
+  await page.getByRole('button', { name: 'Login' }).click()
+})
+
+test('scenario 2', async ({ page }) => {
+  await page.getByRole('textbox', { name: 'Username' }).fill('admin')
+  await page.getByRole('textbox', { name: 'Password' }).fill('admin')
+  await page.getByRole('button', { name: 'Login' }).click()
+})
+
+// ✅ CORRECT - Use page object pattern
+class LoginPage {
+  constructor(private page: Page) {}
+
+  async login(username: string, password: string) {
+    await this.page.getByRole('textbox', { name: 'Username' }).fill(username)
+    await this.page.getByRole('textbox', { name: 'Password' }).fill(password)
+    await this.page.getByRole('button', { name: 'Login' }).click()
+  }
+}
+
+test('scenario 1', async ({ page }) => {
+  const loginPage = new LoginPage(page)
+  await loginPage.login('user', 'pass')
+})
+```
+
+### Pre-Test-Writing Checklist
+
+**Before writing ANY E2E test:**
+
+1. **Locator Strategy?**
+   - [ ] Using testids first (frontend has data-testid on all major components)?
+   - [ ] Fallback to semantic locators (getByRole, getByLabel) when no testid?
+   - [ ] No brittle CSS selectors or XPath?
+   - [ ] Checked component source for available testids?
+
+2. **Timing Strategy?**
+   - [ ] No arbitrary timeouts (waitForTimeout)?
+   - [ ] Waiting for specific conditions?
+   - [ ] Using Playwright auto-waiting?
+
+3. **Test Isolation?**
+   - [ ] No shared state between tests?
+   - [ ] Each test can run independently?
+   - [ ] Proper setup and teardown?
+
+4. **Navigation Handling?**
+   - [ ] Waiting for page load states?
+   - [ ] Waiting for navigation completion?
+   - [ ] Checking URL changes properly?
+
+5. **Assertion Quality?**
+   - [ ] Using Playwright's async assertions?
+   - [ ] Waiting for expected conditions?
+   - [ ] Not checking implementation details?
+
 ### What NOT to Do
 - ❌ Use arbitrary timeouts (waitForTimeout)
 - ❌ Test implementation details

@@ -5,7 +5,6 @@ from .area_handlers import (
     async_handle_enable_area,
     async_handle_set_temperature,
 )
-from .diagnostic_handlers import async_handle_force_thermostat_update
 from .config_handlers import (
     async_handle_set_frost_protection,
     async_handle_set_history_retention,
@@ -14,6 +13,7 @@ from .config_handlers import (
     async_handle_set_trv_temperatures,
 )
 from .device_handlers import async_handle_add_device, async_handle_remove_device
+from .diagnostic_handlers import async_handle_force_thermostat_update
 from .hvac_handlers import (
     async_handle_cancel_boost,
     async_handle_set_boost_mode,

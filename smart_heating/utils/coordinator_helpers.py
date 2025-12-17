@@ -31,7 +31,7 @@ def get_coordinator(hass: HomeAssistant) -> Optional[Any]:
             and hasattr(value, "async_request_refresh")
         ):
             # Only return if async_request_refresh is callable
-            if callable(getattr(value, "async_request_refresh")):
+            if callable(value.async_request_refresh):
                 return value
     return None
 

@@ -648,6 +648,159 @@ async def async_update_data(self):
 5. ✅ Verify services work
 6. ✅ Check resource cleanup
 
+### Python/Home Assistant Anti-Patterns to AVOID
+
+**⚠️ CRITICAL: These patterns cause bugs, performance issues, and integration failures**
+
+#### Async/Concurrency Issues
+
+**🚨 NEVER block the event loop**
+```python
+# ❌ WRONG - Blocks HA event loop
+import time
+def blocking_operation():
+    time.sleep(5)  # Freezes entire HA!
+
+# ✅ CORRECT - Use async
+import asyncio
+async def async_operation():
+    await asyncio.sleep(5)  # Non-blocking
+```
+
+**🚨 NEVER forget to await async functions**
+```python
+# ❌ WRONG - Returns coroutine, doesn't execute
+result = async_function()  # Returns <coroutine object>
+
+# ✅ CORRECT - Actually executes
+result = await async_function()
+```
+
+**🚨 NEVER use sync I/O in async context**
+```python
+# ❌ WRONG - Blocks event loop
+with open('file.txt') as f:
+    data = f.read()
+
+# ✅ CORRECT - Use aiofiles or HA helpers
+from homeassistant.util import async_read_file
+data = await async_read_file('file.txt')
+```
+
+#### Resource Management
+
+**🚨 NEVER forget to clean up listeners and connections**
+```python
+# ❌ WRONG - Listeners never removed
+def setup():
+    hass.bus.async_listen(EVENT, handler)
+    # Forgot to store unsub function!
+
+# ✅ CORRECT - Store and cleanup
+async def async_setup():
+    unsub = hass.bus.async_listen(EVENT, handler)
+    # Store in list for cleanup
+    entry.async_on_unload(unsub)
+```
+
+**🚨 NEVER create unbounded task lists**
+```python
+# ❌ WRONG - Tasks accumulate forever
+tasks = []
+tasks.append(hass.async_create_task(work()))
+# Never cleaned up!
+
+# ✅ CORRECT - Track and cancel on shutdown
+tasks = set()
+task = hass.async_create_task(work())
+tasks.add(task)
+task.add_done_callback(tasks.discard)
+```
+
+#### State Management
+
+**🚨 NEVER access hass.states directly from entities**
+```python
+# ❌ WRONG - Bypasses coordinator, causes races
+class MySensor(Entity):
+    @property
+    def state(self):
+        return self.hass.states.get("sensor.other").state
+
+# ✅ CORRECT - Use coordinator data
+class MySensor(CoordinatorEntity):
+    @property
+    def state(self):
+        return self.coordinator.data.get("other_sensor_value")
+```
+
+**🚨 NEVER modify mutable state without protection**
+```python
+# ❌ WRONG - Race condition
+self._devices.append(new_device)  # Multiple async calls!
+
+# ✅ CORRECT - Use locks or immutable updates
+async with self._lock:
+    self._devices = [*self._devices, new_device]
+```
+
+#### Type Safety
+
+**🚨 NEVER skip type hints**
+```python
+# ❌ WRONG - No type information
+def process_data(data):
+    return data.get("value")
+
+# ✅ CORRECT - Full type hints
+def process_data(data: dict[str, Any]) -> str | None:
+    return data.get("value")
+```
+
+**🚨 NEVER use bare except clauses**
+```python
+# ❌ WRONG - Catches system exits and keyboard interrupts!
+try:
+    await risky_operation()
+except:
+    pass
+
+# ✅ CORRECT - Catch specific exceptions
+try:
+    await risky_operation()
+except (ValueError, ApiError) as err:
+    _LOGGER.error("Operation failed: %s", err)
+```
+
+### Pre-Implementation Checklist
+
+**Before writing ANY code, verify:**
+
+1. **Async Correctness?**
+   - [ ] All I/O operations are async?
+   - [ ] No blocking calls (time.sleep, requests, etc.)?
+   - [ ] All async functions properly awaited?
+
+2. **Resource Cleanup?**
+   - [ ] Listeners registered with async_on_unload?
+   - [ ] Background tasks tracked and cancelled?
+   - [ ] Connections closed in async_unload?
+
+3. **Type Safety?**
+   - [ ] All functions have type hints?
+   - [ ] Using specific exceptions, not bare except?
+   - [ ] Proper None handling?
+
+4. **HA Patterns?**
+   - [ ] Using coordinators for state management?
+   - [ ] Following entity naming conventions?
+   - [ ] Translation keys defined?
+
+5. **Error Handling?**
+   - [ ] Proper logging (debug vs error)?
+   - [ ] UpdateFailed raised when appropriate?
+   - [ ] User-friendly error messages?
+
 ### What NOT to Do
 - ❌ Block the event loop with sync I/O
 - ❌ Access hass.states directly in entities

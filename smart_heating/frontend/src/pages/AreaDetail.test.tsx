@@ -247,6 +247,32 @@ it('heating curve control has testid and toggles input disabled when using globa
   await waitFor(() => expect(input.disabled).toBe(false))
 })
 
+it('fetches selected weather entity state when list not available', async () => {
+  await userEvent.setup()
+
+  const areaWithWeather = { ...(area as any), weather_entity_id: 'weather.outdoor' } as any
+  vi.spyOn(areas, 'getZones').mockResolvedValue([areaWithWeather])
+
+  // Ensure getWeatherEntities returns empty list
+  vi.spyOn(config, 'getWeatherEntities').mockResolvedValue([])
+
+  const getStateSpy = vi
+    .spyOn(config, 'getEntityState')
+    .mockResolvedValue({ state: 'ok', attributes: {} })
+
+  const { MemoryRouter, Routes, Route } = Router as any
+  render(
+    <MemoryRouter initialEntries={[`/areas/${area.id}`]}>
+      <Routes>
+        <Route path="/areas/:areaId" element={<ZoneDetail />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+
+  // Wait for effect to call getEntityState for the stored weather entity
+  await waitFor(() => expect(getStateSpy).toHaveBeenCalledWith('weather.outdoor'))
+})
+
 it('renders Logs tab and opens logs panel (shows empty state)', async () => {
   await userEvent.setup()
 

@@ -596,6 +596,231 @@ jest.mock('../api')
 4. ✅ Check for flaky tests
 5. ✅ Review test readability
 
+### TypeScript Testing Anti-Patterns to AVOID
+
+**⚠️ CRITICAL: These patterns cause flaky tests, false positives, and maintainability issues**
+
+#### React Testing Library Issues
+
+**🚨 NEVER query by implementation details**
+```typescript
+// ❌ WRONG - Breaks on refactoring
+const element = container.querySelector('.my-class')
+const button = container.querySelector('button[type="submit"]')
+
+// ✅ CORRECT - Use testids first (most stable), then accessibility queries
+// Priority 1: testid (when available)
+const element = screen.getByTestId('submit-button')
+
+// Priority 2: role/label (semantic queries)
+const button = screen.getByRole('button', { name: /submit/i })
+const input = screen.getByLabelText(/email address/i)
+```
+
+**🚨 ALWAYS use testids when available**
+```typescript
+// ❌ WRONG - Ignoring available testid
+const card = screen.getByRole('article')
+
+// ✅ CORRECT - Frontend has testids, use them!
+const card = screen.getByTestId('zone-card-living-room')
+```
+
+**🚨 NEVER use `waitFor` for everything**
+```typescript
+// ❌ WRONG - Unnecessary waitFor
+await waitFor(() => {
+  expect(screen.getByText('Loaded')).toBeInTheDocument()
+})
+
+// ✅ CORRECT - Use findBy* for async queries
+const element = await screen.findByText('Loaded')
+expect(element).toBeInTheDocument()
+```
+
+**🚨 NEVER assert on `toBeInTheDocument` after `getBy*` queries**
+```typescript
+// ❌ WRONG - Redundant assertion
+const button = screen.getByRole('button')
+expect(button).toBeInTheDocument()  // getBy* already throws if not found!
+
+// ✅ CORRECT - Just verify it exists or test its properties
+const button = screen.getByRole('button')
+expect(button).toHaveTextContent('Submit')
+```
+
+#### Mock Issues
+
+**🚨 NEVER forget to restore mocks between tests**
+```typescript
+// ❌ WRONG - Mocks persist across tests
+test('first test', () => {
+  vi.spyOn(api, 'fetchData').mockResolvedValue(mockData)
+  // Test code...
+})
+
+test('second test', () => {
+  // Still mocked from first test!
+})
+
+// ✅ CORRECT - Clean up after each test
+beforeEach(() => {
+  vi.restoreAllMocks()
+})
+
+test('first test', () => {
+  vi.spyOn(api, 'fetchData').mockResolvedValue(mockData)
+})
+
+test('second test', () => {
+  // Fresh, unmocked API
+})
+```
+
+**🚨 NEVER mock too much**
+```typescript
+// ❌ WRONG - Over-mocking loses test value
+vi.mock('./api')
+vi.mock('./utils')
+vi.mock('./hooks')
+vi.mock('react-router-dom')
+// Testing mock interactions, not real code!
+
+// ✅ CORRECT - Only mock external dependencies
+vi.mock('./api')  // External API calls
+// Test actual hooks, utils, routing
+```
+
+#### Async Testing Issues
+
+**🚨 NEVER forget to await async actions**
+```typescript
+// ❌ WRONG - Test finishes before action completes
+test('wrong', async () => {
+  const user = userEvent.setup()
+  user.click(button)  // Not awaited!
+  expect(screen.getByText('Clicked')).toBeInTheDocument()  // Fails!
+})
+
+// ✅ CORRECT - Await user interactions
+test('correct', async () => {
+  const user = userEvent.setup()
+  await user.click(button)
+  expect(screen.getByText('Clicked')).toBeInTheDocument()
+})
+```
+
+**🚨 NEVER use `act()` unnecessarily**
+```typescript
+// ❌ WRONG - act() not needed with Testing Library
+import { act } from '@testing-library/react'
+
+test('wrong', async () => {
+  await act(async () => {
+    await user.click(button)
+  })
+})
+
+// ✅ CORRECT - Testing Library handles act() internally
+test('correct', async () => {
+  await user.click(button)  // act() applied automatically
+})
+```
+
+#### Type Safety in Tests
+
+**🚨 NEVER use `as any` to bypass TypeScript**
+```typescript
+// ❌ WRONG - Loses type safety
+const mockData = { id: 1 } as any
+api.fetchData.mockResolvedValue(mockData)
+
+// ✅ CORRECT - Use proper types
+const mockData: UserData = {
+  id: 1,
+  name: 'Test User',
+  email: 'test@example.com'
+}
+api.fetchData.mockResolvedValue(mockData)
+```
+
+**🚨 NEVER ignore TypeScript errors in tests**
+```typescript
+// ❌ WRONG - Suppressing type errors
+// @ts-expect-error
+render(<MyComponent invalidProp="test" />)
+
+// ✅ CORRECT - Fix the types or use proper props
+render(<MyComponent validProp="test" />)
+```
+
+#### Flaky Test Patterns
+
+**🚨 NEVER rely on implementation timing**
+```typescript
+// ❌ WRONG - Arbitrary timeout, flaky
+test('wrong', async () => {
+  await user.click(button)
+  await new Promise(resolve => setTimeout(resolve, 100))
+  expect(screen.getByText('Result')).toBeInTheDocument()
+})
+
+// ✅ CORRECT - Wait for actual element
+test('correct', async () => {
+  await user.click(button)
+  const result = await screen.findByText('Result')
+  expect(result).toBeInTheDocument()
+})
+```
+
+**🚨 NEVER test implementation state**
+```typescript
+// ❌ WRONG - Testing internal React state
+test('wrong', () => {
+  const { rerender } = render(<Counter />)
+  expect(wrapper.state().count).toBe(0)  // Implementation detail!
+})
+
+// ✅ CORRECT - Test visible output
+test('correct', async () => {
+  render(<Counter />)
+  expect(screen.getByText('Count: 0')).toBeInTheDocument()
+
+  await user.click(screen.getByRole('button', { name: /increment/i }))
+  expect(screen.getByText('Count: 1')).toBeInTheDocument()
+})
+```
+
+### Pre-Test-Writing Checklist
+
+**Before writing ANY test:**
+
+1. **Test Strategy?**
+   - [ ] Testing user behavior, not implementation?
+   - [ ] Using testids when available (check component for data-testid)?
+   - [ ] Fallback to semantic queries (getByRole, getByLabelText)?
+   - [ ] Testing what matters to users?
+
+2. **Async Handling?**
+   - [ ] All user interactions awaited?
+   - [ ] Using findBy* for async queries?
+   - [ ] No arbitrary timeouts?
+
+3. **Mock Appropriateness?**
+   - [ ] Only mocking external dependencies?
+   - [ ] Mocks cleaned up between tests?
+   - [ ] Not over-mocking React behavior?
+
+4. **Type Safety?**
+   - [ ] Mock data has proper types?
+   - [ ] No `as any` bypasses?
+   - [ ] TypeScript errors resolved?
+
+5. **Test Quality?**
+   - [ ] Fast execution (< 100ms per test)?
+   - [ ] Clear, descriptive test names?
+   - [ ] Not testing implementation details?
+
 ### What NOT to Do
 - ❌ Test implementation details
 - ❌ Query by className or element type
