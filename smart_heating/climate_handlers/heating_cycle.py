@@ -197,12 +197,14 @@ class HeatingCycleHandler:
 
         # Turn off heating. For airco areas only thermostats need to be
         # controlled; do not touch switches/valves for airco.
+        # Set area state to idle before controlling switches so the switch
+        # controller can make decisions based on the authoritative area state
+        # (prevents re-enabling pumps when the area is no longer in a heating event).
+        area.state = "idle"
         await device_handler.async_control_thermostats(area, False, target_temp)
         if getattr(area, "heating_type", "radiator") != "airco":
             await device_handler.async_control_switches(area, False)
             await device_handler.async_control_valves(area, False, target_temp)
-
-        area.state = "idle"
         _LOGGER.debug(
             "Area %s: Heating OFF (current: %.1f°C, target: %.1f°C)",
             area_id,

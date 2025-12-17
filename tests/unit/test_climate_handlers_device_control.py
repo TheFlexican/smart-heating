@@ -479,9 +479,11 @@ class TestAsyncControlSwitches:
     async def test_keep_switches_on_when_thermostat_still_heating(
         self, device_handler, mock_hass, mock_area
     ):
-        """Test keeping switches on when thermostat still heating."""
+        """Test keeping switches on when thermostat still heating and area is heating."""
         mock_area.get_switches.return_value = ["switch.pump1"]
         mock_area.get_thermostats.return_value = ["climate.thermo1"]
+        # Area is in heating state
+        mock_area.state = "heating"
 
         # Thermostat still heating
         state = MagicMock()
@@ -499,6 +501,33 @@ class TestAsyncControlSwitches:
         )
 
     @pytest.mark.asyncio
+    async def test_turn_off_switches_when_thermostat_reports_heating_but_area_not_heating(
+        self, device_handler, mock_hass, mock_area
+    ):
+        """When thermostat hvac_action is heating but the area is not in a heating event,
+        switches should be turned off when shutdown is enabled (avoids re-enabling pumps)."""
+        mock_area.get_switches.return_value = ["switch.pump1"]
+        mock_area.get_thermostats.return_value = ["climate.thermo1"]
+        # Area is not in heating state (e.g., idle)
+        mock_area.state = "idle"
+        mock_area.shutdown_switches_when_idle = True
+
+        # Thermostat still heating (stale/incorrect)
+        state = MagicMock()
+        state.attributes = {"hvac_action": "heating"}
+        mock_hass.states.get.return_value = state
+
+        await device_handler.async_control_switches(mock_area, False)
+
+        # Should turn OFF (shutdown enabled and area not heating)
+        device_handler.hass.services.async_call.assert_called_once_with(
+            "switch",
+            "turn_off",
+            {"entity_id": "switch.pump1"},
+            blocking=False,
+        )
+
+    @pytest.mark.asyncio
     async def test_turn_off_switches_when_idle_and_shutdown_enabled(
         self, device_handler, mock_area
     ):
@@ -511,6 +540,30 @@ class TestAsyncControlSwitches:
         device_handler.hass.services.async_call.assert_called_once_with(
             "switch",
             "turn_off",
+            {"entity_id": "switch.pump1"},
+            blocking=False,
+        )
+
+    @pytest.mark.asyncio
+    async def test_manual_override_keeps_switch_on_when_thermostat_heating(
+        self, device_handler, mock_hass, mock_area
+    ):
+        """Manual override should keep switches on when thermostat reports heating."""
+        mock_area.get_switches.return_value = ["switch.pump1"]
+        mock_area.get_thermostats.return_value = ["climate.thermo1"]
+        # Manual override active
+        mock_area.manual_override = True
+        mock_area.state = "manual"
+
+        state = MagicMock()
+        state.attributes = {"hvac_action": "heating"}
+        mock_hass.states.get.return_value = state
+
+        await device_handler.async_control_switches(mock_area, False)
+
+        device_handler.hass.services.async_call.assert_called_once_with(
+            "switch",
+            "turn_on",
             {"entity_id": "switch.pump1"},
             blocking=False,
         )

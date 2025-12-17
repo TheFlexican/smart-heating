@@ -553,6 +553,8 @@ class TestDeviceControl:
 
         mock_area.get_switches.return_value = ["switch.pump"]
         mock_area.get_thermostats.return_value = ["climate.thermostat"]
+        # Area is in a heating event - required to keep switches on
+        mock_area.state = "heating"
 
         await controller._async_control_switches(mock_area, False)
 
