@@ -22,15 +22,22 @@ _LOGGER = logging.getLogger(__name__)
 class DeviceControlHandler:
     """Handle device control operations (thermostats, switches, valves)."""
 
-    def __init__(self, hass: HomeAssistant, area_manager: AreaManager):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        area_manager: AreaManager,
+        capability_detector=None,
+    ):
         """Initialize device control handler.
 
         Args:
             hass: Home Assistant instance
             area_manager: Area manager instance
+            capability_detector: DeviceCapabilityDetector instance (optional)
         """
         self.hass = hass
         self.area_manager = area_manager
+        self.capability_detector = capability_detector
         self._device_capabilities = {}  # Cache for device capabilities
         self._last_set_temperatures = {}  # Cache last set temperature per thermostat
         # Advanced controllers per area
@@ -42,8 +49,7 @@ class DeviceControlHandler:
     def _is_trv_device(self, entity_id: str) -> bool:
         """Detect if a climate entity is a TRV (Thermostatic Radiator Valve).
 
-        TRVs are climate entities that control individual radiators/valves and should
-        be treated as valves (using idle/heating temps) rather than thermostats.
+        Uses capability detector if available, falls back to pattern matching.
 
         Args:
             entity_id: Entity ID to check
@@ -51,7 +57,20 @@ class DeviceControlHandler:
         Returns:
             True if entity appears to be a TRV device
         """
-        # Check entity_id patterns commonly used for TRVs
+        # Use capability detector if available
+        if self.capability_detector:
+            profile = self.capability_detector.get_profile(entity_id)
+            if profile:
+                is_trv = profile.capabilities.device_type == "trv"
+                _LOGGER.warning(
+                    "TRV detection via capability detector: %s -> %s (device_type=%s)",
+                    entity_id,
+                    is_trv,
+                    profile.capabilities.device_type,
+                )
+                return is_trv
+
+        # Fallback to pattern matching for backward compatibility
         trv_patterns = [
             "radiatorknop",  # Dutch TRVs
             "radiator_knop",
@@ -61,7 +80,13 @@ class DeviceControlHandler:
             "valve",
         ]
         entity_lower = entity_id.lower()
-        return any(pattern in entity_lower for pattern in trv_patterns)
+        is_trv = any(pattern in entity_lower for pattern in trv_patterns)
+        _LOGGER.warning(
+            "TRV detection via pattern matching: %s -> %s",
+            entity_id,
+            is_trv,
+        )
+        return is_trv
 
     def is_any_thermostat_actively_heating(self, area: Area) -> bool:
         """Check if any thermostat in the area is actively heating.
@@ -382,6 +407,14 @@ class DeviceControlHandler:
 
         thermostats = area.get_thermostats()
 
+        _LOGGER.warning(
+            "async_control_thermostats called: area=%s, heating=%s, target_temp=%s, thermostats=%s",
+            getattr(area, "name", "<unknown>"),
+            heating,
+            target_temp,
+            thermostats,
+        )
+
         for thermostat_id in thermostats:
             try:
                 _LOGGER.info(
@@ -425,26 +458,31 @@ class DeviceControlHandler:
         # First, ensure any associated power switch is on
         await self._async_ensure_climate_power_on(thermostat_id)
 
-        # For TRV devices, use valve control logic (target + offset)
+        # For TRV devices, set to area target temperature
+        # TRVs have built-in thermostatic control - they'll close the valve
+        # when the room reaches the setpoint. No offset needed!
         if self._is_trv_device(thermostat_id):
-            offset = self.area_manager.trv_temp_offset
-            heating_temp = max(target_temp + offset, self.area_manager.trv_heating_temp)
             last_temp = self._last_set_temperatures.get(thermostat_id)
 
-            if last_temp is None or abs(last_temp - heating_temp) >= 0.1:
+            _LOGGER.warning(
+                "TRV %s: Setting to area target %.1f°C (TRV will close valve when reached)",
+                thermostat_id,
+                target_temp,
+            )
+
+            if last_temp is None or abs(last_temp - target_temp) >= 0.1:
+                # Update cache BEFORE service call to prevent false manual override detection
+                self._last_set_temperatures[thermostat_id] = target_temp
                 await self.hass.services.async_call(
                     CLIMATE_DOMAIN,
                     SERVICE_SET_TEMPERATURE,
-                    {"entity_id": thermostat_id, ATTR_TEMPERATURE: heating_temp},
+                    {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp},
                     blocking=True,
                 )
-                self._last_set_temperatures[thermostat_id] = heating_temp
-                _LOGGER.debug(
-                    "Set TRV %s to heating temp %.1f°C (target=%.1f + offset=%.1f)",
+                _LOGGER.warning(
+                    "TRV %s: SET TO %.1f°C (area target)",
                     thermostat_id,
-                    heating_temp,
                     target_temp,
-                    offset,
                 )
             return
 
@@ -463,13 +501,14 @@ class DeviceControlHandler:
 
         if self._should_update_temperature(current_temp, last_temp, target_temp):
             try:
+                # Update cache BEFORE service call to prevent false manual override detection
+                self._last_set_temperatures[thermostat_id] = target_temp
                 await self.hass.services.async_call(
                     CLIMATE_DOMAIN,
                     SERVICE_SET_TEMPERATURE,
                     {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp},
                     blocking=True,
                 )
-                self._last_set_temperatures[thermostat_id] = target_temp
                 _LOGGER.debug(
                     "Set thermostat %s to %.1f°C (%s mode)",
                     thermostat_id,
@@ -496,26 +535,35 @@ class DeviceControlHandler:
     ) -> None:
         """Handle thermostat updates when area is idle (not actively heating/cooling).
 
-        For TRV devices, sets to idle_temp to prevent valve from opening.
+        For TRV devices: Set to target temp so they maintain the desired temperature.
         For regular thermostats, implements hysteresis-aware behavior.
         """
-        # For TRV devices, use idle temperature to prevent valve from opening
+        # For TRV devices, set to target temperature to maintain room temp
+        # TRVs naturally close when room reaches setpoint, no special idle logic needed
         if self._is_trv_device(thermostat_id):
-            idle_temp = self.area_manager.trv_idle_temp
             last_temp = self._last_set_temperatures.get(thermostat_id)
 
-            if last_temp is None or abs(last_temp - idle_temp) >= 0.1:
+            _LOGGER.warning(
+                "TRV %s idle: target=%.1f°C, last_cached=%.1f°C, will_update=%s",
+                thermostat_id,
+                target_temp,
+                last_temp if last_temp is not None else -999.0,
+                last_temp is None or abs(last_temp - target_temp) >= 0.1,
+            )
+
+            if last_temp is None or abs(last_temp - target_temp) >= 0.1:
+                # Update cache BEFORE service call to prevent false manual override detection
+                self._last_set_temperatures[thermostat_id] = target_temp
                 await self.hass.services.async_call(
                     CLIMATE_DOMAIN,
                     SERVICE_SET_TEMPERATURE,
-                    {"entity_id": thermostat_id, ATTR_TEMPERATURE: idle_temp},
+                    {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp},
                     blocking=True,
                 )
-                self._last_set_temperatures[thermostat_id] = idle_temp
-                _LOGGER.debug(
-                    "Set TRV %s to idle temp %.1f°C (idle mode)",
+                _LOGGER.warning(
+                    "TRV %s: SET TO %.1f°C (idle - maintaining target)",
                     thermostat_id,
-                    idle_temp,
+                    target_temp,
                 )
             return
 
@@ -558,13 +606,14 @@ class DeviceControlHandler:
         )
 
         if last_temp is None or abs(last_temp - desired_setpoint) >= 0.1:
+            # Update cache BEFORE service call to prevent false manual override detection
+            self._last_set_temperatures[thermostat_id] = desired_setpoint
             await self.hass.services.async_call(
                 CLIMATE_DOMAIN,
                 SERVICE_SET_TEMPERATURE,
                 {"entity_id": thermostat_id, ATTR_TEMPERATURE: desired_setpoint},
                 blocking=True,
             )
-            self._last_set_temperatures[thermostat_id] = desired_setpoint
             _LOGGER.debug(
                 "Updated thermostat %s target to %.1f°C (idle)",
                 thermostat_id,
@@ -619,6 +668,8 @@ class DeviceControlHandler:
         # For TRV devices, set to 0°C to close valve (don't use turn_off as many TRVs don't support it)
         if self._is_trv_device(thermostat_id):
             _LOGGER.debug("TRV device %s detected, setting to 0°C to close valve", thermostat_id)
+            # Update cache BEFORE service call to prevent false manual override detection
+            self._last_set_temperatures[thermostat_id] = 0.0
             await self.hass.services.async_call(
                 CLIMATE_DOMAIN,
                 SERVICE_SET_TEMPERATURE,
@@ -661,6 +712,8 @@ class DeviceControlHandler:
         if self.area_manager.frost_protection_enabled:
             min_temp = self.area_manager.frost_protection_temp
 
+        # Update cache BEFORE service call to prevent false manual override detection
+        self._last_set_temperatures[thermostat_id] = min_temp
         await self.hass.services.async_call(
             CLIMATE_DOMAIN,
             SERVICE_SET_TEMPERATURE,
@@ -860,14 +913,18 @@ class DeviceControlHandler:
     ) -> None:
         """Control valve using temperature control."""
         if heating and target_temp is not None:
-            offset = self.area_manager.trv_temp_offset
-            heating_temp = max(target_temp + offset, self.area_manager.trv_heating_temp)
-            await self._set_valve_temperature(valve_id, heating_temp)
-            _LOGGER.debug("Set TRV %s to heating temp %.1f°C", valve_id, heating_temp)
+            # Set valve to area target temperature
+            # Valve will naturally close when room reaches setpoint
+            await self._set_valve_temperature(valve_id, target_temp)
+            _LOGGER.debug(
+                "Set TRV %s to area target %.1f°C",
+                valve_id,
+                target_temp,
+            )
         else:
-            idle_temp = self.area_manager.trv_idle_temp
-            await self._set_valve_temperature(valve_id, idle_temp)
-            _LOGGER.debug("Set TRV %s to idle temp %.1f°C", valve_id, idle_temp)
+            # When not heating, set to 0°C to ensure valve stays closed
+            await self._set_valve_temperature(valve_id, 0.0)
+            _LOGGER.debug("Set TRV %s to 0°C (off)", valve_id)
 
     async def async_control_valves(
         self, area: Area, heating: bool, target_temp: Optional[float]

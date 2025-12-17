@@ -76,14 +76,13 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
     // If the area is off/disabled, always show the area target temperature
     if (!enabled || area.state === 'off') return area.target_temperature
 
-    // When using preset mode (not manual override), show effective temperature
-    if (
-      !area.manual_override &&
-      area.preset_mode &&
-      area.preset_mode !== 'none' &&
-      area.effective_target_temperature != null
-    ) {
-      return area.effective_target_temperature
+    // When not in manual override and an effective target exists, prefer the effective temperature
+    // This covers preset mode, schedules, boosts, and other sources of an effective temp.
+    if (!area.manual_override && area.effective_target_temperature != null) {
+      // If effective target equals base target, keep base target for clarity
+      if (Math.abs(area.effective_target_temperature - area.target_temperature) >= 0.1) {
+        return area.effective_target_temperature
+      }
     }
     // Otherwise show the base target temperature
     return area.target_temperature
@@ -202,9 +201,10 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   }
 
   const getStateColor = () => {
-    if (area.manual_override) {
-      return 'warning'
-    }
+    const enabled = isEnabledVal(area.enabled)
+    if (!enabled) return 'default'
+    if (area.manual_override) return 'warning'
+
     switch (area.state) {
       case 'heating':
         return 'error'
@@ -218,9 +218,10 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
   }
 
   const getStateIcon = () => {
-    if (area.manual_override) {
-      return <TuneIcon />
-    }
+    const enabled = isEnabledVal(area.enabled)
+    if (!enabled) return <AcUnitIcon />
+    if (area.manual_override) return <TuneIcon />
+
     switch (area.state) {
       case 'heating':
         return <LocalFireDepartmentIcon />
@@ -392,18 +393,21 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
               {area.name}
             </Typography>
             <Box display="flex" gap={1} flexWrap="wrap">
-              <Chip
-                data-testid={`area-state-${area.id}`}
-                icon={getStateIcon()}
-                label={
-                  area.manual_override
-                    ? t('area.manual')
-                    : t(`area.${area.state}`, { defaultValue: area.state }).toUpperCase()
-                }
-                color={getStateColor()}
-                size="small"
-                sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
-              />
+              {(() => {
+                let stateLabel = t(`area.${area.state}`, { defaultValue: area.state }).toUpperCase()
+                if (!enabled) stateLabel = t('area.off')
+                else if (area.manual_override) stateLabel = t('area.manual')
+                return (
+                  <Chip
+                    data-testid={`area-state-${area.id}`}
+                    icon={getStateIcon()}
+                    label={stateLabel}
+                    color={getStateColor()}
+                    size="small"
+                    sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
+                  />
+                )
+              })()}
               {area.presence_sensors && area.presence_sensors.length > 0 && presenceState && (
                 <Chip
                   data-testid={`area-presence-${area.id}`}

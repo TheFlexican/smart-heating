@@ -8,6 +8,14 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 ## [Niet Uitgebracht]
 
 ### ✨ Functies
+- **Apparaat Capability Discovery Systeem:** Ontdekt en cacht automatisch apparaatmogelijkheden (TRV, thermostaat, AC, klep):
+  - Detecteert apparaattype, ondersteunde functies en optimale besturingsparameters vanuit Home Assistant
+  - Werkt met elke apparaatnaamconventie (taal-onafhankelijke detectie)
+  - Automatische ontdekking bij toevoegen apparaat en opstarten
+  - Elimineert verspreide patroonherkenning door hele codebase
+  - Enkele bron van waarheid voor apparaatmogelijkheden
+  - Fundament voor toekomstige apparaatspecifieke optimalisaties en leren
+  - Hybride aanpak: gebruikt ontdekking wanneer beschikbaar, valt terug op patroonherkenning voor achterwaartse compatibiliteit
 - **AC HVAC Modus Besturing:** Keuzelijst voor Verwarmen/Koelen/Uit toegevoegd voor zones met airconditioning in de ZoneCard, voor directe controle over de AC-modus zonder temperatuurwijziging
   - Verwarmen-modus: Activeert verwarming
   - Koelen-modus: Activeert koeling
@@ -40,6 +48,8 @@ en dit project volgt [Semantic Versioning](https://semver.org/).
 - **Slimme Nacht Boost:** Een conservatieve, op leerdata gebaseerde nachtboost-berekening is toegevoegd aan de backend learning engine om kleine temperatuurcompensaties voor nachts te adviseren op basis van historische verwarmings-/afkoelgegevens. Werkt alleen wanneer er voldoende data aanwezig is.
 
 ### 🐛 Opgeloste bugs & Verbeteringen
+- Opgelost: **TRV besturingslogica conflict opgelost** - TRVs blijven nu op verwarmingstemperatuur wanneer doel is bereikt, in plaats van snel te wisselen tussen verwarming (18°C) en rust (10°C) temperaturen. TRVs sluiten natuurlijk hun kleppen wanneer kamertemperatuur gelijk is aan setpoint, waardoor besturingsconflicten en valse handmatige override waarschuwingen worden geëlimineerd.
+- Opgelost: **Voorkom valse handmatige override detectie** - Systeem-geïnitieerde temperatuurwijzigingen (TRV idle/heating temps) updaten nu interne cache vóór service calls, waardoor coördinator ze niet behandelt als mogelijke gebruikerswijzigingen
 - Opgelost: **Uitgebreide TRV (Thermostatische Radiatorknop) besturing** - TRV climate entiteiten (bijv. `climate.*_radiatorknop`) worden nu correct gedetecteerd en bestuurd als klepapparaten in plaats van thermostaten:
   - Bij verwarmen: TRVs worden ingesteld op doel + offset temperatuur om de klep te openen
   - Bij idle (binnen hysteresis): TRVs worden ingesteld op idle_temp (standaard 10°C) om te voorkomen dat de klep opent

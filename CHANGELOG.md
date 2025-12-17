@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### ✨ Features
+- **Device Capability Discovery System:** Automatically discovers and caches device capabilities (TRV, thermostat, AC, valve):
+  - Detects device type, supported features, and optimal control parameters from Home Assistant
+  - Works with any device naming convention (language-independent detection)
+  - Auto-discovery on device add and startup
+  - Eliminates scattered pattern matching throughout codebase
+  - Single source of truth for device capabilities
+  - Foundation for future device-specific optimizations and learning
+  - Hybrid approach: uses discovery when available, falls back to pattern matching for backward compatibility
 - **AC HVAC Mode Control:** Added Heat/Cool/Off dropdown selector for air-conditioned areas in ZoneCard, allowing direct control of AC operation mode without changing temperature
   - Heat mode: Activates heating
   - Cool mode: Activates cooling
@@ -40,6 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Smart Night Boost:** Implemented a conservative learning-based night boost calculation in the backend learning engine to recommend small overnight temperature offsets based on historical heating/cooling data. This improves comfort during night hours while remaining conservative when data is insufficient.
 
 ### 🐛 Bug Fixes & Improvements
+- Fix: **TRV control logic conflict resolved** - TRVs now stay at heating temperature when target is reached, instead of rapidly switching between heating (18°C) and idle (10°C) temperatures. TRVs naturally close their valves when room temperature equals setpoint, eliminating control conflicts and false manual override warnings.
+- Fix: **Prevent false manual override detection** - System-initiated temperature changes (TRV idle/heating temps) now update internal cache before service calls, preventing coordinator from treating them as potential user overrides
 - Fix: **Comprehensive TRV (Thermostatic Radiator Valve) handling** - TRV climate entities (e.g., `climate.*_radiatorknop`) are now properly detected and controlled as valve devices instead of thermostats:
   - When heating is needed: TRVs are set to target + offset temperature to open the valve
   - When idle (within hysteresis): TRVs are set to idle_temp (default 10°C) to prevent valve from opening
