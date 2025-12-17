@@ -856,8 +856,15 @@ class DeviceControlHandler:
                     )
                     _LOGGER.debug("Turned on switch %s", switch_id)
                 else:
-                    # Keep switch on if thermostats still heating
-                    if thermostats_still_heating:
+                    # When stopping heating we should only keep switches on if the
+                    # thermostat still reports it is heating AND the area is still
+                    # considered to be in a heating state. This avoids re-enabling
+                    # pumps when there are no active heating events for the area
+                    # (e.g., stale thermostat hvac_action values).
+                    if thermostats_still_heating and (
+                        getattr(area, "state", None) == "heating"
+                        or getattr(area, "manual_override", False)
+                    ):
                         _LOGGER.info(
                             "Area %s: Target reached but thermostat still heating - keeping switch %s ON",
                             area.area_id,
@@ -869,7 +876,7 @@ class DeviceControlHandler:
                             {"entity_id": switch_id},
                             blocking=False,
                         )
-                    elif area.shutdown_switches_when_idle:
+                    elif getattr(area, "shutdown_switches_when_idle", True):
                         await self.hass.services.async_call(
                             "switch",
                             SERVICE_TURN_OFF,
