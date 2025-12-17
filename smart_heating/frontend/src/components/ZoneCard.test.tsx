@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { vi, it, expect } from 'vitest'
 import ZoneCard from './ZoneCard'
 import * as areasApi from '../api/areas'
@@ -101,6 +102,7 @@ it('treats non-boolean `enabled` as falsy and disables controls', () => {
 })
 
 it('manual override switch is disabled when area is disabled and does not call API', async () => {
+  const user = userEvent.setup()
   const apiSpy = vi.spyOn(areasApi, 'setManualOverride')
   const areaDisabled: any = {
     id: 'area2',
@@ -122,6 +124,14 @@ it('manual override switch is disabled when area is disabled and does not call A
   expect(input).not.toBeNull()
   expect(input!.disabled).toBe(true)
 
-  // Since the switch is disabled, the API should not be called (no interaction possible)
+  // Attempt to click the disabled input element to verify both HTML disabled
+  // attribute and the onChange handler guard prevent API calls
+  try {
+    await user.click(input!)
+  } catch (e) {
+    // userEvent may throw when trying to click a disabled element, which is expected
+  }
+  
+  // The API should still not be called after attempted interaction
   expect(apiSpy).not.toHaveBeenCalled()
 })
