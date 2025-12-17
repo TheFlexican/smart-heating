@@ -1,9 +1,9 @@
-Title: fix(frontend): disable manual-override when area is disabled (#13)
+Fix: disable manual-override when area is disabled
 
-This PR prevents toggling manual override while the area is disabled, avoiding unintended transitions to manual mode when disabling presets on disabled areas.
+This PR prevents toggling manual override while an area is disabled, which could otherwise cause the zone to switch to manual mode unexpectedly when disabling presets. The change disables the `Switch` control when the area is disabled and guards the handler to avoid server calls. Added a unit test verifying the control is disabled and the API is not called.
 
-Changes:
-- ZoneCard.tsx: disable the manual override switch when the area is disabled and guard the onChange handler.
-- ZoneCard.test.tsx: added a test to assert the switch is disabled and the API is not invoked.
+Files changed:
+- src/components/ZoneCard.tsx
+- src/components/ZoneCard.test.tsx
 
-All frontend unit tests pass locally. No backend changes required.
+All frontend tests pass locally.
