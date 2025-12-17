@@ -87,6 +87,7 @@ from .api_handlers import (  # Schedules; Sensors; Logs; Areas; Config; Devices;
     handle_update_user_settings,
     handle_validate_config,
 )
+from .comparison_engine import ComparisonEngine
 from .api_handlers.opentherm import (
     handle_calibrate_opentherm,
     handle_clear_opentherm_logs,
@@ -358,9 +359,18 @@ class SmartHeatingAPIView(HomeAssistantView):
             return await handle_list_backups(self.hass, config_manager)
 
     async def _handle_comparison_get(
-        self, endpoint: str, request: web.Request, comparison_engine
+        self, endpoint: str, request: web.Request, comparison_engine: ComparisonEngine
     ) -> web.Response | None:
-        """Handle comparison endpoints."""
+        """Handle comparison endpoints.
+
+        Args:
+            endpoint: Endpoint path under the comparison namespace
+            request: aiohttp request object
+            comparison_engine: ComparisonEngine instance used to perform comparisons
+
+        Returns:
+            A web.Response when the endpoint is handled, otherwise None
+        """
         if endpoint.startswith("comparison/custom"):
             return await handle_get_custom_comparison(self.hass, comparison_engine, request)
         return await handle_get_comparison(self.hass, self.area_manager, comparison_engine, request)

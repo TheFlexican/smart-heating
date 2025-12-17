@@ -304,25 +304,34 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         # Let cancellations settle
         try:
             await self.hass.async_block_till_done()
-        except Exception:
-            pass
+        except Exception as err:
+            # Best-effort wait for cancellations to settle; log and continue on error
+            _LOGGER.debug("Error while waiting for tasks to settle: %s", err)
         _LOGGER.debug("Smart Heating coordinator shutdown")
 
     def _cancel_task_if_exists(self, task_attr: str) -> None:
-        """Cancel a single task attribute if present."""
+        """Cancel a single task attribute if present.
+
+        Args:
+            task_attr: Name of the attribute on self that holds the task
+        """
         try:
             task = getattr(self, task_attr, None)
             if task:
                 try:
                     task.cancel()
-                except Exception:
-                    pass
+                except Exception as err:
+                    _LOGGER.debug("Failed to cancel task %s: %s", task_attr, err)
                 setattr(self, task_attr, None)
-        except Exception:
-            pass
+        except Exception as err:
+            _LOGGER.debug("Error inspecting task attribute %s: %s", task_attr, err)
 
-    def _cancel_task_collection(self, tasks) -> None:
-        """Cancel tasks inside a collection (dict or set) and clear it."""
+    def _cancel_task_collection(self, tasks: dict | set) -> None:
+        """Cancel tasks inside a collection (dict or set) and clear it.
+
+        Args:
+            tasks: Collection of tasks (dict of name->task or set of tasks)
+        """
         try:
             if isinstance(tasks, dict):
                 iterable = list(tasks.values())
@@ -331,15 +340,15 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             for t in iterable:
                 try:
                     t.cancel()
-                except Exception:
-                    pass
+                except Exception as err:
+                    _LOGGER.debug("Failed to cancel tracked task: %s", err)
             # Clear collection safely
             try:
                 tasks.clear()
-            except Exception:
-                pass
-        except Exception:
-            pass
+            except Exception as err:
+                _LOGGER.debug("Failed to clear task collection: %s", err)
+        except Exception as err:
+            _LOGGER.debug("Error cancelling task collection: %s", err)
 
     def _get_device_state_data(self, device_id: str, device_info: dict) -> dict:
         """Get state data for a single device.

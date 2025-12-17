@@ -18,13 +18,20 @@ from ..const import (
     ATTR_TIME,
 )
 from ..coordinator import SmartHeatingCoordinator
-from ..models import Schedule
+from ..models import Schedule, Area
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def _normalize_day_to_index(d):
-    """Normalize different day representations to an index (0=Monday)."""
+def _normalize_day_to_index(d: int | str) -> int | None:
+    """Normalize different day representations to an index (0=Monday).
+
+    Args:
+        d: Day representation as int or str
+
+    Returns:
+        Integer day index (0=Monday) or None if not resolvable
+    """
     idx_map_full = {
         "Monday": 0,
         "Tuesday": 1,
@@ -54,7 +61,9 @@ def _normalize_day_to_index(d):
     return None
 
 
-def _create_and_add_schedule(target, schedule_id_prefix, source_schedule, day_index=None):
+def _create_and_add_schedule(
+    target: Area, schedule_id_prefix: str, source_schedule: Schedule, day_index: int | None = None
+) -> None:
     new_schedule = Schedule(
         schedule_id=f"{schedule_id_prefix}_{uuid.uuid4().hex[:8]}",
         time=source_schedule.start_time,
