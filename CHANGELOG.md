@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **Area logger:** Avoid spurious "Unknown event type" warnings by recognising `cooling` and `climate_control` event types emitted by the climate handlers (fixes runtime warnings when cooling/hysteresis events are logged).
 - **Smart Night Boost:** Ensure the selected outdoor temperature sensor is fetched and displayed on page load (even when the full weather entity list hasn't been fetched yet), so the selection is remembered across browser refreshes. ✅
+- **Preserve area card ordering:** Fix an issue where changing a setting on a zone card caused that card to move to the top-left (the frontend now preserves user-configured area order when receiving live updates). Added unit tests for the ordering behavior. ✅
 
 
 

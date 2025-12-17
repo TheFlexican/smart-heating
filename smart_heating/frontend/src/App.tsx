@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import mergeZones from './utils/areaOrder'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider, createTheme, CssBaseline, Box, Snackbar, Alert } from '@mui/material'
 import Header from './components/Header'
@@ -247,30 +248,11 @@ function App() {
       setShowConnectionAlert(true)
     },
     onZonesUpdate: updatedZones => {
-      // Preserve any client-side area ordering preference stored in localStorage
-      // when receiving full zones update from the backend. This prevents
-      // periodic WS updates from reverting user-configured order.
       const savedOrder = localStorage.getItem('areasOrder')
-      let orderedZones = updatedZones
-      if (savedOrder) {
-        try {
-          const orderIds = JSON.parse(savedOrder)
-          const zoneMap = new Map(updatedZones.map(a => [a.id, a]))
-          orderedZones = orderIds
-            .map((id: string) => zoneMap.get(id))
-            .filter((a: Zone | undefined): a is Zone => a !== undefined)
-          // Append any new zones not present in saved order
-          const orderedIds = new Set(orderIds)
-          const newZones = updatedZones.filter(a => !orderedIds.has(a.id))
-          orderedZones = [...orderedZones, ...newZones]
-        } catch {
-          // parsing failed, fall back to backend order
-          orderedZones = updatedZones
-        }
-      }
 
-      // Backend now includes hidden property, no need to preserve from previous state
-      setAreas(orderedZones)
+      // Merge updated list with saved order or previous client order
+      setAreas(prev => mergeZones(prev, updatedZones, savedOrder))
+
       // Reload devices to update available list
       const assignedDeviceIds = new Set<string>()
       for (const area of updatedZones) {
