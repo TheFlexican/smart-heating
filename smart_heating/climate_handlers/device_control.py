@@ -39,6 +39,30 @@ class DeviceControlHandler:
         self._pwms: dict[str, PWM] = {}
         self._min_setpoints: dict[str, MinimumSetpoint] = {}
 
+    def _is_trv_device(self, entity_id: str) -> bool:
+        """Detect if a climate entity is a TRV (Thermostatic Radiator Valve).
+
+        TRVs are climate entities that control individual radiators/valves and should
+        be treated as valves (using idle/heating temps) rather than thermostats.
+
+        Args:
+            entity_id: Entity ID to check
+
+        Returns:
+            True if entity appears to be a TRV device
+        """
+        # Check entity_id patterns commonly used for TRVs
+        trv_patterns = [
+            "radiatorknop",  # Dutch TRVs
+            "radiator_knop",
+            "trv",
+            "radiator_valve",
+            "thermostatic_valve",
+            "valve",
+        ]
+        entity_lower = entity_id.lower()
+        return any(pattern in entity_lower for pattern in trv_patterns)
+
     def is_any_thermostat_actively_heating(self, area: Area) -> bool:
         """Check if any thermostat in the area is actively heating.
 
@@ -394,11 +418,35 @@ class DeviceControlHandler:
 
         This method ensures the power switch is on, sets HVAC mode and
         updates the temperature only when it actually changed.
+        For TRV devices, uses heating temperature (target + offset) to ensure valve opens.
         """
         from ..const import HVAC_MODE_COOL, HVAC_MODE_HEAT
 
         # First, ensure any associated power switch is on
         await self._async_ensure_climate_power_on(thermostat_id)
+
+        # For TRV devices, use valve control logic (target + offset)
+        if self._is_trv_device(thermostat_id):
+            offset = self.area_manager.trv_temp_offset
+            heating_temp = max(target_temp + offset, self.area_manager.trv_heating_temp)
+            last_temp = self._last_set_temperatures.get(thermostat_id)
+
+            if last_temp is None or abs(last_temp - heating_temp) >= 0.1:
+                await self.hass.services.async_call(
+                    CLIMATE_DOMAIN,
+                    SERVICE_SET_TEMPERATURE,
+                    {"entity_id": thermostat_id, ATTR_TEMPERATURE: heating_temp},
+                    blocking=True,
+                )
+                self._last_set_temperatures[thermostat_id] = heating_temp
+                _LOGGER.debug(
+                    "Set TRV %s to heating temp %.1f°C (target=%.1f + offset=%.1f)",
+                    thermostat_id,
+                    heating_temp,
+                    target_temp,
+                    offset,
+                )
+            return
 
         # Get current state to avoid redundant commands (some integrations reject them)
         current_hvac_mode, current_temp = self._get_thermostat_state(thermostat_id)
@@ -419,7 +467,7 @@ class DeviceControlHandler:
                     CLIMATE_DOMAIN,
                     SERVICE_SET_TEMPERATURE,
                     {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp},
-                    blocking=False,
+                    blocking=True,
                 )
                 self._last_set_temperatures[thermostat_id] = target_temp
                 _LOGGER.debug(
@@ -448,10 +496,30 @@ class DeviceControlHandler:
     ) -> None:
         """Handle thermostat updates when area is idle (not actively heating/cooling).
 
-        Implements hysteresis-aware behavior: if the area temperature is within
-        (target - hysteresis), we set the thermostat to current area temperature
-        so the thermostat doesn't report `heating` while system is within band.
+        For TRV devices, sets to idle_temp to prevent valve from opening.
+        For regular thermostats, implements hysteresis-aware behavior.
         """
+        # For TRV devices, use idle temperature to prevent valve from opening
+        if self._is_trv_device(thermostat_id):
+            idle_temp = self.area_manager.trv_idle_temp
+            last_temp = self._last_set_temperatures.get(thermostat_id)
+
+            if last_temp is None or abs(last_temp - idle_temp) >= 0.1:
+                await self.hass.services.async_call(
+                    CLIMATE_DOMAIN,
+                    SERVICE_SET_TEMPERATURE,
+                    {"entity_id": thermostat_id, ATTR_TEMPERATURE: idle_temp},
+                    blocking=True,
+                )
+                self._last_set_temperatures[thermostat_id] = idle_temp
+                _LOGGER.debug(
+                    "Set TRV %s to idle temp %.1f°C (idle mode)",
+                    thermostat_id,
+                    idle_temp,
+                )
+            return
+
+        # For regular thermostats, use hysteresis logic
         hysteresis = self._parse_hysteresis(area)
 
         current_temp_raw = getattr(area, "current_temperature", None)
@@ -494,7 +562,7 @@ class DeviceControlHandler:
                 CLIMATE_DOMAIN,
                 SERVICE_SET_TEMPERATURE,
                 {"entity_id": thermostat_id, ATTR_TEMPERATURE: desired_setpoint},
-                blocking=False,
+                blocking=True,
             )
             self._last_set_temperatures[thermostat_id] = desired_setpoint
             _LOGGER.debug(
@@ -539,6 +607,7 @@ class DeviceControlHandler:
         """Turn off thermostat or fall back to minimum setpoint if turn_off not supported.
 
         Always turns off the associated power switch if it exists (e.g., for LG ThinQ ACs).
+        For TRV devices, sets temperature to 0°C to close the valve.
         """
         if thermostat_id in self._last_set_temperatures:
             del self._last_set_temperatures[thermostat_id]
@@ -547,7 +616,19 @@ class DeviceControlHandler:
         # This is critical for devices like LG ThinQ AC that have separate power switches
         await self._async_turn_off_climate_power(thermostat_id)
 
-        # Check if device supports turn_off service
+        # For TRV devices, set to 0°C to close valve (don't use turn_off as many TRVs don't support it)
+        if self._is_trv_device(thermostat_id):
+            _LOGGER.debug("TRV device %s detected, setting to 0°C to close valve", thermostat_id)
+            await self.hass.services.async_call(
+                CLIMATE_DOMAIN,
+                SERVICE_SET_TEMPERATURE,
+                {"entity_id": thermostat_id, ATTR_TEMPERATURE: 0.0},
+                blocking=True,
+            )
+            _LOGGER.debug("Set TRV %s to 0°C (closed)", thermostat_id)
+            return
+
+        # For non-TRV devices, check if device supports turn_off service
         state = self.hass.states.get(thermostat_id)
         supports_turn_off = False
 
@@ -558,11 +639,12 @@ class DeviceControlHandler:
 
         if supports_turn_off:
             try:
+                # Use blocking=True so we can catch NotImplementedError
                 await self.hass.services.async_call(
                     CLIMATE_DOMAIN,
                     SERVICE_TURN_OFF,
                     {"entity_id": thermostat_id},
-                    blocking=False,
+                    blocking=True,
                 )
                 _LOGGER.debug("Turned off thermostat %s", thermostat_id)
                 return
@@ -583,7 +665,7 @@ class DeviceControlHandler:
             CLIMATE_DOMAIN,
             SERVICE_SET_TEMPERATURE,
             {"entity_id": thermostat_id, ATTR_TEMPERATURE: min_temp},
-            blocking=False,
+            blocking=True,
         )
         _LOGGER.debug(
             "Thermostat %s doesn't support turn_off, set to %.1f°C instead",
@@ -835,6 +917,44 @@ class DeviceControlHandler:
 
     async def _set_valve_temperature(self, valve_id: str, temperature: float) -> None:
         await self._async_set_climate_temperature(valve_id, temperature)
+
+    async def async_set_valves_to_off(self, area: "Area", off_temperature: float = 0.0) -> None:
+        """Set all valves in an area to an "off" state.
+
+        For position-controlled valves this sets them to the minimum position.
+        For temperature-controlled valves this sets the temperature to the provided
+        off_temperature (defaults to 0.0°C which instructs TRVs to close).
+        """
+        valves = area.get_valves()
+
+        for valve_id in valves:
+            try:
+                caps = self.get_valve_capability(valve_id)
+
+                # Prefer position control where available
+                if caps.get("supports_position"):
+                    # Set to minimum position (closed)
+                    position = caps.get("position_min", 0)
+                    if caps.get("entity_domain") == "number":
+                        await self._set_valve_number_position(valve_id, position)
+                    else:
+                        # climate with position attribute
+                        try:
+                            await self._set_valve_climate_position(valve_id, position)
+                        except Exception:
+                            # Fallback to temperature control
+                            await self._set_valve_temperature(valve_id, off_temperature)
+
+                elif caps.get("supports_temperature"):
+                    # Temperature-controlled TRV: set to off_temperature (0°C by default)
+                    await self._set_valve_temperature(valve_id, off_temperature)
+                else:
+                    _LOGGER.warning(
+                        "Valve %s doesn't support position or temperature control - cannot reliably turn off",
+                        valve_id,
+                    )
+            except Exception as err:
+                _LOGGER.error("Failed to set valve %s to off: %s", valve_id, err)
 
     def _collect_heating_areas(self, opentherm_logger):
         heating_area_ids: list[str] = []

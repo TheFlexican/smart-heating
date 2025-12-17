@@ -58,7 +58,7 @@ async def test_apply_vacation_mode_and_manual_override_and_disabled_area():
     history_tracker.async_record_temperature = AsyncMock()
     device_handler.async_control_thermostats = AsyncMock()
     device_handler.async_control_switches = AsyncMock()
-    device_handler.async_control_valves = AsyncMock()
+    device_handler.async_set_valves_to_off = AsyncMock()
     area.current_temperature = 20.0
     area.target_temperature = 21.0
     area.get_thermostats.return_value = []
@@ -66,3 +66,4 @@ async def test_apply_vacation_mode_and_manual_override_and_disabled_area():
     area.get_valves.return_value = []
     await ph.async_handle_disabled_area("a1", area, device_handler, history_tracker, True)
     history_tracker.async_record_temperature.assert_awaited()
+    device_handler.async_set_valves_to_off.assert_awaited()

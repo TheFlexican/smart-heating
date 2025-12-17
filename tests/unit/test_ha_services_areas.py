@@ -81,6 +81,22 @@ class TestAreaHandlers:
         call = MagicMock(spec=ServiceCall)
         call.data = {ATTR_AREA_ID: "living_room"}
 
+        # Add a mock climate_controller to hass for immediate device update
+        mock_hass = MagicMock()
+        mock_hass.data = {"smart_heating": {}}
+        mock_coordinator.hass = mock_hass
+        fake_controller = MagicMock()
+        fake_controller.device_handler = MagicMock()
+        fake_controller.device_handler.async_control_thermostats = AsyncMock()
+        fake_controller.device_handler.async_control_valves = AsyncMock()
+        mock_hass.data["smart_heating"]["climate_controller"] = fake_controller
+
+        # Mock area with numeric temperature values
+        mock_area = MagicMock()
+        mock_area.current_temperature = 18.0
+        mock_area.get_effective_target_temperature.return_value = 20.0
+        mock_area_manager.get_area.return_value = mock_area
+
         await async_handle_enable_area(call, mock_area_manager, mock_coordinator)
 
         # Verify area was enabled
@@ -89,6 +105,9 @@ class TestAreaHandlers:
         mock_area_manager.async_save.assert_called_once()
         # Verify coordinator refresh
         mock_coordinator.async_request_refresh.assert_called_once()
+        # Verify we tried to update devices immediately
+        fake_controller.device_handler.async_control_thermostats.assert_awaited()
+        fake_controller.device_handler.async_control_valves.assert_awaited()
 
     @pytest.mark.asyncio
     async def test_async_handle_enable_area_error(self, mock_area_manager, mock_coordinator):
@@ -114,6 +133,16 @@ class TestAreaHandlers:
         call = MagicMock(spec=ServiceCall)
         call.data = {ATTR_AREA_ID: "living_room"}
 
+        # Add a mock climate_controller to hass for immediate device update
+        mock_hass = MagicMock()
+        mock_hass.data = {"smart_heating": {}}
+        mock_coordinator.hass = mock_hass
+        fake_controller = MagicMock()
+        fake_controller.device_handler = MagicMock()
+        fake_controller.device_handler.async_set_valves_to_off = AsyncMock()
+        fake_controller.device_handler.async_control_thermostats = AsyncMock()
+        mock_hass.data["smart_heating"]["climate_controller"] = fake_controller
+
         await async_handle_disable_area(call, mock_area_manager, mock_coordinator)
 
         # Verify area was disabled
@@ -122,6 +151,9 @@ class TestAreaHandlers:
         mock_area_manager.async_save.assert_called_once()
         # Verify coordinator refresh
         mock_coordinator.async_request_refresh.assert_called_once()
+        # Verify we tried to update devices immediately
+        fake_controller.device_handler.async_set_valves_to_off.assert_awaited()
+        fake_controller.device_handler.async_control_thermostats.assert_awaited()
 
     @pytest.mark.asyncio
     async def test_async_handle_disable_area_error(self, mock_area_manager, mock_coordinator):
