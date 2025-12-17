@@ -104,10 +104,10 @@ class SafetyMonitor:
         old_state = event.data.get("old_state")
         new_state = event.data.get("new_state")
 
-        _LOGGER.warning("🔥 SAFETY SENSOR STATE CHANGE DETECTED!")
-        _LOGGER.warning("Entity: %s", entity_id)
-        _LOGGER.warning("Old state: %s", old_state.state if old_state else "None")
-        _LOGGER.warning("New state: %s", new_state.state if new_state else "None")
+        _LOGGER.info("Safety sensor state change detected")
+        _LOGGER.debug("Entity: %s", entity_id)
+        _LOGGER.debug("Old state: %s", old_state.state if old_state else "None")
+        _LOGGER.debug("New state: %s", new_state.state if new_state else "None")
 
         if not new_state:
             return
@@ -251,6 +251,6 @@ class SafetyMonitor:
 
         Note: Areas remain disabled and must be manually re-enabled.
         """
-        _LOGGER.warning("Emergency shutdown state reset - areas remain disabled")
+        _LOGGER.info("Emergency shutdown state reset - areas remain disabled")
         self._emergency_shutdown_active = False
         self.area_manager.set_safety_alert_active(False)

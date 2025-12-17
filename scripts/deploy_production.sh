@@ -46,7 +46,7 @@ else
 fi
 echo ""
 
-echo -e "${YELLOW}[2/3]${NC} Syncing integration files..."
+echo -e "${YELLOW}[2/3]${NC} Packing integration files..."
 
 # Create tarball excluding unnecessary files
 cd "$INTEGRATION_DIR"
@@ -57,15 +57,19 @@ tar czf /tmp/smart_heating_sync.tar.gz \
     --exclude='.pytest_cache' \
     --exclude='*.pyc' \
     --exclude='.DS_Store' \
+    --exclude='coverage' \
+    --exclude='venv' \
     --exclude='._*' \
     .
 
 cd - > /dev/null
 
 # Extract in production container
+echo -e "${YELLOW}[2/3]${NC} Unpacking integration files..."
 tar xzf /tmp/smart_heating_sync.tar.gz -C /Volumes/config/custom_components/smart_heating
 
 # Need to restart Home Assistant for changes to take effect
+echo -e "${YELLOW}[2/3]${NC} Restarting Home Assistant..."
 ssh root@192.168.2.2 -p 22222 "ha core restart"
 
 # Clean up

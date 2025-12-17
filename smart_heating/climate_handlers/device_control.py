@@ -62,7 +62,7 @@ class DeviceControlHandler:
             profile = self.capability_detector.get_profile(entity_id)
             if profile:
                 is_trv = profile.capabilities.device_type == "trv"
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "TRV detection via capability detector: %s -> %s (device_type=%s)",
                     entity_id,
                     is_trv,
@@ -407,7 +407,7 @@ class DeviceControlHandler:
 
         thermostats = area.get_thermostats()
 
-        _LOGGER.warning(
+        _LOGGER.debug(
             "async_control_thermostats called: area=%s, heating=%s, target_temp=%s, thermostats=%s",
             getattr(area, "name", "<unknown>"),
             heating,

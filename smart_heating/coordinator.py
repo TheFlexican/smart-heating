@@ -51,13 +51,13 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         # Get all device entity IDs that we need to track
         tracked_entities = []
         areas = self.area_manager.get_all_areas()
-        _LOGGER.warning("Found %d areas to process", len(areas))
+        _LOGGER.info("Found %d areas to process", len(areas))
         for area in areas.values():
             for device_id in area.devices.keys():
                 tracked_entities.append(device_id)
 
         if tracked_entities:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Setting up state change listeners for %d devices: %s",
                 len(tracked_entities),
                 tracked_entities[:5],
@@ -65,9 +65,9 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             self._unsub_state_listener = async_track_state_change_event(
                 self.hass, tracked_entities, self._handle_state_change
             )
-            _LOGGER.warning("State change listeners successfully registered")
+            _LOGGER.debug("State change listeners successfully registered")
         else:
-            _LOGGER.warning("No devices found to track for state changes")
+            _LOGGER.debug("No devices found to track for state changes")
 
         # Do initial update
         await self.async_refresh()
@@ -146,7 +146,7 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         new_temp = new_state.attributes.get("temperature")
         old_temp = old_state.attributes.get("temperature")
 
-        _LOGGER.warning(
+        _LOGGER.debug(
             "Thermostat temperature change detected for %s: %s -> %s (debouncing)",
             entity_id,
             old_temp,
@@ -163,7 +163,7 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             try:
                 await asyncio.sleep(MANUAL_TEMP_CHANGE_DEBOUNCE)
 
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "Applying debounced temperature change for %s: %s",
                     entity_id,
                     new_temp,
@@ -177,7 +177,7 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Coordinator refresh completed")
 
             except asyncio.CancelledError:
-                _LOGGER.warning("Debounce task cancelled for %s", entity_id)
+                _LOGGER.debug("Debounce task cancelled for %s", entity_id)
                 raise
             except Exception as err:
                 _LOGGER.error("Error in debounced temperature update: %s", err, exc_info=True)
