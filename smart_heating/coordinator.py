@@ -297,39 +297,49 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         if self._unsub_state_listener:
             self._unsub_state_listener()
             self._unsub_state_listener = None
-        # Cancel grace period task
-        try:
-            if getattr(self, "_grace_period_task", None):
-                self._grace_period_task.cancel()
-                self._grace_period_task = None
-        except Exception:
-            pass
-        # Cancel any debounce tasks
-        try:
-            for t in self._debounce_tasks.values():
-                try:
-                    t.cancel()
-                except Exception:
-                    pass
-            self._debounce_tasks.clear()
-        except Exception:
-            pass
-        # Cancel any refresh tasks
-        try:
-            for t in self._refresh_tasks:
-                try:
-                    t.cancel()
-                except Exception:
-                    pass
-            self._refresh_tasks.clear()
-        except Exception:
-            pass
+        # Cancel tasks and clear them using helpers
+        self._cancel_task_if_exists("_grace_period_task")
+        self._cancel_task_collection(self._debounce_tasks)
+        self._cancel_task_collection(self._refresh_tasks)
         # Let cancellations settle
         try:
             await self.hass.async_block_till_done()
         except Exception:
             pass
         _LOGGER.debug("Smart Heating coordinator shutdown")
+
+    def _cancel_task_if_exists(self, task_attr: str) -> None:
+        """Cancel a single task attribute if present."""
+        try:
+            task = getattr(self, task_attr, None)
+            if task:
+                try:
+                    task.cancel()
+                except Exception:
+                    pass
+                setattr(self, task_attr, None)
+        except Exception:
+            pass
+
+    def _cancel_task_collection(self, tasks) -> None:
+        """Cancel tasks inside a collection (dict or set) and clear it."""
+        try:
+            if isinstance(tasks, dict):
+                iterable = list(tasks.values())
+            else:
+                iterable = list(tasks)
+            for t in iterable:
+                try:
+                    t.cancel()
+                except Exception:
+                    pass
+            # Clear collection safely
+            try:
+                tasks.clear()
+            except Exception:
+                pass
+        except Exception:
+            pass
 
     def _get_device_state_data(self, device_id: str, device_info: dict) -> dict:
         """Get state data for a single device.

@@ -126,6 +126,12 @@ Voor OpenTherm Gateway gerelateerde tests, zie ook `docs/nl/OPENTHERM.md`.
 - De device control-logica stelt de thermostaat setpoint in op de huidige gebiedstemperatuur wanneer de huidige temperatuur >= (target - hysteresis). Dit voorkomt dat de thermostaat onnodig de status `heating` blijft rapporteren.
 - Tests moeten de `climate.set_temperature` service aanroep valideren (controleer parameters en gebruik `pytest.approx` voor floats) en bevestigen dat duplicate-aanroepen worden onderdrukt via de `last_set_temperatures` cache.
 
+### Robuustheid van apparaatbesturing en AC-afronding
+
+- De backend houdt nu per-thermostaat fouttellingen bij en gebruikt exponentiële backoff na meerdere fouten. Dit voorkomt herhaalde retries (en storende AC-piepgeluiden) wanneer een integratie een commando weigert of het apparaat een fout retourneert. Gebruik `DeviceControlHandler.get_thermostat_failure_state(thermostat_id)` in tests om fouttellingen en backoff-intervals te inspecteren.
+- Voor apparaten die `turn_off` niet implementeren, vangt de handler nu de fout op en valt terug op het minimum/frost-protection setpoint in plaats van een ongehandelde uitzondering te laten staan.
+- De frontend rondt nu temperatuurcommits voor airco-zones af op 0,5°C en gebruikt een 0,5°C sliderstap. Dit voorkomt het sturen van niet-ondersteunde decimalen (bijv. 24.7°C) naar AC-integraties die mogelijk alleen 0,5°C stappen accepteren. Voeg tests toe die afronding en sliderstap verifiëren wanneer `area.heating_type === 'airco'`.
+
 
 **Test Dekking:**
 - 109 totale tests

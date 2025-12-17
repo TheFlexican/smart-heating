@@ -347,6 +347,24 @@ class SmartHeatingAPIView(HomeAssistantView):
 
         return None
 
+    async def _handle_import_export_get(self, endpoint: str) -> web.Response | None:
+        """Handle import/export related endpoints."""
+        if endpoint in ("export", "backups"):
+            config_manager = self.hass.data.get(DOMAIN, {}).get("config_manager")
+            if not config_manager:
+                return None
+            if endpoint == "export":
+                return await handle_export_config(self.hass, config_manager)
+            return await handle_list_backups(self.hass, config_manager)
+
+    async def _handle_comparison_get(
+        self, endpoint: str, request: web.Request, comparison_engine
+    ) -> web.Response | None:
+        """Handle comparison endpoints."""
+        if endpoint.startswith("comparison/custom"):
+            return await handle_get_custom_comparison(self.hass, comparison_engine, request)
+        return await handle_get_comparison(self.hass, self.area_manager, comparison_engine, request)
+
     async def _handle_other_endpoints_get(
         self, request: web.Request, endpoint: str
     ) -> web.Response | None:
@@ -370,13 +388,9 @@ class SmartHeatingAPIView(HomeAssistantView):
             return response
 
         # Import/Export endpoints
-        if endpoint in ("export", "backups"):
-            config_manager = self.hass.data.get(DOMAIN, {}).get("config_manager")
-            if not config_manager:
-                return None
-            if endpoint == "export":
-                return await handle_export_config(self.hass, config_manager)
-            return await handle_list_backups(self.hass, config_manager)
+        response = await self._handle_import_export_get(endpoint)
+        if response:
+            return response
 
         # User endpoints
         response = await self._handle_user_endpoints_get(request, endpoint)
@@ -393,12 +407,8 @@ class SmartHeatingAPIView(HomeAssistantView):
             comparison_engine = self.hass.data.get(DOMAIN, {}).get("comparison_engine")
             if not comparison_engine:
                 return None
-
-            if endpoint.startswith("comparison/custom"):
-                return await handle_get_custom_comparison(self.hass, comparison_engine, request)
-            return await handle_get_comparison(
-                self.hass, self.area_manager, comparison_engine, request
-            )
+            # Delegate to comparison helper
+            return await self._handle_comparison_get(endpoint, request, comparison_engine)
 
         # OpenTherm and metrics
         response = await self._handle_opentherm_metrics_get(request, endpoint)
