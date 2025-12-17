@@ -1,7 +1,7 @@
 """Device control for climate system."""
 
-import logging
 import asyncio
+import logging
 from typing import Any, Optional
 
 from homeassistant.components.climate.const import DOMAIN as CLIMATE_DOMAIN

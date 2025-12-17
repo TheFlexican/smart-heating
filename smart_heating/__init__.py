@@ -29,6 +29,7 @@ from .const import (
     SERVICE_ENABLE_AREA,
     SERVICE_ENABLE_SCHEDULE,
     SERVICE_ENABLE_VACATION_MODE,
+    SERVICE_FORCE_THERMOSTAT_UPDATE,
     SERVICE_REFRESH,
     SERVICE_REMOVE_DEVICE_FROM_AREA,
     SERVICE_REMOVE_PRESENCE_SENSOR,
@@ -46,7 +47,6 @@ from .const import (
     SERVICE_SET_PRESET_MODE,
     SERVICE_SET_SAFETY_SENSOR,
     SERVICE_SET_TRV_TEMPERATURES,
-    SERVICE_FORCE_THERMOSTAT_UPDATE,
 )
 from .coordinator import SmartHeatingCoordinator
 from .efficiency_calculator import EfficiencyCalculator
@@ -306,12 +306,13 @@ async def async_setup_services(  # NOSONAR
     """
     from functools import partial
 
-    from .ha_services import ADD_DEVICE_SCHEMA  # Schemas; Handlers
     from .ha_services import (
+        ADD_DEVICE_SCHEMA,  # Schemas; Handlers
         ADD_SCHEDULE_SCHEMA,
         BOOST_MODE_SCHEMA,
         CANCEL_BOOST_SCHEMA,
         COPY_SCHEDULE_SCHEMA,
+        FORCE_THERMOSTAT_SCHEMA,
         FROST_PROTECTION_SCHEMA,
         HISTORY_RETENTION_SCHEMA,
         HVAC_MODE_SCHEMA,
@@ -329,8 +330,6 @@ async def async_setup_services(  # NOSONAR
         VACATION_MODE_SCHEMA,
         WINDOW_SENSOR_SCHEMA,
         ZONE_ID_SCHEMA,
-        FORCE_THERMOSTAT_SCHEMA,
-        async_handle_force_thermostat_update,
         async_handle_add_device,
         async_handle_add_presence_sensor,
         async_handle_add_schedule,
@@ -343,6 +342,7 @@ async def async_setup_services(  # NOSONAR
         async_handle_enable_area,
         async_handle_enable_schedule,
         async_handle_enable_vacation_mode,
+        async_handle_force_thermostat_update,
         async_handle_refresh,
         async_handle_remove_device,
         async_handle_remove_presence_sensor,

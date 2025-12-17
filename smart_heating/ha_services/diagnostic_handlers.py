@@ -7,8 +7,8 @@ from typing import Any
 from homeassistant.core import ServiceCall
 
 from ..area_manager import AreaManager
-from ..coordinator import SmartHeatingCoordinator
 from ..const import ATTR_AREA_ID, ATTR_HVAC_MODE, ATTR_TEMPERATURE
+from ..coordinator import SmartHeatingCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 

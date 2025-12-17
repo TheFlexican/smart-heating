@@ -337,6 +337,7 @@ const ZoneDetail = () => {
 
     ensureSelectedWeatherEntityVisible()
     // Only re-run when area changes (specifically when weather_entity_id changes)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [area])
 
   const loadAvailableDevices = async (currentZone: Zone) => {
