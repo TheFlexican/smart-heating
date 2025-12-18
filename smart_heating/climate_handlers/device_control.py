@@ -42,6 +42,7 @@ class DeviceControlHandler:
         self.capability_detector = capability_detector
         self._device_capabilities = {}  # Cache for device capabilities
         self._last_set_temperatures = {}  # Cache last set temperature per thermostat
+        self._last_set_hvac_modes = {}  # Cache last set HVAC mode per thermostat (for AC devices)
         # Advanced controllers per area
         self._heating_curves: dict[str, HeatingCurve] = {}
         self._pids: dict[str, PID] = {}
@@ -239,14 +240,22 @@ class DeviceControlHandler:
             return False
 
     def _get_thermostat_state(self, thermostat_id: str) -> tuple[Optional[str], Optional[float]]:
-        """Return (hvac_mode, temperature) for a thermostat if available."""
+        """Return (hvac_mode, temperature) for a thermostat if available.
+
+        For Home Assistant climate entities, hvac_mode is the entity state itself
+        (state.state), not an attribute.
+        """
         state = self.hass.states.get(thermostat_id)
         current_hvac_mode = None
         current_temp = None
-        if state and hasattr(state, "attributes"):
+        if state:
             try:
-                current_hvac_mode = state.attributes.get("hvac_mode")
-                current_temp = state.attributes.get("temperature")
+                # hvac_mode IS the state for climate entities (heat, cool, off, etc.)
+                if state.state not in ("unknown", "unavailable", None):
+                    current_hvac_mode = state.state
+                # target temperature is in attributes
+                if hasattr(state, "attributes"):
+                    current_temp = state.attributes.get("temperature")
             except (AttributeError, TypeError):
                 # Handle test mocks that don't have proper attributes
                 pass
@@ -271,25 +280,51 @@ class DeviceControlHandler:
     async def _set_hvac_mode_if_needed(
         self, thermostat_id: str, desired_mode: str, current_mode: Optional[str], hvac_mode_str: str
     ) -> None:
-        """Set HVAC mode if it differs from the current mode (best-effort)."""
-        if current_mode != desired_mode:
-            try:
-                await self.hass.services.async_call(
-                    CLIMATE_DOMAIN,
-                    "set_hvac_mode",
-                    {"entity_id": thermostat_id, "hvac_mode": desired_mode},
-                    blocking=False,
-                )
-                _LOGGER.debug("Set thermostat %s to %s mode", thermostat_id, hvac_mode_str)
-            except Exception as err:
-                _LOGGER.debug(
-                    "Failed to set hvac_mode for %s (may already be in target mode): %s",
-                    thermostat_id,
-                    err,
-                )
-        else:
+        """Set HVAC mode if it differs from the current mode (best-effort).
+
+        Uses the current device state as the authoritative source. A cache is used
+        as a fallback when device state is unknown/unavailable to avoid sending
+        redundant HVAC mode commands.
+
+        If the device reports a different mode than desired, we always send the
+        command to ensure external changes are overridden.
+        """
+        # Check current device state first - this is authoritative
+        if current_mode == desired_mode:
             _LOGGER.debug(
-                "Thermostat %s already in %s mode, skipping", thermostat_id, hvac_mode_str
+                "Thermostat %s already in %s mode (device state), skipping",
+                thermostat_id,
+                hvac_mode_str,
+            )
+            return
+
+        # Device state doesn't match desired mode, or state is unknown
+        # Use cache as fallback only when device state is unknown/unavailable
+        if current_mode is None:
+            cached_mode = self._last_set_hvac_modes.get(thermostat_id)
+            if cached_mode == desired_mode:
+                _LOGGER.debug(
+                    "Thermostat %s HVAC mode already set to %s (cached, device state unknown), skipping",
+                    thermostat_id,
+                    hvac_mode_str,
+                )
+                return
+
+        # Mode needs to be changed - update cache and send command
+        try:
+            self._last_set_hvac_modes[thermostat_id] = desired_mode
+            await self.hass.services.async_call(
+                CLIMATE_DOMAIN,
+                "set_hvac_mode",
+                {"entity_id": thermostat_id, "hvac_mode": desired_mode},
+                blocking=False,
+            )
+            _LOGGER.debug("Set thermostat %s to %s mode", thermostat_id, hvac_mode_str)
+        except Exception as err:
+            _LOGGER.debug(
+                "Failed to set hvac_mode for %s (may already be in target mode): %s",
+                thermostat_id,
+                err,
             )
 
     async def _async_ensure_climate_power_on(self, climate_entity_id: str) -> None:
@@ -662,6 +697,8 @@ class DeviceControlHandler:
         """
         if thermostat_id in self._last_set_temperatures:
             del self._last_set_temperatures[thermostat_id]
+        if thermostat_id in self._last_set_hvac_modes:
+            del self._last_set_hvac_modes[thermostat_id]
 
         # ALWAYS turn off associated power switch first if it exists
         # This is critical for devices like LG ThinQ AC that have separate power switches
