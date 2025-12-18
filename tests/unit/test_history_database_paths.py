@@ -39,7 +39,8 @@ async def test_async_load_from_database(monkeypatch):
                     "timestamp": datetime.now().isoformat(),
                     "current_temperature": 20.0,
                     "target_temperature": 21.0,
-                    "state": "heating",
+                    # Use uppercase to test normalization
+                    "state": "HEATING",
                 }
             ]
         }
@@ -56,7 +57,47 @@ async def test_async_load_from_database(monkeypatch):
     await tracker._async_load_from_database()
 
     assert "area1" in tracker._history
+    # State should be normalized to lowercase
+    assert tracker._history["area1"][0]["state"] == "heating"
     assert tracker._retention_days == 5
+
+
+@pytest.mark.asyncio
+async def test_async_load_prefers_database_when_db_has_entries(monkeypatch):
+    hass = MagicMock()
+    tracker = HistoryTracker(hass, storage_backend="json")
+
+    # Simulate async_get_database_stats returning >0 entries so loader prefers DB
+    async def fake_stats():
+        return {"total_entries": 5}
+
+    tracker.async_get_database_stats = AsyncMock(return_value={"total_entries": 5})
+
+    # Make the DB loader populate history when called
+    async def fake_db_load():
+        tracker._history = {
+            "area-db": [
+                {
+                    "timestamp": datetime.now().isoformat(),
+                    "current_temperature": 19.5,
+                    "target_temperature": 21.0,
+                    "state": "heating",
+                }
+            ]
+        }
+
+    tracker._async_load_from_database = AsyncMock(side_effect=fake_db_load)
+
+    # Ensure store has no backend preference so auto-detect runs
+    tracker._store.async_load = AsyncMock(return_value={})
+
+    # Pretend DB table exists so auto-detection can query stats
+    tracker._db_table = MagicMock()
+
+    await tracker.async_load()
+
+    assert tracker._storage_backend == "database"
+    assert "area-db" in tracker._history
 
 
 @pytest.mark.asyncio
