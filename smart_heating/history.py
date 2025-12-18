@@ -166,13 +166,32 @@ class HistoryTracker:
         if data and "storage_backend" in data:
             self._storage_backend = data["storage_backend"]
 
-        # Validate database support if backend is set to database
-        if self._storage_backend == HISTORY_STORAGE_DATABASE:
-            await self._async_validate_database_support()
+        # Always validate database support where possible so we can auto-detect
+        # an existing DB-backed history even if the JSON store doesn't contain
+        # a previous preference. This allows history to survive restarts where
+        # recorder becomes available later on.
+        await self._async_validate_database_support()
 
         # Now load the actual data
-        if self._storage_backend == HISTORY_STORAGE_DATABASE and self._db_table is not None:
-            await self._async_load_from_database()
+        # Prefer database storage automatically if available and contains data
+        if self._db_table is not None:
+            # Check whether DB has entries and prefer DB if it does. If the
+            # DB contains entries we switch to database backend automatically
+            # so users don't lose history after restarts.
+            try:
+                stats = await self.async_get_database_stats()
+                total = stats.get("total_entries") if isinstance(stats, dict) else None
+                if total and int(total) > 0:
+                    # Prefer DB-backed history if entries exist
+                    self._storage_backend = HISTORY_STORAGE_DATABASE
+                    await self._async_load_from_database()
+                else:
+                    # No DB entries: fall back to JSON storage
+                    await self._async_load_from_json()
+            except Exception:
+                # In case of any error querying DB, fall back to JSON to avoid
+                # leaving the integration without history at startup
+                await self._async_load_from_json()
         else:
             await self._async_load_from_json()
 
@@ -227,13 +246,23 @@ class HistoryTracker:
                                 "timestamp": row.timestamp.isoformat(),
                                 "current_temperature": row.current_temperature,
                                 "target_temperature": row.target_temperature,
-                                "state": row.state,
+                                # Normalize state values to lowercase so frontend
+                                # comparisons (e.g., 'heating'/'cooling') work
+                                "state": row.state.lower()
+                                if isinstance(row.state, str)
+                                else row.state,
                             }
                         )
 
                     return history_dict
 
             self._history = await recorder.async_add_executor_job(_load)
+
+            # Normalize any state values loaded from the database to lowercase
+            for area_id, entries in list(self._history.items()):
+                for entry in entries:
+                    if "state" in entry and isinstance(entry["state"], str):
+                        entry["state"] = entry["state"].lower()
 
             # Load retention setting from JSON store
             data = await self._store.async_load()
@@ -460,7 +489,7 @@ class HistoryTracker:
             # Custom time range
             start_iso = start_time.isoformat()
             end_iso = end_time.isoformat()
-            return [
+            entries = [
                 entry
                 for entry in self._history[area_id]
                 if start_iso <= entry["timestamp"] <= end_iso
@@ -469,10 +498,17 @@ class HistoryTracker:
             # Hours-based query
             cutoff = datetime.now() - timedelta(hours=hours)
             cutoff_iso = cutoff.isoformat()
-            return [entry for entry in self._history[area_id] if entry["timestamp"] > cutoff_iso]
+            entries = [entry for entry in self._history[area_id] if entry["timestamp"] > cutoff_iso]
         else:
             # Return all available history (within retention period)
-            return self._history[area_id]
+            entries = list(self._history[area_id])
+
+        # Normalize state values on return to ensure frontend comparisons work
+        for entry in entries:
+            if "state" in entry and isinstance(entry["state"], str):
+                entry["state"] = entry["state"].lower()
+
+        return entries
 
     def get_all_history(self) -> dict[str, list[dict[str, Any]]]:
         """Get all history.

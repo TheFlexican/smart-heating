@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Smart Night Boost:** Implemented a conservative learning-based night boost calculation in the backend learning engine to recommend small overnight temperature offsets based on historical heating/cooling data. This improves comfort during night hours while remaining conservative when data is insufficient.
 
 ### 🐛 Bug Fixes & Improvements
+- Fix: **History graph** — prefer database-backed history data automatically when the database contains entries (prevents history disappearing after restarts). Normalize history state values loaded from the database so heating/cooling indicators render correctly in the frontend. (#issue)
 - Fix: **TRV control logic conflict resolved** - TRVs now stay at heating temperature when target is reached, instead of rapidly switching between heating (18°C) and idle (10°C) temperatures. TRVs naturally close their valves when room temperature equals setpoint, eliminating control conflicts and false manual override warnings.
 - Fix: **Prevent false manual override detection** - System-initiated temperature changes (TRV idle/heating temps) now update internal cache before service calls, preventing coordinator from treating them as potential user overrides
 - Fix: **Comprehensive TRV (Thermostatic Radiator Valve) handling** - TRV climate entities (e.g., `climate.*_radiatorknop`) are now properly detected and controlled as valve devices instead of thermostats:
