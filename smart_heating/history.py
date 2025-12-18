@@ -681,13 +681,14 @@ class HistoryTracker:
             recorder = get_instance(self.hass)
 
             def _get_stats():
+                from sqlalchemy import func
+
                 with recorder.engine.connect() as conn:
-                    # Count total entries
-                    stmt = select(self._db_table.c.id)
-                    total = conn.execute(stmt).rowcount
+                    # Count total entries using COUNT(*) - rowcount doesn't work for SELECT
+                    stmt = select(func.count()).select_from(self._db_table)
+                    total = conn.execute(stmt).scalar() or 0
 
                     # Count by area
-                    from sqlalchemy import func
 
                     stmt = select(
                         self._db_table.c.area_id,
