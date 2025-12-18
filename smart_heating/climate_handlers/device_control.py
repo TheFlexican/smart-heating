@@ -572,35 +572,38 @@ class DeviceControlHandler:
     ) -> None:
         """Handle thermostat updates when area is idle (not actively heating/cooling).
 
-        For TRV devices: Set to target temp so they maintain the desired temperature.
+        For TRV devices: Set to trv_idle_temp to force valve closed.
         For regular thermostats, implements hysteresis-aware behavior.
         """
-        # For TRV devices, set to target temperature to maintain room temp
-        # TRVs naturally close when room reaches setpoint, no special idle logic needed
+        # For TRV devices, set to trv_idle_temp to force valve closed
+        # TRVs use their internal temperature sensor which may differ significantly
+        # from external room sensors. Setting to idle temp ensures valve closes
+        # regardless of where the room sensor is located.
         if self._is_trv_device(thermostat_id):
+            idle_temp = getattr(self.area_manager, "trv_idle_temp", 10.0)
             last_temp = self._last_set_temperatures.get(thermostat_id)
 
-            _LOGGER.warning(
-                "TRV %s idle: target=%.1f°C, last_cached=%.1f°C, will_update=%s",
+            _LOGGER.debug(
+                "TRV %s idle: target=%.1f°C, idle_setpoint=%.1f°C, last_cached=%.1f°C",
                 thermostat_id,
                 target_temp,
+                idle_temp,
                 last_temp if last_temp is not None else -999.0,
-                last_temp is None or abs(last_temp - target_temp) >= 0.1,
             )
 
-            if last_temp is None or abs(last_temp - target_temp) >= 0.1:
+            if last_temp is None or abs(last_temp - idle_temp) >= 0.1:
                 # Update cache BEFORE service call to prevent false manual override detection
-                self._last_set_temperatures[thermostat_id] = target_temp
+                self._last_set_temperatures[thermostat_id] = idle_temp
                 await self.hass.services.async_call(
                     CLIMATE_DOMAIN,
                     SERVICE_SET_TEMPERATURE,
-                    {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp},
+                    {"entity_id": thermostat_id, ATTR_TEMPERATURE: idle_temp},
                     blocking=True,
                 )
-                _LOGGER.warning(
-                    "TRV %s: SET TO %.1f°C (idle - maintaining target)",
+                _LOGGER.info(
+                    "TRV %s: SET TO %.1f°C (idle - forcing valve closed)",
                     thermostat_id,
-                    target_temp,
+                    idle_temp,
                 )
             return
 
