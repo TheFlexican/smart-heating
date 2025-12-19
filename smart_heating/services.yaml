@@ -264,14 +264,14 @@ set_night_boost:
       example: "06:00"
       selector:
         time:
-    smart_night_boost_enabled:
+    smart_boost_enabled:
       name: Smart Night Boost Enabled
       description: Enable adaptive learning to predict optimal heating start time
       required: false
       example: true
       selector:
         boolean:
-    smart_night_boost_target_time:
+    smart_boost_target_time:
       name: Smart Night Boost Target Time
       description: Desired time to reach target temperature (e.g., wake-up time)
       required: false

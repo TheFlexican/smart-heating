@@ -56,9 +56,9 @@ export interface Zone {
   night_boost_start_time?: string
   night_boost_end_time?: string
 
-  // Smart night boost settings
-  smart_night_boost_enabled?: boolean
-  smart_night_boost_target_time?: string
+  // Smart boost settings (AI-powered predictive heating)
+  smart_boost_enabled?: boolean
+  smart_boost_target_time?: string
   weather_entity_id?: string | null
 
   // Preset mode settings

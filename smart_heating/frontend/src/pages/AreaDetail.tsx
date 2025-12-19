@@ -142,6 +142,8 @@ const ZoneDetail = () => {
   const [logs, setLogs] = useState<AreaLogEntry[]>([])
   const [logsLoading, setLogsLoading] = useState(false)
   const [logFilter, setLogFilter] = useState<string>('all')
+  const [learningStats, setLearningStats] = useState<any>(null)
+  const [learningStatsLoading, setLearningStatsLoading] = useState(false)
   const [weatherEntities, setWeatherEntities] = useState<HassEntity[]>([])
   const [weatherEntitiesLoading, setWeatherEntitiesLoading] = useState(false)
   const [areaHeatingCurveCoefficient, setAreaHeatingCurveCoefficient] = useState<number | null>(
@@ -378,6 +380,31 @@ const ZoneDetail = () => {
       console.error('Failed to load available devices:', error)
     }
   }
+
+  const loadLearningStats = useCallback(async () => {
+    if (!areaId) return
+
+    try {
+      setLearningStatsLoading(true)
+      const response = await fetch(`/api/smart_heating/areas/${areaId}/learning/stats`)
+      if (response.ok) {
+        const data = await response.json()
+        setLearningStats(data.stats)
+      }
+    } catch (error) {
+      console.error('Failed to load learning stats:', error)
+    } finally {
+      setLearningStatsLoading(false)
+    }
+  }, [areaId])
+
+  // Load learning stats when tab is switched to Learning tab
+  useEffect(() => {
+    if (tabValue === 5) {
+      // Learning tab index
+      loadLearningStats()
+    }
+  }, [tabValue, loadLearningStats])
 
   const loadLogs = useCallback(async () => {
     if (!areaId) return
@@ -1538,7 +1565,7 @@ const ZoneDetail = () => {
             ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')
             : t('settingsCards.smartNightBoostDescription'),
         icon: <PsychologyIcon />,
-        badge: area.smart_night_boost_enabled ? 'LEARNING' : 'OFF',
+        badge: area.smart_boost_enabled ? 'LEARNING' : 'OFF',
         defaultExpanded: false,
         content:
           area.heating_type === 'airco' ? (
@@ -1568,7 +1595,7 @@ const ZoneDetail = () => {
                   </Typography>
                 </Box>
                 <Switch
-                  checked={area.smart_night_boost_enabled ?? false}
+                  checked={area.smart_boost_enabled ?? false}
                   onChange={async e => {
                     try {
                       await fetch('/api/smart_heating/call_service', {
@@ -1577,7 +1604,7 @@ const ZoneDetail = () => {
                         body: JSON.stringify({
                           service: 'set_night_boost',
                           area_id: area.id,
-                          smart_night_boost_enabled: e.target.checked,
+                          smart_boost_enabled: e.target.checked,
                         }),
                       })
                       loadData()
@@ -1591,7 +1618,7 @@ const ZoneDetail = () => {
               <TextField
                 label={t('settingsCards.targetWakeupTime')}
                 type="time"
-                value={area.smart_night_boost_target_time ?? '06:00'}
+                value={area.smart_boost_target_time ?? '06:00'}
                 data-testid="smart-night-boost-target-time-input"
                 onChange={async e => {
                   try {
@@ -1601,7 +1628,7 @@ const ZoneDetail = () => {
                       body: JSON.stringify({
                         service: 'set_night_boost',
                         area_id: area.id,
-                        smart_night_boost_target_time: e.target.value,
+                        smart_boost_target_time: e.target.value,
                       }),
                     })
                     loadData()
@@ -1609,14 +1636,14 @@ const ZoneDetail = () => {
                     console.error('Failed to update target time:', error)
                   }
                 }}
-                disabled={!area.smart_night_boost_enabled}
+                disabled={!area.smart_boost_enabled}
                 fullWidth
                 helperText={t('settingsCards.targetWakeupTimeHelper')}
                 slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 300 } }}
                 sx={{ mb: 3 }}
               />
 
-              <FormControl fullWidth sx={{ mb: 3 }} disabled={!area.smart_night_boost_enabled}>
+              <FormControl fullWidth sx={{ mb: 3 }} disabled={!area.smart_boost_enabled}>
                 <InputLabel>{t('settingsCards.outdoorTemperatureSensor')}</InputLabel>
                 <Select
                   value={area.weather_entity_id || ''}
@@ -1672,7 +1699,7 @@ const ZoneDetail = () => {
                 </Typography>
               </FormControl>
 
-              {area.smart_night_boost_enabled && (
+              {area.smart_boost_enabled && (
                 <Box sx={{ mt: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     <strong>{t('settingsCards.smartNightBoostHowItWorksTitle')}</strong>
@@ -2668,7 +2695,7 @@ const ZoneDetail = () => {
                 {t('areaDetail.learningDescription')}
               </Typography>
 
-              {area.smart_night_boost_enabled ? (
+              {area.smart_boost_enabled ? (
                 <Box sx={{ mt: 3 }}>
                   <Typography variant="body2" color="success.main" gutterBottom>
                     ✓ {t('areaDetail.smartNightBoostActive')}
@@ -2697,7 +2724,7 @@ const ZoneDetail = () => {
                         {t('areaDetail.targetWakeupTime')}
                       </Typography>
                       <Typography variant="body2" color="text.primary">
-                        <strong>{area.smart_night_boost_target_time ?? '06:00'}</strong>
+                        <strong>{area.smart_boost_target_time ?? '06:00'}</strong>
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -2713,6 +2740,121 @@ const ZoneDetail = () => {
                       </Typography>
                     </Box>
                   </Box>
+
+                  {/* Learning Statistics */}
+                  <Typography variant="subtitle2" color="text.primary" gutterBottom sx={{ mt: 3 }}>
+                    Learning Data
+                  </Typography>
+                  {learningStatsLoading ? (
+                    <Box sx={{ textAlign: 'center', py: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Loading statistics...
+                      </Typography>
+                    </Box>
+                  ) : learningStats ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Total Events
+                        </Typography>
+                        <Typography variant="body2" color="text.primary">
+                          <strong>{learningStats.total_events_all_time || 0}</strong>
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Data Points (Last 30 Days)
+                        </Typography>
+                        <Typography variant="body2" color="text.primary">
+                          <strong>{learningStats.data_points || 0}</strong>
+                        </Typography>
+                      </Box>
+                      {learningStats.avg_heating_rate > 0 && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Average Heating Rate
+                          </Typography>
+                          <Typography variant="body2" color="text.primary">
+                            <strong>{learningStats.avg_heating_rate.toFixed(4)}°C/min</strong>
+                          </Typography>
+                        </Box>
+                      )}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Ready for Predictions
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color={
+                            learningStats.ready_for_predictions ? 'success.main' : 'warning.main'
+                          }
+                        >
+                          <strong>
+                            {learningStats.ready_for_predictions ? 'Yes' : 'No (need 20+ events)'}
+                          </strong>
+                        </Typography>
+                      </Box>
+                      {learningStats.first_event_time && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            First Event
+                          </Typography>
+                          <Typography variant="body2" color="text.primary">
+                            {new Date(learningStats.first_event_time).toLocaleString()}
+                          </Typography>
+                        </Box>
+                      )}
+                      {learningStats.last_event_time && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Last Event
+                          </Typography>
+                          <Typography variant="body2" color="text.primary">
+                            {new Date(learningStats.last_event_time).toLocaleString()}
+                          </Typography>
+                        </Box>
+                      )}
+                      {learningStats.recent_events && learningStats.recent_events.length > 0 && (
+                        <Box sx={{ mt: 2 }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            display="block"
+                            gutterBottom
+                          >
+                            Recent Events (Last 10):
+                          </Typography>
+                          <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
+                            {learningStats.recent_events.map((event: any, index: number) => (
+                              <Box
+                                key={index}
+                                sx={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  py: 0.5,
+                                  borderBottom: '1px solid',
+                                  borderColor: 'divider',
+                                }}
+                              >
+                                <Typography variant="caption" color="text.secondary">
+                                  {new Date(event.timestamp).toLocaleString()}
+                                </Typography>
+                                <Typography variant="caption" color="text.primary">
+                                  {event.heating_rate.toFixed(4)}°C/min
+                                </Typography>
+                              </Box>
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+                    </Box>
+                  ) : (
+                    <Box sx={{ textAlign: 'center', py: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No learning data available yet. Start heating cycles to collect data.
+                      </Typography>
+                    </Box>
+                  )}
 
                   <Typography variant="subtitle2" color="text.primary" gutterBottom sx={{ mt: 3 }}>
                     {t('areaDetail.learningProcessTitle')}

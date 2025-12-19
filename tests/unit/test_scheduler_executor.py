@@ -74,10 +74,10 @@ def test_get_target_time_and_temp_from_schedule():
 def test_get_target_time_from_config_returns_none_and_value():
     hass = make_hass()
     se = ScheduleExecutor(hass, MagicMock())
-    area = SimpleNamespace(area_id="a1", smart_night_boost_target_time=None)
+    area = SimpleNamespace(area_id="a1", smart_boost_target_time=None)
     now = datetime(2025, 12, 12, 0, 0)
     assert se._get_target_time_from_config(area, now) is None
-    area.smart_night_boost_target_time = "06:30"
+    area.smart_boost_target_time = "06:30"
     t = se._get_target_time_from_config(area, now)
     assert t.hour == 6 and t.minute == 30
 

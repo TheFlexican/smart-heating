@@ -128,8 +128,8 @@ class TestCoordinatorDataUpdate:
         mock_area.night_boost_offset = 0.5
         mock_area.night_boost_start_time = "22:00"
         mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_night_boost_enabled = False
-        mock_area.smart_night_boost_target_time = "06:00"
+        mock_area.smart_boost_enabled = False
+        mock_area.smart_boost_target_time = "06:00"
         mock_area.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 21.0
 
@@ -195,8 +195,8 @@ class TestCoordinatorDataUpdate:
         mock_area.night_boost_offset = 0.5
         mock_area.night_boost_start_time = "22:00"
         mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_night_boost_enabled = False
-        mock_area.smart_night_boost_target_time = "06:00"
+        mock_area.smart_boost_enabled = False
+        mock_area.smart_boost_target_time = "06:00"
         mock_area.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 21.0
 
@@ -480,8 +480,8 @@ class TestCoordinatorDeviceUpdates:
         mock_area.night_boost_offset = 0.5
         mock_area.night_boost_start_time = "22:00"
         mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_night_boost_enabled = False
-        mock_area.smart_night_boost_target_time = "06:00"
+        mock_area.smart_boost_enabled = False
+        mock_area.smart_boost_target_time = "06:00"
         mock_area.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 21.0
 
@@ -551,8 +551,8 @@ class TestCoordinatorDeviceUpdates:
         mock_area.night_boost_offset = 0.5
         mock_area.night_boost_start_time = "22:00"
         mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_night_boost_enabled = False
-        mock_area.smart_night_boost_target_time = "06:00"
+        mock_area.smart_boost_enabled = False
+        mock_area.smart_boost_target_time = "06:00"
         mock_area.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 21.0
 
@@ -611,8 +611,8 @@ class TestCoordinatorAreaUpdates:
         mock_area.night_boost_offset = 0.5
         mock_area.night_boost_start_time = "22:00"
         mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_night_boost_enabled = False
-        mock_area.smart_night_boost_target_time = "06:00"
+        mock_area.smart_boost_enabled = False
+        mock_area.smart_boost_target_time = "06:00"
         mock_area.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 21.0
 
@@ -661,8 +661,8 @@ class TestCoordinatorAreaUpdates:
         mock_area.night_boost_offset = 0.5
         mock_area.night_boost_start_time = "22:00"
         mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_night_boost_enabled = False
-        mock_area.smart_night_boost_target_time = "06:00"
+        mock_area.smart_boost_enabled = False
+        mock_area.smart_boost_target_time = "06:00"
         mock_area.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 22.0
 
@@ -711,8 +711,8 @@ class TestCoordinatorAreaUpdates:
         mock_area.night_boost_offset = 0.5
         mock_area.night_boost_start_time = "22:00"
         mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_night_boost_enabled = False
-        mock_area.smart_night_boost_target_time = "06:00"
+        mock_area.smart_boost_enabled = False
+        mock_area.smart_boost_target_time = "06:00"
         mock_area.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 21.0
 

@@ -96,8 +96,8 @@ class TestBuildAreaResponse:
         area.night_boost_offset = 0.0
         area.night_boost_start_time = "22:00"
         area.night_boost_end_time = "06:00"
-        area.smart_night_boost_enabled = False
-        area.smart_night_boost_target_time = "06:00"
+        area.smart_boost_enabled = False
+        area.smart_boost_target_time = "06:00"
         area.weather_entity_id = None
         area.preset_mode = "none"
         area.away_temp = 16.0
@@ -152,8 +152,8 @@ class TestBuildAreaResponse:
         area.night_boost_offset = 0.0
         area.night_boost_start_time = "22:00"
         area.night_boost_end_time = "06:00"
-        area.smart_night_boost_enabled = False
-        area.smart_night_boost_target_time = "06:00"
+        area.smart_boost_enabled = False
+        area.smart_boost_target_time = "06:00"
         area.weather_entity_id = None
         area.preset_mode = "none"
         area.away_temp = 16.0
@@ -218,8 +218,8 @@ class TestBuildAreaResponse:
         area.night_boost_offset = 0.0
         area.night_boost_start_time = "22:00"
         area.night_boost_end_time = "06:00"
-        area.smart_night_boost_enabled = False
-        area.smart_night_boost_target_time = "06:00"
+        area.smart_boost_enabled = False
+        area.smart_boost_target_time = "06:00"
         area.weather_entity_id = None
         area.preset_mode = "none"
         area.away_temp = 16.0

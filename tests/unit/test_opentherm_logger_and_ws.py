@@ -144,8 +144,8 @@ def test_websocket_get_areas_success():
     area.night_boost_offset = 0
     area.night_boost_start_time = None
     area.night_boost_end_time = None
-    area.smart_night_boost_enabled = False
-    area.smart_night_boost_target_time = None
+    area.smart_boost_enabled = False
+    area.smart_boost_target_time = None
     area.weather_entity_id = None
     area.preset_mode = None
     area.away_temp = None

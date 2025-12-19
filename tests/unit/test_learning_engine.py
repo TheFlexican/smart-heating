@@ -478,10 +478,21 @@ class TestLearningStats:
 
         learning_engine._weather_entity = "weather.home"
 
+        detailed_stats = {
+            "heating_rates": heating_rates,
+            "recent_events": [
+                {"timestamp": "2024-01-01T10:00:00", "heating_rate": 0.10},
+                {"timestamp": "2024-01-01T11:00:00", "heating_rate": 0.12},
+            ],
+            "first_event_time": "2024-01-01T08:00:00",
+            "last_event_time": "2024-01-01T12:00:00",
+            "total_events_all_time": 25,
+        }
+
         with patch.object(
             learning_engine,
-            "_async_get_recent_heating_rates",
-            AsyncMock(return_value=heating_rates),
+            "_async_get_detailed_statistics",
+            AsyncMock(return_value=detailed_stats),
         ):
             stats = await learning_engine.async_get_learning_stats("living_room")
 
@@ -491,15 +502,19 @@ class TestLearningStats:
         assert stats["max_heating_rate"] == pytest.approx(0.12)
         assert stats["ready_for_predictions"] is True
         assert stats["outdoor_temp_available"] is True
+        assert stats["first_event_time"] == "2024-01-01T08:00:00"
+        assert stats["last_event_time"] == "2024-01-01T12:00:00"
+        assert stats["total_events_all_time"] == 25
+        assert len(stats["recent_events"]) == 2
 
     @pytest.mark.asyncio
-    async def test_calculate_smart_night_boost(self, learning_engine):
+    async def test_calculate_smart_boost(self, learning_engine):
         """Test smart night boost calculation with insufficient and sufficient data."""
         # Insufficient data -> None
         with patch.object(
             learning_engine, "_async_get_recent_heating_rates", AsyncMock(return_value=[])
         ):
-            result = await learning_engine.async_calculate_smart_night_boost("living_room")
+            result = await learning_engine.async_calculate_smart_boost_offset("living_room")
             assert result is None
 
         # Sufficient data should return a small positive boost
@@ -514,7 +529,7 @@ class TestLearningStats:
             with patch.object(
                 learning_engine, "_async_get_outdoor_temperature", AsyncMock(return_value=5.0)
             ):
-                result2 = await learning_engine.async_calculate_smart_night_boost("living_room")
+                result2 = await learning_engine.async_calculate_smart_boost_offset("living_room")
 
         assert result2 is not None
         # Expect a small boost (e.g., between 0.1 and 3.0°C)
@@ -530,6 +545,6 @@ class TestLearningStats:
             with patch.object(
                 learning_engine, "_async_get_outdoor_temperature", AsyncMock(return_value=None)
             ):
-                result3 = await learning_engine.async_calculate_smart_night_boost("living_room")
+                result3 = await learning_engine.async_calculate_smart_boost_offset("living_room")
 
         assert result3 == 3.0

@@ -37,8 +37,8 @@ def test_build_device_info_and_area_response():
     area.night_boost_offset = 0.5
     area.night_boost_start_time = None
     area.night_boost_end_time = None
-    area.smart_night_boost_enabled = False
-    area.smart_night_boost_target_time = None
+    area.smart_boost_enabled = False
+    area.smart_boost_target_time = None
     area.weather_entity_id = None
     area.preset_mode = "home"
     area.away_temp = 15.0

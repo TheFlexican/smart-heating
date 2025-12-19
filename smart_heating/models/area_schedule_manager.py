@@ -132,6 +132,8 @@ class AreaScheduleManager:
         pre-heat the space before the morning schedule. It works additively on
         top of any active schedule (e.g., sleep preset).
 
+        Smart boost takes priority - if smart boost is active, regular night boost is skipped.
+
         Args:
             target: Current target temperature
             current_time: Current time
@@ -140,6 +142,18 @@ class AreaScheduleManager:
             Adjusted temperature with night boost
         """
         if not self.area.night_boost_enabled:
+            return target
+
+        # Skip regular night boost if smart boost is active (smart boost has priority)
+        if hasattr(self.area, "smart_boost_active") and self.area.smart_boost_active:
+            _LOGGER.debug("Night boost skipped for %s: Smart boost is active", self.area.area_id)
+            return target
+
+        # Validate time period
+        if self.area.night_boost_start_time == self.area.night_boost_end_time:
+            _LOGGER.warning(
+                "Night boost disabled for %s: start_time equals end_time", self.area.area_id
+            )
             return target
 
         # Check if current time is within night boost period

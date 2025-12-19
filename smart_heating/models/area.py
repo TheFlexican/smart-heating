@@ -74,15 +74,19 @@ class Area:
         self.area_manager: "AreaManager | None" = None  # Reference to parent AreaManager
 
         # Night boost settings
-        self.night_boost_enabled: bool = True
+        self.night_boost_enabled: bool = False  # Disabled by default to avoid surprises
         self.night_boost_offset: float = 0.5  # Add 0.5°C during night hours
         self.night_boost_start_time: str = DEFAULT_NIGHT_BOOST_START_TIME
         self.night_boost_end_time: str = DEFAULT_NIGHT_BOOST_END_TIME
 
-        # Smart night boost settings
-        self.smart_night_boost_enabled: bool = False
-        self.smart_night_boost_target_time: str = "06:00"  # Time when room should be at target temp
+        # Smart boost settings (AI-powered predictive heating)
+        self.smart_boost_enabled: bool = False
+        self.smart_boost_target_time: str = "06:00"  # Time when room should be at target temp
         self.weather_entity_id: str | None = None  # Outdoor temperature sensor
+
+        # Smart boost runtime state (not persisted)
+        self.smart_boost_active: bool = False  # Currently in smart boost heating period
+        self.smart_boost_original_target: float | None = None  # Original target before smart boost
 
         # Preset mode settings
         self.preset_mode: str = PRESET_NONE
@@ -421,8 +425,8 @@ class Area:
             "night_boost_offset": self.night_boost_offset,
             "night_boost_start_time": self.night_boost_start_time,
             "night_boost_end_time": self.night_boost_end_time,
-            "smart_night_boost_enabled": self.smart_night_boost_enabled,
-            "smart_night_boost_target_time": self.smart_night_boost_target_time,
+            "smart_boost_enabled": self.smart_boost_enabled,
+            "smart_boost_target_time": self.smart_boost_target_time,
             "weather_entity_id": self.weather_entity_id,
             # Preset modes
             "preset_mode": self.preset_mode,
@@ -495,8 +499,8 @@ class Area:
             "night_boost_start_time", DEFAULT_NIGHT_BOOST_START_TIME
         )
         area.night_boost_end_time = data.get("night_boost_end_time", DEFAULT_NIGHT_BOOST_END_TIME)
-        area.smart_night_boost_enabled = data.get("smart_night_boost_enabled", False)
-        area.smart_night_boost_target_time = data.get("smart_night_boost_target_time", "06:00")
+        area.smart_boost_enabled = data.get("smart_boost_enabled", False)
+        area.smart_boost_target_time = data.get("smart_boost_target_time", "06:00")
         area.weather_entity_id = data.get("weather_entity_id")
 
         # Preset modes

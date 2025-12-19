@@ -292,7 +292,7 @@ class ConfigManager:
         area.night_boost_offset = area_data.get("night_boost_offset", 0.5)
         area.night_boost_start_time = area_data.get("night_boost_start_time")
         area.night_boost_end_time = area_data.get("night_boost_end_time")
-        area.smart_night_boost_enabled = area_data.get("smart_night_boost_enabled", False)
+        area.smart_boost_enabled = area_data.get("smart_boost_enabled", False)
         area.weather_entity_id = area_data.get("weather_entity_id")
 
         if "devices" in area_data:

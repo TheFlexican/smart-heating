@@ -204,8 +204,8 @@ async def async_handle_set_night_boost(
     offset = call.data.get(ATTR_NIGHT_BOOST_OFFSET)
     start_time = call.data.get(ATTR_NIGHT_BOOST_START_TIME)
     end_time = call.data.get(ATTR_NIGHT_BOOST_END_TIME)
-    smart_enabled = call.data.get("smart_night_boost_enabled")
-    smart_target_time = call.data.get("smart_night_boost_target_time")
+    smart_enabled = call.data.get("smart_boost_enabled")
+    smart_target_time = call.data.get("smart_boost_target_time")
     weather_entity_id = call.data.get("weather_entity_id")
 
     _LOGGER.debug(
@@ -236,9 +236,9 @@ async def async_handle_set_night_boost(
 
         # Smart night boost settings
         if smart_enabled is not None:
-            area.smart_night_boost_enabled = smart_enabled
+            area.smart_boost_enabled = smart_enabled
         if smart_target_time is not None:
-            area.smart_night_boost_target_time = smart_target_time
+            area.smart_boost_target_time = smart_target_time
         if weather_entity_id is not None:
             _LOGGER.info(
                 "Setting weather_entity_id for area %s: %s → %s",

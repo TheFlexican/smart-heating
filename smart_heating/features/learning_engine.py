@@ -475,14 +475,14 @@ class LearningEngine:
         else:
             return 0.8  # Slower when very cold
 
-    async def async_calculate_smart_night_boost(
+    async def async_calculate_smart_boost_offset(
         self,
         area_id: str,
     ) -> float | None:  # NOSONAR - intentionally async (implementation improved)
-        """Calculate optimal night boost offset based on learning data.
+        """Calculate optimal boost offset based on learning data.
 
         The algorithm uses recent heating rate statistics to estimate how much
-        temperature is lost overnight and recommends a small offset (in °C) to
+        temperature is lost during inactive periods and recommends a small offset (in °C) to
         compensate. The estimate is conservative and will return ``None`` when
         there is insufficient data.
 
@@ -490,7 +490,7 @@ class LearningEngine:
             area_id: Area identifier
 
         Returns:
-            Recommended night boost offset (rounded to 1 decimal) or ``None`` if
+            Recommended boost offset (rounded to 1 decimal) or ``None`` if
             insufficient data or negligible boost suggested
         """
         # Gather recent heating rate statistics (°C per minute)
@@ -498,7 +498,7 @@ class LearningEngine:
 
         if len(heating_rates) < MIN_LEARNING_EVENTS:
             _LOGGER.debug(
-                "Insufficient data for smart night boost (need %d events, have %d)",
+                "Insufficient data for smart boost (need %d events, have %d)",
                 MIN_LEARNING_EVENTS,
                 len(heating_rates),
             )
@@ -531,13 +531,13 @@ class LearningEngine:
 
         # If the suggested boost is negligible, don't recommend anything
         if boost < 0.1:
-            _LOGGER.debug("Calculated night boost negligible (%.3f°C) for %s", boost, area_id)
+            _LOGGER.debug("Calculated boost offset negligible (%.3f°C) for %s", boost, area_id)
             return None
 
         # Round to one decimal for user-friendly offsets
         result = round(boost, 1)
         _LOGGER.debug(
-            "Calculated night boost for %s: %.1f°C (avg_rate=%.3f°C/min, outdoor=%s)",
+            "Calculated boost offset for %s: %.1f°C (avg_rate=%.3f°C/min, outdoor=%s)",
             area_id,
             result,
             avg_rate,
@@ -554,7 +554,13 @@ class LearningEngine:
         Returns:
             Dictionary with learning statistics
         """
-        heating_rates = await self._async_get_recent_heating_rates(area_id, days=30)
+        from datetime import timedelta
+
+        # Get detailed statistics from database
+        detailed_stats = await self._async_get_detailed_statistics(area_id, days=30)
+
+        # Get basic heating rates for compatibility
+        heating_rates = detailed_stats.get("heating_rates", [])
 
         return {
             "data_points": len(heating_rates),
@@ -563,4 +569,121 @@ class LearningEngine:
             "max_heating_rate": max(heating_rates) if heating_rates else 0,
             "ready_for_predictions": len(heating_rates) >= MIN_LEARNING_EVENTS,
             "outdoor_temp_available": self._weather_entity is not None,
+            "first_event_time": detailed_stats.get("first_event_time"),
+            "last_event_time": detailed_stats.get("last_event_time"),
+            "recent_events": detailed_stats.get("recent_events", []),
+            "total_events_all_time": detailed_stats.get("total_events_all_time", 0),
         }
+
+    async def _async_get_detailed_statistics(self, area_id: str, days: int = 30) -> dict[str, Any]:
+        """Get detailed learning statistics from database.
+
+        Args:
+            area_id: Area identifier
+            days: Number of days to look back
+
+        Returns:
+            Dictionary with detailed statistics
+        """
+        from datetime import timedelta
+        from homeassistant.components.recorder import get_instance
+        from homeassistant.components.recorder.statistics import (
+            statistics_during_period,
+        )
+
+        statistic_id = self._get_statistic_id("heating_rate", area_id)
+        end_time = datetime.now()
+        start_time = end_time - timedelta(days=days)
+
+        try:
+            # Get statistics for the period
+            stats = await get_instance(self.hass).async_add_executor_job(
+                statistics_during_period,
+                self.hass,
+                start_time,
+                end_time,
+                {statistic_id},
+                "hour",
+                None,
+                {"mean"},
+            )
+
+            # Get all-time statistics for total count
+            all_time_stats = await get_instance(self.hass).async_add_executor_job(
+                statistics_during_period,
+                self.hass,
+                None,  # No start time = all time
+                end_time,
+                {statistic_id},
+                "hour",
+                None,
+                {"mean"},
+            )
+
+            if not stats or statistic_id not in stats:
+                _LOGGER.debug("No heating rate statistics found for %s", area_id)
+                return {
+                    "heating_rates": [],
+                    "recent_events": [],
+                    "total_events_all_time": 0,
+                }
+
+            stat_data = stats[statistic_id]
+            all_time_data = all_time_stats.get(statistic_id, []) if all_time_stats else []
+
+            # Extract heating rates
+            heating_rates = [
+                s["mean"] for s in stat_data if s.get("mean") is not None and s["mean"] > 0
+            ]
+
+            # Get recent events (last 10)
+            recent_events = []
+            for stat in reversed(stat_data[-10:]):
+                if stat.get("mean") is not None and stat["mean"] > 0:
+                    recent_events.append(
+                        {
+                            "timestamp": stat.get("start", stat.get("end")).isoformat(),
+                            "heating_rate": round(stat["mean"], 4),
+                        }
+                    )
+
+            # Get first and last event times
+            first_event_time = None
+            last_event_time = None
+
+            if all_time_data:
+                first_valid = next(
+                    (s for s in all_time_data if s.get("mean") is not None and s["mean"] > 0), None
+                )
+                if first_valid:
+                    first_event_time = first_valid.get("start", first_valid.get("end"))
+                    if first_event_time:
+                        first_event_time = first_event_time.isoformat()
+
+            if stat_data:
+                last_valid = next(
+                    (s for s in reversed(stat_data) if s.get("mean") is not None and s["mean"] > 0),
+                    None,
+                )
+                if last_valid:
+                    last_event_time = last_valid.get("start", last_valid.get("end"))
+                    if last_event_time:
+                        last_event_time = last_event_time.isoformat()
+
+            return {
+                "heating_rates": heating_rates,
+                "recent_events": recent_events,
+                "first_event_time": first_event_time,
+                "last_event_time": last_event_time,
+                "total_events_all_time": len(
+                    [s for s in all_time_data if s.get("mean") is not None and s["mean"] > 0]
+                ),
+            }
+
+        except Exception as err:
+            _LOGGER.error("Error getting detailed statistics for %s: %s", area_id, err)
+            return {
+                "heating_rates": [],
+                "recent_events": [],
+                "total_events_all_time": 0,
+            }

@@ -184,8 +184,8 @@ def _build_area_summary(area, devices_data: list[dict[str, Any]]) -> dict[str, A
         "night_boost_start_time": area.night_boost_start_time,
         "night_boost_end_time": area.night_boost_end_time,
         # Smart night boost
-        "smart_night_boost_enabled": area.smart_night_boost_enabled,
-        "smart_night_boost_target_time": area.smart_night_boost_target_time,
+        "smart_boost_enabled": area.smart_boost_enabled,
+        "smart_boost_target_time": area.smart_boost_target_time,
         "weather_entity_id": area.weather_entity_id,
         # Preset modes
         "preset_mode": area.preset_mode,

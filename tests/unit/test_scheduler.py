@@ -53,7 +53,7 @@ def mock_area_with_schedule(mock_area_data):
     area.current_temperature = 18.0
     area.manual_override = False
     area.schedules = {}
-    area.smart_night_boost_enabled = False
+    area.smart_boost_enabled = False
     area.weather_entity_id = None
     return area
 
@@ -467,18 +467,18 @@ class TestSmartNightBoost:
 
         assert abs(temp - 20.0) < 0.1  # Allow small floating point difference
 
-    async def test_handle_smart_night_boost_no_config(
+    async def test_handle_smart_boost_no_config(
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test smart night boost with no config returns early."""
-        mock_area_with_schedule.smart_night_boost_enabled = True
-        mock_area_with_schedule.smart_night_boost_target_time = None
+        mock_area_with_schedule.smart_boost_enabled = True
+        mock_area_with_schedule.smart_boost_target_time = None
         mock_area_with_schedule.schedules = {}
 
         now = datetime(2024, 1, 1, 6, 0)
 
         # Should return early without errors
-        await scheduler_with_learning._handle_smart_night_boost(mock_area_with_schedule, now)
+        await scheduler_with_learning._handle_smart_boost(mock_area_with_schedule, now)
 
 
 class TestAreaLogger:
@@ -511,50 +511,78 @@ class TestAreaLogger:
 class TestSmartNightBoostEdgeCases:
     """Test smart night boost edge cases."""
 
-    async def test_handle_smart_night_boost_no_current_temp(
+    async def test_handle_smart_boost_no_current_temp(
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test smart night boost when area has no current temperature."""
-        mock_area_with_schedule.smart_night_boost_enabled = True
-        mock_area_with_schedule.smart_night_boost_target_time = "07:00"
+        mock_area_with_schedule.smart_boost_enabled = True
+        mock_area_with_schedule.smart_boost_target_time = "07:00"
         mock_area_with_schedule.current_temperature = None
         mock_area_with_schedule.schedules = {}
 
         now = datetime(2024, 1, 1, 6, 0)
 
         # Should return early due to no temperature data
-        await scheduler_with_learning._handle_smart_night_boost(mock_area_with_schedule, now)
+        await scheduler_with_learning._handle_smart_boost(mock_area_with_schedule, now)
 
-    async def test_handle_smart_night_boost_target_passed_today(
+    async def test_handle_smart_boost_target_passed_today(
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test smart night boost when target time has already passed today."""
-        mock_area_with_schedule.smart_night_boost_enabled = True
-        mock_area_with_schedule.smart_night_boost_target_time = "07:00"
+        mock_area_with_schedule.smart_boost_enabled = True
+        mock_area_with_schedule.smart_boost_target_time = "07:00"
         mock_area_with_schedule.current_temperature = 18.0
         mock_area_with_schedule.target_temperature = 21.0
-        mock_area_with_schedule.schedules = {}
+        # Add a schedule so smart boost will work (it requires schedules)
+        mock_schedule = MagicMock()
+        mock_schedule.enabled = True
+        mock_schedule.day = 0  # Monday
+        mock_schedule.start_time = "07:00"
+        mock_schedule.temperature = 21.0
+        mock_area_with_schedule.schedules = {"schedule1": mock_schedule}
         mock_area_with_schedule.weather_entity_id = None
+        # Add runtime state
+        mock_area_with_schedule.smart_boost_active = False
+        mock_area_with_schedule.smart_boost_original_target = None
+        # Mock schedule manager to return None for active schedule (not in active schedule period)
+        mock_area_with_schedule._schedule_manager = MagicMock()
+        mock_area_with_schedule._schedule_manager.get_active_schedule_temperature.return_value = (
+            None
+        )
 
         # Current time is after target (8 AM > 7 AM)
         now = datetime(2024, 1, 1, 8, 0)
 
         # Should use tomorrow's target
-        await scheduler_with_learning._handle_smart_night_boost(mock_area_with_schedule, now)
+        await scheduler_with_learning._handle_smart_boost(mock_area_with_schedule, now)
 
         # Verify prediction was called
         scheduler_with_learning.learning_engine.async_predict_heating_time.assert_called()
 
-    async def test_handle_smart_night_boost_no_prediction(
+    async def test_handle_smart_boost_no_prediction(
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test smart night boost when learning engine returns None."""
-        mock_area_with_schedule.smart_night_boost_enabled = True
-        mock_area_with_schedule.smart_night_boost_target_time = "07:00"
+        mock_area_with_schedule.smart_boost_enabled = True
+        mock_area_with_schedule.smart_boost_target_time = "07:00"
         mock_area_with_schedule.current_temperature = 18.0
         mock_area_with_schedule.target_temperature = 21.0
-        mock_area_with_schedule.schedules = {}
+        # Add a schedule so smart boost will work (it requires schedules)
+        mock_schedule = MagicMock()
+        mock_schedule.enabled = True
+        mock_schedule.day = 0  # Monday
+        mock_schedule.start_time = "07:00"
+        mock_schedule.temperature = 21.0
+        mock_area_with_schedule.schedules = {"schedule1": mock_schedule}
         mock_area_with_schedule.weather_entity_id = None
+        # Add runtime state
+        mock_area_with_schedule.smart_boost_active = False
+        mock_area_with_schedule.smart_boost_original_target = None
+        # Mock schedule manager to return None for active schedule
+        mock_area_with_schedule._schedule_manager = MagicMock()
+        mock_area_with_schedule._schedule_manager.get_active_schedule_temperature.return_value = (
+            None
+        )
 
         # Learning engine returns None (no prediction available)
         scheduler_with_learning.learning_engine.async_predict_heating_time = AsyncMock(
@@ -564,14 +592,14 @@ class TestSmartNightBoostEdgeCases:
         now = datetime(2024, 1, 1, 6, 0)
 
         # Should return early when no prediction
-        await scheduler_with_learning._handle_smart_night_boost(mock_area_with_schedule, now)
+        await scheduler_with_learning._handle_smart_boost(mock_area_with_schedule, now)
 
-    async def test_handle_smart_night_boost_in_heating_window(
+    async def test_handle_smart_boost_in_heating_window(
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test smart night boost when current time is in optimal heating window."""
-        mock_area_with_schedule.smart_night_boost_enabled = True
-        mock_area_with_schedule.smart_night_boost_target_time = "07:00"
+        mock_area_with_schedule.smart_boost_enabled = True
+        mock_area_with_schedule.smart_boost_target_time = "07:00"
         mock_area_with_schedule.current_temperature = 18.0
         mock_area_with_schedule.target_temperature = 21.0
         mock_area_with_schedule.schedules = {}
@@ -586,14 +614,14 @@ class TestSmartNightBoostEdgeCases:
         now = datetime(2024, 1, 1, 6, 15)
 
         # Should activate smart night boost
-        await scheduler_with_learning._handle_smart_night_boost(mock_area_with_schedule, now)
+        await scheduler_with_learning._handle_smart_boost(mock_area_with_schedule, now)
 
-    async def test_handle_smart_night_boost_before_heating_window(
+    async def test_handle_smart_boost_before_heating_window(
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test smart night boost when current time is before optimal heating window."""
-        mock_area_with_schedule.smart_night_boost_enabled = True
-        mock_area_with_schedule.smart_night_boost_target_time = "07:00"
+        mock_area_with_schedule.smart_boost_enabled = True
+        mock_area_with_schedule.smart_boost_target_time = "07:00"
         mock_area_with_schedule.current_temperature = 18.0
         mock_area_with_schedule.target_temperature = 21.0
         mock_area_with_schedule.schedules = {}
@@ -608,7 +636,7 @@ class TestSmartNightBoostEdgeCases:
         now = datetime(2024, 1, 1, 5, 0)
 
         # Should log that it will start later
-        await scheduler_with_learning._handle_smart_night_boost(mock_area_with_schedule, now)
+        await scheduler_with_learning._handle_smart_boost(mock_area_with_schedule, now)
 
     async def test_get_target_time_and_temp_from_schedule_with_preset(
         self, scheduler: ScheduleExecutor, mock_area_with_schedule
@@ -699,7 +727,7 @@ class TestSmartNightBoostEdgeCases:
         self, scheduler: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test getting target time from config returns None when not configured."""
-        mock_area_with_schedule.smart_night_boost_target_time = None
+        mock_area_with_schedule.smart_boost_target_time = None
 
         now = datetime(2024, 1, 1, 6, 0)
 
@@ -711,7 +739,7 @@ class TestSmartNightBoostEdgeCases:
         self, scheduler: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test getting target time from config returns proper datetime."""
-        mock_area_with_schedule.smart_night_boost_target_time = "07:30"
+        mock_area_with_schedule.smart_boost_target_time = "07:30"
 
         now = datetime(2024, 1, 1, 6, 0)
 

@@ -47,7 +47,7 @@ def mock_area():
     area.manual_override = False
     area.schedules = {}
     area.weather_entity_id = None
-    area.smart_night_boost_target_time = None
+    area.smart_boost_target_time = None
     # Preset temperatures
     area.away_temp = 16.0
     area.eco_temp = 18.0
@@ -385,7 +385,7 @@ class TestTargetTimeFromConfig:
 
     def test_get_target_time_from_config_valid(self, scheduler, mock_area):
         """Test getting target time from area configuration."""
-        mock_area.smart_night_boost_target_time = "06:30"
+        mock_area.smart_boost_target_time = "06:30"
         now = datetime(2024, 1, 1, 22, 0)  # 10 PM
 
         target_time = scheduler._get_target_time_from_config(mock_area, now)
@@ -396,7 +396,7 @@ class TestTargetTimeFromConfig:
 
     def test_get_target_time_from_config_none(self, scheduler, mock_area):
         """Test getting target time when not configured."""
-        mock_area.smart_night_boost_target_time = None
+        mock_area.smart_boost_target_time = None
         now = datetime(2024, 1, 1, 22, 0)
 
         target_time = scheduler._get_target_time_from_config(mock_area, now)

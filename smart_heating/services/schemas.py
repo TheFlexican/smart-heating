@@ -100,8 +100,8 @@ NIGHT_BOOST_SCHEMA = vol.Schema(
         vol.Optional(ATTR_NIGHT_BOOST_OFFSET): vol.Coerce(float),
         vol.Optional(ATTR_NIGHT_BOOST_START_TIME): cv.string,
         vol.Optional(ATTR_NIGHT_BOOST_END_TIME): cv.string,
-        vol.Optional("smart_night_boost_enabled"): cv.boolean,
-        vol.Optional("smart_night_boost_target_time"): cv.string,
+        vol.Optional("smart_boost_enabled"): cv.boolean,
+        vol.Optional("smart_boost_target_time"): cv.string,
         vol.Optional("weather_entity_id"): cv.string,
     }
 )

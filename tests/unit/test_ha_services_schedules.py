@@ -47,8 +47,8 @@ def mock_area(mock_schedule):
     area.night_boost_offset = 0.5
     area.night_boost_start_time = "22:00"
     area.night_boost_end_time = "06:00"
-    area.smart_night_boost_enabled = False
-    area.smart_night_boost_target_time = "06:00"
+    area.smart_boost_enabled = False
+    area.smart_boost_target_time = "06:00"
     area.weather_entity_id = None
     return area
 
@@ -289,8 +289,8 @@ class TestScheduleHandlers:
             "night_boost_offset": 1.0,
             "night_boost_start_time": "23:00",
             "night_boost_end_time": "07:00",
-            "smart_night_boost_enabled": True,
-            "smart_night_boost_target_time": "07:00",
+            "smart_boost_enabled": True,
+            "smart_boost_target_time": "07:00",
             "weather_entity_id": "weather.home",
         }
 
@@ -301,8 +301,8 @@ class TestScheduleHandlers:
         assert mock_area.night_boost_offset == 1.0
         assert mock_area.night_boost_start_time == "23:00"
         assert mock_area.night_boost_end_time == "07:00"
-        assert mock_area.smart_night_boost_enabled is True
-        assert mock_area.smart_night_boost_target_time == "07:00"
+        assert mock_area.smart_boost_enabled is True
+        assert mock_area.smart_boost_target_time == "07:00"
         assert mock_area.weather_entity_id == "weather.home"
         # Verify data was saved
         mock_area_manager.async_save.assert_called_once()
