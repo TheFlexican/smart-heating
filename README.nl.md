@@ -8,6 +8,10 @@ Een Home Assistant custom integratie voor intelligente multi-zone verwarmingsreg
 
 [🇬🇧 English version](README.md) | [📚 Volledige Documentatie](docs/nl/)
 
+## Disclaimer
+
+> Dit project is 'vibe-coded' met behulp van **GitHub Copilot** en **Claude Code**; sommige code en suggesties zijn door deze tools gegenereerd en door bijdragers beoordeeld en aangepast. Gebruik en test dienovereenkomstig.
+
 ## Functies
 
 ### ⚡ SAT-Geïnspireerde Optimale Verwarming
