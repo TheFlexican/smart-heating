@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from homeassistant.core import Event, HomeAssistant, State
 from smart_heating.const import DOMAIN
-from smart_heating.safety_monitor import SafetyMonitor
+from smart_heating.features.safety_monitor import SafetyMonitor
 
 from tests.unit.const import TEST_AREA_ID
 
@@ -59,7 +59,9 @@ class TestInitialization:
         # Mock the sensor state
         hass.states.async_set("binary_sensor.smoke_detector", "off")
 
-        with patch("smart_heating.safety_monitor.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.features.safety_monitor.async_track_state_change_event"
+        ) as mock_track:
             mock_track.return_value = MagicMock()
             await safety_monitor.async_setup()
 
@@ -94,7 +96,9 @@ class TestInitialization:
 
         hass.states.async_set("binary_sensor.smoke", "off")
 
-        with patch("smart_heating.safety_monitor.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.features.safety_monitor.async_track_state_change_event"
+        ) as mock_track:
             mock_track.return_value = MagicMock()
             await safety_monitor.async_setup()
 
@@ -113,7 +117,9 @@ class TestInitialization:
         # Don't create the sensor state
         # hass.states.get will return None
 
-        with patch("smart_heating.safety_monitor.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.features.safety_monitor.async_track_state_change_event"
+        ) as mock_track:
             mock_track.return_value = MagicMock()
             await safety_monitor.async_setup()
 
@@ -333,7 +339,9 @@ class TestReconfigure:
         # Mock sensor state
         hass.states.async_set("binary_sensor.co", "off")
 
-        with patch("smart_heating.safety_monitor.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.features.safety_monitor.async_track_state_change_event"
+        ) as mock_track:
             mock_track.return_value = MagicMock()
             await safety_monitor.async_reconfigure()
 

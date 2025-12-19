@@ -5,7 +5,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from smart_heating.api_handlers.logs import handle_get_area_logs
+from smart_heating.api.handlers.logs import handle_get_area_logs
 from smart_heating.const import DOMAIN
 
 

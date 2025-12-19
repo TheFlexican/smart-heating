@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
-from smart_heating.climate_controller import ClimateController
+from smart_heating.climate.climate_controller import ClimateController
 from smart_heating.const import (
     DEFAULT_FROST_PROTECTION_TEMP,
     PRESET_AWAY,

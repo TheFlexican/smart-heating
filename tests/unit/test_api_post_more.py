@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
-from smart_heating.api import (
+from smart_heating.api.server import (
     SmartHeatingAPIView,
     SmartHeatingStaticView,
     SmartHeatingUIView,
@@ -22,43 +22,43 @@ async def test_api_view_post_more_endpoints(hass, mock_area_manager):
 
     with (
         patch(
-            "smart_heating.api.handle_set_temperature",
+            "smart_heating.api.server.handle_set_temperature",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_set_preset_mode",
+            "smart_heating.api.server.handle_set_preset_mode",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_set_area_heating_curve",
+            "smart_heating.api.server.handle_set_area_heating_curve",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_set_hysteresis_value",
+            "smart_heating.api.server.handle_set_hysteresis_value",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_set_opentherm_gateway",
+            "smart_heating.api.server.handle_set_opentherm_gateway",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_set_advanced_control_config",
+            "smart_heating.api.server.handle_set_advanced_control_config",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_set_switch_shutdown",
+            "smart_heating.api.server.handle_set_switch_shutdown",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_set_heating_type",
+            "smart_heating.api.server.handle_set_heating_type",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_set_manual_override",
+            "smart_heating.api.server.handle_set_manual_override",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_set_focus",
+            "smart_heating.api.server.handle_set_focus",
             AsyncMock(return_value=web.json_response({"ok": True})),
             create=True,
         ),

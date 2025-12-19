@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from smart_heating.advanced_metrics_collector import AdvancedMetricsCollector
+from smart_heating.features.advanced_metrics_collector import AdvancedMetricsCollector
 
 
 @pytest.mark.asyncio

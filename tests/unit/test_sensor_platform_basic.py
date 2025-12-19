@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from smart_heating.const import DOMAIN, STATE_INITIALIZED
-from smart_heating.sensor import (
+from smart_heating.platforms.sensor import (
     AreaCurrentConsumptionSensor,
     SmartHeatingStatusSensor,
 )
@@ -35,30 +35,39 @@ def test_area_current_consumption_various(mock_coordinator, mock_hass, mock_entr
     area.area_id = "a1"
     # without gateway
     mock_coordinator.area_manager.opentherm_gateway_id = None
+    mock_coordinator.data = None
     s = AreaCurrentConsumptionSensor(mock_coordinator, mock_entry, area)
     s.hass = mock_hass
     assert s.native_value is None
 
-    # with gateway but no state
+    # with gateway but no state in coordinator data
     am = mock_coordinator.area_manager
     am.opentherm_gateway_id = "gateway.1"
-    hass_local = MagicMock()
-    hass_local.states = MagicMock()
-    hass_local.states.get = MagicMock(return_value=None)
-    s.hass = hass_local
+    mock_coordinator.data = {"opentherm_gateway": None}
     assert s.native_value is None
 
     # with modulation as relative_mod_level
-    state = MagicMock()
-    state.attributes = {"relative_mod_level": 50}
-    hass_local.states.get = MagicMock(return_value=state)
+    mock_coordinator.data = {
+        "opentherm_gateway": {
+            "entity_id": "gateway.1",
+            "modulation_level": 50.0,
+            "state": "on",
+            "attributes": {"relative_mod_level": 50},
+        }
+    }
     am.default_min_consumption = 1.0
     am.default_max_consumption = 4.0
     val = s.native_value
     assert isinstance(val, float)
 
-    # with modulation as modulation_level string
-    state.attributes = {"modulation_level": "25"}
-    hass_local.states.get = MagicMock(return_value=state)
+    # with modulation as modulation_level
+    mock_coordinator.data = {
+        "opentherm_gateway": {
+            "entity_id": "gateway.1",
+            "modulation_level": 25.0,
+            "state": "on",
+            "attributes": {"modulation_level": 25},
+        }
+    }
     val = s.native_value
     assert isinstance(val, float)

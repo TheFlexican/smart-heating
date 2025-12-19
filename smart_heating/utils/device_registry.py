@@ -25,7 +25,7 @@ class DeviceRegistry:
         self._device_registry = dr.async_get(hass)
         self._area_registry = ar.async_get(hass)
 
-    def get_device_type(self, entity: er.RegistryEntry, state: Any) -> Optional[Tuple[str, str]]:
+    def get_device_type(self, entity: er.RegistryEntry, state: Any) -> Optional[tuple[str, str]]:
         """Determine device type and subtype from entity.
 
         Args:
@@ -51,7 +51,7 @@ class DeviceRegistry:
 
         return None
 
-    def get_ha_area(self, entity: er.RegistryEntry) -> Optional[Tuple[str, str]]:
+    def get_ha_area(self, entity: er.RegistryEntry) -> Optional[tuple[str, str]]:
         """Get Home Assistant area for an entity.
 
         Args:
@@ -78,7 +78,7 @@ class DeviceRegistry:
         entity_id: str,
         friendly_name: str,
         ha_area_name: Optional[str],
-        hidden_areas: List[Dict[str, str]],
+        hidden_areas: list[dict[str, str]],
     ) -> bool:
         """Check if device should be filtered from discovery.
 
@@ -123,9 +123,9 @@ def build_device_dict(
     state: Any,
     device_type: str,
     subtype: str,
-    ha_area: Optional[Tuple[str, str]],
-    assigned_areas: List[str],
-) -> Dict[str, Any]:
+    ha_area: Optional[tuple[str, str]],
+    assigned_areas: list[str],
+) -> dict[str, Any]:
     """Build device information dictionary.
 
     Args:

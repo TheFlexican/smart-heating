@@ -17,21 +17,29 @@ import LanguageIcon from '@mui/icons-material/Language'
 import AnalyticsIcon from '@mui/icons-material/Analytics'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows'
+import DevicesIcon from '@mui/icons-material/Devices'
+import FireplaceIcon from '@mui/icons-material/Fireplace'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 
 interface HeaderProps {
   wsConnected?: boolean
+  transportMode?: 'websocket' | 'polling'
 }
 
-const Header = ({ wsConnected = false }: HeaderProps) => {
+const Header = ({ wsConnected = false, transportMode = 'websocket' }: HeaderProps) => {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
-  const isSettings = location.pathname.startsWith('/settings/')
   const [langMenuAnchor, setLangMenuAnchor] = useState<null | HTMLElement>(null)
   const [analyticsMenuAnchor, setAnalyticsMenuAnchor] = useState<null | HTMLElement>(null)
+
+  // Determine active section for highlighting
+  const isDevices = location.pathname.startsWith('/devices')
+  const isAnalytics =
+    location.pathname.startsWith('/analytics') || location.pathname.startsWith('/opentherm')
+  const isSettings = location.pathname.startsWith('/settings')
 
   const handleLanguageMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setLangMenuAnchor(event.currentTarget)
@@ -88,56 +96,85 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
         >
           {t('header.title')}
         </Typography>
-        <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, alignItems: 'center' }}>
-          {!isSettings && (
-            <>
-              <Tooltip title={t('header.analytics', 'Analytics')}>
-                <IconButton
-                  data-testid="header-analytics-button"
-                  onClick={handleAnalyticsMenuOpen}
-                  sx={{
-                    color: 'text.secondary',
-                    p: { xs: 0.5, sm: 1 },
-                  }}
-                >
-                  <AnalyticsIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title={t('header.settings', 'Settings')}>
-                <IconButton
-                  data-testid="header-settings-button"
-                  aria-label={t('header.settings', 'Settings')}
-                  onClick={handleSettingsClick}
-                  sx={{
-                    color: 'text.secondary',
-                    p: { xs: 0.5, sm: 1 },
-                  }}
-                >
-                  <SettingsIcon />
-                </IconButton>
-              </Tooltip>
-            </>
-          )}
-          <Menu
-            anchorEl={analyticsMenuAnchor}
-            open={Boolean(analyticsMenuAnchor)}
-            onClose={handleAnalyticsMenuClose}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center' }}>
+          <Tooltip title={t('header.devices', 'Devices')}>
+            <IconButton
+              data-testid="header-devices-button"
+              onClick={() => navigate('/devices')}
+              sx={{
+                color: isDevices ? 'primary.main' : 'text.secondary',
+                bgcolor: isDevices ? 'action.selected' : 'transparent',
+                p: 1,
+                '&:hover': {
+                  bgcolor: isDevices ? 'action.selected' : 'action.hover',
+                },
+              }}
+            >
+              <DevicesIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('header.analytics', 'Analytics')}>
+            <IconButton
+              data-testid="header-analytics-button"
+              onClick={handleAnalyticsMenuOpen}
+              sx={{
+                color: isAnalytics ? 'primary.main' : 'text.secondary',
+                bgcolor: isAnalytics ? 'action.selected' : 'transparent',
+                p: 1,
+                '&:hover': {
+                  bgcolor: isAnalytics ? 'action.selected' : 'action.hover',
+                },
+              }}
+            >
+              <AnalyticsIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('header.settings', 'Settings')}>
+            <IconButton
+              data-testid="header-settings-button"
+              aria-label={t('header.settings', 'Settings')}
+              onClick={handleSettingsClick}
+              sx={{
+                color: isSettings ? 'primary.main' : 'text.secondary',
+                bgcolor: isSettings ? 'action.selected' : 'transparent',
+                p: 1,
+                '&:hover': {
+                  bgcolor: isSettings ? 'action.selected' : 'action.hover',
+                },
+              }}
+            >
+              <SettingsIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+        <Menu
+          anchorEl={analyticsMenuAnchor}
+          open={Boolean(analyticsMenuAnchor)}
+          onClose={handleAnalyticsMenuClose}
+        >
+          <MenuItem
+            data-testid="header-analytics-efficiency"
+            onClick={() => handleNavigateAnalytics('/analytics/efficiency')}
           >
-            <MenuItem
-              data-testid="header-analytics-efficiency"
-              onClick={() => handleNavigateAnalytics('/analytics/efficiency')}
-            >
-              <TrendingUpIcon sx={{ mr: 1 }} />
-              {t('efficiency.title', 'Efficiency Reports')}
-            </MenuItem>
-            <MenuItem
-              data-testid="header-analytics-comparison"
-              onClick={() => handleNavigateAnalytics('/analytics/comparison')}
-            >
-              <CompareArrowsIcon sx={{ mr: 1 }} />
-              {t('comparison.title', 'Historical Comparisons')}
-            </MenuItem>
-          </Menu>
+            <TrendingUpIcon sx={{ mr: 1 }} />
+            {t('efficiency.title', 'Efficiency Reports')}
+          </MenuItem>
+          <MenuItem
+            data-testid="header-analytics-comparison"
+            onClick={() => handleNavigateAnalytics('/analytics/comparison')}
+          >
+            <CompareArrowsIcon sx={{ mr: 1 }} />
+            {t('comparison.title', 'Historical Comparisons')}
+          </MenuItem>
+          <MenuItem
+            data-testid="header-analytics-opentherm"
+            onClick={() => handleNavigateAnalytics('/opentherm/metrics')}
+          >
+            <FireplaceIcon sx={{ mr: 1 }} />
+            {t('opentherm.title', 'OpenTherm Metrics')}
+          </MenuItem>
+        </Menu>
+        <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, alignItems: 'center' }}>
           <Tooltip title={t('header.changeLanguage')}>
             <IconButton
               data-testid="header-language-button"
@@ -189,6 +226,19 @@ const Header = ({ wsConnected = false }: HeaderProps) => {
               </Box>
             </Box>
           </Tooltip>
+          {transportMode === 'polling' && (
+            <Tooltip title="Using polling mode (limited connectivity). WebSocket failed 3 times, falling back to periodic polling.">
+              <Chip
+                label="Polling"
+                size="small"
+                color="warning"
+                variant="filled"
+                sx={{
+                  display: { xs: 'none', sm: 'flex' },
+                }}
+              />
+            </Tooltip>
+          )}
           <Chip
             label="v0.5.14"
             size="small"

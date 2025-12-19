@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.const import STATE_OFF, STATE_ON
-from smart_heating.climate_handlers.sensor_monitoring import SensorMonitoringHandler
+from smart_heating.climate.sensor_monitoring import SensorMonitoringHandler
 from smart_heating.models.area import Area
 
 

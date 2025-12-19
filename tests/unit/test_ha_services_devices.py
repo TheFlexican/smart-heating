@@ -12,7 +12,7 @@ from smart_heating.const import (
     ATTR_DEVICE_TYPE,
     DEVICE_TYPE_THERMOSTAT,
 )
-from smart_heating.ha_services.device_handlers import (
+from smart_heating.services.device_handlers import (
     async_handle_add_device,
     async_handle_remove_device,
 )

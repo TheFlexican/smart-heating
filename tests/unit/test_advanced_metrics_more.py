@@ -3,7 +3,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from smart_heating.advanced_metrics_collector import AdvancedMetricsCollector
+from smart_heating.features.advanced_metrics_collector import AdvancedMetricsCollector
 
 
 @pytest.mark.asyncio
@@ -18,7 +18,7 @@ async def test_async_init_database_supported(monkeypatch):
             self.engine = MagicMock()
 
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance",
+        "smart_heating.features.advanced_metrics_collector.get_instance",
         lambda hass: FakeRecorder(),
     )
 
@@ -36,7 +36,7 @@ async def test_async_setup_success(monkeypatch):
     collector._async_init_database = AsyncMock(return_value=True)
     # Patch async_track_time_interval to return a dummy unsub function
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.async_track_time_interval",
+        "smart_heating.features.advanced_metrics_collector.async_track_time_interval",
         lambda hass, func, interval: (lambda: None),
     )
 
@@ -134,7 +134,7 @@ def test_get_metrics_sync_area_filter_and_invalid_json():
         def order_by(self, *args, **kwargs):
             return "stmt"
 
-    import smart_heating.advanced_metrics_collector as amc
+    import smart_heating.features.advanced_metrics_collector as amc
 
     amc.select = lambda tbl: DummySelect()
 
@@ -188,7 +188,7 @@ def test_cleanup_old_metrics_sync():
         def where(self, *args, **kwargs):
             return "stmt"
 
-    import smart_heating.advanced_metrics_collector as amc
+    import smart_heating.features.advanced_metrics_collector as amc
 
     amc.delete = lambda tbl: DummyDelete()
 

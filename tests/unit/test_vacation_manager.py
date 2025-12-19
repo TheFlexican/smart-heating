@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
-from smart_heating.vacation_manager import VacationManager
+from smart_heating.features.vacation_manager import VacationManager
 
 
 @pytest.fixture
@@ -346,7 +346,9 @@ class TestPersonListeners:
         """Test setting up listeners with entities."""
         vacation_manager._data["person_entities"] = ["person.john", "person.jane"]
 
-        with patch("smart_heating.vacation_manager.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.features.vacation_manager.async_track_state_change_event"
+        ) as mock_track:
             mock_track.return_value = MagicMock()
             vacation_manager._setup_person_listeners()
 
@@ -380,7 +382,9 @@ class TestPersonListeners:
         # Create new manager and load
         new_manager = VacationManager(hass, str(tmp_path))
 
-        with patch("smart_heating.vacation_manager.async_track_state_change_event") as mock_track:
+        with patch(
+            "smart_heating.features.vacation_manager.async_track_state_change_event"
+        ) as mock_track:
             mock_track.return_value = MagicMock()
             await new_manager.async_load()
 

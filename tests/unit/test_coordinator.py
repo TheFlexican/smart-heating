@@ -8,7 +8,7 @@ import pytest
 from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from smart_heating.const import DOMAIN, STATE_INITIALIZED, UPDATE_INTERVAL
-from smart_heating.coordinator import SmartHeatingCoordinator
+from smart_heating.core.coordinator import SmartHeatingCoordinator
 
 from tests.unit.const import TEST_AREA_ID
 
@@ -49,7 +49,7 @@ class TestCoordinatorSetup:
         """Test setup with no devices."""
         coordinator.area_manager.get_all_areas.return_value = {}
 
-        with patch("smart_heating.coordinator.async_track_state_change_event") as mock_track:
+        with patch("smart_heating.core.coordinator.async_track_state_change_event") as mock_track:
             await coordinator.async_setup()
 
             # Should not set up state listeners if no devices
@@ -64,7 +64,7 @@ class TestCoordinatorSetup:
         mock_area.devices = {"climate.test": {"type": "thermostat"}}
         coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
 
-        with patch("smart_heating.coordinator.async_track_state_change_event") as mock_track:
+        with patch("smart_heating.core.coordinator.async_track_state_change_event") as mock_track:
             mock_track.return_value = MagicMock()
             await coordinator.async_setup()
 
@@ -261,7 +261,7 @@ class TestStateChangeHandling:
         import asyncio as _asyncio
 
         orig = _asyncio.create_task
-        with patch("smart_heating.coordinator.asyncio.create_task") as mock_create_task:
+        with patch("smart_heating.core.coordinator.asyncio.create_task") as mock_create_task:
             mock_create_task.side_effect = lambda coro, orig=orig: orig(coro)
             coordinator._handle_state_change(event)
             # Should trigger refresh for initial state
@@ -295,7 +295,7 @@ class TestStateChangeHandling:
         import asyncio as _asyncio
 
         orig = _asyncio.create_task
-        with patch("smart_heating.coordinator.asyncio.create_task") as mock_create_task:
+        with patch("smart_heating.core.coordinator.asyncio.create_task") as mock_create_task:
             mock_create_task.side_effect = lambda coro, orig=orig: orig(coro)
             coordinator._handle_state_change(event)
             # Should trigger refresh when state changes
@@ -337,7 +337,7 @@ class TestStateChangeHandling:
         import asyncio as _asyncio
 
         orig = _asyncio.create_task
-        with patch("smart_heating.coordinator.asyncio.create_task") as mock_create_task:
+        with patch("smart_heating.core.coordinator.asyncio.create_task") as mock_create_task:
             mock_create_task.side_effect = lambda coro, orig=orig: orig(coro)
             coordinator._handle_state_change(event)
             # Should trigger refresh when current temperature changes
@@ -379,7 +379,7 @@ class TestStateChangeHandling:
         import asyncio as _asyncio
 
         orig = _asyncio.create_task
-        with patch("smart_heating.coordinator.asyncio.create_task") as mock_create_task:
+        with patch("smart_heating.core.coordinator.asyncio.create_task") as mock_create_task:
             mock_create_task.side_effect = lambda coro, orig=orig: orig(coro)
             coordinator._handle_state_change(event)
             # Should trigger refresh when hvac_action changes
@@ -421,7 +421,7 @@ class TestStateChangeHandling:
         import asyncio as _asyncio
 
         orig = _asyncio.create_task
-        with patch("smart_heating.coordinator.asyncio.create_task") as mock_create_task:
+        with patch("smart_heating.core.coordinator.asyncio.create_task") as mock_create_task:
             mock_create_task.side_effect = lambda coro, orig=orig: orig(coro)
             coordinator._handle_state_change(event)
             # Should create debounce task, not trigger immediate refresh
@@ -948,3 +948,142 @@ class TestGetDeviceStateData:
         assert result["name"] == device_id
         # Should not have temperature key since state is None
         assert "temperature" not in result
+
+
+class TestCoordinatorAreaOperations:
+    """Test coordinator area enable/disable operations."""
+
+    @pytest.mark.asyncio
+    async def test_async_enable_area_success(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test enabling area successfully."""
+        area_id = "living_room"
+
+        # Mock area manager
+        mock_area = MagicMock()
+        mock_area.current_temperature = 18.0
+        mock_area.get_effective_target_temperature.return_value = 20.0
+        coordinator.area_manager.get_area.return_value = mock_area
+        coordinator.area_manager.enable_area = MagicMock()
+        coordinator.area_manager.async_save = AsyncMock()
+
+        # Mock climate controller
+        mock_climate_controller = MagicMock()
+        mock_climate_controller.device_handler = MagicMock()
+        mock_climate_controller.device_handler.async_control_thermostats = AsyncMock()
+        mock_climate_controller.device_handler.async_control_valves = AsyncMock()
+        hass.data = {DOMAIN: {"climate_controller": mock_climate_controller}}
+
+        # Mock coordinator refresh
+        coordinator.async_request_refresh = AsyncMock()
+
+        await coordinator.async_enable_area(area_id)
+
+        # Verify area manager calls
+        coordinator.area_manager.enable_area.assert_called_once_with(area_id)
+        coordinator.area_manager.async_save.assert_called_once()
+
+        # Verify device control calls
+        mock_climate_controller.device_handler.async_control_thermostats.assert_called_once()
+        mock_climate_controller.device_handler.async_control_valves.assert_called_once()
+
+        # Verify coordinator refresh
+        coordinator.async_request_refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_async_enable_area_no_temperature(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test enabling area when area has no current temperature."""
+        area_id = "living_room"
+
+        # Mock area with no temperature
+        mock_area = MagicMock()
+        mock_area.current_temperature = None
+        coordinator.area_manager.get_area.return_value = mock_area
+        coordinator.area_manager.enable_area = MagicMock()
+        coordinator.area_manager.async_save = AsyncMock()
+
+        # Mock climate controller
+        mock_climate_controller = MagicMock()
+        mock_climate_controller.device_handler = MagicMock()
+        mock_climate_controller.device_handler.async_control_thermostats = AsyncMock()
+        hass.data = {DOMAIN: {"climate_controller": mock_climate_controller}}
+
+        # Mock coordinator refresh
+        coordinator.async_request_refresh = AsyncMock()
+
+        await coordinator.async_enable_area(area_id)
+
+        # Verify area manager calls
+        coordinator.area_manager.enable_area.assert_called_once_with(area_id)
+        coordinator.area_manager.async_save.assert_called_once()
+
+        # Should not call device control (no temperature)
+        mock_climate_controller.device_handler.async_control_thermostats.assert_not_called()
+
+        # Verify coordinator refresh
+        coordinator.async_request_refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_async_enable_area_error(self, coordinator: SmartHeatingCoordinator):
+        """Test enabling area when area manager raises error."""
+        area_id = "unknown_area"
+
+        # Make enable_area raise ValueError
+        coordinator.area_manager.enable_area = MagicMock(side_effect=ValueError("Area not found"))
+
+        with pytest.raises(ValueError, match="Area not found"):
+            await coordinator.async_enable_area(area_id)
+
+    @pytest.mark.asyncio
+    async def test_async_disable_area_success(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test disabling area successfully."""
+        area_id = "living_room"
+
+        # Mock area manager
+        mock_area = MagicMock()
+        coordinator.area_manager.get_area.return_value = mock_area
+        coordinator.area_manager.disable_area = MagicMock()
+        coordinator.area_manager.async_save = AsyncMock()
+
+        # Mock climate controller
+        mock_climate_controller = MagicMock()
+        mock_climate_controller.device_handler = MagicMock()
+        mock_climate_controller.device_handler.async_set_valves_to_off = AsyncMock()
+        mock_climate_controller.device_handler.async_control_thermostats = AsyncMock()
+        hass.data = {DOMAIN: {"climate_controller": mock_climate_controller}}
+
+        # Mock coordinator refresh
+        coordinator.async_request_refresh = AsyncMock()
+
+        await coordinator.async_disable_area(area_id)
+
+        # Verify area manager calls
+        coordinator.area_manager.disable_area.assert_called_once_with(area_id)
+        coordinator.area_manager.async_save.assert_called_once()
+
+        # Verify device control calls
+        mock_climate_controller.device_handler.async_set_valves_to_off.assert_called_once_with(
+            mock_area, 0.0
+        )
+        mock_climate_controller.device_handler.async_control_thermostats.assert_called_once_with(
+            mock_area, False, None
+        )
+
+        # Verify coordinator refresh
+        coordinator.async_request_refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_async_disable_area_error(self, coordinator: SmartHeatingCoordinator):
+        """Test disabling area when area manager raises error."""
+        area_id = "unknown_area"
+
+        # Make disable_area raise ValueError
+        coordinator.area_manager.disable_area = MagicMock(side_effect=ValueError("Area not found"))
+
+        with pytest.raises(ValueError, match="Area not found"):
+            await coordinator.async_disable_area(area_id)

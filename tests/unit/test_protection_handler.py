@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from smart_heating.climate_handlers.protection import ProtectionHandler
+from smart_heating.climate.protection import ProtectionHandler
 
 
 def make_hass():

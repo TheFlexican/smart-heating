@@ -13,7 +13,7 @@ from smart_heating.const import (
     ATTR_TEMPERATURE,
     ATTR_TIME,
 )
-from smart_heating.ha_services.schedule_handlers import (
+from smart_heating.services.schedule_handlers import (
     async_handle_add_schedule,
     async_handle_copy_schedule,
     async_handle_disable_schedule,

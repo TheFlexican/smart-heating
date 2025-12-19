@@ -8,7 +8,7 @@ import pytest
 from aiohttp import web
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
-from smart_heating.api_handlers.opentherm import handle_get_opentherm_gateways
+from smart_heating.api.handlers.opentherm import handle_get_opentherm_gateways
 
 
 class DummyEntry:

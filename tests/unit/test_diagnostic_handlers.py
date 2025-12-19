@@ -2,7 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from smart_heating.ha_services.diagnostic_handlers import async_handle_force_thermostat_update
+from smart_heating.services.diagnostic_handlers import async_handle_force_thermostat_update
 
 
 class MockState:

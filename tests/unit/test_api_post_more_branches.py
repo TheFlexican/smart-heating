@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
-from smart_heating.api import SmartHeatingAPIView
+from smart_heating.api.server import SmartHeatingAPIView
 from smart_heating.const import DOMAIN
 
 
@@ -20,39 +20,39 @@ async def test_api_view_post_many_branches(hass, mock_area_manager):
     from contextlib import ExitStack
 
     all_handlers = [
-        "smart_heating.api.handle_disable_area",
-        "smart_heating.api.handle_hide_area",
-        "smart_heating.api.handle_unhide_area",
-        "smart_heating.api.handle_cancel_boost",
-        "smart_heating.api.handle_add_schedule",
-        "smart_heating.api.handle_set_preset_mode",
-        "smart_heating.api.handle_set_boost_mode",
-        "smart_heating.api.handle_add_window_sensor",
-        "smart_heating.api.handle_add_presence_sensor",
-        "smart_heating.api.handle_set_hvac_mode",
-        "smart_heating.api.handle_set_area_heating_curve",
-        "smart_heating.api.handle_set_switch_shutdown",
-        "smart_heating.api.handle_set_area_hysteresis",
-        "smart_heating.api.handle_set_heating_type",
-        "smart_heating.api.handle_set_auto_preset",
-        "smart_heating.api.handle_set_area_preset_config",
-        "smart_heating.api.handle_set_manual_override",
-        "smart_heating.api.handle_set_primary_temperature_sensor",
-        "smart_heating.api.handle_set_history_config",
-        "smart_heating.api.handle_migrate_history_storage",
-        "smart_heating.api.handle_set_global_presence",
-        "smart_heating.api.handle_set_hide_devices_panel",
-        "smart_heating.api.handle_set_advanced_control_config",
-        "smart_heating.api.handle_set_opentherm_gateway",
-        "smart_heating.api.handle_enable_vacation_mode",
-        "smart_heating.api.handle_set_safety_sensor",
-        "smart_heating.api.handle_call_service",
-        "smart_heating.api.handle_validate_config",
-        "smart_heating.api.handle_restore_backup",
-        "smart_heating.api.handle_update_user",
-        "smart_heating.api.handle_update_user_settings",
-        "smart_heating.api.handle_discover_opentherm_capabilities",
-        "smart_heating.api.handle_clear_opentherm_logs",
+        "smart_heating.api.server.handle_disable_area",
+        "smart_heating.api.server.handle_hide_area",
+        "smart_heating.api.server.handle_unhide_area",
+        "smart_heating.api.server.handle_cancel_boost",
+        "smart_heating.api.server.handle_add_schedule",
+        "smart_heating.api.server.handle_set_preset_mode",
+        "smart_heating.api.server.handle_set_boost_mode",
+        "smart_heating.api.server.handle_add_window_sensor",
+        "smart_heating.api.server.handle_add_presence_sensor",
+        "smart_heating.api.server.handle_set_hvac_mode",
+        "smart_heating.api.server.handle_set_area_heating_curve",
+        "smart_heating.api.server.handle_set_switch_shutdown",
+        "smart_heating.api.server.handle_set_area_hysteresis",
+        "smart_heating.api.server.handle_set_heating_type",
+        "smart_heating.api.server.handle_set_auto_preset",
+        "smart_heating.api.server.handle_set_area_preset_config",
+        "smart_heating.api.server.handle_set_manual_override",
+        "smart_heating.api.server.handle_set_primary_temperature_sensor",
+        "smart_heating.api.server.handle_set_history_config",
+        "smart_heating.api.server.handle_migrate_history_storage",
+        "smart_heating.api.server.handle_set_global_presence",
+        "smart_heating.api.server.handle_set_hide_devices_panel",
+        "smart_heating.api.server.handle_set_advanced_control_config",
+        "smart_heating.api.server.handle_set_opentherm_gateway",
+        "smart_heating.api.server.handle_enable_vacation_mode",
+        "smart_heating.api.server.handle_set_safety_sensor",
+        "smart_heating.api.server.handle_call_service",
+        "smart_heating.api.server.handle_validate_config",
+        "smart_heating.api.server.handle_restore_backup",
+        "smart_heating.api.server.handle_update_user",
+        "smart_heating.api.server.handle_update_user_settings",
+        "smart_heating.api.server.handle_discover_opentherm_capabilities",
+        "smart_heating.api.server.handle_clear_opentherm_logs",
     ]
 
     with ExitStack() as stack:

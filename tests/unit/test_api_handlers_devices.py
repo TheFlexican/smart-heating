@@ -4,8 +4,8 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from smart_heating.api_handlers import devices as devices_module
-from smart_heating.api_handlers.devices import (
+from smart_heating.api.handlers import devices as devices_module
+from smart_heating.api.handlers.devices import (
     _discover_devices,
     handle_add_device,
     handle_get_devices,
@@ -170,15 +170,15 @@ class TestDeviceHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.devices.er.async_get",
+                "smart_heating.api.handlers.devices.er.async_get",
                 return_value=mock_entity_registry,
             ),
             patch(
-                "smart_heating.api_handlers.devices.dr.async_get",
+                "smart_heating.api.handlers.devices.dr.async_get",
                 return_value=mock_device_registry,
             ),
             patch(
-                "smart_heating.api_handlers.devices.ar.async_get",
+                "smart_heating.api.handlers.devices.ar.async_get",
                 return_value=mock_area_registry,
             ),
         ):
@@ -219,15 +219,15 @@ class TestDeviceHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.devices.er.async_get",
+                "smart_heating.api.handlers.devices.er.async_get",
                 return_value=mock_entity_registry,
             ),
             patch(
-                "smart_heating.api_handlers.devices.dr.async_get",
+                "smart_heating.api.handlers.devices.dr.async_get",
                 return_value=mock_device_registry,
             ),
             patch(
-                "smart_heating.api_handlers.devices.ar.async_get",
+                "smart_heating.api.handlers.devices.ar.async_get",
                 return_value=mock_area_registry,
             ),
         ):
@@ -262,15 +262,15 @@ class TestDeviceHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.devices.er.async_get",
+                "smart_heating.api.handlers.devices.er.async_get",
                 return_value=mock_entity_registry,
             ),
             patch(
-                "smart_heating.api_handlers.devices.dr.async_get",
+                "smart_heating.api.handlers.devices.dr.async_get",
                 return_value=mock_device_registry,
             ),
             patch(
-                "smart_heating.api_handlers.devices.ar.async_get",
+                "smart_heating.api.handlers.devices.ar.async_get",
                 return_value=mock_area_registry,
             ),
         ):
@@ -286,7 +286,7 @@ class TestDeviceHandlers:
     async def test_handle_refresh_devices_error(self, mock_hass, mock_area_manager):
         """Test refreshing devices with error."""
         with patch(
-            "smart_heating.api_handlers.devices._discover_devices",
+            "smart_heating.api.handlers.devices._discover_devices",
             side_effect=Exception("Discovery failed"),
         ):
             response = await handle_refresh_devices(mock_hass, mock_area_manager)
@@ -350,7 +350,7 @@ class TestDeviceHandlers:
         data = {"device_id": "climate.heater", "device_type": "climate"}
 
         with patch(
-            "smart_heating.api_handlers.devices.ar.async_get",
+            "smart_heating.api.handlers.devices.ar.async_get",
             return_value=mock_area_registry,
         ):
             response = await handle_add_device(mock_hass, area_manager, "nonexistent", data)
@@ -371,10 +371,10 @@ class TestDeviceHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.devices.ar.async_get",
+                "smart_heating.api.handlers.devices.ar.async_get",
                 return_value=mock_area_registry,
             ),
-            patch("smart_heating.api_handlers.devices.Area") as mock_area_class,
+            patch("smart_heating.api.handlers.devices.Area") as mock_area_class,
         ):
             mock_new_area = MagicMock()
             mock_area_class.return_value = mock_new_area

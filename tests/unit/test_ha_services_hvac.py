@@ -13,7 +13,7 @@ from smart_heating.const import (
     ATTR_HVAC_MODE,
     ATTR_PRESET_MODE,
 )
-from smart_heating.ha_services.hvac_handlers import (
+from smart_heating.services.hvac_handlers import (
     async_handle_cancel_boost,
     async_handle_set_boost_mode,
     async_handle_set_hvac_mode,

@@ -3,7 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from smart_heating.climate_handlers.device_control import DeviceControlHandler
+from smart_heating.climate.device_control import DeviceControlHandler
 from smart_heating.models import Area
 
 
@@ -74,8 +74,8 @@ class TestDeviceControlHandlerInit:
 
         assert handler.hass == mock_hass
         assert handler.area_manager == mock_area_manager
-        assert handler._device_capabilities == {}
-        assert handler._last_set_temperatures == {}
+        assert handler.valve_handler._device_capabilities == {}
+        assert handler.thermostat_handler._last_set_temperatures == {}
 
 
 class TestIsAnyThermostatActivelyHeating:
@@ -325,7 +325,7 @@ class TestAsyncControlThermostats:
     async def test_turn_off_thermostat(self, device_handler, mock_area):
         """Test turning off thermostat."""
         mock_area.get_thermostats.return_value = ["climate.thermo1"]
-        device_handler._last_set_temperatures["climate.thermo1"] = 21.0
+        device_handler.thermostat_handler._last_set_temperatures["climate.thermo1"] = 21.0
 
         await device_handler.async_control_thermostats(mock_area, False, None)
 

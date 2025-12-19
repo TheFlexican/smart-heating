@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from smart_heating.config_manager import CURRENT_VERSION, ConfigManager
+from smart_heating.storage.config_manager import CURRENT_VERSION, ConfigManager
 from smart_heating.const import DOMAIN
 
 
@@ -128,7 +128,7 @@ def mock_area_manager():
 def config_manager(mock_hass, mock_area_manager):
     """Create ConfigManager instance."""
     storage_path = Path("/config/.storage/smart_heating")
-    with patch("smart_heating.config_manager.Path.mkdir"):
+    with patch("smart_heating.storage.config_manager.Path.mkdir"):
         return ConfigManager(mock_hass, mock_area_manager, storage_path)
 
 
@@ -137,7 +137,7 @@ class TestConfigManagerBasics:
 
     def test_init_creates_manager(self, mock_hass, mock_area_manager):
         """Test that ConfigManager can be initialized."""
-        with patch("smart_heating.config_manager.Path.mkdir"):
+        with patch("smart_heating.storage.config_manager.Path.mkdir"):
             manager = ConfigManager(mock_hass, mock_area_manager, "/config/.storage/smart_heating")
 
         assert manager is not None

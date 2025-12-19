@@ -8,12 +8,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
 
-from .advanced_metrics_collector import AdvancedMetricsCollector
-from .api import setup_api
+from .api.server import setup_api
+from .api.websocket import setup_websocket
 from .area_logger import AreaLogger
-from .area_manager import AreaManager
-from .climate_controller import ClimateController
-from .comparison_engine import ComparisonEngine
+from .climate.climate_controller import ClimateController
 from .const import (
     DOMAIN,
     PLATFORMS,
@@ -48,17 +46,19 @@ from .const import (
     SERVICE_SET_SAFETY_SENSOR,
     SERVICE_SET_TRV_TEMPERATURES,
 )
-from .coordinator import SmartHeatingCoordinator
-from .device_capability_detector import DeviceCapabilityDetector
-from .efficiency_calculator import EfficiencyCalculator
-from .history import HistoryTracker
-from .learning_engine import LearningEngine
-from .opentherm_logger import OpenThermLogger
-from .safety_monitor import SafetyMonitor
-from .scheduler import ScheduleExecutor
-from .user_manager import UserManager
-from .vacation_manager import VacationManager
-from .websocket import setup_websocket
+from .core.area_manager import AreaManager
+from .core.coordinator import SmartHeatingCoordinator
+from .core.user_manager import UserManager
+from .features.advanced_metrics_collector import AdvancedMetricsCollector
+from .features.comparison_engine import ComparisonEngine
+from .features.device_capability_detector import DeviceCapabilityDetector
+from .features.efficiency_calculator import EfficiencyCalculator
+from .features.learning_engine import LearningEngine
+from .features.opentherm_logger import OpenThermLogger
+from .features.safety_monitor import SafetyMonitor
+from .features.scheduler import ScheduleExecutor
+from .features.vacation_manager import VacationManager
+from .storage.history import HistoryTracker
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -89,9 +89,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.options:
         _LOGGER.debug("Loading config entry options: %s", entry.options)
         if entry.options.get("opentherm_gateway_id"):
-            # Only override saved numeric gateway IDs if options explicitly provide
-            # a string gateway id and there's no numeric stored value. If a
-            # numeric gateway ID is stored (legacy style), prefer the stored value.
+            # Only override saved numeric gateway IDs if options explicitly provide a string gateway id
             existing_id = getattr(area_manager, "opentherm_gateway_id", None)
             if existing_id and isinstance(existing_id, str) and existing_id.isnumeric():
                 _LOGGER.debug(
@@ -174,7 +172,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.info("Learning engine initialized")
 
     # Create config manager for import/export
-    from .config_manager import ConfigManager
+    from .storage.config_manager import ConfigManager
 
     config_manager = ConfigManager(hass, area_manager, storage_path)
     hass.data[DOMAIN]["config_manager"] = config_manager
@@ -333,7 +331,7 @@ async def async_setup_services(  # NOSONAR
     """
     from functools import partial
 
-    from .ha_services import (
+    from .services import (
         ADD_DEVICE_SCHEMA,  # Schemas; Handlers
         ADD_SCHEDULE_SCHEMA,
         BOOST_MODE_SCHEMA,

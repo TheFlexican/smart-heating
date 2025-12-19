@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from homeassistant.core import State
-from smart_heating.device_capability_detector import (
+from smart_heating.features.device_capability_detector import (
     DeviceCapabilities,
     DeviceCapabilityDetector,
     DeviceProfile,
@@ -226,8 +226,8 @@ class TestDeviceCapabilityDetector:
         mock_hass.states.get.return_value = state
 
         # Mock entity/device registry
-        with patch("smart_heating.device_capability_detector.er.async_get") as mock_er:
-            with patch("smart_heating.device_capability_detector.dr.async_get") as mock_dr:
+        with patch("smart_heating.features.device_capability_detector.er.async_get") as mock_er:
+            with patch("smart_heating.features.device_capability_detector.dr.async_get") as mock_dr:
                 mock_er.return_value.async_get.return_value = None
                 mock_dr.return_value.async_get.return_value = None
 
@@ -254,8 +254,8 @@ class TestDeviceCapabilityDetector:
         }
         mock_hass.states.get.return_value = state
 
-        with patch("smart_heating.device_capability_detector.er.async_get") as mock_er:
-            with patch("smart_heating.device_capability_detector.dr.async_get") as mock_dr:
+        with patch("smart_heating.features.device_capability_detector.er.async_get") as mock_er:
+            with patch("smart_heating.features.device_capability_detector.dr.async_get") as mock_dr:
                 mock_er.return_value.async_get.return_value = None
                 mock_dr.return_value.async_get.return_value = None
 

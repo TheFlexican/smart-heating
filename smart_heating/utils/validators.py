@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Tuple
 
 def validate_temperature(
     temp: Any, min_temp: float = 5.0, max_temp: float = 35.0
-) -> Tuple[bool, Optional[str]]:
+) -> tuple[bool, Optional[str]]:
     """Validate temperature value.
 
     Args:
@@ -30,7 +30,7 @@ def validate_temperature(
     return True, None
 
 
-def _validate_time_format(time_str: str) -> Tuple[bool, Optional[str]]:
+def _validate_time_format(time_str: str) -> tuple[bool, Optional[str]]:
     """Validate time string in HH:MM format.
 
     Args:
@@ -57,7 +57,7 @@ def _validate_time_format(time_str: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def _validate_days_list(days: Any) -> Tuple[bool, Optional[str]]:
+def _validate_days_list(days: Any) -> tuple[bool, Optional[str]]:
     """Validate days list.
 
     Args:
@@ -82,7 +82,7 @@ def _validate_days_list(days: Any) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def validate_schedule_data(data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+def validate_schedule_data(data: dict[str, Any]) -> tuple[bool, Optional[str]]:
     """Validate schedule entry data.
 
     Args:
@@ -119,7 +119,7 @@ def validate_schedule_data(data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def validate_area_id(area_id: str) -> Tuple[bool, Optional[str]]:
+def validate_area_id(area_id: str) -> tuple[bool, Optional[str]]:
     """Validate area ID.
 
     Args:
@@ -137,7 +137,7 @@ def validate_area_id(area_id: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def validate_entity_id(entity_id: str) -> Tuple[bool, Optional[str]]:
+def validate_entity_id(entity_id: str) -> tuple[bool, Optional[str]]:
     """Validate entity ID format.
 
     Args:

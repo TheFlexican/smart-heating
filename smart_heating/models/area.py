@@ -1,7 +1,7 @@
 """Area model for Smart Heating integration."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
 
 from ..const import (
@@ -20,11 +20,6 @@ from ..const import (
     DEFAULT_PRESENCE_TEMP_BOOST,
     DEFAULT_SLEEP_TEMP,
     DEFAULT_WINDOW_OPEN_TEMP_DROP,
-    DEVICE_TYPE_OPENTHERM_GATEWAY,
-    DEVICE_TYPE_SWITCH,
-    DEVICE_TYPE_TEMPERATURE_SENSOR,
-    DEVICE_TYPE_THERMOSTAT,
-    DEVICE_TYPE_VALVE,
     HVAC_MODE_HEAT,
     PRESET_ACTIVITY,
     PRESET_AWAY,
@@ -38,10 +33,14 @@ from ..const import (
     STATE_IDLE,
     STATE_OFF,
 )
+from .area_device_manager import AreaDeviceManager
+from .area_preset_manager import AreaPresetManager
+from .area_schedule_manager import AreaScheduleManager
+from .area_sensor_manager import AreaSensorManager
 from .schedule import Schedule
 
 if TYPE_CHECKING:
-    from ..area_manager import AreaManager
+    from ..core.area_manager import AreaManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -152,6 +151,13 @@ class Area:
         # Area-specific heating curve coefficient (optional, if None use global default)
         self.heating_curve_coefficient: float | None = None
 
+        # Initialize manager instances for composition
+        self._device_manager = AreaDeviceManager(self)
+        self._sensor_manager = AreaSensorManager(self)
+        self._preset_manager = AreaPresetManager(self)
+        self._schedule_manager = AreaScheduleManager(self)
+
+    # Device management methods - delegate to AreaDeviceManager
     def add_device(self, device_id: str, device_type: str, mqtt_topic: str | None = None) -> None:
         """Add a device to the area.
 
@@ -160,17 +166,7 @@ class Area:
             device_type: Type of device (thermostat, temperature_sensor, etc.)
             mqtt_topic: MQTT topic for the device (optional)
         """
-        self.devices[device_id] = {
-            "type": device_type,
-            "mqtt_topic": mqtt_topic,
-            "entity_id": None,
-        }
-        _LOGGER.debug(
-            "Added device %s (type: %s) to area %s",
-            device_id,
-            device_type,
-            self.area_id,
-        )
+        return self._device_manager.add_device(device_id, device_type, mqtt_topic)
 
     def remove_device(self, device_id: str) -> None:
         """Remove a device from the area.
@@ -178,9 +174,7 @@ class Area:
         Args:
             device_id: Unique identifier for the device
         """
-        if device_id in self.devices:
-            del self.devices[device_id]
-            _LOGGER.debug("Removed device %s from area %s", device_id, self.area_id)
+        return self._device_manager.remove_device(device_id)
 
     def get_temperature_sensors(self) -> list[str]:
         """Get all temperature sensor device IDs in the area.
@@ -188,11 +182,7 @@ class Area:
         Returns:
             List of temperature sensor device IDs
         """
-        return [
-            device_id
-            for device_id, device in self.devices.items()
-            if device["type"] == DEVICE_TYPE_TEMPERATURE_SENSOR
-        ]
+        return self._device_manager.get_temperature_sensors()
 
     def get_thermostats(self) -> list[str]:
         """Get all thermostat device IDs in the area.
@@ -200,11 +190,7 @@ class Area:
         Returns:
             List of thermostat device IDs
         """
-        return [
-            device_id
-            for device_id, device in self.devices.items()
-            if device["type"] in (DEVICE_TYPE_THERMOSTAT, "climate")
-        ]
+        return self._device_manager.get_thermostats()
 
     def get_opentherm_gateways(self) -> list[str]:
         """Get all OpenTherm gateway device IDs in the area.
@@ -212,11 +198,7 @@ class Area:
         Returns:
             List of OpenTherm gateway device IDs
         """
-        return [
-            device_id
-            for device_id, device in self.devices.items()
-            if device["type"] == DEVICE_TYPE_OPENTHERM_GATEWAY
-        ]
+        return self._device_manager.get_opentherm_gateways()
 
     def get_switches(self) -> list[str]:
         """Get all switch device IDs in the area (pumps, relays, etc.).
@@ -224,11 +206,7 @@ class Area:
         Returns:
             List of switch device IDs
         """
-        return [
-            device_id
-            for device_id, device in self.devices.items()
-            if device["type"] == DEVICE_TYPE_SWITCH
-        ]
+        return self._device_manager.get_switches()
 
     def get_valves(self) -> list[str]:
         """Get all valve device IDs in the area (TRVs, motorized valves).
@@ -236,12 +214,9 @@ class Area:
         Returns:
             List of valve device IDs
         """
-        return [
-            device_id
-            for device_id, device in self.devices.items()
-            if device["type"] == DEVICE_TYPE_VALVE
-        ]
+        return self._device_manager.get_valves()
 
+    # Sensor management methods - delegate to AreaSensorManager
     def add_window_sensor(
         self,
         entity_id: str,
@@ -255,28 +230,7 @@ class Area:
             action_when_open: Action to take when window opens (turn_off, reduce_temperature, none)
             temp_drop: Temperature drop when open (only for reduce_temperature action)
         """
-        # Check if sensor already exists
-        existing = [s for s in self.window_sensors if s.get("entity_id") == entity_id]
-        if existing:
-            _LOGGER.debug("Window sensor %s already exists in area %s", entity_id, self.area_id)
-            return
-
-        sensor_config: dict[str, str | float] = {
-            "entity_id": entity_id,
-            "action_when_open": action_when_open,
-        }
-        if action_when_open == "reduce_temperature":
-            sensor_config["temp_drop"] = (
-                temp_drop if temp_drop is not None else DEFAULT_WINDOW_OPEN_TEMP_DROP
-            )
-
-        self.window_sensors.append(sensor_config)
-        _LOGGER.debug(
-            "Added window sensor %s to area %s with action %s",
-            entity_id,
-            self.area_id,
-            action_when_open,
-        )
+        return self._sensor_manager.add_window_sensor(entity_id, action_when_open, temp_drop)
 
     def remove_window_sensor(self, entity_id: str) -> None:
         """Remove a window/door sensor from the area.
@@ -284,8 +238,7 @@ class Area:
         Args:
             entity_id: Entity ID of the window/door sensor
         """
-        self.window_sensors = [s for s in self.window_sensors if s.get("entity_id") != entity_id]
-        _LOGGER.debug("Removed window sensor %s from area %s", entity_id, self.area_id)
+        return self._sensor_manager.remove_window_sensor(entity_id)
 
     def add_presence_sensor(
         self,
@@ -300,22 +253,7 @@ class Area:
         Args:
             entity_id: Entity ID of the presence sensor (person.* or binary_sensor.*)
         """
-        # Check if sensor already exists
-        existing = [s for s in self.presence_sensors if s.get("entity_id") == entity_id]
-        if existing:
-            _LOGGER.debug("Presence sensor %s already exists in area %s", entity_id, self.area_id)
-            return
-
-        sensor_config = {
-            "entity_id": entity_id,
-        }
-
-        self.presence_sensors.append(sensor_config)
-        _LOGGER.debug(
-            "Added presence sensor %s to area %s (controls preset mode)",
-            entity_id,
-            self.area_id,
-        )
+        return self._sensor_manager.add_presence_sensor(entity_id)
 
     def remove_presence_sensor(self, entity_id: str) -> None:
         """Remove a presence/motion sensor from the area.
@@ -323,71 +261,16 @@ class Area:
         Args:
             entity_id: Entity ID of the presence sensor
         """
-        self.presence_sensors = [
-            s for s in self.presence_sensors if s.get("entity_id") != entity_id
-        ]
-        _LOGGER.debug("Removed presence sensor %s from area %s", entity_id, self.area_id)
+        return self._sensor_manager.remove_presence_sensor(entity_id)
 
+    # Preset management methods - delegate to AreaPresetManager
     def get_preset_temperature(self) -> float:
         """Get the target temperature for the current preset mode.
 
         Returns:
             Temperature for current preset mode
         """
-        # Determine which temperature to use based on use_global_* flags
-        if self.area_manager:
-            away_temp = (
-                self.area_manager.global_away_temp if self.use_global_away else self.away_temp
-            )
-            eco_temp = self.area_manager.global_eco_temp if self.use_global_eco else self.eco_temp
-            comfort_temp = (
-                self.area_manager.global_comfort_temp
-                if self.use_global_comfort
-                else self.comfort_temp
-            )
-            home_temp = (
-                self.area_manager.global_home_temp if self.use_global_home else self.home_temp
-            )
-            sleep_temp = (
-                self.area_manager.global_sleep_temp if self.use_global_sleep else self.sleep_temp
-            )
-            activity_temp = (
-                self.area_manager.global_activity_temp
-                if self.use_global_activity
-                else self.activity_temp
-            )
-
-            _LOGGER.debug(
-                "Area %s: preset=%s use_global_home=%s home_temps global=%.1f area=%.1f selected=%.1f",
-                self.area_id,
-                self.preset_mode,
-                self.use_global_home,
-                self.area_manager.global_home_temp,
-                self.home_temp,
-                home_temp,
-            )
-        else:
-            # Fallback to area-specific temperatures if no area_manager
-            _LOGGER.debug("Area %s: No area_manager reference - using fallback temps", self.area_id)
-            away_temp = self.away_temp
-            eco_temp = self.eco_temp
-            comfort_temp = self.comfort_temp
-            home_temp = self.home_temp
-            sleep_temp = self.sleep_temp
-            activity_temp = self.activity_temp
-
-        preset_temps = {
-            PRESET_AWAY: away_temp,
-            PRESET_ECO: eco_temp,
-            PRESET_COMFORT: comfort_temp,
-            PRESET_HOME: home_temp,
-            PRESET_SLEEP: sleep_temp,
-            PRESET_ACTIVITY: activity_temp,
-            PRESET_BOOST: self.boost_temp,  # Boost is always area-specific
-        }
-        result = preset_temps.get(self.preset_mode, self.target_temperature)
-        _LOGGER.debug("Area %s: get_preset_temperature() returning %.1f°C", self.area_id, result)
-        return result
+        return self._preset_manager.get_preset_temperature()
 
     def set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode for the area.
@@ -395,20 +278,7 @@ class Area:
         Args:
             preset_mode: Preset mode (away, eco, comfort, etc.)
         """
-        old_mode = self.preset_mode
-        old_effective = self.get_effective_target_temperature()
-        self.preset_mode = preset_mode
-        new_effective = self.get_effective_target_temperature()
-
-        _LOGGER.info(
-            "Area %s: Preset mode %s → %s | Effective temp: %.1f°C → %.1f°C (base: %.1f°C)",
-            self.area_id,
-            old_mode,
-            preset_mode,
-            old_effective,
-            new_effective,
-            self.target_temperature,
-        )
+        return self._preset_manager.set_preset_mode(preset_mode)
 
     def set_boost_mode(self, duration: int, temp: float | None = None) -> None:
         """Activate boost mode for a specified duration.
@@ -417,26 +287,11 @@ class Area:
             duration: Duration in minutes
             temp: Optional boost temperature (defaults to self.boost_temp)
         """
-        self.boost_mode_active = True
-        self.boost_duration = duration
-        if temp is not None:
-            self.boost_temp = temp
-        self.boost_end_time = datetime.now() + timedelta(minutes=duration)
-        self.preset_mode = PRESET_BOOST
-        _LOGGER.info(
-            "Activated boost mode for area %s: %d minutes at %.1f°C",
-            self.area_id,
-            duration,
-            self.boost_temp,
-        )
+        return self._preset_manager.set_boost_mode(duration, temp)
 
     def cancel_boost_mode(self) -> None:
         """Cancel active boost mode."""
-        if self.boost_mode_active:
-            self.boost_mode_active = False
-            self.boost_end_time = None
-            self.preset_mode = PRESET_NONE
-            _LOGGER.info("Cancelled boost mode for area %s", self.area_id)
+        return self._preset_manager.cancel_boost_mode()
 
     def check_boost_expiry(self) -> bool:
         """Check if boost mode has expired and cancel if needed.
@@ -444,20 +299,16 @@ class Area:
         Returns:
             True if boost was cancelled, False otherwise
         """
-        if self.boost_mode_active and self.boost_end_time:
-            if datetime.now() >= self.boost_end_time:
-                self.cancel_boost_mode()
-                return True
-        return False
+        return self._preset_manager.check_boost_expiry()
 
+    # Schedule management methods - delegate to AreaScheduleManager
     def add_schedule(self, schedule: Schedule) -> None:
         """Add a schedule to the area.
 
         Args:
             schedule: Schedule instance
         """
-        self.schedules[schedule.schedule_id] = schedule
-        _LOGGER.debug("Added schedule %s to area %s", schedule.schedule_id, self.area_id)
+        return self._schedule_manager.add_schedule(schedule)
 
     def remove_schedule(self, schedule_id: str) -> None:
         """Remove a schedule from the area.
@@ -465,9 +316,7 @@ class Area:
         Args:
             schedule_id: Schedule identifier
         """
-        if schedule_id in self.schedules:
-            del self.schedules[schedule_id]
-            _LOGGER.debug("Removed schedule %s from area %s", schedule_id, self.area_id)
+        return self._schedule_manager.remove_schedule(schedule_id)
 
     def get_active_schedule_temperature(self, current_time: datetime | None = None) -> float | None:
         """Get the temperature from the currently active schedule.
@@ -478,157 +327,7 @@ class Area:
         Returns:
             Temperature from active schedule or None
         """
-        if current_time is None:
-            current_time = datetime.now()
-
-        # Find all active schedules and get the latest one
-        active_schedules = [s for s in self.schedules.values() if s.is_active(current_time)]
-
-        if not active_schedules:
-            return None
-
-        # Sort by time and get the latest
-        active_schedules.sort(key=lambda s: s.time, reverse=True)
-        return active_schedules[0].temperature
-
-    def _get_window_open_temperature(self) -> Optional[float]:
-        """Get temperature when window is open based on sensor actions.
-
-        Returns:
-            Temperature or None if no window action applies
-        """
-        if not self.window_is_open or len(self.window_sensors) == 0:
-            return None
-
-        # Find sensors with action_when_open configured
-        for sensor in self.window_sensors:
-            action = sensor.get("action_when_open", "reduce_temperature")
-            if action == "turn_off":
-                return 5.0  # Turn off heating (frost protection)
-            elif action == "reduce_temperature":
-                temp_drop = sensor.get("temp_drop", DEFAULT_WINDOW_OPEN_TEMP_DROP)
-                return max(5.0, self.target_temperature - temp_drop)
-            # "none" action means no temperature change
-
-        return None
-
-    def _get_base_target_from_preset_or_schedule(self, current_time: datetime) -> tuple[float, str]:
-        """Get base target temperature from preset or schedule.
-
-        Args:
-            current_time: Current time
-
-        Returns:
-            Tuple of (temperature, source_description)
-        """
-        # Priority 1: Preset mode temperature
-        if self.preset_mode != PRESET_NONE and self.preset_mode != PRESET_BOOST:
-            target = self.get_preset_temperature()
-            source = f"preset:{self.preset_mode}"
-            return target, source
-
-        # Priority 2: Schedule temperature (if available)
-        target = self.get_active_schedule_temperature(current_time)
-        if target is not None:
-            return target, "schedule"
-
-        # Priority 3: Base target temperature
-        return self.target_temperature, "base_target"
-
-    def _is_in_time_period(
-        self, current_time: datetime, start_time_str: str, end_time_str: str
-    ) -> bool:
-        """Check if current time is within a time period.
-
-        Handles periods that cross midnight.
-
-        Args:
-            current_time: Current datetime
-            start_time_str: Start time as "HH:MM"
-            end_time_str: End time as "HH:MM"
-
-        Returns:
-            True if current time is in period
-        """
-        start_hour, start_min = map(int, start_time_str.split(":"))
-        end_hour, end_min = map(int, end_time_str.split(":"))
-        current_hour = current_time.hour
-        current_min = current_time.minute
-
-        start_minutes = start_hour * 60 + start_min
-        end_minutes = end_hour * 60 + end_min
-        current_minutes = current_hour * 60 + current_min
-
-        if start_minutes <= end_minutes:
-            # Normal period (e.g., 08:00-18:00)
-            return start_minutes <= current_minutes < end_minutes
-        else:
-            # Period crosses midnight (e.g., 22:00-06:00)
-            return current_minutes >= start_minutes or current_minutes < end_minutes
-
-    def _apply_night_boost(self, target: float, current_time: datetime) -> float:
-        """Apply night boost to target temperature if applicable.
-
-        Night boost adds a small temperature offset during configured hours to
-        pre-heat the space before the morning schedule. It works additively on
-        top of any active schedule (e.g., sleep preset).
-
-        Args:
-            target: Current target temperature
-            current_time: Current time
-
-        Returns:
-            Adjusted temperature with night boost
-        """
-        if not self.night_boost_enabled:
-            return target
-
-        # Check if current time is within night boost period
-        is_active = self._is_in_time_period(
-            current_time, self.night_boost_start_time, self.night_boost_end_time
-        )
-
-        if is_active:
-            old_target = target
-            target += self.night_boost_offset
-            _LOGGER.info(
-                "Night boost active for %s (%s-%s): %.1f°C + %.1f°C = %.1f°C",
-                self.area_id,
-                self.night_boost_start_time,
-                self.night_boost_end_time,
-                old_target,
-                self.night_boost_offset,
-                target,
-            )
-            # Log to area logger if available
-            if self.area_manager and hasattr(self.area_manager, "hass"):
-                area_logger = self.area_manager.hass.data.get("smart_heating", {}).get(
-                    "area_logger"
-                )
-                if area_logger:
-                    area_logger.log_event(
-                        self.area_id,
-                        "temperature",
-                        f"Night boost applied: +{self.night_boost_offset}°C",
-                        {
-                            "base_target": old_target,
-                            "boost_offset": self.night_boost_offset,
-                            "effective_target": target,
-                            "boost_period": f"{self.night_boost_start_time}-{self.night_boost_end_time}",
-                            "current_time": f"{current_time.hour:02d}:{current_time.minute:02d}",
-                        },
-                    )
-        else:
-            _LOGGER.debug(
-                "Night boost inactive for %s at %02d:%02d (period: %s-%s)",
-                self.area_id,
-                current_time.hour,
-                current_time.minute,
-                self.night_boost_start_time,
-                self.night_boost_end_time,
-            )
-
-        return target
+        return self._schedule_manager.get_active_schedule_temperature(current_time)
 
     def get_effective_target_temperature(self, current_time: datetime | None = None) -> float:
         """Get the effective target temperature considering all factors.
@@ -648,39 +347,7 @@ class Area:
         Returns:
             Effective target temperature
         """
-        if current_time is None:
-            current_time = datetime.now()
-
-        # Check if boost mode has expired
-        self.check_boost_expiry()
-
-        # Priority 1: Boost mode
-        if self.boost_mode_active:
-            return self.boost_temp
-
-        # Priority 2: Window open actions
-        window_temp = self._get_window_open_temperature()
-        if window_temp is not None:
-            return window_temp
-
-        # Priority 3-5: Get base target from preset or schedule
-        target, source = self._get_base_target_from_preset_or_schedule(current_time)
-
-        # Log what we're starting with for debugging
-        _LOGGER.debug(
-            "Effective temp calculation for %s: source=%s, target=%.1f°C",
-            self.area_id,
-            source,
-            target,
-        )
-
-        # Priority 6: Apply night boost if enabled (additive)
-        target = self._apply_night_boost(target, current_time)
-
-        # Note: Presence sensor actions are now handled by switching preset modes
-        # (see climate_controller.py) rather than adjusting temperature directly
-
-        return target
+        return self._schedule_manager.get_effective_target_temperature(current_time)
 
     @property
     def current_temperature(self) -> float | None:
@@ -841,7 +508,6 @@ class Area:
         area.sleep_temp = data.get("sleep_temp", DEFAULT_SLEEP_TEMP)
         area.activity_temp = data.get("activity_temp", DEFAULT_ACTIVITY_TEMP)
 
-        # Global preset flags (default to True for backward compatibility)
         area.use_global_away = data.get("use_global_away", True)
         area.use_global_eco = data.get("use_global_eco", True)
         area.use_global_comfort = data.get("use_global_comfort", True)
@@ -870,14 +536,13 @@ class Area:
         # Primary temperature sensor
         area.primary_temperature_sensor = data.get("primary_temperature_sensor")
 
-        # Heating type configuration (default to radiator for backward compatibility)
+        # Heating type configuration
         area.heating_type = data.get("heating_type", "radiator")
         area.custom_overhead_temp = data.get("custom_overhead_temp")
 
         # Window sensors - support both old string format and new dict format
         window_sensors_data = data.get("window_sensors", [])
         if window_sensors_data and isinstance(window_sensors_data[0], str):
-            # Legacy format: convert to new format
             area.window_sensors = [
                 {
                     "entity_id": entity_id,
@@ -892,7 +557,6 @@ class Area:
         # Presence sensors - support both old string format and new dict format
         presence_sensors_data = data.get("presence_sensors", [])
         if presence_sensors_data and isinstance(presence_sensors_data[0], str):
-            # Legacy format: convert to new format
             area.presence_sensors = [
                 {
                     "entity_id": entity_id,
@@ -908,10 +572,10 @@ class Area:
         else:
             area.presence_sensors = presence_sensors_data
 
-        # Global presence flag (default to False for backward compatibility)
+        # Global presence flag
         area.use_global_presence = data.get("use_global_presence", False)
 
-        # Auto preset mode (default to False for backward compatibility)
+        # Auto preset mode
         area.auto_preset_enabled = data.get("auto_preset_enabled", False)
         area.auto_preset_home = data.get("auto_preset_home", PRESET_HOME)
         area.auto_preset_away = data.get("auto_preset_away", PRESET_AWAY)

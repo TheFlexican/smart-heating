@@ -49,7 +49,7 @@ async def call_maybe_async(func: callable, /, *args, **kwargs) -> Any:
     return result
 
 
-def get_coordinator_devices(hass: HomeAssistant, area_id: str) -> Dict[str, Any]:
+def get_coordinator_devices(hass: HomeAssistant, area_id: str) -> dict[str, Any]:
     """Get coordinator device data for an area.
 
     Args:
@@ -73,7 +73,7 @@ def get_coordinator_devices(hass: HomeAssistant, area_id: str) -> Dict[str, Any]
     return device_dict
 
 
-def safe_coordinator_data(data: Dict[str, Any]) -> Dict[str, Any]:
+def safe_coordinator_data(data: dict[str, Any]) -> dict[str, Any]:
     """Remove learning_engine from coordinator data before returning to API.
 
     The learning_engine contains circular references and is too large for JSON.

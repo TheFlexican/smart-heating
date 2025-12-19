@@ -3,7 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from smart_heating.api_handlers.areas import handle_set_heating_type
+from smart_heating.api.handlers.areas import handle_set_heating_type
 
 
 @pytest.fixture
@@ -183,7 +183,7 @@ class TestHandleSetHeatingType:
         data = {"heating_type": "floor_heating"}
 
         with patch(
-            "smart_heating.api_handlers.areas.get_coordinator",
+            "smart_heating.api.handlers.areas.get_coordinator",
             return_value=mock_coordinator,
         ):
             response = await handle_set_heating_type(

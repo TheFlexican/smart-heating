@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from smart_heating.const import HISTORY_STORAGE_DATABASE, HISTORY_STORAGE_JSON
-from smart_heating.history import HistoryTracker
+from smart_heating.storage.history import HistoryTracker
 
 
 @pytest.mark.asyncio
@@ -60,7 +60,7 @@ async def test_history_database_cleanup_and_save(monkeypatch):
     fake_recorder = MagicMock()
     # async_add_executor_job returns number of removed rows
     fake_recorder.async_add_executor_job = AsyncMock(return_value=2)
-    monkeypatch.setattr("smart_heating.history.get_instance", lambda hass: fake_recorder)
+    monkeypatch.setattr("smart_heating.storage.history.get_instance", lambda hass: fake_recorder)
 
     tracker._db_table = MagicMock()
     # Patch _async_load_from_database to avoid heavy DB logic
