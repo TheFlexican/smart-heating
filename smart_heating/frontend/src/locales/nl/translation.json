@@ -69,7 +69,8 @@
     "hvacMode": "Modus",
     "hvacModeHeat": "Verwarmen",
     "hvacModeCool": "Koelen",
-    "hvacModeOff": "Uit"
+    "hvacModeOff": "Uit",
+    "settings": "Instellingen"
   },
   "tabs": {
     "overview": "Overzicht",

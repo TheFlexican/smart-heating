@@ -14,7 +14,8 @@ vi.mock('@dnd-kit/sortable', () => ({
     isDragging: false,
   }),
 }))
-vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
+const navigateMock = vi.fn()
+vi.mock('react-router-dom', () => ({ useNavigate: () => navigateMock }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
 vi.mock('../api/areas', () => ({
   setZoneTemperature: vi.fn().mockResolvedValue(undefined),
@@ -143,5 +144,37 @@ describe('ZoneCard extended behaviors', () => {
     await userEvent.click(hideOption)
     expect((await import('../api/areas')).hideZone).toHaveBeenCalled()
     expect(onUpdate).toHaveBeenCalled()
+  })
+
+  it('navigates to area detail via Settings menu item', async () => {
+    const area: any = {
+      id: 'a4',
+      name: 'Office',
+      enabled: true,
+      state: 'idle',
+      manual_override: false,
+      target_temperature: 21,
+      effective_target_temperature: 21,
+      preset_mode: 'none',
+      presence_sensors: [],
+      devices: [],
+      boost_mode_active: false,
+      boost_temp: 0,
+      boost_duration: 0,
+      hidden: false,
+    }
+    const onUpdate = vi.fn()
+    render(<ZoneCard area={area} onUpdate={onUpdate} />)
+
+    // open menu
+    const menuButtons = screen.getAllByRole('button')
+    const moreBtn = menuButtons.find(
+      b => b.querySelector('svg')?.dataset?.testid === 'MoreVertIcon',
+    )
+    if (moreBtn) await userEvent.click(moreBtn)
+
+    const settingsOption = screen.getByText('area.settings')
+    await userEvent.click(settingsOption)
+    expect(navigateMock).toHaveBeenCalledWith(`/area/${area.id}`)
   })
 })

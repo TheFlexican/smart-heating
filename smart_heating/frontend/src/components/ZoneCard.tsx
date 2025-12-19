@@ -121,8 +121,10 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
     setAnchorEl(null)
   }
 
-  const handleCardClick = () => {
+  const handleConfigureClick = (event: React.MouseEvent) => {
+    event.stopPropagation()
     navigate(`/area/${area.id}`)
+    handleMenuClose()
   }
 
   const handleTemperatureChange = async (event: Event, value: number | number[]) => {
@@ -346,11 +348,10 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
       style={style}
       data-testid={`area-card-${area.name.toLowerCase().replaceAll(' ', '-')}`}
       elevation={isDragging ? 12 : 2}
-      onClick={handleCardClick}
       sx={{
         bgcolor: isDragging ? alpha('#03a9f4', 0.15) : 'background.paper',
         borderRadius: 3,
-        cursor: isDragging ? 'grabbing' : 'pointer',
+        cursor: isDragging ? 'grabbing' : 'default',
         boxShadow: isDragging ? '0 12px 32px rgba(3, 169, 244, 0.4)' : undefined,
         opacity: isDragging ? 0.9 : 1,
         minHeight: { xs: 160, sm: 180 },
@@ -693,6 +694,12 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
+        <MenuItem data-testid={`zone-menu-configure-${area.id}`} onClick={handleConfigureClick}>
+          <ListItemIcon>
+            <TuneIcon />
+          </ListItemIcon>
+          <ListItemText primary={t('area.settings', 'Settings')} />
+        </MenuItem>
         <MenuItem data-testid={`zone-menu-hide-${area.id}`} onClick={handleToggleHidden}>
           <ListItemIcon>{area.hidden ? <VisibilityIcon /> : <VisibilityOffIcon />}</ListItemIcon>
           <ListItemText primary={area.hidden ? t('area.unhideArea') : t('area.hideArea')} />

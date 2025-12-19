@@ -1,1 +1,5 @@
-<FILE_CONTENT_REPLACED_WITH_PREVIOUSLY_READ_CONTENT>
+import * as GlobalSettings from './GlobalSettings'
+
+test('module loads', () => {
+  expect(GlobalSettings).toBeDefined()
+})
