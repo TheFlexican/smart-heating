@@ -9,9 +9,10 @@ test.describe('Area Heating Curve', () => {
     await page.waitForLoadState('networkidle');
     await dismissSnackbar(page);
 
-    // Click first area card
-    const firstArea = page.locator('[data-testid="zone-card"]').first();
-    await firstArea.click();
+    // Open settings via the first area's menu (3-dot) to ensure stable access
+    const menuBtn = page.locator('button:has(svg[data-testid="MoreVertIcon"])').first()
+    await menuBtn.click()
+    await page.getByText('Settings').click()
     await page.waitForTimeout(800);
   });
 
@@ -51,8 +52,9 @@ test.describe('Area Heating Curve', () => {
     // Reload area and check persisted field stays 2.5
     await page.click('[data-testid="back-button"]');
     await page.waitForTimeout(500);
-    const firstArea = page.locator('[data-testid="zone-card"]').first();
-    await firstArea.click();
+    const menuBtn = page.locator('button:has(svg[data-testid="MoreVertIcon"])').first()
+    await menuBtn.click()
+    await page.getByText('Settings').click()
     await page.waitForTimeout(800);
 
     // Expand and check

@@ -69,7 +69,8 @@
     "hvacMode": "Mode",
     "hvacModeHeat": "Heat",
     "hvacModeCool": "Cool",
-    "hvacModeOff": "Off"
+    "hvacModeOff": "Off",
+    "settings": "Settings"
   },
   "tabs": {
     "overview": "Overview",
