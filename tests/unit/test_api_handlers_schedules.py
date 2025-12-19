@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
-from smart_heating.api_handlers.schedules import (
+from smart_heating.api.handlers.schedules import (
     handle_add_schedule,
     handle_cancel_boost,
     handle_remove_schedule,
@@ -76,14 +76,14 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id",
+                "smart_heating.api.handlers.schedules.validate_area_id",
                 return_value=(True, None),
             ),
             patch(
-                "smart_heating.api_handlers.schedules.validate_temperature",
+                "smart_heating.api.handlers.schedules.validate_temperature",
                 return_value=(True, None),
             ),
-            patch("smart_heating.api_handlers.schedules.Schedule") as mock_schedule_class,
+            patch("smart_heating.api.handlers.schedules.Schedule") as mock_schedule_class,
         ):
             mock_schedule = MagicMock()
             mock_schedule.to_dict.return_value = {"id": "sched_123", "time": "08:00"}
@@ -111,10 +111,10 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id",
+                "smart_heating.api.handlers.schedules.validate_area_id",
                 return_value=(True, None),
             ),
-            patch("smart_heating.api_handlers.schedules.Schedule") as mock_schedule_class,
+            patch("smart_heating.api.handlers.schedules.Schedule") as mock_schedule_class,
         ):
             mock_schedule = MagicMock()
             mock_schedule.to_dict.return_value = {"preset_mode": "comfort"}
@@ -132,7 +132,7 @@ class TestScheduleHandlers:
         data = {"temperature": 22.0, "time": "08:00"}
 
         with patch(
-            "smart_heating.api_handlers.schedules.validate_area_id",
+            "smart_heating.api.handlers.schedules.validate_area_id",
             return_value=(False, "Invalid area ID"),
         ):
             response = await handle_add_schedule(mock_hass, mock_area_manager, "", data)
@@ -149,7 +149,7 @@ class TestScheduleHandlers:
         data = {"time": "08:00", "days": [0]}
 
         with patch(
-            "smart_heating.api_handlers.schedules.validate_area_id",
+            "smart_heating.api.handlers.schedules.validate_area_id",
             return_value=(True, None),
         ):
             response = await handle_add_schedule(mock_hass, mock_area_manager, "living_room", data)
@@ -165,11 +165,11 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id",
+                "smart_heating.api.handlers.schedules.validate_area_id",
                 return_value=(True, None),
             ),
             patch(
-                "smart_heating.api_handlers.schedules.validate_temperature",
+                "smart_heating.api.handlers.schedules.validate_temperature",
                 return_value=(False, "Temperature out of range"),
             ),
         ):
@@ -191,19 +191,19 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id",
+                "smart_heating.api.handlers.schedules.validate_area_id",
                 return_value=(True, None),
             ),
             patch(
-                "smart_heating.api_handlers.schedules.validate_temperature",
+                "smart_heating.api.handlers.schedules.validate_temperature",
                 return_value=(True, None),
             ),
             patch(
-                "smart_heating.api_handlers.schedules.ar.async_get",
+                "smart_heating.api.handlers.schedules.ar.async_get",
                 return_value=mock_area_registry,
             ),
-            patch("smart_heating.api_handlers.schedules.Area") as mock_area_class,
-            patch("smart_heating.api_handlers.schedules.Schedule") as mock_schedule_class,
+            patch("smart_heating.api.handlers.schedules.Area") as mock_area_class,
+            patch("smart_heating.api.handlers.schedules.Schedule") as mock_schedule_class,
         ):
             mock_new_area = MagicMock()
             mock_area_class.return_value = mock_new_area
@@ -238,15 +238,15 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id",
+                "smart_heating.api.handlers.schedules.validate_area_id",
                 return_value=(True, None),
             ),
             patch(
-                "smart_heating.api_handlers.schedules.validate_temperature",
+                "smart_heating.api.handlers.schedules.validate_temperature",
                 return_value=(True, None),
             ),
             patch(
-                "smart_heating.api_handlers.schedules.ar.async_get",
+                "smart_heating.api.handlers.schedules.ar.async_get",
                 return_value=registry,
             ),
         ):
@@ -263,11 +263,11 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id",
+                "smart_heating.api.handlers.schedules.validate_area_id",
                 return_value=(True, None),
             ),
             patch(
-                "smart_heating.api_handlers.schedules.validate_temperature",
+                "smart_heating.api.handlers.schedules.validate_temperature",
                 return_value=(True, None),
             ),
         ):
@@ -284,15 +284,15 @@ class TestScheduleHandlers:
 
         with (
             patch(
-                "smart_heating.api_handlers.schedules.validate_area_id",
+                "smart_heating.api.handlers.schedules.validate_area_id",
                 return_value=(True, None),
             ),
             patch(
-                "smart_heating.api_handlers.schedules.validate_temperature",
+                "smart_heating.api.handlers.schedules.validate_temperature",
                 return_value=(True, None),
             ),
             patch(
-                "smart_heating.api_handlers.schedules.Schedule",
+                "smart_heating.api.handlers.schedules.Schedule",
                 side_effect=ValueError("Invalid schedule"),
             ),
         ):

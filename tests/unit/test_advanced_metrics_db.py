@@ -3,7 +3,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from smart_heating.advanced_metrics_collector import AdvancedMetricsCollector
+from smart_heating.features.advanced_metrics_collector import AdvancedMetricsCollector
 
 
 @pytest.mark.asyncio
@@ -60,7 +60,7 @@ async def test_async_insert_metrics_calls_recorder(monkeypatch):
             self.async_add_executor_job = AsyncMock(return_value=None)
 
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance",
+        "smart_heating.features.advanced_metrics_collector.get_instance",
         lambda hass: FakeRecorder(),
     )
 
@@ -115,7 +115,7 @@ async def test_async_get_metrics(monkeypatch):
     )
 
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance",
+        "smart_heating.features.advanced_metrics_collector.get_instance",
         lambda hass: fake_recorder,
     )
     collector._db_engine = MagicMock()

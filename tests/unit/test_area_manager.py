@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
-from smart_heating.area_manager import AreaManager
+from smart_heating.core.area_manager import AreaManager
 from smart_heating.const import (
     DEFAULT_AWAY_TEMP,
     DEFAULT_COMFORT_TEMP,

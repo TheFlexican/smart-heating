@@ -67,13 +67,13 @@ class Schedule:
 
         Args:
             schedule_id: Unique identifier
-            time: Time in HH:MM format (legacy)
+            time: Time in HH:MM format (fallback if start_time not provided)
             temperature: Target temperature (optional if preset_mode is used)
-            days: Days of week (mon, tue, etc.) or None for all days (legacy)
+            days: Days of week (mon, tue, etc.) or None for all days
             enabled: Whether schedule is active
-            day: Day name (Monday, Tuesday, etc.) - new format (single day, legacy)
-            start_time: Start time in HH:MM format - new format
-            end_time: End time in HH:MM format - new format
+            day: Day name (Monday, Tuesday, etc.) - for single day schedules
+            start_time: Start time in HH:MM format
+            end_time: End time in HH:MM format
             preset_mode: Preset mode name (away, eco, comfort, home, sleep, activity)
             date: Specific date for one-time schedules (YYYY-MM-DD format)
         """

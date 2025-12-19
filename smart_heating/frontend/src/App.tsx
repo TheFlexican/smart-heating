@@ -1,92 +1,42 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import mergeZones from './utils/areaOrder'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { ThemeProvider, createTheme, CssBaseline, Box, Snackbar, Alert } from '@mui/material'
+import { ThemeProvider, CssBaseline, Box, Snackbar, Alert, CircularProgress } from '@mui/material'
 import Header from './components/Header'
 import ZoneList from './components/ZoneList'
 import DevicePanel from './components/DevicePanel'
+import MobileBottomNav from './components/MobileBottomNav'
 import { VacationModeBanner } from './components/VacationModeBanner'
-import ZoneDetail from './pages/AreaDetail'
-import GlobalSettings from './pages/GlobalSettings'
-import EfficiencyReports from './components/EfficiencyReports'
-import HistoricalComparisons from './components/HistoricalComparisons'
-import AdvancedMetricsDashboard from './components/AdvancedMetricsDashboard'
 import { Zone, Device } from './types'
 import { getZones } from './api/areas'
 import { getDevices } from './api/devices'
 import { getConfig } from './api/config'
 import { getSafetySensor } from './api/safety'
 import { useWebSocket } from './hooks/useWebSocket'
+import { createHATheme } from './theme'
 
-// Home Assistant theme factory - matches HA's native theme
-const createHATheme = (mode: 'light' | 'dark') =>
-  createTheme({
-    palette: {
-      mode,
-      primary: {
-        main: '#03a9f4', // HA blue accent
-        light: '#42c0fb',
-        dark: '#0286c2',
-      },
-      secondary: {
-        main: '#ffc107', // HA amber accent
-        light: '#ffd54f',
-        dark: '#c79100',
-      },
-      background:
-        mode === 'dark'
-          ? {
-              default: '#111111', // HA dark background
-              paper: '#1c1c1c', // HA card background
-            }
-          : {
-              default: '#fafafa', // HA light background
-              paper: '#ffffff', // HA light card background
-            },
-      text:
-        mode === 'dark'
-          ? {
-              primary: '#e1e1e1',
-              secondary: '#9e9e9e',
-            }
-          : {
-              primary: '#212121',
-              secondary: '#757575',
-            },
-      divider: mode === 'dark' ? '#2c2c2c' : '#e0e0e0',
-      error: {
-        main: '#f44336',
-      },
-      warning: {
-        main: '#ff9800',
-      },
-      success: {
-        main: '#4caf50',
-      },
-    },
-    typography: {
-      fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    },
-    shape: {
-      borderRadius: 8,
-    },
-    components: {
-      MuiCard: {
-        styleOverrides: {
-          root: {
-            backgroundImage: 'none',
-          },
-        },
-      },
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            textTransform: 'none',
-          },
-        },
-      },
-    },
-  })
+// Lazy load heavy components for better performance
+const ZoneDetail = lazy(() => import('./pages/AreaDetail'))
+const SettingsLayout = lazy(() => import('./components/SettingsLayout'))
+const DevicesView = lazy(() => import('./pages/DevicesView'))
+const AnalyticsMenu = lazy(() => import('./pages/AnalyticsMenu'))
+const EfficiencyReports = lazy(() => import('./components/EfficiencyReports'))
+const HistoricalComparisons = lazy(() => import('./components/HistoricalComparisons'))
+const AdvancedMetricsDashboard = lazy(() => import('./components/AdvancedMetricsDashboard'))
+
+// Loading component
+const PageLoader = () => (
+  <Box
+    sx={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '60vh',
+    }}
+  >
+    <CircularProgress />
+  </Box>
+)
 
 interface ZonesOverviewProps {
   wsConnected: boolean
@@ -112,7 +62,8 @@ const ZonesOverview = ({
   handleZonesUpdate,
   setShowHidden,
   onAreasReorder,
-}: ZonesOverviewProps) => (
+  transportMode,
+}: ZonesOverviewProps & { transportMode: 'websocket' | 'polling' }) => (
   <Box
     sx={{
       display: 'flex',
@@ -121,7 +72,7 @@ const ZonesOverview = ({
       bgcolor: 'background.default',
     }}
   >
-    <Header wsConnected={wsConnected} />
+    <Header wsConnected={wsConnected} transportMode={transportMode} />
     <Box
       sx={{
         display: 'flex',
@@ -234,7 +185,7 @@ function App() {
   }, [])
 
   // WebSocket connection for real-time updates
-  useWebSocket({
+  const { metrics: wsMetrics, transportMode } = useWebSocket({
     onConnect: () => {
       setWsConnected(true)
       setShowConnectionAlert(false)
@@ -300,38 +251,68 @@ function App() {
     <ThemeProvider theme={createHATheme(themeMode)}>
       <CssBaseline />
       <Router basename="/smart_heating_ui">
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <ZonesOverview
-                wsConnected={wsConnected}
-                safetyAlertActive={safetyAlertActive}
-                areas={areas}
-                loading={loading}
-                showHidden={showHidden}
-                hideDevicesPanel={hideDevicesPanel}
-                availableDevices={availableDevices}
-                handleZonesUpdate={handleZonesUpdate}
-                setShowHidden={setShowHidden}
-                onAreasReorder={reorderedAreas => {
-                  setAreas(reorderedAreas)
-                  // Persist to localStorage
-                  const orderIds = reorderedAreas.map(a => a.id)
-                  localStorage.setItem('areasOrder', JSON.stringify(orderIds))
-                }}
-              />
-            }
-          />
-          <Route path="/area/:areaId" element={<ZoneDetail />} />
-          <Route
-            path="/settings/global"
-            element={<GlobalSettings themeMode={themeMode} onThemeChange={setThemeMode} />}
-          />
-          <Route path="/analytics/efficiency" element={<EfficiencyReports />} />
-          <Route path="/analytics/comparison" element={<HistoricalComparisons />} />
-          <Route path="/opentherm/metrics" element={<AdvancedMetricsDashboard />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <ZonesOverview
+                  wsConnected={wsConnected}
+                  safetyAlertActive={safetyAlertActive}
+                  areas={areas}
+                  loading={loading}
+                  showHidden={showHidden}
+                  hideDevicesPanel={hideDevicesPanel}
+                  availableDevices={availableDevices}
+                  handleZonesUpdate={handleZonesUpdate}
+                  setShowHidden={setShowHidden}
+                  transportMode={transportMode}
+                  onAreasReorder={reorderedAreas => {
+                    setAreas(reorderedAreas)
+                    // Persist to localStorage
+                    const orderIds = reorderedAreas.map(a => a.id)
+                    localStorage.setItem('areasOrder', JSON.stringify(orderIds))
+                  }}
+                />
+              }
+            />
+            <Route path="/area/:areaId" element={<ZoneDetail />} />
+
+            {/* Devices View */}
+            <Route path="/devices" element={<DevicesView />} />
+
+            {/* Analytics */}
+            <Route path="/analytics" element={<AnalyticsMenu />} />
+            <Route path="/analytics/efficiency" element={<EfficiencyReports />} />
+            <Route path="/analytics/comparison" element={<HistoricalComparisons />} />
+            <Route path="/opentherm/metrics" element={<AdvancedMetricsDashboard />} />
+
+            {/* Settings */}
+            <Route
+              path="/settings"
+              element={
+                <SettingsLayout
+                  themeMode={themeMode}
+                  onThemeChange={setThemeMode}
+                  wsMetrics={wsMetrics}
+                />
+              }
+            />
+            <Route
+              path="/settings/*"
+              element={
+                <SettingsLayout
+                  themeMode={themeMode}
+                  onThemeChange={setThemeMode}
+                  wsMetrics={wsMetrics}
+                />
+              }
+            />
+          </Routes>
+        </Suspense>
+
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav />
       </Router>
 
       {/* Connection status notification */}

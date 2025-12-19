@@ -2,7 +2,7 @@ from datetime import datetime, time
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from smart_heating.scheduler import ScheduleExecutor
+from smart_heating.features.scheduler import ScheduleExecutor
 
 
 def make_hass():

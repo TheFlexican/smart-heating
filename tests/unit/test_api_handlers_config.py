@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
-from smart_heating.api_handlers.config import (
+from smart_heating.api.handlers.config import (
     handle_disable_vacation_mode,
     handle_enable_vacation_mode,
     handle_get_config,
@@ -26,7 +26,7 @@ from smart_heating.api_handlers.config import (
     handle_set_opentherm_gateway,
     handle_set_safety_sensor,
 )
-from smart_heating.area_manager import AreaManager
+from smart_heating.core.area_manager import AreaManager
 from smart_heating.const import DOMAIN
 
 ## The handler test moved down below fixtures to comply with import order linting
@@ -218,7 +218,7 @@ class TestConfigHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_hide_devices_panel_true(self, mock_area_manager):
         """Test setting hide_devices_panel to true."""
-        from smart_heating.api_handlers.config import handle_set_hide_devices_panel
+        from smart_heating.api.handlers.config import handle_set_hide_devices_panel
 
         data = {"hide_devices_panel": True}
 
@@ -234,7 +234,7 @@ class TestConfigHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_hide_devices_panel_false(self, mock_area_manager):
         """Test setting hide_devices_panel to false."""
-        from smart_heating.api_handlers.config import handle_set_hide_devices_panel
+        from smart_heating.api.handlers.config import handle_set_hide_devices_panel
 
         data = {"hide_devices_panel": False}
 
@@ -250,7 +250,7 @@ class TestConfigHandlers:
     @pytest.mark.asyncio
     async def test_handle_set_hide_devices_panel_missing_value(self, mock_area_manager):
         """Test setting hide_devices_panel with missing value."""
-        from smart_heating.api_handlers.config import handle_set_hide_devices_panel
+        from smart_heating.api.handlers.config import handle_set_hide_devices_panel
 
         data = {}
 

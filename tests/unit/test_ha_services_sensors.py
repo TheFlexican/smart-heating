@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from homeassistant.core import ServiceCall
 from smart_heating.const import ATTR_AREA_ID
-from smart_heating.ha_services.sensor_handlers import (
+from smart_heating.services.sensor_handlers import (
     async_handle_add_presence_sensor,
     async_handle_add_window_sensor,
     async_handle_remove_presence_sensor,

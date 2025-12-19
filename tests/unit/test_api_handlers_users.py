@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiohttp.test_utils import make_mocked_request
-from smart_heating.api_handlers import users as users_mod
+from smart_heating.api.handlers import users as users_mod
 
 
 @pytest.mark.asyncio

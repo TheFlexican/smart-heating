@@ -438,7 +438,7 @@ class TestAreaPresetTemperatures:
         area.add_window_sensor("binary_sensor.window1", "turn_off")
         area.window_is_open = True
 
-        temp = area._get_window_open_temperature()
+        temp = area._sensor_manager.get_window_open_temperature()
         assert temp == pytest.approx(5.0)  # Frost protection
 
     def test_get_window_open_temperature_reduce(self):
@@ -449,7 +449,7 @@ class TestAreaPresetTemperatures:
         area.add_window_sensor("binary_sensor.window1", "reduce_temperature", 3.0)
         area.window_is_open = True
 
-        temp = area._get_window_open_temperature()
+        temp = area._sensor_manager.get_window_open_temperature()
         assert temp == pytest.approx(17.0)  # 20.0 - 3.0
 
     def test_get_window_open_temperature_no_action(self):
@@ -460,7 +460,7 @@ class TestAreaPresetTemperatures:
         area.add_window_sensor("binary_sensor.window1", "reduce_temperature", 3.0)
         area.window_is_open = False  # Window closed
 
-        temp = area._get_window_open_temperature()
+        temp = area._sensor_manager.get_window_open_temperature()
         assert temp is None
 
 
@@ -490,7 +490,7 @@ class TestAreaNightBoost:
         current_time = datetime(2024, 1, 1, 23, 0)  # 11 PM
 
         # Should log to area logger
-        target = area._apply_night_boost(20.0, current_time)
+        target = area._schedule_manager.apply_night_boost(20.0, current_time)
         assert target == pytest.approx(22.0)
 
     def test_night_boost_active_during_period(self):
@@ -503,7 +503,7 @@ class TestAreaNightBoost:
 
         # Test during boost period
         current_time = datetime(2024, 1, 1, 5, 30)  # 5:30 AM
-        target = area._apply_night_boost(18.5, current_time)
+        target = area._schedule_manager.apply_night_boost(18.5, current_time)
         assert target == pytest.approx(19.0)  # 18.5 + 0.5
 
     def test_night_boost_inactive_outside_period(self):
@@ -516,7 +516,7 @@ class TestAreaNightBoost:
 
         # Test outside boost period
         current_time = datetime(2024, 1, 1, 10, 0)  # 10 AM
-        target = area._apply_night_boost(18.5, current_time)
+        target = area._schedule_manager.apply_night_boost(18.5, current_time)
         assert target == pytest.approx(18.5)  # No change
 
     def test_night_boost_works_with_schedule(self):
@@ -544,7 +544,7 @@ class TestAreaNightBoost:
 
         # Night boost should work on top of sleep temperature
         # Sleep schedule gives 18.5°C, night boost adds 0.2°C = 18.7°C
-        target = area._apply_night_boost(18.5, current_time)
+        target = area._schedule_manager.apply_night_boost(18.5, current_time)
         assert target == pytest.approx(18.7)
 
     def test_night_boost_disabled(self):
@@ -557,7 +557,7 @@ class TestAreaNightBoost:
 
         # Test during what would be boost period
         current_time = datetime(2024, 1, 1, 5, 0)
-        target = area._apply_night_boost(20.0, current_time)
+        target = area._schedule_manager.apply_night_boost(20.0, current_time)
         assert target == pytest.approx(20.0)  # No change when disabled
 
     def test_night_boost_crosses_midnight(self):
@@ -570,12 +570,12 @@ class TestAreaNightBoost:
 
         # Test late night (before midnight)
         current_time = datetime(2024, 1, 1, 23, 30)  # 11:30 PM
-        target = area._apply_night_boost(18.0, current_time)
+        target = area._schedule_manager.apply_night_boost(18.0, current_time)
         assert target == pytest.approx(18.3)
 
         # Test early morning (after midnight)
         current_time = datetime(2024, 1, 2, 4, 0)  # 4 AM
-        target = area._apply_night_boost(18.0, current_time)
+        target = area._schedule_manager.apply_night_boost(18.0, current_time)
         assert target == pytest.approx(18.3)
 
 

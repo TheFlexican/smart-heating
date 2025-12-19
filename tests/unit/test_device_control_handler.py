@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
-from smart_heating.climate_handlers.device_control import DeviceControlHandler
+from smart_heating.climate.device_control import DeviceControlHandler
 from smart_heating.models.area import Area
 
 
@@ -107,10 +107,10 @@ async def test_handle_thermostat_idle_sets_to_current_or_target():
     # thermostat id
     tid = "climate.t1"
     # last set temp None
-    handler._last_set_temperatures = {}
+    handler.thermostat_handler._last_set_temperatures = {}
     await handler._handle_thermostat_idle(area, tid, 21.0)
     # Since current >= (target - hyst) desired_setpoint should be current temp (22.0)
-    assert handler._last_set_temperatures[tid] == 22.0  # NOSONAR
+    assert handler.thermostat_handler._last_set_temperatures[tid] == 22.0
     # Call again, should skip because last_temp equals desired
     hass.services.async_call.reset_mock()
     await handler._handle_thermostat_idle(area, tid, 21.0)
@@ -136,7 +136,7 @@ async def test_handle_thermostat_turn_off_behavior():
     # Thermostat does not support turn_off -> set min (frost_protection_temp)
     state.attributes = {"supported_features": 0}
     hass.states.get = MagicMock(return_value=state)
-    handler._last_set_temperatures = {}
+    handler.thermostat_handler._last_set_temperatures = {}
     hass.services.async_call.reset_mock()
     await handler._handle_thermostat_turn_off("climate.t1")
     hass.services.async_call.assert_awaited()
@@ -167,8 +167,10 @@ def test_compute_area_candidate_with_heating_curve_and_pid():
     assert isinstance(cand, float)
 
     # Now test PID path: assign a fake pid
-    handler._pids["a1"] = MagicMock()
-    handler._pids["a1"].update.return_value = 1.5
+    from smart_heating.climate.controllers import pid_controller_manager
+
+    pid_controller_manager._pids["a1"] = MagicMock()
+    pid_controller_manager._pids["a1"].update.return_value = 1.5
     area.current_temperature = 19.0
     # candidate before pid is target + overhead = 21.0
     cand2 = handler._compute_area_candidate("a1", 0.0, True, False, True)
@@ -246,16 +248,16 @@ async def test_handle_thermostat_heating_and_idle_and_turn_off():
     hass.states.get = MagicMock(return_value=MagicMock(attributes={}))
     hass.services.async_call = AsyncMock()
     await handler._handle_thermostat_heating("climate.t1", 21.5, "heat")
-    assert handler._last_set_temperatures["climate.t1"] == 21.5  # NOSONAR
+    assert handler.thermostat_handler._last_set_temperatures["climate.t1"] == 21.5
 
     # idle path: if current_temp >= target - hysteresis, should set to current temp
     area = MagicMock()
     area.hysteresis_override = 0.5
     area.current_temperature = 22.0
-    handler._last_set_temperatures = {}
+    handler.thermostat_handler._last_set_temperatures = {}
     hass.services.async_call = AsyncMock()
     await handler._handle_thermostat_idle(area, "climate.t1", 22.0)
-    assert "climate.t1" in handler._last_set_temperatures
+    assert "climate.t1" in handler.thermostat_handler._last_set_temperatures
 
     # turn off supported
     state = MagicMock()

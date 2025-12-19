@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Alert, Box, Button, Typography } from '@mui/material'
+import BeachAccessIcon from '@mui/icons-material/BeachAccess'
 import { useTranslation } from 'react-i18next'
 import { getVacationMode, disableVacationMode } from '../api/vacation'
 import { VacationMode } from '../types'
@@ -43,23 +44,32 @@ export const VacationModeBanner: React.FC = () => {
   return (
     <Alert
       severity="info"
-      sx={{ mb: 2 }}
+      icon={<BeachAccessIcon />}
+      sx={{
+        mb: 2,
+        '& .MuiAlert-message': {
+          width: '100%',
+        },
+      }}
       action={
         <Button
           color="inherit"
           size="small"
           onClick={handleDisable}
           data-testid="vacation-disable-button"
+          sx={{
+            fontWeight: 500,
+          }}
         >
           {t('common.disable')}
         </Button>
       }
     >
       <Box>
-        <Typography variant="body2" fontWeight="bold">
+        <Typography variant="subtitle2" fontWeight={600} gutterBottom>
           {t('vacation.active')}
         </Typography>
-        <Typography variant="body2">
+        <Typography variant="body2" color="text.secondary">
           {t('vacation.allAreasSet', { preset: vacationMode.preset_mode })}
           {vacationMode.end_date && (
             <>

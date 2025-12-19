@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
-from smart_heating.api import SmartHeatingAPIView
+from smart_heating.api.server import SmartHeatingAPIView
 from smart_heating.const import DOMAIN
 
 
@@ -60,11 +60,11 @@ async def test_delete_vacation_and_safety_sensor(hass, mock_area_manager):
     # Patch handlers
     with (
         patch(
-            "smart_heating.api.handle_disable_vacation_mode",
+            "smart_heating.api.handlers.handle_disable_vacation_mode",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_remove_safety_sensor",
+            "smart_heating.api.handlers.handle_remove_safety_sensor",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
     ):

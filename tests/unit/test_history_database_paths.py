@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from smart_heating.const import HISTORY_STORAGE_DATABASE
-from smart_heating.history import HistoryTracker
+from smart_heating.storage.history import HistoryTracker
 
 
 @pytest.mark.asyncio
@@ -16,7 +16,7 @@ async def test_history_init_database_success(monkeypatch):
             self.db_url = "mysql://user:pass@host/db"
             self.engine = MagicMock()
 
-    monkeypatch.setattr("smart_heating.history.get_instance", lambda hass: FakeRecorder())
+    monkeypatch.setattr("smart_heating.storage.history.get_instance", lambda hass: FakeRecorder())
 
     tracker = HistoryTracker(hass, storage_backend=HISTORY_STORAGE_DATABASE)
     # If recorder present and supported, db_table should be initialized
@@ -46,7 +46,7 @@ async def test_async_load_from_database(monkeypatch):
         }
 
     fake_recorder.async_add_executor_job = AsyncMock(return_value=fake_load())
-    monkeypatch.setattr("smart_heating.history.get_instance", lambda hass: fake_recorder)
+    monkeypatch.setattr("smart_heating.storage.history.get_instance", lambda hass: fake_recorder)
 
     # Set db_table to non-None to force database load path
     tracker._db_table = MagicMock()
@@ -110,7 +110,7 @@ async def test_async_save_to_database_entry_error(monkeypatch):
         async def async_add_executor_job(self, fn):
             raise RuntimeError("DB failure")
 
-    monkeypatch.setattr("smart_heating.history.get_instance", lambda hass: BadRecorder())
+    monkeypatch.setattr("smart_heating.storage.history.get_instance", lambda hass: BadRecorder())
     tracker._db_table = MagicMock()
 
     # Should not raise

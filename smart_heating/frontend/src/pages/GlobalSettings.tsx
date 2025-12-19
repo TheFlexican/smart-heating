@@ -37,6 +37,7 @@ import BackupIcon from '@mui/icons-material/Backup'
 import FireplaceIcon from '@mui/icons-material/Fireplace'
 import ListAltIcon from '@mui/icons-material/ListAlt'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import BugReportIcon from '@mui/icons-material/BugReport'
 
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -79,7 +80,11 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`settings-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+      {value === index && (
+        <Box sx={{ py: 3, px: { xs: 2, sm: 3 }, maxWidth: { xs: 800, lg: 1200 }, mx: 'auto' }}>
+          {children}
+        </Box>
+      )}
     </div>
   )
 }
@@ -111,16 +116,40 @@ const presetDescriptions = {
   activity_temp: 'Active daytime temperature',
 }
 
+interface WebSocketMetrics {
+  totalConnectionAttempts: number
+  successfulConnections: number
+  failedConnections: number
+  unexpectedDisconnects: number
+  averageConnectionDuration: number
+  lastFailureReason: string
+  lastConnectedAt: string | null
+  lastDisconnectedAt: string | null
+  connectionDurations: number[]
+  deviceInfo: {
+    userAgent: string
+    platform: string
+    isIframe: boolean
+    isiOS: boolean
+    isAndroid: boolean
+    browserName: string
+  }
+}
+
 export default function GlobalSettings({
   themeMode,
   onThemeChange,
+  wsMetrics,
+  initialTab = 0,
 }: {
   themeMode: 'light' | 'dark'
   onThemeChange: (mode: 'light' | 'dark') => void
+  wsMetrics?: WebSocketMetrics
+  initialTab?: number
 }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const [activeTab, setActiveTab] = useState(0)
+  const [activeTab, setActiveTab] = useState(initialTab)
   const [presets, setPresets] = useState<GlobalPresetsData | null>(null)
   const [hysteresis, setHysteresisValue] = useState<number>(0.5)
   const [loading, setLoading] = useState(true)
@@ -553,6 +582,12 @@ export default function GlobalSettings({
             data-testid="opentherm-tab"
             label={t('globalSettings.tabs.opentherm', 'OpenTherm')}
           />
+          <Tab
+            icon={<BugReportIcon />}
+            iconPosition="start"
+            data-testid="debug-tab"
+            label="Debug"
+          />
         </Tabs>
       </Box>
 
@@ -579,10 +614,13 @@ export default function GlobalSettings({
 
         {/* Temperature Tab */}
         <TabPanel value={activeTab} index={0}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              {t('globalSettings.presets.title', 'Preset Temperatures')}
-            </Typography>
+          <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <ThermostatIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                {t('globalSettings.presets.title', 'Preset Temperatures')}
+              </Typography>
+            </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               {t(
                 'globalSettings.presets.description',
@@ -1282,6 +1320,134 @@ export default function GlobalSettings({
           </Accordion>
 
           <OpenThermLogger />
+        </TabPanel>
+
+        {/* Debug Tab */}
+        <TabPanel value={activeTab} index={9}>
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              WebSocket Connection Health
+            </Typography>
+
+            {!wsMetrics ? (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                WebSocket metrics not available. Metrics are only available when connected.
+              </Alert>
+            ) : (
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Device Information
+                  </Typography>
+                  <List dense>
+                    <ListItem>
+                      <ListItemText primary="Platform" secondary={wsMetrics.deviceInfo.platform} />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText
+                        primary="Browser"
+                        secondary={wsMetrics.deviceInfo.browserName}
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText
+                        primary="Environment"
+                        secondary={`${wsMetrics.deviceInfo.isIframe ? 'Iframe' : 'Standalone'} | iOS: ${wsMetrics.deviceInfo.isiOS ? 'Yes' : 'No'} | Android: ${wsMetrics.deviceInfo.isAndroid ? 'Yes' : 'No'}`}
+                      />
+                    </ListItem>
+                  </List>
+                </Box>
+
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Connection Statistics
+                  </Typography>
+                  <List dense>
+                    <ListItem>
+                      <ListItemText
+                        primary="Total Connection Attempts"
+                        secondary={wsMetrics.totalConnectionAttempts}
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText
+                        primary="Successful Connections"
+                        secondary={`${wsMetrics.successfulConnections} (${wsMetrics.totalConnectionAttempts > 0 ? Math.round((wsMetrics.successfulConnections / wsMetrics.totalConnectionAttempts) * 100) : 0}%)`}
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText
+                        primary="Failed Connections"
+                        secondary={`${wsMetrics.failedConnections} (${wsMetrics.totalConnectionAttempts > 0 ? Math.round((wsMetrics.failedConnections / wsMetrics.totalConnectionAttempts) * 100) : 0}%)`}
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText
+                        primary="Unexpected Disconnects"
+                        secondary={wsMetrics.unexpectedDisconnects}
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText
+                        primary="Average Connection Duration"
+                        secondary={`${(wsMetrics.averageConnectionDuration / 1000).toFixed(1)}s`}
+                      />
+                    </ListItem>
+                  </List>
+                </Box>
+
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Recent Activity
+                  </Typography>
+                  <List dense>
+                    <ListItem>
+                      <ListItemText
+                        primary="Last Connected"
+                        secondary={
+                          wsMetrics.lastConnectedAt
+                            ? new Date(wsMetrics.lastConnectedAt).toLocaleString()
+                            : 'Never'
+                        }
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText
+                        primary="Last Disconnected"
+                        secondary={
+                          wsMetrics.lastDisconnectedAt
+                            ? new Date(wsMetrics.lastDisconnectedAt).toLocaleString()
+                            : 'Never'
+                        }
+                      />
+                    </ListItem>
+                    {wsMetrics.lastFailureReason && (
+                      <ListItem>
+                        <ListItemText
+                          primary="Last Failure Reason"
+                          secondary={wsMetrics.lastFailureReason}
+                          secondaryTypographyProps={{ color: 'error' }}
+                        />
+                      </ListItem>
+                    )}
+                  </List>
+                </Box>
+
+                {wsMetrics.connectionDurations.length > 0 && (
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Recent Connection Durations (last {wsMetrics.connectionDurations.length})
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      {wsMetrics.connectionDurations
+                        .map(duration => `${(duration / 1000).toFixed(1)}s`)
+                        .join(', ')}
+                    </Typography>
+                  </Box>
+                )}
+              </Stack>
+            )}
+          </Paper>
         </TabPanel>
       </Box>
 

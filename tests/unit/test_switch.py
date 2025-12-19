@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
-from smart_heating.switch import AreaSwitch, async_setup_entry
+from smart_heating.platforms.switch import AreaSwitch, async_setup_entry
 
 from tests.unit.const import TEST_AREA_ID, TEST_AREA_NAME
 

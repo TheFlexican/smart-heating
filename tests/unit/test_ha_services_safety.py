@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from homeassistant.core import HomeAssistant, ServiceCall
 from smart_heating.const import DOMAIN
-from smart_heating.ha_services.safety_handlers import (
+from smart_heating.services.safety_handlers import (
     async_handle_remove_safety_sensor,
     async_handle_set_safety_sensor,
 )

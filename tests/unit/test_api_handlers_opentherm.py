@@ -2,7 +2,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from smart_heating.api_handlers.opentherm import handle_calibrate_opentherm
+from smart_heating.api.handlers.opentherm import handle_calibrate_opentherm
 from smart_heating.const import DOMAIN
 
 
@@ -31,7 +31,7 @@ async def test_handle_calibrate_opentherm_no_gateway(mock_hass, mock_area_manage
 
 @pytest.mark.asyncio
 async def test_opentherm_handlers_more_paths():
-    from smart_heating.api_handlers.opentherm import (
+    from smart_heating.api.handlers.opentherm import (
         handle_clear_opentherm_logs,
         handle_discover_opentherm_capabilities,
         handle_get_opentherm_capabilities,
@@ -98,7 +98,7 @@ async def test_opentherm_handlers_more_paths():
 
 @pytest.mark.asyncio
 async def test_calibrate_opv_paths(monkeypatch):
-    from smart_heating.api_handlers.opentherm import handle_calibrate_opentherm
+    from smart_heating.api.handlers.opentherm import handle_calibrate_opentherm
 
     hass = MagicMock()
     area_manager = MagicMock()
@@ -109,7 +109,7 @@ async def test_calibrate_opv_paths(monkeypatch):
             return None
 
     monkeypatch.setattr(
-        "smart_heating.api_handlers.opentherm.OvershootProtection",
+        "smart_heating.api.handlers.opentherm.OvershootProtection",
         lambda *a, **k: OPFail(),
     )
     resp = await handle_calibrate_opentherm(hass, area_manager, None)
@@ -120,7 +120,7 @@ async def test_calibrate_opv_paths(monkeypatch):
             return 2.5
 
     monkeypatch.setattr(
-        "smart_heating.api_handlers.opentherm.OvershootProtection",
+        "smart_heating.api.handlers.opentherm.OvershootProtection",
         lambda *a, **k: OPSuccess(),
     )
     area_manager.async_save = AsyncMock()

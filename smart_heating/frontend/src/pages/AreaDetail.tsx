@@ -2152,16 +2152,18 @@ const ZoneDetail = () => {
       <Box sx={{ flex: 1, overflow: 'auto' }}>
         {/* Overview Tab */}
         <TabPanel value={tabValue} index={0}>
-          <Box sx={{ maxWidth: 800, mx: 'auto', px: { xs: 0, sm: 0 } }}>
-            <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
-              <Typography
-                variant="h6"
-                gutterBottom
-                color="text.primary"
-                sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
-              >
-                {t('areaDetail.temperatureControl')}
-              </Typography>
+          <Box sx={{ maxWidth: { xs: 800, lg: 1200 }, mx: 'auto', px: { xs: 0, sm: 0 } }}>
+            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                <ThermostatIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                <Typography
+                  variant="h5"
+                  color="text.primary"
+                  sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem' }, fontWeight: 600 }}
+                >
+                  {t('areaDetail.temperatureControl')}
+                </Typography>
+              </Box>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 <Typography
                   variant="body2"
@@ -2240,36 +2242,64 @@ const ZoneDetail = () => {
               )}
             </Paper>
 
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom color="text.primary">
-                {t('areaDetail.quickStats')}
-              </Typography>
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary={t('areaDetail.devices')}
-                    secondary={t('areaDetail.devicesAssigned', { count: area.devices.length })}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText primary={t('areaDetail.status')} secondary={area.state} />
-                </ListItem>
-                <ListItem>
-                  <ListItemText primary={t('areaDetail.zoneId')} secondary={area.id} />
-                </ListItem>
-              </List>
+            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                <SpeedIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                <Typography variant="h5" color="text.primary" sx={{ fontWeight: 600 }}>
+                  {t('areaDetail.quickStats')}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+                  gap: 3,
+                }}
+              >
+                <Box>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    {t('areaDetail.devices')}
+                  </Typography>
+                  <Typography variant="h6" color="text.primary">
+                    {t('areaDetail.devicesAssigned', { count: area.devices.length })}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    {t('areaDetail.status')}
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    color="text.primary"
+                    sx={{ textTransform: 'capitalize' }}
+                  >
+                    {area.state}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    {t('areaDetail.zoneId')}
+                  </Typography>
+                  <Typography variant="h6" color="text.primary" sx={{ fontSize: '1rem' }}>
+                    {area.id}
+                  </Typography>
+                </Box>
+              </Box>
             </Paper>
           </Box>
         </TabPanel>
 
         {/* Devices Tab */}
         <TabPanel value={tabValue} index={1}>
-          <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+          <Box sx={{ maxWidth: { xs: 800, lg: 1200 }, mx: 'auto' }}>
             {/* Primary Temperature Sensor Selection */}
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom color="text.primary">
-                {t('areaDetail.primaryTemperatureSensor')}
-              </Typography>
+            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <ThermostatIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                <Typography variant="h5" color="text.primary" sx={{ fontWeight: 600 }}>
+                  {t('areaDetail.primaryTemperatureSensor')}
+                </Typography>
+              </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 {t('areaDetail.primaryTemperatureSensorDescription')}
               </Typography>
@@ -2311,10 +2341,13 @@ const ZoneDetail = () => {
             </Paper>
 
             {/* Assigned Devices */}
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom color="text.primary">
-                {t('areaDetail.assignedDevices', { count: area.devices.length })}
-              </Typography>
+            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <SensorsIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                <Typography variant="h5" color="text.primary" sx={{ fontWeight: 600 }}>
+                  {t('areaDetail.assignedDevices', { count: area.devices.length })}
+                </Typography>
+              </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 {t('areaDetail.devicesDescription')}
               </Typography>
@@ -2572,11 +2605,14 @@ const ZoneDetail = () => {
 
         {/* History Tab */}
         <TabPanel value={tabValue} index={3}>
-          <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom color="text.primary">
-                {t('areaDetail.temperatureHistory')}
-              </Typography>
+          <Box sx={{ maxWidth: { xs: 800, lg: 1200 }, mx: 'auto' }}>
+            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <HistoryIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                <Typography variant="h5" color="text.primary" sx={{ fontWeight: 600 }}>
+                  {t('areaDetail.temperatureHistory')}
+                </Typography>
+              </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 {t('areaDetail.historyDescription')}
               </Typography>

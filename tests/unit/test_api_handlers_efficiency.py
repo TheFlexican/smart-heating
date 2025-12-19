@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiohttp.test_utils import make_mocked_request
-from smart_heating.api_handlers.efficiency import (
+from smart_heating.api.handlers.efficiency import (
     handle_get_area_efficiency_history,
     handle_get_efficiency_report,
 )

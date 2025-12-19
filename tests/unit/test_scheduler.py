@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
-from smart_heating.scheduler import ScheduleExecutor
+from smart_heating.features.scheduler import ScheduleExecutor
 
 from tests.unit.const import TEST_AREA_ID, TEST_TEMPERATURE
 
@@ -78,7 +78,7 @@ class TestInitialization:
         with patch.object(
             scheduler, "_async_check_schedules", new_callable=AsyncMock
         ) as mock_check:
-            with patch("smart_heating.scheduler.async_track_time_interval") as mock_track:
+            with patch("smart_heating.features.scheduler.async_track_time_interval") as mock_track:
                 mock_track.return_value = MagicMock()
 
                 await scheduler.async_start()

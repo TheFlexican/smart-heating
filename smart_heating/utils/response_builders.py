@@ -7,10 +7,10 @@ from ..models.area import Area
 
 def build_device_info(
     device_id: str,
-    device_data: Dict[str, Any],
+    device_data: dict[str, Any],
     state_obj: Any = None,
-    coordinator_device: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    coordinator_device: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
     """Build device information dictionary.
 
     Args:
@@ -49,8 +49,8 @@ def build_device_info(
 
 
 def build_area_response(
-    area: Area, devices_list: Optional[List[Dict[str, Any]]] = None
-) -> Dict[str, Any]:
+    area: Area, devices_list: Optional[list[dict[str, Any]]] = None
+) -> dict[str, Any]:
     """Build area response dictionary.
 
     Args:

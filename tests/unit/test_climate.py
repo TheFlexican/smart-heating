@@ -11,7 +11,7 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.core import HomeAssistant
-from smart_heating.climate import (
+from smart_heating.platforms.climate import (
     AreaClimate,
     async_setup_entry,
 )

@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiohttp.test_utils import make_mocked_request
-from smart_heating.api_handlers.comparison import (
+from smart_heating.api.handlers.comparison import (
     handle_get_comparison,
     handle_get_custom_comparison,
 )
@@ -84,7 +84,7 @@ async def test_handle_get_custom_comparison_invalid_date(monkeypatch):
     )
 
     # Make parse_datetime raise ValueError
-    import smart_heating.api_handlers.comparison as comp
+    import smart_heating.api.handlers.comparison as comp
 
     def raise_bad(s):
         raise ValueError("bad date")

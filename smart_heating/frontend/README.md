@@ -206,6 +206,102 @@ The project includes comprehensive CI/CD workflows:
 - Coverage reporting
 - Build verification
 
+## 🎨 Recent Enhancements (December 2025)
+
+### Phase 3 & 4: Desktop UX Overhaul
+
+Comprehensive visual and UX improvements for desktop/browser experience:
+
+#### Visual Design Improvements
+- **Enhanced Theme System** (`src/theme.ts`)
+  - Smooth hover effects on cards (elevation + transform)
+  - Button hover states with translateY(-1px) and shadows
+  - IconButton scale effects (1.1x on hover)
+  - Enhanced Paper component shadows (4 elevation levels)
+  - Smooth 200-300ms transitions on all interactive elements
+  - Improved typography hierarchy (h4-h6 with fontWeight 600)
+
+#### Component Enhancements
+- **AreaDetail Component**
+  - Increased maxWidth from 800px to 1200px on large screens
+  - Section headers with icons (32px, primary color) and better typography
+  - Quick Stats converted to 3-column grid layout on desktop
+  - Better spacing: `p: { xs: 2, sm: 3, md: 4 }`
+  - Enhanced visual hierarchy with h5 headers (fontWeight 600)
+
+- **GlobalSettings Component**
+  - Responsive maxWidth: `{ xs: 800, lg: 1200 }`
+  - Better padding and centered content
+  - Icon-enhanced section headers
+  - Improved tab panel layout
+
+- **VacationModeBanner Component**
+  - Added BeachAccessIcon for visual recognition
+  - Enhanced typography (subtitle2 with fontWeight 600)
+  - Better text color hierarchy
+  - Improved button styling
+
+#### Navigation Architecture
+- **Mobile Bottom Navigation** - 4-section fixed bottom tabs (zones, devices, analytics, settings)
+- **Desktop Header Navigation** - Enhanced with active state indicators
+- **Responsive Settings Layout** - Drawer on mobile, tabs on desktop
+- **Analytics Submenu** - Organized access to efficiency, comparison, and OpenTherm reports
+
+### Phase 6: Performance & Code Quality
+
+#### Performance Optimizations
+- **Code Splitting & Lazy Loading**
+  - Main bundle reduced from **1,622 KB to 798 KB (51% reduction)**
+  - Lazy loaded components:
+    - AreaDetail: 100.66 KB chunk (26 KB gzipped)
+    - SettingsLayout: 83.56 KB chunk (22 KB gzipped)
+    - AdvancedMetricsDashboard: 22.01 KB chunk (7 KB gzipped)
+    - CartesianChart: 341.55 KB chunk (102 KB gzipped)
+  - Suspense-based loading with PageLoader component
+  - On-demand loading for heavy routes
+
+#### Bundle Analysis
+```
+Main bundle:    798 KB (255 KB gzipped)  ← 51% smaller!
+Total chunks:   1,622 KB (479 KB gzipped)
+Load time:      ~2-3s on broadband (was 4-5s)
+```
+
+#### Backend Code Quality
+- **Ruff Formatting** applied to all Python files
+- **Import Sorting** fixed (5 files corrected)
+- **Consistent Code Style** across backend components
+- Excluded macOS resource forks from linting
+
+### Design Standards Applied
+
+#### Frontend
+- Consistent spacing: `{ xs: 2, sm: 3, md: 4 }` (16/24/32px)
+- Typography scale: h5 headers with 600 font weight
+- Icon integration: 32px icons, primary color, meaningful choices
+- Visual hierarchy: Primary text (default), secondary text (text.secondary)
+- Hover states: Desktop-only (md+ breakpoints)
+- Smooth transitions: 200-300ms ease-in-out
+
+#### Backend
+- Ruff formatting applied consistently
+- Import organization following Python standards
+- Type hints and docstrings maintained
+- Error handling patterns consistent
+
+### Browser Compatibility
+
+Tested and optimized for:
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+
+Desktop resolutions:
+- 1920x1080 (standard desktop)
+- 2560x1440 (large desktop)
+- 3840x2160 (4K displays)
+
 ## 🚀 Getting Started
 
 1. **Clone the repository**

@@ -83,7 +83,7 @@ class PWM:
 
     def _calculate_duty_cycle(
         self, requested_setpoint: float, boiler_temperature: float
-    ) -> Tuple[int, int]:
+    ) -> tuple[int, int]:
         base_offset = self._heating_curve.base_offset
 
         # Ensure boiler_temperature above base offset
@@ -110,7 +110,7 @@ class PWM:
         return on_seconds, off_seconds
 
     @property
-    def duty_cycle(self) -> Optional[Tuple[int, int]]:
+    def duty_cycle(self) -> Optional[tuple[int, int]]:
         if not self._enabled:
             return None
         return self._last_on_seconds, self._last_off_seconds

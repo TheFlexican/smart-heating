@@ -13,7 +13,7 @@ from smart_heating.const import (
     ATTR_HYSTERESIS,
     DOMAIN,
 )
-from smart_heating.ha_services.config_handlers import (
+from smart_heating.services.config_handlers import (
     async_handle_set_frost_protection,
     async_handle_set_history_retention,
     async_handle_set_hysteresis,

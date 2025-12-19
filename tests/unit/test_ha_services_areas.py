@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from homeassistant.core import ServiceCall
 from smart_heating.const import ATTR_AREA_ID, ATTR_TEMPERATURE
-from smart_heating.ha_services.area_handlers import (
+from smart_heating.services.area_handlers import (
     async_handle_disable_area,
     async_handle_enable_area,
     async_handle_set_temperature,
@@ -30,6 +30,8 @@ def mock_coordinator():
     """Create mock coordinator."""
     coordinator = MagicMock()
     coordinator.async_request_refresh = AsyncMock()
+    coordinator.async_enable_area = AsyncMock()
+    coordinator.async_disable_area = AsyncMock()
     return coordinator
 
 
@@ -81,51 +83,25 @@ class TestAreaHandlers:
         call = MagicMock(spec=ServiceCall)
         call.data = {ATTR_AREA_ID: "living_room"}
 
-        # Add a mock climate_controller to hass for immediate device update
-        mock_hass = MagicMock()
-        mock_hass.data = {"smart_heating": {}}
-        mock_coordinator.hass = mock_hass
-        fake_controller = MagicMock()
-        fake_controller.device_handler = MagicMock()
-        fake_controller.device_handler.async_control_thermostats = AsyncMock()
-        fake_controller.device_handler.async_control_valves = AsyncMock()
-        mock_hass.data["smart_heating"]["climate_controller"] = fake_controller
-
-        # Mock area with numeric temperature values
-        mock_area = MagicMock()
-        mock_area.current_temperature = 18.0
-        mock_area.get_effective_target_temperature.return_value = 20.0
-        mock_area_manager.get_area.return_value = mock_area
-
         await async_handle_enable_area(call, mock_area_manager, mock_coordinator)
 
-        # Verify area was enabled
-        mock_area_manager.enable_area.assert_called_once_with("living_room")
-        # Verify data was saved
-        mock_area_manager.async_save.assert_called_once()
-        # Verify coordinator refresh
-        mock_coordinator.async_request_refresh.assert_called_once()
-        # Verify we tried to update devices immediately
-        fake_controller.device_handler.async_control_thermostats.assert_awaited()
-        fake_controller.device_handler.async_control_valves.assert_awaited()
+        # Verify coordinator method was called (business logic moved to coordinator)
+        mock_coordinator.async_enable_area.assert_called_once_with("living_room")
 
     @pytest.mark.asyncio
     async def test_async_handle_enable_area_error(self, mock_area_manager, mock_coordinator):
-        """Test enabling area when area manager raises error."""
+        """Test enabling area when coordinator raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {ATTR_AREA_ID: "unknown_area"}
 
-        # Make enable_area raise ValueError
-        mock_area_manager.enable_area.side_effect = ValueError("Area not found")
+        # Make coordinator method raise ValueError
+        mock_coordinator.async_enable_area.side_effect = ValueError("Area not found")
 
         # Should not raise, just log error
         await async_handle_enable_area(call, mock_area_manager, mock_coordinator)
 
-        # Verify enable was attempted
-        mock_area_manager.enable_area.assert_called_once()
-        # Should not save or refresh on error
-        mock_area_manager.async_save.assert_not_called()
-        mock_coordinator.async_request_refresh.assert_not_called()
+        # Verify enable was attempted via coordinator
+        mock_coordinator.async_enable_area.assert_called_once_with("unknown_area")
 
     @pytest.mark.asyncio
     async def test_async_handle_disable_area_success(self, mock_area_manager, mock_coordinator):
@@ -133,42 +109,22 @@ class TestAreaHandlers:
         call = MagicMock(spec=ServiceCall)
         call.data = {ATTR_AREA_ID: "living_room"}
 
-        # Add a mock climate_controller to hass for immediate device update
-        mock_hass = MagicMock()
-        mock_hass.data = {"smart_heating": {}}
-        mock_coordinator.hass = mock_hass
-        fake_controller = MagicMock()
-        fake_controller.device_handler = MagicMock()
-        fake_controller.device_handler.async_set_valves_to_off = AsyncMock()
-        fake_controller.device_handler.async_control_thermostats = AsyncMock()
-        mock_hass.data["smart_heating"]["climate_controller"] = fake_controller
-
         await async_handle_disable_area(call, mock_area_manager, mock_coordinator)
 
-        # Verify area was disabled
-        mock_area_manager.disable_area.assert_called_once_with("living_room")
-        # Verify data was saved
-        mock_area_manager.async_save.assert_called_once()
-        # Verify coordinator refresh
-        mock_coordinator.async_request_refresh.assert_called_once()
-        # Verify we tried to update devices immediately
-        fake_controller.device_handler.async_set_valves_to_off.assert_awaited()
-        fake_controller.device_handler.async_control_thermostats.assert_awaited()
+        # Verify coordinator method was called (business logic moved to coordinator)
+        mock_coordinator.async_disable_area.assert_called_once_with("living_room")
 
     @pytest.mark.asyncio
     async def test_async_handle_disable_area_error(self, mock_area_manager, mock_coordinator):
-        """Test disabling area when area manager raises error."""
+        """Test disabling area when coordinator raises error."""
         call = MagicMock(spec=ServiceCall)
         call.data = {ATTR_AREA_ID: "unknown_area"}
 
-        # Make disable_area raise ValueError
-        mock_area_manager.disable_area.side_effect = ValueError("Area not found")
+        # Make coordinator method raise ValueError
+        mock_coordinator.async_disable_area.side_effect = ValueError("Area not found")
 
         # Should not raise, just log error
         await async_handle_disable_area(call, mock_area_manager, mock_coordinator)
 
-        # Verify disable was attempted
-        mock_area_manager.disable_area.assert_called_once()
-        # Should not save or refresh on error
-        mock_area_manager.async_save.assert_not_called()
-        mock_coordinator.async_request_refresh.assert_not_called()
+        # Verify disable was attempted via coordinator
+        mock_coordinator.async_disable_area.assert_called_once_with("unknown_area")

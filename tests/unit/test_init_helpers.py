@@ -44,7 +44,7 @@ async def test_async_setup_services_registers_many():
 
 @pytest.mark.asyncio
 async def test_climate_controller_heating_paths(monkeypatch):
-    from smart_heating.climate_controller import ClimateController
+    from smart_heating.climate.climate_controller import ClimateController
 
     hass = MagicMock()
     area_manager = MagicMock()

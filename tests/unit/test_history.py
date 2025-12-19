@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from smart_heating.history import CLEANUP_INTERVAL, HistoryTracker
+from smart_heating.storage.history import CLEANUP_INTERVAL, HistoryTracker
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def mock_store():
 @pytest.fixture
 async def history_tracker(mock_hass, mock_store):
     """Create history tracker instance."""
-    with patch("smart_heating.history.Store", return_value=mock_store):
+    with patch("smart_heating.storage.history.Store", return_value=mock_store):
         tracker = HistoryTracker(mock_hass)
         return tracker
 
@@ -41,7 +41,7 @@ class TestHistoryTrackerInit:
 
     def test_init(self, mock_hass):
         """Test initialization."""
-        with patch("smart_heating.history.Store") as mock_store_class:
+        with patch("smart_heating.storage.history.Store") as mock_store_class:
             tracker = HistoryTracker(mock_hass)
 
             assert tracker.hass == mock_hass
@@ -61,7 +61,7 @@ class TestHistoryTrackerLoad:
         """Test loading when no data in storage."""
         mock_store.async_load.return_value = None
 
-        with patch("smart_heating.history.async_track_time_interval") as mock_track:
+        with patch("smart_heating.storage.history.async_track_time_interval") as mock_track:
             await history_tracker.async_load()
 
             # Should have empty history
@@ -93,7 +93,7 @@ class TestHistoryTrackerLoad:
         }
         mock_store.async_load.return_value = mock_data
 
-        with patch("smart_heating.history.async_track_time_interval"):
+        with patch("smart_heating.storage.history.async_track_time_interval"):
             await history_tracker.async_load()
 
             # Should load history and retention
@@ -397,8 +397,8 @@ class TestHistoryTrackerDatabaseStorage:
         mock_recorder.db_url = "sqlite:///home-assistant_v2.db"
 
         with (
-            patch("smart_heating.history.Store", return_value=mock_store),
-            patch("smart_heating.history.get_instance", return_value=mock_recorder),
+            patch("smart_heating.storage.history.Store", return_value=mock_store),
+            patch("smart_heating.storage.history.get_instance", return_value=mock_recorder),
         ):
             tracker = HistoryTracker(mock_hass, storage_backend="database")
 
@@ -414,10 +414,10 @@ class TestHistoryTrackerDatabaseStorage:
         mock_recorder.engine = mock_engine
 
         with (
-            patch("smart_heating.history.Store", return_value=mock_store),
-            patch("smart_heating.history.get_instance", return_value=mock_recorder),
-            patch("smart_heating.history.Table"),
-            patch("smart_heating.history.MetaData"),
+            patch("smart_heating.storage.history.Store", return_value=mock_store),
+            patch("smart_heating.storage.history.get_instance", return_value=mock_recorder),
+            patch("smart_heating.storage.history.Table"),
+            patch("smart_heating.storage.history.MetaData"),
         ):
             tracker = HistoryTracker(mock_hass, storage_backend="database")
 
@@ -434,10 +434,10 @@ class TestHistoryTrackerDatabaseStorage:
         mock_recorder.engine = mock_engine
 
         with (
-            patch("smart_heating.history.Store", return_value=mock_store),
-            patch("smart_heating.history.get_instance", return_value=mock_recorder),
-            patch("smart_heating.history.Table"),
-            patch("smart_heating.history.MetaData"),
+            patch("smart_heating.storage.history.Store", return_value=mock_store),
+            patch("smart_heating.storage.history.get_instance", return_value=mock_recorder),
+            patch("smart_heating.storage.history.Table"),
+            patch("smart_heating.storage.history.MetaData"),
         ):
             tracker = HistoryTracker(mock_hass, storage_backend="database")
 

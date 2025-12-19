@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from smart_heating.advanced_metrics_collector import AdvancedMetricsCollector
+from smart_heating.features.advanced_metrics_collector import AdvancedMetricsCollector
 
 
 @pytest.mark.asyncio
@@ -15,7 +15,7 @@ async def test_async_init_database_mysql(monkeypatch):
 
     # Patch the function reference used by the collector module
     monkeypatch.setattr(
-        "smart_heating.advanced_metrics_collector.get_instance",
+        "smart_heating.features.advanced_metrics_collector.get_instance",
         lambda hass: FakeRecorder(),
     )
 

@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
-from smart_heating.api import SmartHeatingAPIView
+from smart_heating.api.server import SmartHeatingAPIView
 from smart_heating.const import DOMAIN
 
 
@@ -19,31 +19,31 @@ async def test_api_view_post_endpoints(hass, mock_area_manager):
     # Patch handlers used in POST
     with (
         patch(
-            "smart_heating.api.handle_enable_area",
+            "smart_heating.api.handlers.handle_enable_area",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_add_device",
+            "smart_heating.api.handlers.handle_add_device",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_set_frost_protection",
+            "smart_heating.api.handlers.handle_set_frost_protection",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_cleanup_history",
+            "smart_heating.api.handlers.handle_cleanup_history",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_set_global_presets",
+            "smart_heating.api.handlers.handle_set_global_presets",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_import_config",
+            "smart_heating.api.handlers.handle_import_config",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handle_create_user",
+            "smart_heating.api.handlers.handle_create_user",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
     ):
