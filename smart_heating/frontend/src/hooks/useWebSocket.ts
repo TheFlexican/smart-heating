@@ -206,6 +206,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       reconnectAttempts.current = 0
       connect()
     }, 60000)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Stop polling and clean up
@@ -282,7 +283,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
           console.warn('[WebSocket] iOS iframe: Parent window accessible but no auth token found')
         }
       }
-    } catch (e) {
+    } catch {
       // Cross-origin error is expected on iOS Safari - blocked by privacy restrictions
       if (isiOS && isInIframe) {
         console.warn(
@@ -621,9 +622,9 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         lastFailureReason: `Failed to create WebSocket: ${err instanceof Error ? err.message : 'Unknown error'}`,
       })
     }
-  }, [getAuthToken, updateMetrics, transportMode, startPollingFallback, stopPollingFallback])
+  }, [getAuthToken, updateMetrics, transportMode, startPollingFallback, stopPollingFallback, isIOS])
 
-  const disconnect = () => {
+  const disconnect = useCallback(() => {
     console.log('[WebSocket] Disconnecting')
     intentionalCloseRef.current = true
 
@@ -645,7 +646,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     stopPollingFallback()
 
     setIsConnected(false)
-  }
+  }, [stopPollingFallback])
 
   const send = (data: any) => {
     if (
@@ -732,7 +733,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       window.removeEventListener('pageshow', handlePageShow as EventListener)
       disconnect()
     }
-  }, [connect])
+  }, [connect, disconnect])
 
   return {
     isConnected,

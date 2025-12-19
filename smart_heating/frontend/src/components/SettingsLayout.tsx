@@ -1,8 +1,7 @@
 import { useMediaQuery, useTheme } from '@mui/material'
 import { useLocation } from 'react-router-dom'
-import MobileSettingsLayout from './MobileSettingsLayout'
+import MobileSettingsLayout, { settingsItems } from './MobileSettingsLayout'
 import GlobalSettings from '../pages/GlobalSettings'
-import { settingsItems } from './MobileSettingsLayout'
 
 interface SettingsLayoutProps {
   themeMode: 'light' | 'dark'

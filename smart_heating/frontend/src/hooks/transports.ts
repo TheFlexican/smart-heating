@@ -227,7 +227,9 @@ export class WebSocketTransport implements TransportAdapter {
       const params = new URLSearchParams(window.location.search)
       const urlToken = params.get('hassToken') || params.get('token')
       if (urlToken) return urlToken
-    } catch {}
+    } catch {
+      // Ignore URL parsing errors
+    }
 
     // Try parent window (iframe)
     try {
@@ -237,7 +239,9 @@ export class WebSocketTransport implements TransportAdapter {
           return parentConnection.auth.data.access_token
         }
       }
-    } catch {}
+    } catch {
+      // Ignore iframe access errors
+    }
 
     // Try localStorage
     try {
@@ -248,7 +252,9 @@ export class WebSocketTransport implements TransportAdapter {
           return tokens.access_token
         }
       }
-    } catch {}
+    } catch {
+      // Ignore localStorage access errors
+    }
 
     return null
   }

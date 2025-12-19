@@ -82,7 +82,7 @@ const AnalyticsMenu = () => {
       {/* Content */}
       <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Choose an analytics view to explore your heating system's performance
+          Choose an analytics view to explore your heating system&apos;s performance
         </Typography>
 
         <Box

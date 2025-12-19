@@ -17,19 +17,19 @@ async def test_opentherm_and_comparison_gets(hass, mock_area_manager):
 
     with (
         patch(
-            "smart_heating.api.handlers.handle_get_opentherm_gateways",
+            "smart_heating.api.server.handle_get_opentherm_gateways",
             AsyncMock(return_value=web.json_response({"gateways": []})),
         ),
         patch(
-            "smart_heating.api.handlers.handle_calibrate_opentherm",
+            "smart_heating.api.server.handle_calibrate_opentherm",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handlers.handle_get_comparison",
+            "smart_heating.api.server.handle_get_comparison",
             AsyncMock(return_value=web.json_response({"comparison": []})),
         ),
         patch(
-            "smart_heating.api.handlers.handle_get_custom_comparison",
+            "smart_heating.api.server.handle_get_custom_comparison",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
     ):

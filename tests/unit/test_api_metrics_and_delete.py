@@ -60,11 +60,11 @@ async def test_delete_vacation_and_safety_sensor(hass, mock_area_manager):
     # Patch handlers
     with (
         patch(
-            "smart_heating.api.handlers.handle_disable_vacation_mode",
+            "smart_heating.api.server.handle_disable_vacation_mode",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
         patch(
-            "smart_heating.api.handlers.handle_remove_safety_sensor",
+            "smart_heating.api.server.handle_remove_safety_sensor",
             AsyncMock(return_value=web.json_response({"ok": True})),
         ),
     ):

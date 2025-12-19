@@ -33,6 +33,7 @@ interface SettingItem {
   testId: string
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const settingsItems: SettingItem[] = [
   {
     id: 0,

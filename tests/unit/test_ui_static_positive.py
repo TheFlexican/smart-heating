@@ -29,7 +29,7 @@ async def test_ui_view_positive(hass):
         # Return an object that is an async context manager
         return FakeFile()
 
-    with patch("smart_heating.api.aiofiles.open", fake_open):
+    with patch("aiofiles.open", fake_open):
         ui_view = SmartHeatingUIView(hass)
         req = make_mocked_request("GET", "/smart_heating_ui")
         resp = await ui_view.get(req)

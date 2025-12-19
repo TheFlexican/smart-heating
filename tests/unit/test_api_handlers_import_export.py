@@ -250,13 +250,22 @@ class TestBackupHandlers:
             }
         )
 
-        with patch("builtins.open", mock_open(read_data=backup_content)):
+        # Create async context manager for aiofiles
+        mock_file = AsyncMock()
+        mock_file.read = AsyncMock(return_value=backup_content)
+        mock_file.__aenter__ = AsyncMock(return_value=mock_file)
+        mock_file.__aexit__ = AsyncMock(return_value=None)
+
+        with patch("aiofiles.open", return_value=mock_file):
             response = await handle_restore_backup(mock_hass, mock_config_manager, "backup.json")
 
         assert response.status == 200
         data = json.loads(response.body)
         assert data["success"] is True
-        response = await handle_restore_backup(mock_hass, mock_config_manager, "backup.json")
+
+        # Test again to ensure idempotency
+        with patch("aiofiles.open", return_value=mock_file):
+            response = await handle_restore_backup(mock_hass, mock_config_manager, "backup.json")
 
         # Any response is fine for smoke test
         assert response is not None

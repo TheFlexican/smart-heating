@@ -12,7 +12,7 @@ async def test_api_handler_raises_500_on_exception(hass, mock_area_manager):
     api_view = SmartHeatingAPIView(hass, mock_area_manager)
 
     with patch(
-        "smart_heating.api.handlers.system.handle_get_status",
+        "smart_heating.api.server.handle_get_status",
         AsyncMock(side_effect=RuntimeError("boom")),
     ):
         req = make_mocked_request("GET", "/api/smart_heating/status")

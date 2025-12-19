@@ -22,31 +22,31 @@ async def test_api_view_get_various_endpoints(hass, mock_area_manager):
     # Patch handlers to return simple json responses
     with (
         patch(
-            "smart_heating.api.handlers.handle_get_status",
+            "smart_heating.api.server.handle_get_status",
             AsyncMock(return_value=web.json_response({"status": "ok"})),
         ),
         patch(
-            "smart_heating.api.handlers.handle_get_config",
+            "smart_heating.api.server.handle_get_config",
             AsyncMock(return_value=web.json_response({"config": "ok"})),
         ),
         patch(
-            "smart_heating.api.handlers.handle_get_areas",
+            "smart_heating.api.server.handle_get_areas",
             AsyncMock(return_value=web.json_response({"areas": []})),
         ),
         patch(
-            "smart_heating.api.handlers.handle_get_devices",
+            "smart_heating.api.server.handle_get_devices",
             AsyncMock(return_value=web.json_response({"devices": []})),
         ),
         patch(
-            "smart_heating.api.handlers.handle_get_entity_state",
+            "smart_heating.api.server.handle_get_entity_state",
             AsyncMock(return_value=web.json_response({"state": "on"})),
         ),
         patch(
-            "smart_heating.api.handlers.handle_get_global_presets",
+            "smart_heating.api.server.handle_get_global_presets",
             AsyncMock(return_value=web.json_response({"presets": []})),
         ),
         patch(
-            "smart_heating.api.handlers.handle_get_efficiency_report",
+            "smart_heating.api.server.handle_get_efficiency_report",
             AsyncMock(return_value=web.json_response({"summary_metrics": {"energy_score": 50}})),
         ),
     ):
