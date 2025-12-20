@@ -778,29 +778,47 @@ class ThermostatHandler(BaseDeviceHandler):
         """Turn off thermostat or fall back to minimum setpoint if turn_off not supported.
 
         Always turns off the associated power switch if it exists (e.g., for LG ThinQ ACs).
-        For TRV devices, sets temperature to 0°C to close the valve.
+        For TRV devices, sets temperature to trv_idle_temp to close the valve.
+        Implements deduplication to prevent redundant commands that drain batteries.
         """
-        if thermostat_id in self._last_set_temperatures:
-            del self._last_set_temperatures[thermostat_id]
-        if thermostat_id in self._last_set_hvac_modes:
-            del self._last_set_hvac_modes[thermostat_id]
+        # DO NOT clear cache - preserve last temperature for deduplication
+        # Cache clearing prevented repeated commands from being filtered
 
         # ALWAYS turn off associated power switch first if it exists
         # This is critical for devices like LG ThinQ AC that have separate power switches
         await self._async_turn_off_climate_power(thermostat_id)
 
-        # For TRV devices, set to 0°C to close valve (don't use turn_off as many TRVs don't support it)
+        # For TRV devices, set to trv_idle_temp to close valve (don't use turn_off as many TRVs don't support it)
         if self._is_trv_device(thermostat_id):
-            _LOGGER.debug("TRV device %s detected, setting to 0°C to close valve", thermostat_id)
-            # Update cache BEFORE service call to prevent false manual override detection
-            self._last_set_temperatures[thermostat_id] = 0.0
-            await self.hass.services.async_call(
-                CLIMATE_DOMAIN,
-                SERVICE_SET_TEMPERATURE,
-                {"entity_id": thermostat_id, ATTR_TEMPERATURE: 0.0},
-                blocking=True,
+            off_temp = getattr(self.area_manager, "trv_idle_temp", 10.0)
+            last_temp = self._last_set_temperatures.get(thermostat_id)
+
+            _LOGGER.debug(
+                "TRV %s turn_off: off_setpoint=%.1f°C, last_cached=%.1f°C",
+                thermostat_id,
+                off_temp,
+                last_temp if last_temp is not None else -999.0,
             )
-            _LOGGER.debug("Set TRV %s to 0°C (closed)", thermostat_id)
+
+            # Only send command if temperature changed or never set
+            if last_temp is None or abs(last_temp - off_temp) >= 0.1:
+                # Update cache BEFORE service call to prevent false manual override detection
+                self._last_set_temperatures[thermostat_id] = off_temp
+                await self.hass.services.async_call(
+                    CLIMATE_DOMAIN,
+                    SERVICE_SET_TEMPERATURE,
+                    {"entity_id": thermostat_id, ATTR_TEMPERATURE: off_temp},
+                    blocking=True,
+                )
+                _LOGGER.info(
+                    "TRV %s: SET TO %.1f°C (turn_off - closing valve)", thermostat_id, off_temp
+                )
+            else:
+                _LOGGER.debug(
+                    "TRV %s already at %.1f°C (turn_off) - skipping redundant command",
+                    thermostat_id,
+                    off_temp,
+                )
             return
 
         # For non-TRV devices, check if device supports turn_off service
