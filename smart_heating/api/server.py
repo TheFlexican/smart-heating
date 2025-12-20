@@ -337,13 +337,30 @@ class SmartHeatingAPIView(HomeAssistantView):
                     {"error": "Advanced metrics collector not available"}, status=503
                 )
 
-            days = int(request.query.get("days", "7"))
+            # Support either minutes (preferred for device logs) or legacy days param
+            minutes_q = request.query.get("minutes")
+            days_q = request.query.get("days")
             area_id = request.query.get("area_id")
 
-            if days not in [1, 3, 7, 30]:
-                return web.json_response({"error": "days must be 1, 3, 7, or 30"}, status=400)
+            minutes = None
+            days = None
+            if minutes_q is not None:
+                try:
+                    minutes = int(minutes_q)
+                except ValueError:
+                    return web.json_response({"error": "minutes must be an integer"}, status=400)
+                if minutes not in [1, 2, 3, 5]:
+                    return web.json_response({"error": "minutes must be 1, 2, 3, or 5"}, status=400)
 
-            metrics = await advanced_metrics.async_get_metrics(days, area_id)
+            if minutes is None:
+                # fallback to days for backward compatibility
+                days = int(days_q or "7")
+                if days not in [1, 3, 7, 30]:
+                    return web.json_response({"error": "days must be 1, 3, 7, or 30"}, status=400)
+
+            metrics = await advanced_metrics.async_get_metrics(
+                days=days, minutes=minutes, area_id=area_id
+            )
             return web.json_response(
                 {"success": True, "days": days, "area_id": area_id, "metrics": metrics}
             )

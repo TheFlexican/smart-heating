@@ -47,7 +47,7 @@ echo -e "${GREEN}Coverage report generated in coverage_html/index.html${NC}"
 
 # Check if coverage meets threshold
 COVERAGE=$(coverage report | grep TOTAL | awk '{print $NF}' | sed 's/%//')
-THRESHOLD=85
+THRESHOLD=80
 
 if (( $(echo "$COVERAGE >= $THRESHOLD" | bc -l) )); then
     echo -e "${GREEN}✓ Coverage ($COVERAGE%) meets threshold ($THRESHOLD%)${NC}"

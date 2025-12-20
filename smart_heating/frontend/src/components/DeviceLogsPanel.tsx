@@ -25,7 +25,8 @@ export default function DeviceLogsPanel() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [metrics, setMetrics] = useState<any[]>([])
-  const [timeRange, setTimeRange] = useState<1 | 3 | 7 | 30>(1)
+  // minutes picker: 1,2,3,5 minute options
+  const [timeRange, setTimeRange] = useState<1 | 2 | 3 | 5>(1)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [mounted, setMounted] = useState(true)
   const [deviceEvents, setDeviceEvents] = useState<any[]>([])
@@ -73,8 +74,9 @@ export default function DeviceLogsPanel() {
       }
     }
 
-    window.addEventListener('smart_heating.device_event', handler as EventListener)
-    return () => window.removeEventListener('smart_heating.device_event', handler as EventListener)
+    globalThis.addEventListener('smart_heating.device_event', handler as EventListener)
+    return () =>
+      globalThis.removeEventListener('smart_heating.device_event', handler as EventListener)
   }, [send, mounted])
 
   if (loading) {
@@ -102,9 +104,10 @@ export default function DeviceLogsPanel() {
             onChange={(_, value) => value && setTimeRange(value)}
             size="small"
           >
-            <ToggleButton value={1}>1d</ToggleButton>
-            <ToggleButton value={3}>3d</ToggleButton>
-            <ToggleButton value={7}>7d</ToggleButton>
+            <ToggleButton value={1}>1m</ToggleButton>
+            <ToggleButton value={2}>2m</ToggleButton>
+            <ToggleButton value={3}>3m</ToggleButton>
+            <ToggleButton value={5}>5m</ToggleButton>
           </ToggleButtonGroup>
         </Box>
       </Box>
@@ -195,24 +198,27 @@ export default function DeviceLogsPanel() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {deviceEvents.map((ev: any, idx: number) => (
-                      <TableRow
-                        key={`${ev.timestamp || idx}-${ev.device_id || ev.deviceId || ev.id || idx}`}
-                      >
-                        <TableCell>
-                          {new Date(ev.timestamp || Date.now()).toLocaleString()}
-                        </TableCell>
-                        <TableCell>{ev.area_id || ev.areaId || ''}</TableCell>
-                        <TableCell>{ev.device_id || ev.deviceId || ev.id || ''}</TableCell>
-                        <TableCell>{ev.direction || ev.dir || ''}</TableCell>
-                        <TableCell>{ev.action || ev.service || ''}</TableCell>
-                        <TableCell>
-                          <Typography variant="caption">
-                            {JSON.stringify(ev.payload || ev.data || ev.details || {})}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {deviceEvents
+                      .slice()
+                      .sort((a, b) => (b.timestamp || Date.now()) - (a.timestamp || Date.now()))
+                      .map((ev: any, idx: number) => (
+                        <TableRow
+                          key={`${ev.timestamp || idx}-${ev.device_id || ev.deviceId || ev.id || idx}`}
+                        >
+                          <TableCell>
+                            {new Date(ev.timestamp || Date.now()).toLocaleString()}
+                          </TableCell>
+                          <TableCell>{ev.area_id || ev.areaId || ''}</TableCell>
+                          <TableCell>{ev.device_id || ev.deviceId || ev.id || ''}</TableCell>
+                          <TableCell>{ev.direction || ev.dir || ''}</TableCell>
+                          <TableCell>{ev.action || ev.service || ''}</TableCell>
+                          <TableCell>
+                            <Typography variant="caption">
+                              {JSON.stringify(ev.payload || ev.data || ev.details || {})}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               </Paper>
