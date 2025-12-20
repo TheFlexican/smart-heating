@@ -56,9 +56,10 @@ import { getEntityState } from '../api/config'
 interface ZoneCardProps {
   area: Zone
   onUpdate: () => void
+  onPatchArea?: (areaId: string, patch: Partial<Zone>) => void
 }
 
-const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
+const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   // Treat explicit boolean true or string 'true' as enabled; string 'false' should be falsy
@@ -140,6 +141,12 @@ const ZoneCard = ({ area, onUpdate }: ZoneCardProps) => {
     event.stopPropagation()
     try {
       await setZoneTemperature(area.id, value as number)
+      // Optimistically patch the local area so the UI updates smoothly without a full reload
+      onPatchArea?.(area.id, {
+        target_temperature: value as number,
+        manual_override: true,
+        preset_mode: 'none',
+      })
       onUpdate()
     } catch (error) {
       console.error('Failed to set temperature:', error)

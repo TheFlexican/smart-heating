@@ -278,10 +278,8 @@ class TestAreaHandlers:
             assert "error" in body
 
     @pytest.mark.asyncio
-    async def test_handle_set_temperature_clears_manual_override(
-        self, mock_hass, mock_area_manager
-    ):
-        """Test that setting temperature clears manual override."""
+    async def test_handle_set_temperature_sets_manual_override(self, mock_hass, mock_area_manager):
+        """Test that setting temperature enables manual override."""
         mock_area_manager.get_area.return_value.manual_override = True
 
         mock_coordinator = MagicMock()
@@ -308,7 +306,7 @@ class TestAreaHandlers:
             )
 
             assert response.status == 200
-            assert not mock_area_manager.get_area.return_value.manual_override
+            assert mock_area_manager.get_area.return_value.manual_override
 
     @pytest.mark.asyncio
     async def test_handle_enable_area_success(self, mock_hass, mock_area_manager):

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react'
 import mergeZones from './utils/areaOrder'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider, CssBaseline, Box, Snackbar, Alert, CircularProgress } from '@mui/material'
@@ -49,6 +49,8 @@ interface ZonesOverviewProps {
   handleZonesUpdate: () => void
   setShowHidden: (value: boolean) => void
   onAreasReorder: (areas: Zone[]) => void
+  listContainerRef?: React.RefObject<HTMLDivElement | null>
+  onPatchArea?: (areaId: string, patch: Partial<Zone>) => void
 }
 
 const ZonesOverview = ({
@@ -63,6 +65,8 @@ const ZonesOverview = ({
   setShowHidden,
   onAreasReorder,
   transportMode,
+  listContainerRef,
+  onPatchArea,
 }: ZonesOverviewProps & { transportMode: 'websocket' | 'polling' }) => (
   <Box
     sx={{
@@ -88,6 +92,8 @@ const ZonesOverview = ({
           p: { xs: 1.5, sm: 2, md: 3 },
           bgcolor: 'background.default',
         }}
+        data-testid="zones-scroll-container"
+        ref={listContainerRef}
       >
         {safetyAlertActive && (
           <Alert
@@ -107,6 +113,7 @@ const ZonesOverview = ({
           showHidden={showHidden}
           onToggleShowHidden={() => setShowHidden(!showHidden)}
           onAreasReorder={onAreasReorder}
+          onPatchArea={onPatchArea}
         />
       </Box>
       {!hideDevicesPanel && (
@@ -133,9 +140,12 @@ function App() {
     return saved === 'light' || saved === 'dark' ? saved : 'dark'
   })
 
-  const loadData = useCallback(async () => {
+  // Ref to the main scrolling container so we can preserve viewport on updates
+  const listContainerRef = useRef<HTMLDivElement | null>(null)
+
+  const loadData = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true)
+      if (showLoading) setLoading(true)
       const [areasData, devicesData, configData, safetySensorData] = await Promise.all([
         getZones(),
         getDevices(),
@@ -162,7 +172,12 @@ function App() {
         }
       }
 
+      // Preserve scroll position to avoid viewport jumps when replacing areas
+      const prevScroll = listContainerRef.current?.scrollTop ?? 0
       setAreas(orderedAreas)
+      requestAnimationFrame(() => {
+        if (listContainerRef.current) listContainerRef.current.scrollTop = prevScroll
+      })
 
       // Check if safety alert is active
       if (safetySensorData?.alert_active) {
@@ -180,7 +195,7 @@ function App() {
     } catch (error) {
       console.error('Failed to load data:', error)
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }, [])
 
@@ -201,6 +216,9 @@ function App() {
     onZonesUpdate: updatedZones => {
       const savedOrder = localStorage.getItem('areasOrder')
 
+      // Preserve scroll position of the main list container to avoid viewport jumps
+      const prevScroll = listContainerRef.current?.scrollTop ?? 0
+
       // Merge updated list with saved order or previous client order
       setAreas(prev => mergeZones(prev, updatedZones, savedOrder))
 
@@ -214,18 +232,32 @@ function App() {
       getDevices().then(devicesData => {
         setAvailableDevices(devicesData.filter(device => !assignedDeviceIds.has(device.id)))
       })
+
       // Also refresh safety sensor status
       getSafetySensor()
         .then(data => setSafetyAlertActive(data?.alert_active || false))
         .catch(() => setSafetyAlertActive(false))
+
+      // Restore scroll on next paint to keep viewport stable
+      requestAnimationFrame(() => {
+        if (listContainerRef.current) listContainerRef.current.scrollTop = prevScroll
+      })
     },
     onZoneUpdate: updatedZone => {
+      const prevScroll = listContainerRef.current?.scrollTop ?? 0
       setAreas(prevAreas => prevAreas.map(z => (z.id === updatedZone.id ? updatedZone : z)))
+      requestAnimationFrame(() => {
+        if (listContainerRef.current) listContainerRef.current.scrollTop = prevScroll
+      })
     },
     onZoneDelete: areaId => {
+      const prevScroll = listContainerRef.current?.scrollTop ?? 0
       setAreas(prevAreas => prevAreas.filter(z => z.id !== areaId))
-      // Reload data to update available devices
-      loadData()
+      // Reload data to update available devices (background refresh)
+      loadData(false)
+      requestAnimationFrame(() => {
+        if (listContainerRef.current) listContainerRef.current.scrollTop = prevScroll
+      })
     },
     onError: error => {
       console.error('WebSocket error:', error)
@@ -242,7 +274,12 @@ function App() {
   }, [loadData])
 
   const handleZonesUpdate = () => {
-    loadData()
+    // Perform a background refresh so UI doesn't show full-page loader
+    loadData(false)
+  }
+
+  const handlePatchArea = (areaId: string, patch: Partial<Zone>) => {
+    setAreas((prev: Zone[]) => prev.map((a: Zone) => (a.id === areaId ? { ...a, ...patch } : a)))
   }
 
   // Device drag-drop temporarily disabled - will be re-implemented with @dnd-kit
@@ -267,6 +304,8 @@ function App() {
                   handleZonesUpdate={handleZonesUpdate}
                   setShowHidden={setShowHidden}
                   transportMode={transportMode}
+                  listContainerRef={listContainerRef}
+                  onPatchArea={handlePatchArea}
                   onAreasReorder={reorderedAreas => {
                     setAreas(reorderedAreas)
                     // Persist to localStorage

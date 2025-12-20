@@ -583,7 +583,7 @@ MANUAL_TEMP_CHANGE_DEBOUNCE = 2.0  # seconds
    async def set_temperature(self, request: web.Request) -> web.Response:
        """Set area temperature via app."""
        area.target_temperature = temperature
-       area.manual_override = False  # Clear manual mode
+      area.manual_override = True  # Enter manual mode when app sets temperature
        await self.area_manager.async_save()
    ```
 

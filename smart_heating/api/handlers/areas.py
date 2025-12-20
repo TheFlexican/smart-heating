@@ -80,15 +80,17 @@ def _clear_presets_and_overrides(area: Area, temperature: float) -> None:
         )
         area.preset_mode = "none"
 
-    # When a user explicitly sets a temperature we assume they want to exit
-    # manual override mode and return to normal control, so clear it here.
-    if hasattr(area, "manual_override") and area.manual_override:
-        _LOGGER.info(
-            "Clearing manual override for %s due to manual temperature set to %.1f°C",
-            area.name,
-            temperature,
-        )
-        area.manual_override = False
+    # When a user explicitly sets a temperature we assume they want the
+    # app's manual temperature to take precedence. Enter manual override
+    # mode so other automatic sources (schedules/presets) don't override it.
+    if hasattr(area, "manual_override"):
+        if not area.manual_override:
+            _LOGGER.info(
+                "Setting manual override for %s due to manual temperature set to %.1f°C",
+                area.name,
+                temperature,
+            )
+        area.manual_override = True
 
 
 def _log_set_temperature_completed(area: Area) -> None:

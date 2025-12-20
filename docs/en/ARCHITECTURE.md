@@ -191,9 +191,10 @@ Detects when thermostats are adjusted outside the Smart Heating app and automati
    - Restored in `Area.from_dict()` during startup
    - Survives Home Assistant restarts
 
-**Clearing Manual Override:**
-- Automatically cleared when temperature set via app API
-- API sets `area.manual_override = False` on temperature changes
+**Manual Override When Setting Temperature via App:**
+- When a user sets the temperature via the app API the system marks the area as being under manual control
+- API sets `area.manual_override = True` on temperature changes to ensure the explicit user-set temperature takes precedence over schedules/presets
+**Flow:**
 - Climate controller skips areas in manual override mode
 
 **Flow:**

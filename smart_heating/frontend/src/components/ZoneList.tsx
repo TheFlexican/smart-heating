@@ -27,6 +27,7 @@ interface ZoneListProps {
   showHidden: boolean
   onToggleShowHidden: () => void
   onAreasReorder: (areas: Zone[]) => void
+  onPatchArea?: (areaId: string, patch: Partial<Zone>) => void
 }
 
 const ZoneList = ({
@@ -36,6 +37,7 @@ const ZoneList = ({
   showHidden,
   onToggleShowHidden,
   onAreasReorder,
+  onPatchArea,
 }: ZoneListProps) => {
   const { t } = useTranslation()
 
@@ -131,7 +133,7 @@ const ZoneList = ({
               }}
             >
               {visibleAreas.map(area => (
-                <ZoneCard key={area.id} area={area} onUpdate={onUpdate} />
+                <ZoneCard key={area.id} area={area} onUpdate={onUpdate} onPatchArea={onPatchArea} />
               ))}
             </Box>
           </SortableContext>
