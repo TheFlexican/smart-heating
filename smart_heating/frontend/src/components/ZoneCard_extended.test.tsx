@@ -177,4 +177,42 @@ describe('ZoneCard extended behaviors', () => {
     await userEvent.click(settingsOption)
     expect(navigateMock).toHaveBeenCalledWith(`/area/${area.id}`)
   })
+
+  it('calls onPatchArea when temperature committed', async () => {
+    const onUpdate = vi.fn()
+    const onPatchArea = vi.fn()
+    const area: any = {
+      id: 'a5',
+      name: 'Test Room',
+      enabled: true,
+      state: 'idle',
+      manual_override: true,
+      target_temperature: 20,
+      effective_target_temperature: 20,
+      preset_mode: 'none',
+      presence_sensors: [],
+      devices: [{ id: 'd1', name: 'Thermostat', type: 'thermostat', current_temperature: 18 }],
+      boost_mode_active: false,
+      boost_temp: 0,
+      boost_duration: 0,
+      hidden: false,
+    }
+
+    render(<ZoneCard area={area} onUpdate={onUpdate} onPatchArea={onPatchArea} />)
+
+    const slider = screen.getByTestId('temperature-slider')
+    // Simulate user moving slider and committing change
+    await userEvent.click(slider)
+    // Fire change via pointer events (simplified)
+    slider.focus()
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}{Enter}')
+
+    // Wait for async updates
+    await waitFor(() => expect(onPatchArea).toHaveBeenCalled())
+
+    expect(onPatchArea).toHaveBeenCalledWith(
+      area.id,
+      expect.objectContaining({ target_temperature: expect.any(Number) }),
+    )
+  })
 })

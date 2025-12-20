@@ -192,7 +192,7 @@ Detecteert wanneer thermostaten buiten de Smart Heating app aangepast worden en 
 
 **Wissen Handmatige Override:**
 - Automatisch gewist wanneer temperatuur via app API ingesteld
-- API zet `area.manual_override = False` bij temperatuur wijzigingen
+- API zet `area.manual_override = True` bij temperatuur wijzigingen zodat door de gebruiker ingestelde temperaturen voorgaan boven schema's/voorinstellingen
 - Climate controller slaat zones in handmatige override modus over
 
 **Flow:**
