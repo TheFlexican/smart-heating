@@ -333,19 +333,30 @@ class ThermostatHandler(BaseDeviceHandler):
             )
 
             if last_temp is None or abs(last_temp - target_temp) >= 0.1:
-                # Update cache BEFORE service call to prevent false manual override detection
-                self._last_set_temperatures[thermostat_id] = target_temp
-                await self.hass.services.async_call(
-                    CLIMATE_DOMAIN,
-                    SERVICE_SET_TEMPERATURE,
-                    {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp},
-                    blocking=True,
-                )
-                _LOGGER.warning(
-                    "TRV %s: SET TO %.1f°C (area target)",
-                    thermostat_id,
-                    target_temp,
-                )
+                try:
+                    # Update cache BEFORE service call to prevent false manual override detection
+                    self._last_set_temperatures[thermostat_id] = target_temp
+                    await self.hass.services.async_call(
+                        CLIMATE_DOMAIN,
+                        SERVICE_SET_TEMPERATURE,
+                        {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp},
+                        blocking=True,
+                    )
+                    _LOGGER.warning(
+                        "TRV %s: SET TO %.1f°C (area target)",
+                        thermostat_id,
+                        target_temp,
+                    )
+                except Exception as err:
+                    # Clear cache to allow retry at next cycle
+                    if thermostat_id in self._last_set_temperatures:
+                        del self._last_set_temperatures[thermostat_id]
+                    _LOGGER.warning(
+                        "Failed to set TRV %s to %.1f°C: %s (will retry next cycle)",
+                        thermostat_id,
+                        target_temp,
+                        err,
+                    )
             return
 
         # Get current state to avoid redundant commands (some integrations reject them)
@@ -417,19 +428,30 @@ class ThermostatHandler(BaseDeviceHandler):
             )
 
             if last_temp is None or abs(last_temp - idle_temp) >= 0.1:
-                # Update cache BEFORE service call to prevent false manual override detection
-                self._last_set_temperatures[thermostat_id] = idle_temp
-                await self.hass.services.async_call(
-                    CLIMATE_DOMAIN,
-                    SERVICE_SET_TEMPERATURE,
-                    {"entity_id": thermostat_id, ATTR_TEMPERATURE: idle_temp},
-                    blocking=True,
-                )
-                _LOGGER.info(
-                    "TRV %s: SET TO %.1f°C (idle - forcing valve closed)",
-                    thermostat_id,
-                    idle_temp,
-                )
+                try:
+                    # Update cache BEFORE service call to prevent false manual override detection
+                    self._last_set_temperatures[thermostat_id] = idle_temp
+                    await self.hass.services.async_call(
+                        CLIMATE_DOMAIN,
+                        SERVICE_SET_TEMPERATURE,
+                        {"entity_id": thermostat_id, ATTR_TEMPERATURE: idle_temp},
+                        blocking=True,
+                    )
+                    _LOGGER.info(
+                        "TRV %s: SET TO %.1f°C (idle - forcing valve closed)",
+                        thermostat_id,
+                        idle_temp,
+                    )
+                except Exception as err:
+                    # Clear cache to allow retry at next cycle
+                    if thermostat_id in self._last_set_temperatures:
+                        del self._last_set_temperatures[thermostat_id]
+                    _LOGGER.warning(
+                        "Failed to set TRV %s to idle %.1f°C: %s (will retry next cycle)",
+                        thermostat_id,
+                        idle_temp,
+                        err,
+                    )
             return
 
         # For regular thermostats, use hysteresis logic
