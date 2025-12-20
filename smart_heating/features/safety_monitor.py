@@ -207,7 +207,7 @@ class SafetyMonitor:
         ]
         if entry_ids:
             coordinator = self.hass.data[DOMAIN][entry_ids[0]]
-            from smart_heating.utils.coordinator_helpers import call_maybe_async
+            from ..utils.coordinator_helpers import call_maybe_async
 
             await call_maybe_async(coordinator.async_request_refresh)
             _LOGGER.info("Coordinator refresh requested after emergency shutdown")
