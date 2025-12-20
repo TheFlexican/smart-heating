@@ -10,11 +10,11 @@ describe('API - Metrics', () => {
 
   it('getAdvancedMetrics builds params', async () => {
     mockedAxios.get = vi.fn().mockResolvedValue({ data: {} }) as any
-    await metrics.getAdvancedMetrics(7)
-    expect(mockedAxios.get).toHaveBeenCalledWith('/api/smart_heating/metrics/advanced?days=7')
+    await metrics.getAdvancedMetrics(5)
+    expect(mockedAxios.get).toHaveBeenCalledWith('/api/smart_heating/metrics/advanced?minutes=5')
     await metrics.getAdvancedMetrics(1, 'a1')
     expect(mockedAxios.get).toHaveBeenCalledWith(
-      '/api/smart_heating/metrics/advanced?days=1&area_id=a1',
+      '/api/smart_heating/metrics/advanced?minutes=1&area_id=a1',
     )
   })
 })

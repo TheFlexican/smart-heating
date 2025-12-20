@@ -64,6 +64,9 @@ class AreaManager:
         # Use a modest default capacity to avoid unbounded memory growth
         self._device_log_capacity: int = 500
         self._device_logs: dict[str, Deque[DeviceEvent]] = {}
+        # Time-based retention for device events (minutes). Events older than this
+        # will be purged from the per-area buffer. Default 60 minutes.
+        self._device_event_retention_minutes: int = 60
         # Device log listeners (callbacks notified on new events)
         # Each listener is a callable accepting a single event dict parameter
         self._device_log_listeners: list = []
@@ -603,6 +606,26 @@ class AreaManager:
             self._device_logs[area_id] = logs
 
         logs.append(event)
+
+        # Purge events older than retention window (best-effort)
+        try:
+            from datetime import timedelta
+
+            cutoff = datetime.utcnow() - timedelta(minutes=self._device_event_retention_minutes)
+            # left-most entry is oldest (append -> right). Remove while too-old.
+            while logs:
+                oldest = logs[0]
+                try:
+                    oldest_ts = datetime.fromisoformat(oldest.timestamp.rstrip("Z"))
+                except Exception:
+                    break
+                if oldest_ts < cutoff:
+                    logs.popleft()
+                else:
+                    break
+        except Exception:
+            # Swallow any purge errors to avoid breaking event recording
+            pass
         _LOGGER.debug("Recorded device event for area %s: %s", area_id, event.to_dict())
 
         # Notify listeners (best-effort, non-blocking)

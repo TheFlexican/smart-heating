@@ -265,6 +265,8 @@
   "devices": {
     "title": "Apparaten",
     "available": "Beschikbare Apparaten",
+    "area": "Gebied",
+    "allAreas": "Alle gebieden",
     "assigned": "Toegewezen Apparaten",
     "noDevices": "Geen apparaten beschikbaar",
     "location": "Locatie",

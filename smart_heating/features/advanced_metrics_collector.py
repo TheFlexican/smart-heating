@@ -373,12 +373,13 @@ class AdvancedMetricsCollector:
             return result.rowcount
 
     async def async_get_metrics(
-        self, days: int = 7, area_id: Optional[str] = None
+        self, days: int | None = 7, minutes: int | None = None, area_id: Optional[str] = None
     ) -> list[dict[str, Any]]:
         """Get metrics for specified time range.
 
         Args:
-            days: Number of days of history to retrieve (1, 3, 7, or 30)
+            days: Number of days of history to retrieve (1, 3, 7, or 30). Used when `minutes` is None.
+            minutes: Optional minutes-based window (1,2,3,5) for short-range queries.
             area_id: Optional area ID to filter metrics
 
         Returns:
@@ -388,7 +389,11 @@ class AdvancedMetricsCollector:
             return []
 
         try:
-            start_date = datetime.now() - timedelta(days=days)
+            if minutes is not None:
+                start_date = datetime.now() - timedelta(minutes=minutes)
+            else:
+                # default to days if minutes not provided
+                start_date = datetime.now() - timedelta(days=days or 7)
 
             recorder = get_instance(self.hass)
             results = await recorder.async_add_executor_job(

@@ -1,8 +1,15 @@
 import axios from 'axios'
 const API_BASE = '/api/smart_heating'
 
-export const getAdvancedMetrics = async (days: 1 | 3 | 7 | 30, areaId?: string): Promise<any> => {
-  const params = new URLSearchParams({ days: days.toString() })
+export const getAdvancedMetrics = async (minutesOrDays: number, areaId?: string): Promise<any> => {
+  // Prefer minutes-based queries from the UI; backend supports `minutes`.
+  const params = new URLSearchParams()
+  // If the value is one of the minute options (1,2,3,5) send as minutes
+  if ([1, 2, 3, 5].includes(minutesOrDays)) {
+    params.append('minutes', minutesOrDays.toString())
+  } else {
+    params.append('days', minutesOrDays.toString())
+  }
   if (areaId) {
     params.append('area_id', areaId)
   }
