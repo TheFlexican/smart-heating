@@ -88,6 +88,10 @@ class Area:
         self.smart_boost_active: bool = False  # Currently in smart boost heating period
         self.smart_boost_original_target: float | None = None  # Original target before smart boost
 
+        # Heating state tracking (runtime only, not persisted)
+        # True = heating active, False = idle, None = initial/unknown
+        self._last_heating_state: bool | None = None
+
         # Preset mode settings
         self.preset_mode: str = PRESET_NONE
         self.away_temp: float = DEFAULT_AWAY_TEMP

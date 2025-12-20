@@ -69,13 +69,16 @@ class AreaDeviceManager:
     def get_thermostats(self) -> list[str]:
         """Get all thermostats in this area.
 
+        Returns climate entities (type="climate") and thermostat devices (type="thermostat").
+        This includes TRVs and other climate-controlled heating devices.
+
         Returns:
             List of thermostat entity IDs
         """
         return [
             device_id
             for device_id, info in self.area.devices.items()
-            if info["type"] == DEVICE_TYPE_THERMOSTAT
+            if info["type"] in (DEVICE_TYPE_THERMOSTAT, "climate")
         ]
 
     def get_opentherm_gateways(self) -> list[str]:

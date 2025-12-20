@@ -413,40 +413,122 @@ class ClimateController:
         should_stop_heat,
         should_stop_cool,
     ):
-        """Handle the cycle action based on heating/cooling flags and returns possible heating list and max temp."""
+        """Handle the cycle action based on heating/cooling flags and returns possible heating list and max temp.
+
+        Uses state transition tracking to only call handlers when heating state changes,
+        reducing unnecessary function calls and device commands.
+        """
+        # Get last heating state (None = initial/unknown, True = heating, False = idle)
+        last_state = getattr(area, "_last_heating_state", None)
+
+        # HEATING: Only call handler if state changed from non-heating to heating
         if heating:
-            (
-                area_heating,
-                area_max_temp,
-            ) = await self.cycle_handler.async_handle_heating_required(
-                area_id,
-                area,
-                current_temp,
-                target_temp,
-                self.device_handler,
-                self.temp_handler,
-            )
-            return area_heating, area_max_temp
+            if last_state != True:
+                # STATE TRANSITION: idle/unknown → heating
+                _LOGGER.info(
+                    "Area %s: STATE TRANSITION → heating (%.1f°C → %.1f°C)",
+                    area_id,
+                    current_temp,
+                    target_temp,
+                )
+                area._last_heating_state = True
+                (
+                    area_heating,
+                    area_max_temp,
+                ) = await self.cycle_handler.async_handle_heating_required(
+                    area_id,
+                    area,
+                    current_temp,
+                    target_temp,
+                    self.device_handler,
+                    self.temp_handler,
+                )
+                return area_heating, area_max_temp
+            else:
+                # Already heating - skip handler call, but still return heating info for pump control
+                _LOGGER.debug(
+                    "Area %s: Already heating (%.1f°C → %.1f°C) - no handler call",
+                    area_id,
+                    current_temp,
+                    target_temp,
+                )
+                heating_areas = []
+                if getattr(area, "heating_type", "radiator") != "airco":
+                    heating_areas = [area]
+                return heating_areas, target_temp
+
+        # COOLING: Only call handler if state changed
         if cooling:
-            await self.cycle_handler.async_handle_cooling_required(
-                area_id,
-                area,
-                current_temp,
-                target_temp,
-                self.device_handler,
-                self.temp_handler,
-            )
+            if last_state != "cooling":
+                # STATE TRANSITION: → cooling
+                _LOGGER.info(
+                    "Area %s: STATE TRANSITION → cooling (%.1f°C → %.1f°C)",
+                    area_id,
+                    current_temp,
+                    target_temp,
+                )
+                area._last_heating_state = "cooling"
+                await self.cycle_handler.async_handle_cooling_required(
+                    area_id,
+                    area,
+                    current_temp,
+                    target_temp,
+                    self.device_handler,
+                    self.temp_handler,
+                )
+            else:
+                # Already cooling - skip handler call
+                _LOGGER.debug(
+                    "Area %s: Already cooling (%.1f°C) - no handler call",
+                    area_id,
+                    current_temp,
+                )
             return None, None
+
+        # STOP HEATING: Only call handler if state changed from heating to idle
         if should_stop_heat:
-            await self.cycle_handler.async_handle_heating_stop(
-                area_id, area, current_temp, target_temp, self.device_handler
-            )
+            if last_state != False:
+                # STATE TRANSITION: heating → idle
+                _LOGGER.info(
+                    "Area %s: STATE TRANSITION → idle (%.1f°C ≥ %.1f°C)",
+                    area_id,
+                    current_temp,
+                    target_temp,
+                )
+                area._last_heating_state = False
+                await self.cycle_handler.async_handle_heating_stop(
+                    area_id, area, current_temp, target_temp, self.device_handler
+                )
+            else:
+                # Already idle - skip handler call
+                _LOGGER.debug(
+                    "Area %s: Already idle (%.1f°C) - no handler call",
+                    area_id,
+                    current_temp,
+                )
             return None, None
+
+        # STOP COOLING: Only call handler if state changed
         if should_stop_cool:
-            await self.cycle_handler.async_handle_cooling_stop(
-                area_id, area, current_temp, target_temp, self.device_handler
-            )
+            if last_state != False:
+                # STATE TRANSITION: cooling → idle
+                _LOGGER.info(
+                    "Area %s: STATE TRANSITION → idle (cooling stopped at %.1f°C)",
+                    area_id,
+                    current_temp,
+                )
+                area._last_heating_state = False
+                await self.cycle_handler.async_handle_cooling_stop(
+                    area_id, area, current_temp, target_temp, self.device_handler
+                )
+            else:
+                # Already idle - skip handler call
+                _LOGGER.debug(
+                    "Area %s: Already idle - no handler call",
+                    area_id,
+                )
             return None, None
+
         return None, None
 
     async def async_control_heating(self) -> None:
