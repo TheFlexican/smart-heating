@@ -80,11 +80,27 @@ async def handle_get_learning_stats(hass: HomeAssistant, area_id: str) -> web.Re
     Returns:
         JSON response with learning stats
     """
+    import logging
+
+    _LOGGER = logging.getLogger(__name__)
+    _LOGGER.info("[LEARNING] API request for learning stats - area_id: %s", area_id)
+
     learning_engine = hass.data.get(DOMAIN, {}).get("learning_engine")
     if not learning_engine:
+        _LOGGER.error(
+            "[LEARNING] API request failed - Learning engine not available (area_id: %s)",
+            area_id,
+        )
         return web.json_response({"error": "Learning engine not available"}, status=503)
 
     stats = await learning_engine.async_get_learning_stats(area_id)
+
+    _LOGGER.info(
+        "[LEARNING] API response for %s: %d total events, %d data points",
+        area_id,
+        stats.get("total_events_all_time", 0),
+        stats.get("data_points", 0),
+    )
 
     return web.json_response({"area_id": area_id, "stats": stats})
 

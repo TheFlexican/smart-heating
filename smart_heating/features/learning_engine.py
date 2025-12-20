@@ -86,6 +86,11 @@ class LearningEngine:
         # Auto-detect weather entity
         self._weather_entity = await self._async_detect_weather_entity()
 
+        # If detection failed, schedule retries
+        if not self._weather_entity:
+            _LOGGER.warning("No weather entity detected at startup - will retry for 5 minutes")
+            self.hass.async_create_task(self._async_retry_weather_detection())
+
         # Register statistics metadata for all metrics
         await self._async_register_statistics_metadata()
 
@@ -108,6 +113,35 @@ class LearningEngine:
 
         _LOGGER.debug("No weather entity found - outdoor temperature correlation disabled")
         return None
+
+    async def _async_retry_weather_detection(self) -> None:
+        """Retry weather entity detection with backoff.
+
+        Retries every 30 seconds for up to 5 minutes to handle cases where
+        weather integration loads after smart_heating at HA startup.
+        """
+        _LOGGER.info("Weather entity retry task started - will check every 30 seconds")
+
+        for attempt in range(10):  # 10 attempts * 30s = 5 minutes
+            await asyncio.sleep(30)
+            _LOGGER.info("Weather entity retry attempt %d/10", attempt + 1)
+
+            self._weather_entity = await self._async_detect_weather_entity()
+            if self._weather_entity:
+                state = self.hass.states.get(self._weather_entity)
+                temp = state.attributes.get("temperature") if state else None
+                _LOGGER.info(
+                    "Weather entity detected on retry %d/10: %s (current temp: %s°C)",
+                    attempt + 1,
+                    self._weather_entity,
+                    temp,
+                )
+                return
+
+        _LOGGER.warning(
+            "Failed to detect weather entity after 10 retries - "
+            "outdoor temperature correlation will remain disabled"
+        )
 
     async def _async_register_statistics_metadata(
         self,
@@ -172,8 +206,8 @@ class LearningEngine:
             "outdoor_temp": outdoor_temp,
         }
 
-        _LOGGER.debug(
-            "Started heating event for %s: temp=%.1f°C, outdoor=%.1f°C",
+        _LOGGER.info(
+            "[LEARNING] Started heating event for %s: temp=%.1f°C, outdoor=%.1f°C",
             area_id,
             current_temp,
             outdoor_temp or 0,
@@ -191,8 +225,17 @@ class LearningEngine:
             current_temp: Current temperature when heating ended
             target_reached: Whether target temperature was reached
         """
+        _LOGGER.info(
+            "[LEARNING] Ending heating event for %s (current temp: %.1f°C)",
+            area_id,
+            current_temp,
+        )
+
         if area_id not in self._active_heating_events:
-            _LOGGER.debug("No active heating event for %s to end", area_id)
+            _LOGGER.warning(
+                "[LEARNING] No active heating event for %s to end - event was never started or already ended",
+                area_id,
+            )
             return
 
         event_data = self._active_heating_events.pop(area_id)
@@ -208,8 +251,10 @@ class LearningEngine:
 
         # Only record meaningful events (>5 minutes, >0.1°C change)
         if event.duration_minutes < 5 or abs(event.temp_change) < 0.1:
-            _LOGGER.debug(
-                "Skipping short/insignificant heating event for %s (%.1f min, %.2f°C)",
+            _LOGGER.warning(
+                "[LEARNING] Skipping short/insignificant heating event for %s "
+                "(duration: %.1f min < 5 min, temp change: %.2f°C < 0.1°C) - "
+                "Event not stored in database",
                 area_id,
                 event.duration_minutes,
                 event.temp_change,
@@ -220,7 +265,8 @@ class LearningEngine:
         await self._async_record_heating_event(event)
 
         _LOGGER.info(
-            "Heating event recorded for %s: %.1f°C → %.1f°C in %.1f min (rate: %.3f°C/min, outdoor: %.1f°C)",
+            "[LEARNING] ✓ Heating event recorded for %s: %.1f°C → %.1f°C in %.1f min "
+            "(rate: %.3f°C/min, outdoor: %.1f°C)",
             area_id,
             event.start_temp,
             event.end_temp,
@@ -235,6 +281,13 @@ class LearningEngine:
         Args:
             event: HeatingEvent instance
         """
+        statistic_id = self._get_statistic_id("heating_rate", event.area_id)
+        _LOGGER.info(
+            "[LEARNING] Recording heating event to database for %s (statistic_id: %s)",
+            event.area_id,
+            statistic_id,
+        )
+
         try:
             # Ensure metadata is registered
             await self._async_ensure_statistic_metadata(
@@ -245,7 +298,6 @@ class LearningEngine:
             )
 
             # Record heating rate
-            statistic_id = self._get_statistic_id("heating_rate", event.area_id)
             statistics_data = [
                 StatisticData(
                     start=event.start_time,
@@ -261,6 +313,7 @@ class LearningEngine:
                 source="smart_heating",
                 statistic_id=statistic_id,
                 unit_of_measurement="°C/min",
+                mean_type="mean",  # Required by HA 2025+
             )
 
             # Add statistics asynchronously
@@ -269,16 +322,23 @@ class LearningEngine:
             )
 
             _LOGGER.info(
-                "Recorded heating rate statistic for %s: %.3f°C/min",
+                "[LEARNING] ✓ Successfully recorded heating rate statistic for %s: %.3f°C/min (statistic_id: %s)",
                 event.area_id,
                 event.heating_rate,
+                statistic_id,
             )
 
             # Record outdoor correlation if available
             if event.outdoor_temp is not None:
                 await self._async_record_outdoor_correlation(event)
         except Exception as err:
-            _LOGGER.error("Failed to record heating event for %s: %s", event.area_id, err)
+            _LOGGER.error(
+                "[LEARNING] ✗ Failed to record heating event for %s (statistic_id: %s): %s",
+                event.area_id,
+                statistic_id,
+                err,
+                exc_info=True,
+            )
 
     async def _async_record_outdoor_correlation(self, event: HeatingEvent) -> None:
         """Record outdoor temperature correlation.
@@ -310,6 +370,7 @@ class LearningEngine:
                 source="smart_heating",
                 statistic_id=statistic_id,
                 unit_of_measurement=UnitOfTemperature.CELSIUS,
+                mean_type="mean",  # Required by HA 2025+
             )
 
             await get_instance(self.hass).async_add_executor_job(
@@ -556,13 +617,20 @@ class LearningEngine:
         """
         from datetime import timedelta
 
+        statistic_id = self._get_statistic_id("heating_rate", area_id)
+        _LOGGER.info(
+            "[LEARNING] Querying learning stats for %s (statistic_id: %s)",
+            area_id,
+            statistic_id,
+        )
+
         # Get detailed statistics from database
         detailed_stats = await self._async_get_detailed_statistics(area_id, days=30)
 
         # Get basic heating rates for compatibility
         heating_rates = detailed_stats.get("heating_rates", [])
 
-        return {
+        result = {
             "data_points": len(heating_rates),
             "avg_heating_rate": statistics.mean(heating_rates) if heating_rates else 0,
             "min_heating_rate": min(heating_rates) if heating_rates else 0,
@@ -574,6 +642,15 @@ class LearningEngine:
             "recent_events": detailed_stats.get("recent_events", []),
             "total_events_all_time": detailed_stats.get("total_events_all_time", 0),
         }
+
+        _LOGGER.info(
+            "[LEARNING] Retrieved learning stats for %s: %d total events, %d data points (last 30 days)",
+            area_id,
+            result["total_events_all_time"],
+            result["data_points"],
+        )
+
+        return result
 
     async def _async_get_detailed_statistics(self, area_id: str, days: int = 30) -> dict[str, Any]:
         """Get detailed learning statistics from database.
@@ -595,6 +672,14 @@ class LearningEngine:
         end_time = datetime.now()
         start_time = end_time - timedelta(days=days)
 
+        _LOGGER.info(
+            "[LEARNING] Querying database for %s (statistic_id: %s, period: %s to %s)",
+            area_id,
+            statistic_id,
+            start_time.isoformat(),
+            end_time.isoformat(),
+        )
+
         try:
             # Get statistics for the period
             stats = await get_instance(self.hass).async_add_executor_job(
@@ -609,10 +694,12 @@ class LearningEngine:
             )
 
             # Get all-time statistics for total count
+            # Use a very old date instead of None (HA 2025+ doesn't accept None)
+            all_time_start = datetime(1970, 1, 1)
             all_time_stats = await get_instance(self.hass).async_add_executor_job(
                 statistics_during_period,
                 self.hass,
-                None,  # No start time = all time
+                all_time_start,  # Start from Unix epoch to get all-time stats
                 end_time,
                 {statistic_id},
                 "hour",
@@ -621,7 +708,12 @@ class LearningEngine:
             )
 
             if not stats or statistic_id not in stats:
-                _LOGGER.debug("No heating rate statistics found for %s", area_id)
+                _LOGGER.warning(
+                    "[LEARNING] No heating rate statistics found in database for %s (statistic_id: %s) - "
+                    "Either no events have been recorded yet, or there's a mismatch in area_id format",
+                    area_id,
+                    statistic_id,
+                )
                 return {
                     "heating_rates": [],
                     "recent_events": [],
