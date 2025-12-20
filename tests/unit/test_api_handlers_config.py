@@ -569,7 +569,9 @@ class TestConfigHandlers:
         assert body["success"] is True
         assert body["sensor_id"] == "binary_sensor.smoke"
 
-        mock_area_manager.clear_safety_sensors.assert_called_once()
+        # New behavior: adding a safety sensor preserves existing sensors,
+        # so `clear_safety_sensors` should NOT be called here.
+        mock_area_manager.clear_safety_sensors.assert_not_called()
         mock_area_manager.add_safety_sensor.assert_called_once_with(
             sensor_id="binary_sensor.smoke",
             attribute="state",

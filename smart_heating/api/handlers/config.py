@@ -458,7 +458,7 @@ async def handle_get_safety_sensor(area_manager: AreaManager) -> web.Response:
 async def handle_set_safety_sensor(
     hass: HomeAssistant, area_manager: AreaManager, data: dict
 ) -> web.Response:
-    """Set safety sensor (replaces existing).
+    """Set safety sensor (add or update, preserves existing sensors).
 
     Args:
         hass: Home Assistant instance
@@ -476,17 +476,12 @@ async def handle_set_safety_sensor(
     alert_value = data.get("alert_value")
     enabled = data.get("enabled", True)
 
-    # Validate required fields
-    if not alert_value:
+    # Validate required fields. Allow falsy values such as False or 0, so
+    # check explicitly for None.
+    if alert_value is None:
         return web.json_response({"error": "alert_value is required"}, status=400)
 
-    # Clear existing sensors (single-sensor mode replacement)
-    if hasattr(area_manager, "clear_safety_sensors"):
-        area_manager.clear_safety_sensors()
-    else:
-        area_manager.safety_sensors = []
-
-    # Add the safety sensor - prefer explicit parameters for clarity
+    # Add (or update) the safety sensor. Do NOT clear existing sensors by default.
     area_manager.add_safety_sensor(
         sensor_id=sensor_id,
         attribute=attribute,
