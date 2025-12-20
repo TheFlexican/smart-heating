@@ -13,7 +13,7 @@ from typing import Optional
 from homeassistant.core import HomeAssistant
 
 from ..core.area_manager import AreaManager
-from ..models import Area
+from ..models import Area, DeviceEvent
 from .devices import (
     OpenThermHandler,
     SwitchHandler,
@@ -56,6 +56,42 @@ class DeviceControlHandler:
         )
         self.valve_handler = ValveHandler(hass, area_manager, capability_detector)
         self.opentherm_handler = OpenThermHandler(hass, area_manager, capability_detector)
+
+    def _record_device_event(
+        self,
+        area_id: str | None,
+        device_id: str,
+        direction: str,
+        command_type: str,
+        payload: dict,
+        status: str | None = None,
+        error: str | None = None,
+    ) -> None:
+        """Record a device event via the AreaManager's logging API.
+
+        `area_id` may be None; in that case we try to discover the area
+        that owns the device. Failures to record are logged but do not
+        interrupt device control flows.
+        """
+        try:
+            if area_id is None:
+                area_id = self.area_manager.find_area_by_device(device_id)
+            if area_id is None:
+                area_id = UNKNOWN_AREA_NAME
+
+            ev = DeviceEvent.now(
+                area_id=area_id,
+                device_id=device_id,
+                direction=direction,
+                command_type=command_type,
+                payload=payload,
+                status=status,
+                error=error,
+            )
+            # AreaManager stores logs in-memory; call synchronous API
+            self.area_manager.async_add_device_event(area_id, ev)
+        except Exception:  # pragma: no cover - best effort logging
+            _LOGGER.exception("Failed to record device event for %s", device_id)
 
     # === Thermostat Operations (delegated) ===
 
@@ -234,13 +270,36 @@ class DeviceControlHandler:
             _LOGGER.debug("TRV device %s detected, setting to 0°C to close valve", thermostat_id)
             # Update cache BEFORE service call to prevent false manual override detection
             self.thermostat_handler._last_set_temperatures[thermostat_id] = 0.0
-            await self.hass.services.async_call(
-                CLIMATE_DOMAIN,
-                SERVICE_SET_TEMPERATURE,
-                {"entity_id": thermostat_id, ATTR_TEMPERATURE: 0.0},
-                blocking=True,
-            )
-            _LOGGER.debug("Set TRV %s to 0°C (closed)", thermostat_id)
+            try:
+                payload = {"entity_id": thermostat_id, ATTR_TEMPERATURE: 0.0}
+                self._record_device_event(
+                    None,
+                    thermostat_id,
+                    "sent",
+                    SERVICE_SET_TEMPERATURE,
+                    {"domain": CLIMATE_DOMAIN, "service": SERVICE_SET_TEMPERATURE, "data": payload},
+                )
+                await self.hass.services.async_call(
+                    CLIMATE_DOMAIN,
+                    SERVICE_SET_TEMPERATURE,
+                    payload,
+                    blocking=True,
+                )
+                self._record_device_event(
+                    None, thermostat_id, "received", SERVICE_SET_TEMPERATURE, {"result": "ok"}
+                )
+                _LOGGER.debug("Set TRV %s to 0°C (closed)", thermostat_id)
+            except Exception as err:
+                self._record_device_event(
+                    None,
+                    thermostat_id,
+                    "received",
+                    SERVICE_SET_TEMPERATURE,
+                    {"result": "error"},
+                    status="error",
+                    error=str(err),
+                )
+                raise
             return
 
         # For non-TRV devices, check if device supports turn_off service
@@ -255,16 +314,36 @@ class DeviceControlHandler:
         if supports_turn_off:
             try:
                 # Use blocking=True so we can catch NotImplementedError
+                payload = {"entity_id": thermostat_id}
+                self._record_device_event(
+                    None,
+                    thermostat_id,
+                    "sent",
+                    SERVICE_TURN_OFF,
+                    {"domain": CLIMATE_DOMAIN, "service": SERVICE_TURN_OFF, "data": payload},
+                )
                 await self.hass.services.async_call(
                     CLIMATE_DOMAIN,
                     SERVICE_TURN_OFF,
-                    {"entity_id": thermostat_id},
+                    payload,
                     blocking=True,
+                )
+                self._record_device_event(
+                    None, thermostat_id, "received", SERVICE_TURN_OFF, {"result": "ok"}
                 )
                 _LOGGER.debug("Turned off thermostat %s", thermostat_id)
                 return
 
             except Exception as err:
+                self._record_device_event(
+                    None,
+                    thermostat_id,
+                    "received",
+                    SERVICE_TURN_OFF,
+                    {"result": "error"},
+                    status="error",
+                    error=str(err),
+                )
                 _LOGGER.debug(
                     "Failed to turn off thermostat %s: %s, falling back to min temp",
                     thermostat_id,
@@ -278,17 +357,40 @@ class DeviceControlHandler:
 
         # Update cache BEFORE service call to prevent false manual override detection
         self.thermostat_handler._last_set_temperatures[thermostat_id] = min_temp
-        await self.hass.services.async_call(
-            CLIMATE_DOMAIN,
-            SERVICE_SET_TEMPERATURE,
-            {"entity_id": thermostat_id, ATTR_TEMPERATURE: min_temp},
-            blocking=True,
-        )
-        _LOGGER.debug(
-            "Thermostat %s doesn't support turn_off, set to %.1f°C instead",
-            thermostat_id,
-            min_temp,
-        )
+        try:
+            payload = {"entity_id": thermostat_id, ATTR_TEMPERATURE: min_temp}
+            self._record_device_event(
+                None,
+                thermostat_id,
+                "sent",
+                SERVICE_SET_TEMPERATURE,
+                {"domain": CLIMATE_DOMAIN, "service": SERVICE_SET_TEMPERATURE, "data": payload},
+            )
+            await self.hass.services.async_call(
+                CLIMATE_DOMAIN,
+                SERVICE_SET_TEMPERATURE,
+                payload,
+                blocking=True,
+            )
+            self._record_device_event(
+                None, thermostat_id, "received", SERVICE_SET_TEMPERATURE, {"result": "ok"}
+            )
+            _LOGGER.debug(
+                "Thermostat %s doesn't support turn_off, set to %.1f°C instead",
+                thermostat_id,
+                min_temp,
+            )
+        except Exception as err:
+            self._record_device_event(
+                None,
+                thermostat_id,
+                "received",
+                SERVICE_SET_TEMPERATURE,
+                {"result": "error"},
+                status="error",
+                error=str(err),
+            )
+            raise
 
     async def _handle_thermostat_heating(
         self, thermostat_id: str, target_temp: float, hvac_mode: str

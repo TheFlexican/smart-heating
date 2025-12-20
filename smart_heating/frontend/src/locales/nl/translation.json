@@ -118,7 +118,9 @@
     "autoRefresh": "Automatisch verversen",
     "latest": "Laatste apparaat fouten/backoff meldingen",
     "noData": "Nog geen logs beschikbaar",
-    "noFailures": "Geen apparaatfouten geregistreerd"
+    "noFailures": "Geen apparaatfouten geregistreerd",
+    "liveEvents": "Live apparaatgebeurtenissen",
+    "noLiveEvents": "Nog geen live gebeurtenissen"
   },
   "globalSettings": {
     "title": "Globale Instellingen",

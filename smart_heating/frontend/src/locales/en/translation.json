@@ -118,7 +118,9 @@
     "autoRefresh": "Auto-refresh",
     "latest": "Latest device failure/backoff entries",
     "noData": "No logs available yet",
-    "noFailures": "No device failures recorded"
+    "noFailures": "No device failures recorded",
+    "liveEvents": "Live device events",
+    "noLiveEvents": "No live events yet"
   },
   "globalSettings": {
     "title": "Global Settings",

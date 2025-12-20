@@ -6,6 +6,7 @@ from .area_preset_manager import AreaPresetManager
 from .area_schedule_manager import AreaScheduleManager
 from .area_sensor_manager import AreaSensorManager
 from .schedule import Schedule
+from .device_event import DeviceEvent
 
 __all__ = [
     "Area",
@@ -14,4 +15,5 @@ __all__ = [
     "AreaScheduleManager",
     "AreaSensorManager",
     "Schedule",
+    "DeviceEvent",
 ]

@@ -167,28 +167,123 @@ class ValveHandler(BaseDeviceHandler):
                 _LOGGER.debug("Set valve %s to 0°C (off)", valve_id)
 
     async def _set_valve_number_position(self, valve_id: str, position: float) -> None:
-        await self.hass.services.async_call(
-            "number",
-            "set_value",
-            {"entity_id": valve_id, "value": position},
-            blocking=False,
-        )
+        try:
+            payload = {"entity_id": valve_id, "value": position}
+            try:
+                self._record_device_event(
+                    valve_id,
+                    "sent",
+                    "number.set_value",
+                    {"domain": "number", "service": "set_value", "data": payload},
+                )
+            except Exception:
+                _LOGGER.debug("Failed to record sent number.set_value for %s", valve_id)
+
+            await self.hass.services.async_call(
+                "number",
+                "set_value",
+                payload,
+                blocking=False,
+            )
+            try:
+                self._record_device_event(
+                    valve_id, "received", "number.set_value", {"result": "dispatched"}
+                )
+            except Exception:
+                _LOGGER.debug("Failed to record received number.set_value for %s", valve_id)
+        except Exception as err:
+            try:
+                self._record_device_event(
+                    valve_id,
+                    "received",
+                    "number.set_value",
+                    {"result": "error"},
+                    status="error",
+                    error=str(err),
+                )
+            except Exception:
+                _LOGGER.debug("Failed to record error for number.set_value %s", valve_id)
+            _LOGGER.error("Failed to set valve number position %s: %s", valve_id, err)
 
     async def _set_valve_climate_position(self, valve_id: str, position: float) -> None:
-        await self.hass.services.async_call(
-            CLIMATE_DOMAIN,
-            "set_position",
-            {"entity_id": valve_id, "position": position},
-            blocking=False,
-        )
+        try:
+            payload = {"entity_id": valve_id, "position": position}
+            try:
+                self._record_device_event(
+                    valve_id,
+                    "sent",
+                    "climate.set_position",
+                    {"domain": CLIMATE_DOMAIN, "service": "set_position", "data": payload},
+                )
+            except Exception:
+                _LOGGER.debug("Failed to record sent climate.set_position for %s", valve_id)
+
+            await self.hass.services.async_call(
+                CLIMATE_DOMAIN,
+                "set_position",
+                payload,
+                blocking=False,
+            )
+            try:
+                self._record_device_event(
+                    valve_id, "received", "climate.set_position", {"result": "dispatched"}
+                )
+            except Exception:
+                _LOGGER.debug("Failed to record received climate.set_position for %s", valve_id)
+        except Exception as err:
+            try:
+                self._record_device_event(
+                    valve_id,
+                    "received",
+                    "climate.set_position",
+                    {"result": "error"},
+                    status="error",
+                    error=str(err),
+                )
+            except Exception:
+                _LOGGER.debug("Failed to record error for climate.set_position %s", valve_id)
+            _LOGGER.error("Failed to set valve climate position %s: %s", valve_id, err)
+            # Re-raise so callers (which may attempt fallback) can detect failure
+            raise
 
     async def _set_valve_temperature(self, valve_id: str, temperature: float) -> None:
-        await self.hass.services.async_call(
-            CLIMATE_DOMAIN,
-            SERVICE_SET_TEMPERATURE,
-            {"entity_id": valve_id, ATTR_TEMPERATURE: temperature},
-            blocking=False,
-        )
+        try:
+            payload = {"entity_id": valve_id, ATTR_TEMPERATURE: temperature}
+            try:
+                self._record_device_event(
+                    valve_id,
+                    "sent",
+                    "climate.set_temperature",
+                    {"domain": CLIMATE_DOMAIN, "service": SERVICE_SET_TEMPERATURE, "data": payload},
+                )
+            except Exception:
+                _LOGGER.debug("Failed to record sent set_temperature for %s", valve_id)
+
+            await self.hass.services.async_call(
+                CLIMATE_DOMAIN,
+                SERVICE_SET_TEMPERATURE,
+                payload,
+                blocking=False,
+            )
+            try:
+                self._record_device_event(
+                    valve_id, "received", "climate.set_temperature", {"result": "dispatched"}
+                )
+            except Exception:
+                _LOGGER.debug("Failed to record received set_temperature for %s", valve_id)
+        except Exception as err:
+            try:
+                self._record_device_event(
+                    valve_id,
+                    "received",
+                    "climate.set_temperature",
+                    {"result": "error"},
+                    status="error",
+                    error=str(err),
+                )
+            except Exception:
+                _LOGGER.debug("Failed to record error for set_temperature %s", valve_id)
+            _LOGGER.error("Failed to set valve temperature %s: %s", valve_id, err)
 
     async def async_set_valves_to_off(self, area: "Area", off_temperature: float = 0.0) -> None:
         """Set all valves in an area to an "off" state.

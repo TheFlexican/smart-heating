@@ -75,10 +75,22 @@ class ThermostatHandler(BaseDeviceHandler):
                     climate_entity_id,
                 )
                 try:
+                    payload = {"entity_id": switch_id}
+                    # Best-effort record of the outgoing service call
+                    try:
+                        self._record_device_event(
+                            switch_id,
+                            "sent",
+                            "switch.turn_on",
+                            {"domain": "switch", "service": "turn_on", "data": payload},
+                        )
+                    except Exception:
+                        _LOGGER.debug("Failed to record sent event for switch %s", switch_id)
+
                     await self.hass.services.async_call(
                         "switch",
                         "turn_on",
-                        {"entity_id": switch_id},
+                        payload,
                         blocking=False,
                     )
                 except Exception:
@@ -138,12 +150,33 @@ class ThermostatHandler(BaseDeviceHandler):
         # Mode needs to be changed - update cache and send command
         try:
             self._last_set_hvac_modes[thermostat_id] = desired_mode
+            payload = {"entity_id": thermostat_id, "hvac_mode": desired_mode}
+            try:
+                self._record_device_event(
+                    thermostat_id,
+                    "sent",
+                    "climate.set_hvac_mode",
+                    {"domain": CLIMATE_DOMAIN, "service": "set_hvac_mode", "data": payload},
+                )
+            except Exception:
+                _LOGGER.debug("Failed to record sent hvac_mode event for %s", thermostat_id)
+
             await self.hass.services.async_call(
                 CLIMATE_DOMAIN,
                 "set_hvac_mode",
-                {"entity_id": thermostat_id, "hvac_mode": desired_mode},
+                payload,
                 blocking=False,
             )
+            try:
+                self._record_device_event(
+                    thermostat_id,
+                    "received",
+                    "climate.set_hvac_mode",
+                    {"result": "dispatched"},
+                )
+            except Exception:
+                _LOGGER.debug("Failed to record received hvac_mode event for %s", thermostat_id)
+
             _LOGGER.debug("Set thermostat %s to %s mode", thermostat_id, hvac_mode_str)
         except Exception as err:
             _LOGGER.debug(
@@ -194,12 +227,38 @@ class ThermostatHandler(BaseDeviceHandler):
             state = self.hass.states.get(climate_entity_id)
             if state and getattr(state, "state", None) != "on":
                 _LOGGER.info("Turning on climate entity %s", climate_entity_id)
-                await self.hass.services.async_call(
-                    CLIMATE_DOMAIN,
-                    SERVICE_TURN_ON,
-                    {"entity_id": climate_entity_id},
-                    blocking=False,
-                )
+                try:
+                    payload = {"entity_id": climate_entity_id}
+                    try:
+                        self._record_device_event(
+                            climate_entity_id,
+                            "sent",
+                            "climate.turn_on",
+                            {"domain": CLIMATE_DOMAIN, "service": SERVICE_TURN_ON, "data": payload},
+                        )
+                    except Exception:
+                        _LOGGER.debug("Failed to record sent turn_on for %s", climate_entity_id)
+
+                    await self.hass.services.async_call(
+                        CLIMATE_DOMAIN,
+                        SERVICE_TURN_ON,
+                        payload,
+                        blocking=False,
+                    )
+                    try:
+                        self._record_device_event(
+                            climate_entity_id,
+                            "received",
+                            "climate.turn_on",
+                            {"result": "dispatched"},
+                        )
+                    except Exception:
+                        _LOGGER.debug("Failed to record received turn_on for %s", climate_entity_id)
+                except Exception:
+                    # Be defensive - do not raise from best-effort fallback
+                    _LOGGER.debug(
+                        "Failed to turn on climate entity %s (fallback)", climate_entity_id
+                    )
         except Exception:
             # Be defensive - do not raise from best-effort fallback
             _LOGGER.debug("Failed to turn on climate entity %s (fallback)", climate_entity_id)
@@ -234,14 +293,38 @@ class ThermostatHandler(BaseDeviceHandler):
                         climate_entity_id,
                     )
                     try:
+                        payload = {"entity_id": switch_id}
+                        try:
+                            self._record_device_event(
+                                switch_id,
+                                "sent",
+                                "switch.turn_off",
+                                {"domain": "switch", "service": "turn_off", "data": payload},
+                            )
+                        except Exception:
+                            _LOGGER.debug("Failed to record sent turn_off for %s", switch_id)
+
                         await self.hass.services.async_call(
                             "switch",
                             "turn_off",
-                            {"entity_id": switch_id},
+                            payload,
                             blocking=False,
                         )
                     except Exception as err:
                         # Some integrations reject redundant off commands - ignore
+                        try:
+                            self._record_device_event(
+                                switch_id,
+                                "received",
+                                "switch.turn_off",
+                                {"result": "error"},
+                                status="error",
+                                error=str(err),
+                            )
+                        except Exception:
+                            _LOGGER.debug(
+                                "Failed to record received error for turn_off %s", switch_id
+                            )
                         _LOGGER.debug(
                             "Failed to turn off switch %s (may already be off): %s",
                             switch_id,
@@ -336,17 +419,70 @@ class ThermostatHandler(BaseDeviceHandler):
                 try:
                     # Update cache BEFORE service call to prevent false manual override detection
                     self._last_set_temperatures[thermostat_id] = target_temp
-                    await self.hass.services.async_call(
-                        CLIMATE_DOMAIN,
-                        SERVICE_SET_TEMPERATURE,
-                        {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp},
-                        blocking=True,
-                    )
-                    _LOGGER.warning(
-                        "TRV %s: SET TO %.1f°C (area target)",
-                        thermostat_id,
-                        target_temp,
-                    )
+                    try:
+                        payload = {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp}
+                        try:
+                            self._record_device_event(
+                                thermostat_id,
+                                "sent",
+                                "climate.set_temperature",
+                                {
+                                    "domain": CLIMATE_DOMAIN,
+                                    "service": SERVICE_SET_TEMPERATURE,
+                                    "data": payload,
+                                },
+                            )
+                        except Exception:
+                            _LOGGER.debug(
+                                "Failed to record sent set_temperature for %s", thermostat_id
+                            )
+
+                        await self.hass.services.async_call(
+                            CLIMATE_DOMAIN,
+                            SERVICE_SET_TEMPERATURE,
+                            payload,
+                            blocking=True,
+                        )
+                        try:
+                            self._record_device_event(
+                                thermostat_id,
+                                "received",
+                                "climate.set_temperature",
+                                {"result": "ok"},
+                            )
+                        except Exception:
+                            _LOGGER.debug(
+                                "Failed to record received set_temperature for %s", thermostat_id
+                            )
+
+                        _LOGGER.warning(
+                            "TRV %s: SET TO %.1f°C (area target)",
+                            thermostat_id,
+                            target_temp,
+                        )
+                    except Exception as err:
+                        # Clear cache to allow retry at next cycle
+                        if thermostat_id in self._last_set_temperatures:
+                            del self._last_set_temperatures[thermostat_id]
+                        try:
+                            self._record_device_event(
+                                thermostat_id,
+                                "received",
+                                "climate.set_temperature",
+                                {"result": "error"},
+                                status="error",
+                                error=str(err),
+                            )
+                        except Exception:
+                            _LOGGER.debug(
+                                "Failed to record error for set_temperature %s", thermostat_id
+                            )
+                        _LOGGER.warning(
+                            "Failed to set TRV %s to %.1f°C: %s (will retry next cycle)",
+                            thermostat_id,
+                            target_temp,
+                            err,
+                        )
                 except Exception as err:
                     # Clear cache to allow retry at next cycle
                     if thermostat_id in self._last_set_temperatures:
@@ -376,18 +512,63 @@ class ThermostatHandler(BaseDeviceHandler):
             try:
                 # Update cache BEFORE service call to prevent false manual override detection
                 self._last_set_temperatures[thermostat_id] = target_temp
-                await self.hass.services.async_call(
-                    CLIMATE_DOMAIN,
-                    SERVICE_SET_TEMPERATURE,
-                    {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp},
-                    blocking=True,
-                )
-                _LOGGER.debug(
-                    "Set thermostat %s to %.1f°C (%s mode)",
-                    thermostat_id,
-                    target_temp,
-                    hvac_mode,
-                )
+                try:
+                    payload = {"entity_id": thermostat_id, ATTR_TEMPERATURE: target_temp}
+                    try:
+                        self._record_device_event(
+                            thermostat_id,
+                            "sent",
+                            "climate.set_temperature",
+                            {
+                                "domain": CLIMATE_DOMAIN,
+                                "service": SERVICE_SET_TEMPERATURE,
+                                "data": payload,
+                            },
+                        )
+                    except Exception:
+                        _LOGGER.debug("Failed to record sent set_temperature for %s", thermostat_id)
+
+                    await self.hass.services.async_call(
+                        CLIMATE_DOMAIN,
+                        SERVICE_SET_TEMPERATURE,
+                        payload,
+                        blocking=True,
+                    )
+                    try:
+                        self._record_device_event(
+                            thermostat_id, "received", "climate.set_temperature", {"result": "ok"}
+                        )
+                    except Exception:
+                        _LOGGER.debug(
+                            "Failed to record received set_temperature for %s", thermostat_id
+                        )
+
+                    _LOGGER.debug(
+                        "Set thermostat %s to %.1f°C (%s mode)",
+                        thermostat_id,
+                        target_temp,
+                        hvac_mode,
+                    )
+                except Exception as err:
+                    try:
+                        self._record_device_event(
+                            thermostat_id,
+                            "received",
+                            "climate.set_temperature",
+                            {"result": "error"},
+                            status="error",
+                            error=str(err),
+                        )
+                    except Exception:
+                        _LOGGER.debug(
+                            "Failed to record error for set_temperature %s", thermostat_id
+                        )
+                    _LOGGER.debug(
+                        "Failed to set temperature for %s to %.1f°C: %s",
+                        thermostat_id,
+                        target_temp,
+                        err,
+                    )
             except Exception as err:
                 # Some integrations reject temperature changes under certain conditions
                 _LOGGER.debug(
@@ -431,17 +612,71 @@ class ThermostatHandler(BaseDeviceHandler):
                 try:
                     # Update cache BEFORE service call to prevent false manual override detection
                     self._last_set_temperatures[thermostat_id] = idle_temp
-                    await self.hass.services.async_call(
-                        CLIMATE_DOMAIN,
-                        SERVICE_SET_TEMPERATURE,
-                        {"entity_id": thermostat_id, ATTR_TEMPERATURE: idle_temp},
-                        blocking=True,
-                    )
-                    _LOGGER.info(
-                        "TRV %s: SET TO %.1f°C (idle - forcing valve closed)",
-                        thermostat_id,
-                        idle_temp,
-                    )
+                    try:
+                        payload = {"entity_id": thermostat_id, ATTR_TEMPERATURE: idle_temp}
+                        try:
+                            self._record_device_event(
+                                thermostat_id,
+                                "sent",
+                                "climate.set_temperature",
+                                {
+                                    "domain": CLIMATE_DOMAIN,
+                                    "service": SERVICE_SET_TEMPERATURE,
+                                    "data": payload,
+                                },
+                            )
+                        except Exception:
+                            _LOGGER.debug(
+                                "Failed to record sent idle set_temperature for %s", thermostat_id
+                            )
+
+                        await self.hass.services.async_call(
+                            CLIMATE_DOMAIN,
+                            SERVICE_SET_TEMPERATURE,
+                            payload,
+                            blocking=True,
+                        )
+                        try:
+                            self._record_device_event(
+                                thermostat_id,
+                                "received",
+                                "climate.set_temperature",
+                                {"result": "ok"},
+                            )
+                        except Exception:
+                            _LOGGER.debug(
+                                "Failed to record received idle set_temperature for %s",
+                                thermostat_id,
+                            )
+
+                        _LOGGER.info(
+                            "TRV %s: SET TO %.1f°C (idle - forcing valve closed)",
+                            thermostat_id,
+                            idle_temp,
+                        )
+                    except Exception as err:
+                        # Clear cache to allow retry at next cycle
+                        if thermostat_id in self._last_set_temperatures:
+                            del self._last_set_temperatures[thermostat_id]
+                        try:
+                            self._record_device_event(
+                                thermostat_id,
+                                "received",
+                                "climate.set_temperature",
+                                {"result": "error"},
+                                status="error",
+                                error=str(err),
+                            )
+                        except Exception:
+                            _LOGGER.debug(
+                                "Failed to record error for idle set_temperature %s", thermostat_id
+                            )
+                        _LOGGER.warning(
+                            "Failed to set TRV %s to idle %.1f°C: %s (will retry next cycle)",
+                            thermostat_id,
+                            idle_temp,
+                            err,
+                        )
                 except Exception as err:
                     # Clear cache to allow retry at next cycle
                     if thermostat_id in self._last_set_temperatures:

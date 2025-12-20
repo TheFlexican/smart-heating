@@ -474,6 +474,25 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
               return
             }
 
+            // Handle live device events forwarded from backend
+            if (message.result?.event === 'device_event' && message.result?.data) {
+              try {
+                const evt = message.result.data
+                // Dispatch a global CustomEvent so UI components can subscribe
+                try {
+                  window.dispatchEvent(
+                    new CustomEvent('smart_heating.device_event', { detail: evt }),
+                  )
+                } catch {
+                  // Fallback for older browsers
+                  ;(window as any).smart_heating_device_event = evt
+                }
+              } catch (e) {
+                console.error('Failed to handle device_event:', e)
+              }
+              return
+            }
+
             if (!message.success) {
               console.error('Command failed:', message.error)
               setError(message.error?.message || 'Command failed')
@@ -649,14 +668,27 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   }, [stopPollingFallback])
 
   const send = (data: any) => {
-    if (
-      wsRef.current &&
-      (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === 1)
-    ) {
-      wsRef.current.send(JSON.stringify(data))
-      return true
+    try {
+      if (!data || typeof data !== 'object') return false
+
+      // Ensure command has an id field expected by Home Assistant websocket handlers
+      if (data.id == null) {
+        // Assign a monotonic id from our messageIdRef
+        data.id = messageIdRef.current++
+      }
+
+      if (
+        wsRef.current &&
+        (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === 1)
+      ) {
+        wsRef.current.send(JSON.stringify(data))
+        return true
+      }
+      return false
+    } catch (e) {
+      console.error('[WebSocket] send error', e)
+      return false
     }
-    return false
   }
 
   useEffect(() => {

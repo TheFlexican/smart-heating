@@ -148,15 +148,34 @@ class OpenThermHandler(BaseDeviceHandler):
     async def _set_gateway_setpoint(self, gateway_device_id: str, temperature: float) -> None:
         """Set OpenTherm gateway setpoint via service call."""
         try:
+            payload = {"gateway_id": gateway_device_id, "temperature": float(temperature)}
+            try:
+                self._record_device_event(
+                    gateway_device_id,
+                    "sent",
+                    "opentherm_gw.set_control_setpoint",
+                    {"domain": "opentherm_gw", "service": "set_control_setpoint", "data": payload},
+                )
+            except Exception:
+                _LOGGER.debug("Failed to record sent opentherm setpoint for %s", gateway_device_id)
+
             await self.hass.services.async_call(
                 "opentherm_gw",
                 "set_control_setpoint",
-                {
-                    "gateway_id": gateway_device_id,
-                    "temperature": float(temperature),
-                },
+                payload,
                 blocking=False,
             )
+            try:
+                self._record_device_event(
+                    gateway_device_id,
+                    "received",
+                    "opentherm_gw.set_control_setpoint",
+                    {"result": "dispatched"},
+                )
+            except Exception:
+                _LOGGER.debug(
+                    "Failed to record received opentherm setpoint for %s", gateway_device_id
+                )
             _LOGGER.info(
                 "OpenTherm gateway: Set setpoint via gateway service (gateway_id=%s): %.1f°C",
                 gateway_device_id,
@@ -292,15 +311,36 @@ class OpenThermHandler(BaseDeviceHandler):
             return
 
         try:
+            payload = {"gateway_id": gateway_device_id, "temperature": 0.0}
+            try:
+                self._record_device_event(
+                    gateway_device_id,
+                    "sent",
+                    "opentherm_gw.set_control_setpoint",
+                    {"domain": "opentherm_gw", "service": "set_control_setpoint", "data": payload},
+                )
+            except Exception:
+                _LOGGER.debug(
+                    "Failed to record sent opentherm setpoint off for %s", gateway_device_id
+                )
+
             await self.hass.services.async_call(
                 "opentherm_gw",
                 "set_control_setpoint",
-                {
-                    "gateway_id": gateway_device_id,
-                    "temperature": 0.0,
-                },
+                payload,
                 blocking=False,
             )
+            try:
+                self._record_device_event(
+                    gateway_device_id,
+                    "received",
+                    "opentherm_gw.set_control_setpoint",
+                    {"result": "dispatched"},
+                )
+            except Exception:
+                _LOGGER.debug(
+                    "Failed to record received opentherm setpoint off for %s", gateway_device_id
+                )
             _LOGGER.info(
                 "OpenTherm gateway: Boiler OFF (setpoint=0 via service, gateway_id=%s)",
                 gateway_device_id,
