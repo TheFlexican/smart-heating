@@ -18,6 +18,7 @@ import {
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { getAdvancedMetrics } from '../api/metrics'
+import { useWebSocket } from '../hooks/useWebSocket'
 
 export default function DeviceLogsPanel() {
   const { t } = useTranslation()
@@ -27,6 +28,9 @@ export default function DeviceLogsPanel() {
   const [timeRange, setTimeRange] = useState<1 | 3 | 7 | 30>(1)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [mounted, setMounted] = useState(true)
+  const [deviceEvents, setDeviceEvents] = useState<any[]>([])
+
+  const { send } = useWebSocket()
 
   const loadData = useCallback(async () => {
     try {
@@ -49,13 +53,29 @@ export default function DeviceLogsPanel() {
     return () => setMounted(false)
   }, [loadData])
 
+  // Subscribe to live device events and request backend subscription via WS
   useEffect(() => {
-    if (!autoRefresh || !mounted) return
-    const interval = setInterval(() => {
-      if (mounted) loadData()
-    }, 30000)
-    return () => clearInterval(interval)
-  }, [autoRefresh, loadData, mounted])
+    if (!mounted) return
+
+    // Request backend to start sending device events over websocket
+    try {
+      send({ type: 'smart_heating/subscribe_device_logs' })
+    } catch {
+      // ignore
+    }
+
+    const handler = (e: any) => {
+      try {
+        const evt = e?.detail || e
+        setDeviceEvents(prev => [evt, ...prev].slice(0, 200))
+      } catch {
+        // ignore
+      }
+    }
+
+    window.addEventListener('smart_heating.device_event', handler as EventListener)
+    return () => window.removeEventListener('smart_heating.device_event', handler as EventListener)
+  }, [send, mounted])
 
   if (loading) {
     return (
@@ -153,6 +173,51 @@ export default function DeviceLogsPanel() {
               </Table>
             )
           })()}
+
+          {/* Live device events (recent) */}
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              {t('deviceLogs.liveEvents', 'Live device events')}
+            </Typography>
+            {deviceEvents.length === 0 ? (
+              <Alert severity="info">{t('deviceLogs.noLiveEvents', 'No live events yet')}</Alert>
+            ) : (
+              <Paper sx={{ p: 1, maxHeight: 300, overflow: 'auto' }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Time</TableCell>
+                      <TableCell>Area</TableCell>
+                      <TableCell>Device</TableCell>
+                      <TableCell>Direction</TableCell>
+                      <TableCell>Action</TableCell>
+                      <TableCell>Details</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {deviceEvents.map((ev: any, idx: number) => (
+                      <TableRow
+                        key={`${ev.timestamp || idx}-${ev.device_id || ev.deviceId || ev.id || idx}`}
+                      >
+                        <TableCell>
+                          {new Date(ev.timestamp || Date.now()).toLocaleString()}
+                        </TableCell>
+                        <TableCell>{ev.area_id || ev.areaId || ''}</TableCell>
+                        <TableCell>{ev.device_id || ev.deviceId || ev.id || ''}</TableCell>
+                        <TableCell>{ev.direction || ev.dir || ''}</TableCell>
+                        <TableCell>{ev.action || ev.service || ''}</TableCell>
+                        <TableCell>
+                          <Typography variant="caption">
+                            {JSON.stringify(ev.payload || ev.data || ev.details || {})}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Paper>
+            )}
+          </Box>
         </Paper>
       )}
     </Box>

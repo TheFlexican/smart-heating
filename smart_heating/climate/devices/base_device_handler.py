@@ -2,6 +2,7 @@
 
 import logging
 from typing import TYPE_CHECKING, Any, Optional
+from ...models import DeviceEvent
 
 from homeassistant.core import HomeAssistant
 
@@ -119,3 +120,49 @@ class BaseDeviceHandler:
             return True
 
         return True
+
+    def _record_device_event(
+        self,
+        device_id: str,
+        direction: str,
+        command_type: str,
+        payload: Any | None = None,
+        status: str | None = None,
+        error: str | None = None,
+    ) -> None:
+        """Record a device event into the AreaManager log (best-effort).
+
+        This constructs a `DeviceEvent` model and appends it to the area manager's
+        device log for the relevant area(s). Failures are swallowed to avoid
+        impacting device control flows.
+        """
+        try:
+            # Resolve area id if available on area_manager (best-effort)
+            area_id = getattr(self.area_manager, "current_area_id", None)
+            if not area_id:
+                # If area_id cannot be resolved, try to find by device mapping
+                try:
+                    area_id = self.area_manager.find_area_by_device(device_id)
+                except Exception:
+                    area_id = ""
+
+            from ...models import DeviceEvent
+
+            evt = DeviceEvent.now(
+                area_id=area_id or "",
+                device_id=device_id,
+                direction=direction,
+                command_type=command_type,
+                payload=payload or {},
+                status=status,
+                error=error,
+            )
+
+            try:
+                self.area_manager.async_add_device_event(area_id or "", evt)
+            except Exception:
+                # Best-effort: ignore logging failures
+                _LOGGER.debug("Failed to append device event for %s", device_id)
+        except Exception:
+            # Never raise from logging helper
+            _LOGGER.debug("_record_device_event failed for %s", device_id)

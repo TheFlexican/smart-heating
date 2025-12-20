@@ -68,13 +68,32 @@ class SwitchHandler(BaseDeviceHandler):
         for switch_id in switches:
             try:
                 if heating:
-                    await self.hass.services.async_call(
-                        "switch",
-                        SERVICE_TURN_ON,
-                        {"entity_id": switch_id},
-                        blocking=False,
-                    )
-                    _LOGGER.debug("Turned on switch %s", switch_id)
+                    try:
+                        payload = {"entity_id": switch_id}
+                        try:
+                            self._record_device_event(
+                                switch_id,
+                                "sent",
+                                "switch.turn_on",
+                                {"domain": "switch", "service": SERVICE_TURN_ON, "data": payload},
+                            )
+                        except Exception:
+                            _LOGGER.debug("Failed to record sent turn_on for %s", switch_id)
+
+                        await self.hass.services.async_call(
+                            "switch",
+                            SERVICE_TURN_ON,
+                            payload,
+                            blocking=False,
+                        )
+                        try:
+                            self._record_device_event(
+                                switch_id, "received", "switch.turn_on", {"result": "dispatched"}
+                            )
+                        except Exception:
+                            _LOGGER.debug("Failed to record received turn_on for %s", switch_id)
+                    except Exception as err:
+                        _LOGGER.error("Failed to control switch %s: %s", switch_id, err)
                 else:
                     # When stopping heating we should only keep switches on if the
                     # thermostat still reports it is heating AND the area is still
@@ -90,20 +109,76 @@ class SwitchHandler(BaseDeviceHandler):
                             area.area_id,
                             switch_id,
                         )
-                        await self.hass.services.async_call(
-                            "switch",
-                            SERVICE_TURN_ON,
-                            {"entity_id": switch_id},
-                            blocking=False,
-                        )
+                        try:
+                            payload = {"entity_id": switch_id}
+                            try:
+                                self._record_device_event(
+                                    switch_id,
+                                    "sent",
+                                    "switch.turn_on",
+                                    {
+                                        "domain": "switch",
+                                        "service": SERVICE_TURN_ON,
+                                        "data": payload,
+                                    },
+                                )
+                            except Exception:
+                                _LOGGER.debug("Failed to record sent turn_on for %s", switch_id)
+
+                            await self.hass.services.async_call(
+                                "switch",
+                                SERVICE_TURN_ON,
+                                payload,
+                                blocking=False,
+                            )
+                            try:
+                                self._record_device_event(
+                                    switch_id,
+                                    "received",
+                                    "switch.turn_on",
+                                    {"result": "dispatched"},
+                                )
+                            except Exception:
+                                _LOGGER.debug("Failed to record received turn_on for %s", switch_id)
+                        except Exception as err:
+                            _LOGGER.error("Failed to control switch %s: %s", switch_id, err)
                     elif getattr(area, "shutdown_switches_when_idle", True):
-                        await self.hass.services.async_call(
-                            "switch",
-                            SERVICE_TURN_OFF,
-                            {"entity_id": switch_id},
-                            blocking=False,
-                        )
-                        _LOGGER.debug("Turned off switch %s", switch_id)
+                        try:
+                            payload = {"entity_id": switch_id}
+                            try:
+                                self._record_device_event(
+                                    switch_id,
+                                    "sent",
+                                    "switch.turn_off",
+                                    {
+                                        "domain": "switch",
+                                        "service": SERVICE_TURN_OFF,
+                                        "data": payload,
+                                    },
+                                )
+                            except Exception:
+                                _LOGGER.debug("Failed to record sent turn_off for %s", switch_id)
+
+                            await self.hass.services.async_call(
+                                "switch",
+                                SERVICE_TURN_OFF,
+                                payload,
+                                blocking=False,
+                            )
+                            try:
+                                self._record_device_event(
+                                    switch_id,
+                                    "received",
+                                    "switch.turn_off",
+                                    {"result": "dispatched"},
+                                )
+                            except Exception:
+                                _LOGGER.debug(
+                                    "Failed to record received turn_off for %s", switch_id
+                                )
+                            _LOGGER.debug("Turned off switch %s", switch_id)
+                        except Exception as err:
+                            _LOGGER.error("Failed to control switch %s: %s", switch_id, err)
                     else:
                         _LOGGER.debug(
                             "Keeping switch %s on (shutdown_switches_when_idle=False)",

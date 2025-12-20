@@ -16,6 +16,8 @@ from homeassistant.core import HomeAssistant, callback
 
 from ..const import DOMAIN
 from ..core.coordinator import SmartHeatingCoordinator
+from ..core.area_manager import AreaManager
+from homeassistant.components.websocket_api import result_message
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -86,6 +88,58 @@ def websocket_get_areas(
     areas_data = _get_all_areas_data(area_manager, hass)
 
     connection.send_result(msg["id"], {"areas": areas_data})
+
+
+@websocket_command(
+    {
+        "type": "smart_heating/subscribe_device_logs",
+        "area_id": str,
+    }
+)
+@callback
+def websocket_subscribe_device_logs(
+    hass: HomeAssistant,
+    connection: ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Subscribe to live device logs for Smart Heating.
+
+    Message may include optional `area_id` to filter events for a specific area.
+    """
+    _LOGGER.debug("WebSocket subscribe_device_logs called")
+
+    coordinator = _find_coordinator(hass)
+    if not coordinator:
+        connection.send_error(msg["id"], "not_loaded", "Smart Heating coordinator not found")
+        return
+
+    area_manager: AreaManager = coordinator.area_manager
+
+    area_filter = msg.get("area_id")
+
+    @callback
+    def forward_event(event: dict[str, Any]) -> None:
+        try:
+            if area_filter and event.get("area_id") != area_filter:
+                return
+            connection.send_message(
+                result_message(msg["id"], {"event": "device_event", "data": event})
+            )
+        except Exception:
+            _LOGGER.exception("Failed to forward device event to websocket client")
+
+    # Register listener
+    area_manager.add_device_log_listener(forward_event)
+
+    @callback
+    def unsub_callback():
+        try:
+            area_manager.remove_device_log_listener(forward_event)
+        except Exception:
+            pass
+
+    connection.subscriptions[msg["id"]] = unsub_callback
+    connection.send_result(msg["id"])
 
 
 def _get_all_areas_data(
@@ -215,5 +269,6 @@ async def setup_websocket(hass: HomeAssistant) -> None:
     """
     async_register_command(hass, websocket_subscribe_updates)
     async_register_command(hass, websocket_get_areas)
+    async_register_command(hass, websocket_subscribe_device_logs)
 
     _LOGGER.info("Smart Heating WebSocket API registered")

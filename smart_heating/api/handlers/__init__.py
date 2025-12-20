@@ -63,6 +63,7 @@ from .import_export import (
     handle_validate_config,
 )
 from .logs import handle_get_area_logs
+from .logs import handle_get_area_device_logs
 from .opentherm import (
     handle_calibrate_opentherm,
     handle_clear_opentherm_logs,
@@ -175,6 +176,7 @@ __all__ = [
     "handle_restore_backup",
     # Logs
     "handle_get_area_logs",
+    "handle_get_area_device_logs",
     # OpenTherm
     "handle_get_opentherm_logs",
     "handle_discover_opentherm_capabilities",

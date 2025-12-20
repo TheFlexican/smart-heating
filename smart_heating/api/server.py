@@ -157,6 +157,8 @@ class SmartHeatingAPIView(HomeAssistantView):
             return await handle_get_history(self.hass, area_id, request)
         elif "/learning" in endpoint:
             return await handle_get_learning_stats(self.hass, area_id)
+        elif "/device_logs" in endpoint:
+            return await handle_get_area_device_logs(self.hass, self.area_manager, area_id, request)
         elif "/logs" in endpoint:
             return await handle_get_area_logs(self.hass, area_id, request)
         elif "/efficiency" in endpoint:
