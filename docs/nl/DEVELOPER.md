@@ -1,3 +1,14 @@
+
+---
+
+## Recente merge-opmerkingen
+
+ - PR #87 (fix/remove-ws-debug) — samengevoegd in `main` op 2025-12-20: Herstelt WebSocket client/server-integratie voor apparaatlogboeken. Belangrijkste punten:
+    - Backend: registreert `smart_heating/subscribe_device_logs` en stuurt `DeviceEvent` objecten door naar geabonneerde clients.
+    - Frontend: zorgt dat uitgaande WS-commando's automatisch een `id` bevatten (gehandeld in `useWebSocket.send()`), en verwijdert een tijdelijke debug-log die tijdens ontwikkeling werd gebruikt.
+    - Dit maakt het mogelijk dat het paneel Globale Instellingen → Device Logs zich abonneert en live `device_event` berichten ontvangt.
+    - Zie de changelog en PR #87 voor volledige details.
+
 # Ontwikkelaar Snelle Referentie
 
 Snelle referentie voor het ontwikkelen en uitbreiden van Smart Heating.

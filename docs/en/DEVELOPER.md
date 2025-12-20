@@ -325,6 +325,15 @@ This feature demonstrates the full stack for adding a new API endpoint.
        return self.json(result)
    ```
 
+---
+
+## Recent Merge Notes
+
+- PR #87 (fix/remove-ws-debug) — merged into `main` on 2025-12-20: fixes WebSocket client/server integration for device logs. Key points:
+  - Backend: registered `smart_heating/subscribe_device_logs` and forwards `DeviceEvent` objects to subscribed clients.
+  - Frontend: ensures outgoing WS commands include an `id` automatically (handled in `useWebSocket.send()`), and removed a temporary debug log used during development.
+  - This enables the Global Settings → Device Logs panel to subscribe and receive live `device_event` messages.
+  - See the changelog and PR #87 for full details.
 2. **Add route** in `post()` or `get()`:
    ```python
    if len(parts) == 2 and parts[1] == "my_endpoint":
