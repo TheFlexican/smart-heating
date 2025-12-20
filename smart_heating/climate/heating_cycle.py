@@ -109,6 +109,12 @@ class HeatingCycleHandler:
             heating_areas = [area]
 
         # Start heating event if not already active
+        _LOGGER.info(
+            "[LEARNING] Heating required for %s - Learning engine: %s, Already tracking: %s",
+            area_id,
+            "Available" if self.learning_engine else "None",
+            area_id in self._area_heating_events,
+        )
         if self.learning_engine and area_id not in self._area_heating_events:
             outdoor_temp = await temp_handler.async_get_outdoor_temperature(area)
             await self.learning_engine.async_start_heating_event(
@@ -116,9 +122,10 @@ class HeatingCycleHandler:
                 current_temp=current_temp,
             )
             self._area_heating_events[area_id] = True  # Track active heating event
-            _LOGGER.debug(
-                "Started learning event for area %s (outdoor: %s°C)",
+            _LOGGER.info(
+                "[LEARNING] Started learning event for area %s (current: %.1f°C, outdoor: %s°C)",
                 area_id,
+                current_temp,
                 outdoor_temp if outdoor_temp else "N/A",
             )
 
@@ -184,13 +191,19 @@ class HeatingCycleHandler:
                 )
 
         # End heating event if active
+        _LOGGER.info(
+            "[LEARNING] Heating stop for %s - Learning engine: %s, Was tracking: %s",
+            area_id,
+            "Available" if self.learning_engine else "None",
+            area_id in self._area_heating_events,
+        )
         if self.learning_engine and area_id in self._area_heating_events:
             del self._area_heating_events[area_id]
             await self.learning_engine.async_end_heating_event(
                 area_id=area_id, current_temp=current_temp
             )
-            _LOGGER.debug(
-                "Completed learning event for area %s (reached %.1f°C)",
+            _LOGGER.info(
+                "[LEARNING] Ended learning event for area %s (final temp: %.1f°C)",
                 area_id,
                 current_temp,
             )
