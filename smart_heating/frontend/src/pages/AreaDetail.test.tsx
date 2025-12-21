@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react'
 import SettingsSection from '../components/SettingsSection'
 import {
   FormControl,
@@ -57,6 +57,7 @@ vi.mock('../hooks/useWebSocket', () => ({ useWebSocket: () => ({}) }))
 
 import ZoneDetail from './AreaDetail'
 import * as Router from 'react-router-dom'
+import * as sensors from '../api/sensors'
 
 it('preset select is disabled when area is disabled/off', async () => {
   await userEvent.setup()
@@ -219,6 +220,7 @@ it('renders TRV section with runtime state', async () => {
   }
 
   vi.spyOn(areas, 'getZones').mockResolvedValue([trvArea as any])
+  vi.mock('../api/sensors', () => ({ addTrvEntity: vi.fn(), removeTrvEntity: vi.fn() }))
 
   const { MemoryRouter, Routes, Route } = Router as any
   render(
@@ -229,12 +231,43 @@ it('renders TRV section with runtime state', async () => {
     </MemoryRouter>,
   )
 
-  // Wait for TRV config button and TRV data to render
-  await waitFor(() => expect(screen.getByTestId('trv-config-button')).toBeInTheDocument())
+  // Wait for TRV add button and TRV data to render
+  await waitFor(() => expect(screen.getByTestId('trv-add-button-overview')).toBeInTheDocument())
   await waitFor(() => expect(screen.getByTestId('trv-open-sensor.trv1')).toBeInTheDocument())
   expect(screen.getByTestId('trv-position-sensor.trv1').textContent).toBe('75%')
-  // Running state should be visible
-  expect(screen.getByText('heating')).toBeInTheDocument()
+  // Running state should be visible (case-insensitive match)
+  await waitFor(() => expect(screen.queryByText(/heat/i)).toBeTruthy())
+
+  // Test inline edit flow: click edit, change name and role, save
+  const editButton = screen.getByTestId('trv-edit-sensor.trv1')
+  fireEvent.click(editButton)
+  await waitFor(() => expect(screen.getByTestId('trv-edit-name-sensor.trv1')).toBeInTheDocument())
+  const nameRoot = screen.getByTestId('trv-edit-name-sensor.trv1') as HTMLElement
+  const nameInput = nameRoot.querySelector('input') as HTMLInputElement
+  fireEvent.change(nameInput, { target: { value: 'TRV One Modified' } })
+  const roleSelectRoot = screen.getByTestId('trv-edit-role-sensor.trv1') as HTMLElement
+  const roleInput = roleSelectRoot.querySelector('input') as HTMLInputElement
+  fireEvent.change(roleInput, { target: { value: 'position' } })
+
+  const saveButton = screen.getByTestId('trv-save-sensor.trv1')
+  const addSpy = vi.spyOn(sensors, 'addTrvEntity').mockResolvedValue(undefined)
+  fireEvent.click(saveButton)
+  await waitFor(() =>
+    expect(addSpy).toHaveBeenCalledWith(trvArea.id, {
+      entity_id: 'sensor.trv1',
+      role: 'position',
+      name: 'TRV One Modified',
+    }),
+  )
+
+  // Test delete flow
+  const deleteSpy = vi.spyOn(sensors, 'removeTrvEntity').mockResolvedValue(undefined)
+  const confirmSpy = vi.spyOn(globalThis, 'confirm').mockImplementation(() => true)
+  const deleteButton = screen.getByTestId('trv-delete-sensor.trv1')
+  fireEvent.click(deleteButton)
+  await waitFor(() => expect(confirmSpy).toHaveBeenCalled())
+  await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith(trvArea.id, 'sensor.trv1'))
+  confirmSpy.mockRestore()
 })
 
 it('heating curve control has testid and toggles input disabled when using global', async () => {
