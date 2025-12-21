@@ -98,6 +98,7 @@ import TrvConfigDialog from '../components/TrvConfigDialog'
 import DraggableSettings, { SettingSection } from '../components/DraggableSettings'
 import { useWebSocket } from '../hooks/useWebSocket'
 import HistoryMigrationControls from '../components/HistoryMigrationControls'
+import StorageBackendInfo from '../components/StorageBackendInfo'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -1933,83 +1934,60 @@ const ZoneDetail = () => {
             </Typography>
 
             {/* Storage Backend Display */}
-            <Box sx={{ mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Storage Backend
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Chip
-                  label={
-                    storageBackend === 'database' ? 'Database (MariaDB/PostgreSQL)' : 'JSON (File)'
-                  }
-                  color={storageBackend === 'database' ? 'primary' : 'default'}
-                  size="small"
-                />
-                {storageBackend === 'database' && databaseStats?.total_entries !== undefined && (
-                  <Typography variant="caption" color="text.secondary">
-                    {databaseStats.total_entries.toLocaleString()} entries stored
-                  </Typography>
-                )}
-              </Box>
-
-              {/* Migration Buttons */}
-              <Box sx={{ mb: 0 }}>
-                <HistoryMigrationControls
-                  storageBackend={storageBackend as 'json' | 'database'}
-                  migrating={migrating}
-                  onMigrateToDatabase={async () => {
-                    if (
-                      !globalThis.confirm(
-                        'Migrate history data to database? This requires MariaDB, MySQL, or PostgreSQL. SQLite is not supported.',
-                      )
+            <StorageBackendInfo storageBackend={storageBackend} databaseStats={databaseStats} />
+            {/* Migration Buttons */}
+            <Box sx={{ mb: 0 }}>
+              <HistoryMigrationControls
+                storageBackend={storageBackend as 'json' | 'database'}
+                migrating={migrating}
+                onMigrateToDatabase={async () => {
+                  if (
+                    !globalThis.confirm(
+                      'Migrate history data to database? This requires MariaDB, MySQL, or PostgreSQL. SQLite is not supported.',
                     )
-                      return
-                    setMigrating(true)
-                    try {
-                      const result = await migrateHistoryStorage('database')
-                      if (result.success) {
-                        alert(
-                          `Successfully migrated ${result.migrated_entries} entries to database!`,
-                        )
-                        await loadHistoryConfig()
-                      } else {
-                        alert(`Migration failed: ${result.message}`)
-                      }
-                    } catch (error: any) {
-                      alert(`Migration error: ${error.message}`)
-                    } finally {
-                      setMigrating(false)
+                  )
+                    return
+                  setMigrating(true)
+                  try {
+                    const result = await migrateHistoryStorage('database')
+                    if (result.success) {
+                      alert(`Successfully migrated ${result.migrated_entries} entries to database!`)
+                      await loadHistoryConfig()
+                    } else {
+                      alert(`Migration failed: ${result.message}`)
                     }
-                  }}
-                  onMigrateToJson={async () => {
-                    if (!globalThis.confirm('Migrate history data back to JSON file storage?'))
-                      return
-                    setMigrating(true)
-                    try {
-                      const result = await migrateHistoryStorage('json')
-                      if (result.success) {
-                        alert(`Successfully migrated ${result.migrated_entries} entries to JSON!`)
-                        await loadHistoryConfig()
-                      } else {
-                        alert(`Migration failed: ${result.message}`)
-                      }
-                    } catch (error: any) {
-                      alert(`Migration error: ${error.message}`)
-                    } finally {
-                      setMigrating(false)
+                  } catch (error: any) {
+                    alert(`Migration error: ${error.message}`)
+                  } finally {
+                    setMigrating(false)
+                  }
+                }}
+                onMigrateToJson={async () => {
+                  if (!globalThis.confirm('Migrate history data back to JSON file storage?')) return
+                  setMigrating(true)
+                  try {
+                    const result = await migrateHistoryStorage('json')
+                    if (result.success) {
+                      alert(`Successfully migrated ${result.migrated_entries} entries to JSON!`)
+                      await loadHistoryConfig()
+                    } else {
+                      alert(`Migration failed: ${result.message}`)
                     }
-                  }}
-                />
-              </Box>
-
-              <Alert severity="info" sx={{ mt: 2 }} icon={false}>
-                <Typography variant="caption">
-                  <strong>Database storage</strong> requires MariaDB ≥10.3, MySQL ≥8.0, or
-                  PostgreSQL ≥12. SQLite is not supported and will automatically fall back to JSON
-                  storage.
-                </Typography>
-              </Alert>
+                  } catch (error: any) {
+                    alert(`Migration error: ${error.message}`)
+                  } finally {
+                    setMigrating(false)
+                  }
+                }}
+              />
             </Box>
+
+            <Alert severity="info" sx={{ mt: 2 }} icon={false}>
+              <Typography variant="caption">
+                <strong>Database storage</strong> requires MariaDB ≥10.3, MySQL ≥8.0, or PostgreSQL
+                ≥12. SQLite is not supported and will automatically fall back to JSON storage.
+              </Typography>
+            </Alert>
 
             {/* Retention Period Slider */}
             <Typography variant="body2" color="text.secondary" gutterBottom>
