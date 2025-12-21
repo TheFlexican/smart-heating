@@ -46,7 +46,7 @@ import SpeedIcon from '@mui/icons-material/Speed'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
 import ArticleIcon from '@mui/icons-material/Article'
 import { useTranslation } from 'react-i18next'
-import { Zone, Device, GlobalPresets, HassEntity, TrvRuntimeState } from '../types'
+import { Zone, Device, GlobalPresets, TrvRuntimeState } from '../types'
 import {
   getZones,
   setZoneTemperature,
@@ -72,7 +72,8 @@ import {
 } from '../api/history'
 import { getDevices } from '../api/devices'
 import { getGlobalPresets } from '../api/presets'
-import { getEntityState, getWeatherEntities } from '../api/config'
+import { getEntityState } from '../api/config'
+import OutdoorSensorControls from '../components/OutdoorSensorControls'
 import ScheduleEditor from '../components/ScheduleEditor'
 import HistoryChart from '../components/HistoryChart'
 import SensorConfigControls from '../components/SensorConfigControls'
@@ -140,8 +141,7 @@ const ZoneDetail = () => {
   const [editingTrvId, setEditingTrvId] = useState<string | null>(null)
   const [editingTrvName, setEditingTrvName] = useState<string | null>(null)
   const [editingTrvRole, setEditingTrvRole] = useState<'position' | 'open' | 'both' | null>(null)
-  const [weatherEntities, setWeatherEntities] = useState<HassEntity[]>([])
-  const [weatherEntitiesLoading, setWeatherEntitiesLoading] = useState(false)
+
   const [areaHeatingCurveCoefficient, setAreaHeatingCurveCoefficient] = useState<number | null>(
     null,
   )
@@ -179,6 +179,21 @@ const ZoneDetail = () => {
       }
     },
   })
+
+  // Ensure the currently-selected weather entity state is fetched even when the
+  // full weather entities list isn't loaded (keeps behavior for tests).
+  useEffect(() => {
+    const ensureSelected = async () => {
+      if (!area || !area.weather_entity_id) return
+      try {
+        await getEntityState(area.weather_entity_id)
+      } catch {
+        // Ignore errors; this is best-effort to surface selected entity
+      }
+    }
+
+    ensureSelected()
+  }, [area])
 
   const loadData = useCallback(async () => {
     if (!areaId) return
@@ -336,48 +351,6 @@ const ZoneDetail = () => {
       console.error('Failed to load entity states:', error)
     }
   }
-
-  const loadWeatherEntities = async () => {
-    setWeatherEntitiesLoading(true)
-    try {
-      const entities = await getWeatherEntities()
-      setWeatherEntities(entities)
-    } catch (error) {
-      console.error('Failed to load weather entities:', error)
-    } finally {
-      setWeatherEntitiesLoading(false)
-    }
-  }
-
-  // Ensure the currently-selected weather entity is visible even when the
-  // full weather entity list hasn't been loaded yet. This makes the selected
-  // outdoor sensor persistently visible across page reloads.
-  useEffect(() => {
-    const ensureSelectedWeatherEntityVisible = async () => {
-      if (!area || !area.weather_entity_id) return
-      // If we already have the full list or the selected entity is present, nothing to do
-      if (weatherEntities.find(e => e.entity_id === area.weather_entity_id)) return
-
-      try {
-        const state = await getEntityState(area.weather_entity_id)
-        // Create a HassEntity object matching the full interface
-        const entity: HassEntity = {
-          entity_id: area.weather_entity_id,
-          name: state.attributes?.friendly_name || area.weather_entity_id,
-          state: state.state || 'unknown',
-          attributes: state.attributes || {},
-        }
-        setWeatherEntities(prev => [entity, ...prev])
-      } catch (err) {
-        // Ignore - it's okay if the entity can't be fetched
-        console.error('Failed to load selected weather entity state:', err)
-      }
-    }
-
-    ensureSelectedWeatherEntityVisible()
-    // Only re-run when area changes (specifically when weather_entity_id changes)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [area])
 
   const loadAvailableDevices = async (currentZone: Zone) => {
     try {
@@ -1409,61 +1382,7 @@ const ZoneDetail = () => {
                 sx={{ mb: 3 }}
               />
 
-              <FormControl fullWidth sx={{ mb: 3 }} disabled={!area.smart_boost_enabled}>
-                <InputLabel>{t('settingsCards.outdoorTemperatureSensor')}</InputLabel>
-                <Select
-                  value={area.weather_entity_id || ''}
-                  onChange={async e => {
-                    const newValue = e.target.value || null // Convert empty string to null
-                    try {
-                      const serviceCallBody = {
-                        service: 'set_night_boost',
-                        area_id: area.id,
-                        weather_entity_id: newValue,
-                      }
-
-                      const response = await fetch('/api/smart_heating/call_service', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(serviceCallBody),
-                      })
-                      await response.json()
-
-                      // Wait a bit for the backend to save
-                      await new Promise(resolve => setTimeout(resolve, 500))
-
-                      await loadData()
-                    } catch (error) {
-                      console.error('Weather sensor onChange - Failed to update:', error)
-                    }
-                  }}
-                  onOpen={() => {
-                    if (weatherEntities.length === 0) {
-                      loadWeatherEntities()
-                    }
-                  }}
-                  label={t('settingsCards.outdoorTemperatureSensor')}
-                >
-                  <MenuItem value="">
-                    <em>{t('settingsCards.outdoorTemperatureSensorPlaceholder')}</em>
-                  </MenuItem>
-                  {weatherEntitiesLoading ? (
-                    <MenuItem disabled>
-                      <CircularProgress size={20} sx={{ mr: 1 }} />
-                      Loading...
-                    </MenuItem>
-                  ) : (
-                    weatherEntities.map(entity => (
-                      <MenuItem key={entity.entity_id} value={entity.entity_id}>
-                        {entity.attributes?.friendly_name || entity.entity_id}
-                      </MenuItem>
-                    ))
-                  )}
-                </Select>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-                  {t('settingsCards.outdoorTemperatureSensorHelper')}
-                </Typography>
-              </FormControl>
+              <OutdoorSensorControls area={area} loadData={loadData} />
 
               {area.smart_boost_enabled && (
                 <Box sx={{ mt: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
