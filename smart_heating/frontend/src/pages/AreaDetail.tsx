@@ -57,7 +57,6 @@ import {
   setHvacMode,
   setSwitchShutdown,
   setAreaPresetConfig,
-  setPrimaryTemperatureSensor,
   setHeatingType,
   setAreaHeatingCurve,
   addDeviceToZone,
@@ -77,6 +76,7 @@ import { getEntityState, getWeatherEntities } from '../api/config'
 import ScheduleEditor from '../components/ScheduleEditor'
 import HistoryChart from '../components/HistoryChart'
 import SensorConfigControls from '../components/SensorConfigControls'
+import PrimaryTemperatureSensor from '../components/PrimaryTemperatureSensor'
 import TrvConfigDialog from '../components/TrvConfigDialog'
 import DraggableSettings, { SettingSection } from '../components/DraggableSettings'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -2203,53 +2203,7 @@ const ZoneDetail = () => {
         {/* Devices Tab */}
         <TabPanel value={tabValue} index={1}>
           <Box sx={{ maxWidth: { xs: 800, lg: 1200 }, mx: 'auto' }}>
-            {/* Primary Temperature Sensor Selection */}
-            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <ThermostatIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-                <Typography variant="h5" color="text.primary" sx={{ fontWeight: 600 }}>
-                  {t('areaDetail.primaryTemperatureSensor')}
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {t('areaDetail.primaryTemperatureSensorDescription')}
-              </Typography>
-              <FormControl fullWidth>
-                <InputLabel>{t('areaDetail.temperatureSensor')}</InputLabel>
-                <Select
-                  value={area.primary_temperature_sensor || 'auto'}
-                  label={t('areaDetail.temperatureSensor')}
-                  onChange={async e => {
-                    try {
-                      const value = e.target.value === 'auto' ? null : e.target.value
-                      await setPrimaryTemperatureSensor(area.id, value)
-                      await loadData()
-                    } catch (error) {
-                      console.error('Failed to set primary temperature sensor:', error)
-                      alert('Failed to set primary temperature sensor. Check console for details.')
-                    }
-                  }}
-                >
-                  <MenuItem value="auto">
-                    <em>{t('areaDetail.autoAllSensors')}</em>
-                  </MenuItem>
-                  {area.devices
-                    .filter(d => d.type === 'temperature_sensor' || d.type === 'thermostat')
-                    .map(device => {
-                      const deviceId = device.entity_id || device.id
-                      return (
-                        <MenuItem key={deviceId} value={deviceId}>
-                          {device.name || deviceId} (
-                          {device.type === 'thermostat'
-                            ? t('areaDetail.thermostat')
-                            : t('areaDetail.tempSensor')}
-                          )
-                        </MenuItem>
-                      )
-                    })}
-                </Select>
-              </FormControl>
-            </Paper>
+            <PrimaryTemperatureSensor area={area} loadData={loadData} />
 
             {/* Assigned Devices */}
             <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: 3 }}>
