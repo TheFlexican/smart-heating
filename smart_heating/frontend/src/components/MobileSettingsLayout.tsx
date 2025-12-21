@@ -183,13 +183,9 @@ const MobileSettingsLayout = () => {
                   <ListItemText
                     primary={item.title}
                     secondary={item.description}
-                    primaryTypographyProps={{
-                      variant: 'body1',
-                      fontWeight: 500,
-                    }}
-                    secondaryTypographyProps={{
-                      variant: 'body2',
-                      color: 'text.secondary',
+                    slotProps={{
+                      primary: { variant: 'body1', sx: { fontWeight: 500 } },
+                      secondary: { variant: 'body2', sx: { color: 'text.secondary' } },
                     }}
                   />
                   <ChevronRightIcon sx={{ color: 'text.secondary' }} />

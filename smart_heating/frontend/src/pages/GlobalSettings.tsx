@@ -1422,7 +1422,7 @@ export default function GlobalSettings({
                         <ListItemText
                           primary="Last Failure Reason"
                           secondary={wsMetrics.lastFailureReason}
-                          secondaryTypographyProps={{ color: 'error' }}
+                          slotProps={{ secondary: { sx: { color: 'error' } } }}
                         />
                       </ListItem>
                     )}
