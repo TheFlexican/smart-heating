@@ -199,6 +199,44 @@ it('switch/pump control is disabled for airco area', async () => {
   expect(switchInput.disabled).toBe(true)
 })
 
+it('renders TRV section with runtime state', async () => {
+  await userEvent.setup()
+
+  const trvArea = {
+    ...area,
+    id: 'area_trv',
+    current_temperature: 21,
+    trv_entities: [{ entity_id: 'sensor.trv1', role: 'both', name: 'TRV 1' }],
+    trvs: [
+      {
+        entity_id: 'sensor.trv1',
+        name: 'TRV 1',
+        open: true,
+        position: 75,
+        running_state: 'heating',
+      },
+    ],
+  }
+
+  vi.spyOn(areas, 'getZones').mockResolvedValue([trvArea as any])
+
+  const { MemoryRouter, Routes, Route } = Router as any
+  render(
+    <MemoryRouter initialEntries={[`/areas/${trvArea.id}`]}>
+      <Routes>
+        <Route path="/areas/:areaId" element={<ZoneDetail />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+
+  // Wait for TRV config button and TRV data to render
+  await waitFor(() => expect(screen.getByTestId('trv-config-button')).toBeInTheDocument())
+  await waitFor(() => expect(screen.getByTestId('trv-open-sensor.trv1')).toBeInTheDocument())
+  expect(screen.getByTestId('trv-position-sensor.trv1').textContent).toBe('75%')
+  // Running state should be visible
+  expect(screen.getByText('heating')).toBeInTheDocument()
+})
+
 it('heating curve control has testid and toggles input disabled when using global', async () => {
   await userEvent.setup()
 

@@ -4,6 +4,7 @@
 # pragma: no cover
 
 import logging
+import json
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -147,10 +148,63 @@ class HistoryTracker:
                 Column("current_temperature", Float, nullable=False),
                 Column("target_temperature", Float, nullable=False),
                 Column("state", String(50), nullable=False),
+                Column("trvs", String, nullable=True),
             )
 
             # Create table if it doesn't exist
             metadata.create_all(self._db_engine)
+
+            # Ensure 'trvs' column exists
+            try:
+                from sqlalchemy import inspect, text
+
+                inspector = inspect(self._db_engine)
+                existing_cols = [c["name"] for c in inspector.get_columns(DB_TABLE_NAME)]
+
+                if "trvs" not in existing_cols:
+                    _LOGGER.info(
+                        "Database table '%s' missing 'trvs' column - adding it", DB_TABLE_NAME
+                    )
+                    alter_sql = None
+                    dialect = (
+                        self._db_engine.name.lower() if hasattr(self._db_engine, "name") else ""
+                    )
+
+                    # Use TEXT for compatibility across MySQL/Postgres/MariaDB
+                    if "mysql" in dialect or "mariadb" in dialect:
+                        alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT NULL"
+                    elif "postgres" in dialect or "postgresql" in dialect:
+                        alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT"
+                    else:
+                        # Fallback generic SQL (may work for many DBs)
+                        alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT"
+
+                    if alter_sql:
+
+                        def _alter():
+                            with self._db_engine.connect() as conn:
+                                conn.execute(text(alter_sql))
+                                # Some DBs require an explicit commit
+                                try:
+                                    conn.commit()
+                                except Exception:
+                                    pass
+
+                        # Run migration synchronously (this is called from init time)
+                        try:
+                            self._db_engine.begin()
+                            _alter()
+                            _LOGGER.info("Added 'trvs' column to %s", DB_TABLE_NAME)
+                        except Exception as e:
+                            _LOGGER.exception("Failed to add 'trvs' column: %s", e)
+                            # Do not fail initialization; fallback to JSON storage will be handled elsewhere
+                            self._storage_backend = HISTORY_STORAGE_JSON
+            except Exception:
+                # If inspection or alter fails, log and continue - JSON fallback will apply later
+                _LOGGER.debug(
+                    "Could not verify/add 'trvs' column; continuing with best-effort setup"
+                )
+
             _LOGGER.info("Database table '%s' ready for history storage", DB_TABLE_NAME)
 
         except Exception as e:
@@ -241,6 +295,13 @@ class HistoryTracker:
                         if area_id not in history_dict:
                             history_dict[area_id] = []
 
+                        # Parse TRV JSON if present
+                        trvs = None
+                        try:
+                            trvs = json.loads(row.trvs) if row.trvs else None
+                        except Exception:
+                            trvs = None
+
                         history_dict[area_id].append(
                             {
                                 "timestamp": row.timestamp.isoformat(),
@@ -251,6 +312,7 @@ class HistoryTracker:
                                 "state": row.state.lower()
                                 if isinstance(row.state, str)
                                 else row.state,
+                                "trvs": trvs,
                             }
                         )
 
@@ -392,6 +454,7 @@ class HistoryTracker:
         current_temp: float,
         target_temp: float,
         state: str,
+        trvs: list[dict] | None = None,
     ) -> None:
         """Record a temperature reading.
 
@@ -400,6 +463,7 @@ class HistoryTracker:
             current_temp: Current temperature
             target_temp: Target temperature
             state: Area state (heating/idle/off)
+            trvs: Optional list of TRV states to include in the entry
         """
         timestamp = datetime.now()
         entry = {
@@ -407,6 +471,7 @@ class HistoryTracker:
             "current_temperature": current_temp,
             "target_temperature": target_temp,
             "state": state,
+            "trvs": trvs,
         }
 
         # Always maintain in-memory cache
@@ -422,7 +487,7 @@ class HistoryTracker:
         # Persist to storage backend
         if self._storage_backend == HISTORY_STORAGE_DATABASE and self._db_table is not None:
             await self._async_save_to_database_entry(
-                area_id, timestamp, current_temp, target_temp, state
+                area_id, timestamp, current_temp, target_temp, state, trvs
             )
 
         _LOGGER.debug(
@@ -441,6 +506,7 @@ class HistoryTracker:
         current_temp: float,
         target_temp: float,
         state: str,
+        trvs: list[dict] | None = None,
     ) -> None:
         """Save a single entry to the database."""
         try:
@@ -454,6 +520,7 @@ class HistoryTracker:
                         current_temperature=current_temp,
                         target_temperature=target_temp,
                         state=state,
+                        trvs=json.dumps(trvs) if trvs is not None else None,
                     )
                     conn.execute(stmt)
                     conn.commit()
@@ -652,6 +719,9 @@ class HistoryTracker:
                             current_temperature=entry["current_temperature"],
                             target_temperature=entry["target_temperature"],
                             state=entry["state"],
+                            trvs=json.dumps(entry.get("trvs"))
+                            if entry.get("trvs") is not None
+                            else None,
                         )
                         conn.execute(stmt)
                 conn.commit()

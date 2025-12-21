@@ -121,6 +121,8 @@ def build_area_response(
         "shutdown_switch_entities": getattr(area, "shutdown_switch_entities", []),
         # Primary temperature sensor
         "primary_temperature_sensor": getattr(area, "primary_temperature_sensor", None),
+        # TRV entity configuration
+        "trv_entities": getattr(area, "trv_entities", []),
         # Heating type configuration
         "heating_type": getattr(area, "heating_type", "radiator"),
         "custom_overhead_temp": getattr(area, "custom_overhead_temp", None),

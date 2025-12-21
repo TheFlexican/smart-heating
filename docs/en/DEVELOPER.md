@@ -113,6 +113,18 @@ For OpenTherm Gateway specific testing guidelines, see [OpenTherm Integration](O
 
 - A new "Device Logs" panel is available under Global Settings → Device Logs. It surfaces recent thermostat failure/backoff events collected by the advanced metrics collector so operators can quickly identify thermostats that are repeatedly failing to accept commands or are in backoff. The panel displays area, thermostat entity, failure count, last failure timestamp, and current backoff interval.
 
+### TRV Frontend Integration
+
+- New frontend pieces to support per-area TRV configuration and visualization:
+  - `src/components/TrvConfigDialog.tsx` — Dialog to pick TRV entities (sensors + binary_sensors), choose role (`position`|`open`|`both`) and optional friendly name. Uses `/api/smart_heating/trv_candidates`, `POST /areas/{area_id}/trv`, `DELETE /areas/{area_id}/trv/{entity_id}`.
+  - `src/pages/AreaDetail.tsx` — Adds a TRV status section under Temperature Control showing configured TRVs and runtime states (open/closed, position %, running_state).
+  - `src/components/HistoryChart.tsx` — Plots per-TRV position (%) and open markers when history entries include `trvs`.
+- Data shapes:
+  - `TrvEntityConfig`: `{ entity_id: string, role?: 'position'|'open'|'both', name?: string }`
+  - `TrvHistoryEntry`: `{ entity_id: string, open?: boolean|null, position?: number|null, running_state?: string|null }`
+
+- Tests: Unit tests added for the new dialog and history handling. Add E2E tests to cover configure → display → history.
+
 
 - `temperature-control.spec.ts` - Temperature adjustment tests
 - `boost-mode.spec.ts` - Boost mode functionality

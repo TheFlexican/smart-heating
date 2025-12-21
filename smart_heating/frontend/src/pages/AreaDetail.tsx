@@ -52,6 +52,7 @@ import {
   Device,
   GlobalPresets,
   HassEntity,
+  TrvRuntimeState,
 } from '../types'
 import {
   getZones,
@@ -90,6 +91,7 @@ import { getEntityState, getWeatherEntities } from '../api/config'
 import ScheduleEditor from '../components/ScheduleEditor'
 import HistoryChart from '../components/HistoryChart'
 import SensorConfigDialog from '../components/SensorConfigDialog'
+import TrvConfigDialog from '../components/TrvConfigDialog'
 import DraggableSettings, { SettingSection } from '../components/DraggableSettings'
 import { useWebSocket } from '../hooks/useWebSocket'
 
@@ -138,6 +140,7 @@ const ZoneDetail = () => {
   const [recordInterval, setRecordInterval] = useState(5)
   const [sensorDialogOpen, setSensorDialogOpen] = useState(false)
   const [sensorDialogType, setSensorDialogType] = useState<'window' | 'presence'>('window')
+  const [trvDialogOpen, setTrvDialogOpen] = useState(false)
   const [expandedCard, setExpandedCard] = useState<string | null>(null) // Accordion state
   const [logs, setLogs] = useState<AreaLogEntry[]>([])
   const [logsLoading, setLogsLoading] = useState(false)
@@ -2265,6 +2268,89 @@ const ZoneDetail = () => {
                       {area.current_temperature?.toFixed(1)}°C
                     </Typography>
                   </Box>
+
+                  {/* TRV status section */}
+                  <Box sx={{ mt: 3 }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Typography variant="subtitle1">{t('areaDetail.trvs')}</Typography>
+                      <IconButton
+                        aria-label={t('areaDetail.trvConfigure')}
+                        data-testid="trv-config-button"
+                        onClick={() => setTrvDialogOpen(true)}
+                        size="small"
+                      >
+                        <TuneIcon />
+                      </IconButton>
+                    </Box>
+
+                    {area.trv_entities && area.trv_entities.length > 0 ? (
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
+                          gap: 2,
+                          mt: 1,
+                        }}
+                      >
+                        {area.trv_entities.map(trv => {
+                          const runtime = (area.trvs || []).find(
+                            t => t.entity_id === trv.entity_id,
+                          ) as TrvRuntimeState | undefined
+                          const name = trv.name || runtime?.name || trv.entity_id
+                          const open = runtime?.open
+                          const position = runtime?.position
+                          const running = runtime?.running_state
+
+                          return (
+                            <Paper key={trv.entity_id} sx={{ p: 1 }}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                }}
+                              >
+                                <Typography variant="body1">{name}</Typography>
+                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                  {open !== undefined && (
+                                    <Chip
+                                      label={
+                                        open ? t('areaDetail.trvOpen') : t('areaDetail.trvClosed')
+                                      }
+                                      color={open ? 'success' : 'default'}
+                                      size="small"
+                                      data-testid={`trv-open-${trv.entity_id}`}
+                                    />
+                                  )}
+                                  <Typography
+                                    variant="caption"
+                                    data-testid={`trv-position-${trv.entity_id}`}
+                                  >
+                                    {position !== undefined && position !== null
+                                      ? `${position}%`
+                                      : '—'}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              <Typography variant="caption" color="text.secondary">
+                                {running || '—'}
+                              </Typography>
+                            </Paper>
+                          )
+                        })}
+                      </Box>
+                    ) : (
+                      <Alert severity="info" sx={{ mt: 1 }}>
+                        No TRVs configured for this area. Use the settings button to add TRVs.
+                      </Alert>
+                    )}
+                  </Box>
                 </>
               )}
             </Paper>
@@ -2682,6 +2768,18 @@ const ZoneDetail = () => {
             }
           }}
           sensorType={sensorDialogType}
+        />
+
+        {/* TRV Configuration Dialog */}
+        <TrvConfigDialog
+          open={trvDialogOpen}
+          onClose={() => setTrvDialogOpen(false)}
+          areaId={area?.id || ''}
+          trvEntities={area?.trv_entities || []}
+          onRefresh={async () => {
+            await loadData()
+            setTrvDialogOpen(false)
+          }}
         />
 
         {/* Learning Tab */}

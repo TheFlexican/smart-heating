@@ -32,6 +32,9 @@ from .handlers import (  # Schedules; Sensors; Logs; Areas; Config; Devices; His
     handle_get_area_logs,
     handle_get_areas,
     handle_get_binary_sensor_entities,
+    handle_get_trv_candidates,
+    handle_add_trv_entity,
+    handle_remove_trv_entity,
     handle_get_comparison,
     handle_get_config,
     handle_get_custom_comparison,
@@ -53,6 +56,7 @@ from .handlers import (  # Schedules; Sensors; Logs; Areas; Config; Devices; His
     handle_get_users,
     handle_get_vacation_mode,
     handle_get_weather_entities,
+    handle_get_trv_candidates,
     handle_hide_area,
     handle_import_config,
     handle_list_backups,
@@ -157,6 +161,9 @@ class SmartHeatingAPIView(HomeAssistantView):
             return await handle_get_history(self.hass, area_id, request)
         elif "/learning" in endpoint:
             return await handle_get_learning_stats(self.hass, area_id)
+        elif endpoint.endswith("/trv_candidates"):
+            # Return candidate entities (sensors + binary_sensors) for TRV configuration
+            return await handle_get_trv_candidates(self.hass)
         elif "/device_logs" in endpoint:
             return await handle_get_area_device_logs(self.hass, self.area_manager, area_id, request)
         elif "/logs" in endpoint:
@@ -562,6 +569,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             "/presence_sensors": lambda: handle_add_presence_sensor(
                 self.hass, self.area_manager, area_id, data
             ),
+            "/trv": lambda: handle_add_trv_entity(self.hass, self.area_manager, area_id, data),
             "/hvac_mode": lambda: handle_set_hvac_mode(self.hass, self.area_manager, area_id, data),
             "/heating_curve": lambda: handle_set_area_heating_curve(
                 self.hass, self.area_manager, area_id, data
@@ -778,6 +786,13 @@ class SmartHeatingAPIView(HomeAssistantView):
                 area_id = parts[1]
                 entity_id = "/".join(parts[3:])  # Reconstruct entity_id
                 return await handle_remove_presence_sensor(
+                    self.hass, self.area_manager, area_id, entity_id
+                )
+            elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and "/trv/" in endpoint:
+                parts = endpoint.split("/")
+                area_id = parts[1]
+                entity_id = "/".join(parts[3:])
+                return await handle_remove_trv_entity(
                     self.hass, self.area_manager, area_id, entity_id
                 )
             # User endpoints
