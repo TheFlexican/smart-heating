@@ -50,6 +50,29 @@ it('shows cooling series when history contains cooling state', async () => {
   await waitFor(() => expect(screen.getByTestId('history-toggle-cooling')).toBeInTheDocument())
 })
 
+it('renders TRV position series and toggle when history contains trv entries', async () => {
+  vi.restoreAllMocks()
+  const now = new Date().toISOString()
+  vi.spyOn(api, 'getHistory').mockResolvedValue({
+    entries: [
+      {
+        timestamp: now,
+        current_temperature: 22,
+        target_temperature: 21,
+        state: 'idle',
+        trvs: [{ entity_id: 'sensor.trv_pos', position: 45, open: true }],
+      },
+    ],
+  })
+
+  render(<HistoryChart areaId="a1" />)
+
+  await waitFor(() => expect(screen.getByTestId('history-chart')).toBeInTheDocument())
+
+  // TRV toggle should be present
+  await waitFor(() => expect(screen.getByTestId('history-toggle-trvs')).toBeInTheDocument())
+})
+
 it('defaults to 4h selector and exposes range buttons', async () => {
   // Reset mocks and set up a simple idle history
   vi.restoreAllMocks()

@@ -117,6 +117,13 @@ export interface Zone {
   primary_temperature_sensor?: string | null
   // Per-area heating curve coefficient (optional)
   heating_curve_coefficient?: number | null
+
+  // TRV (thermostatic radiator valve) configuration for this area
+  // Each entry defines an entity to track and how to interpret it
+  trv_entities?: TrvEntityConfig[]
+
+  // Latest runtime TRV states (collected by the coordinator)
+  trvs?: TrvRuntimeState[]
 }
 
 // Window sensor configuration
@@ -152,6 +159,30 @@ export interface HassEntity {
     device_class?: string
     [key: string]: unknown
   }
+}
+
+// TRV configuration stored on an Area
+export interface TrvEntityConfig {
+  entity_id: string
+  role?: 'position' | 'open' | 'both'
+  name?: string
+}
+
+// Runtime TRV state reported by the coordinator
+export interface TrvRuntimeState {
+  entity_id: string
+  open?: boolean | null
+  position?: number | null // 0-100
+  running_state?: string | null // e.g., 'heating' | 'idle' | 'off'
+  name?: string | null
+}
+
+// TRV data included in history entries
+export interface TrvHistoryEntry {
+  entity_id: string
+  open?: boolean | null
+  position?: number | null
+  running_state?: string | null
 }
 
 // Alias Area to Zone for compatibility

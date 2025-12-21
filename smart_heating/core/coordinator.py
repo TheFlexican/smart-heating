@@ -552,7 +552,62 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             "heating_curve_coefficient": getattr(area, "heating_curve_coefficient", None),
             # Weather state (for sensor calculations)
             "weather_state": weather_data,
+            # TRV configuration and runtime states
+            "trv_entities": getattr(area, "trv_entities", []),
+            "trvs": self._get_trv_states_for_area(area),
         }
+
+    def _get_trv_states_for_area(self, area: Area) -> list[dict]:
+        """Collect TRV states for configured TRV entities in an area.
+
+        Returns a list of dicts with keys: entity_id, open, position, running_state
+        """
+        trv_states: list[dict] = []
+        for trv in getattr(area, "trv_entities", []):
+            entity_id = trv.get("entity_id")
+            if not entity_id:
+                continue
+
+            state = self.hass.states.get(entity_id)
+            open_state = None
+            position = None
+            running_state = None
+
+            try:
+                domain = entity_id.split(".")[0]
+                if domain == "binary_sensor":
+                    if state and state.state not in ("unknown", "unavailable"):
+                        open_state = state.state in ("on", "open")
+                else:
+                    if state and state.state not in ("unknown", "unavailable"):
+                        try:
+                            position = float(state.state)
+                        except (ValueError, TypeError):
+                            # Check common attributes for valve position
+                            for attr in ("position", "valve_position", "current_position"):
+                                if attr in state.attributes:
+                                    try:
+                                        position = float(state.attributes.get(attr))
+                                        break
+                                    except (ValueError, TypeError):
+                                        continue
+            except Exception:
+                # Best-effort only; skip problematic entity
+                continue
+
+            # Running state: default to area state (heating/idle/off)
+            running_state = getattr(area, "state", None)
+
+            trv_states.append(
+                {
+                    "entity_id": entity_id,
+                    "open": open_state,
+                    "position": position,
+                    "running_state": running_state,
+                }
+            )
+
+        return trv_states
 
     def _get_opentherm_gateway_state(self, gateway_id: str) -> dict | None:
         """Get OpenTherm gateway state data.

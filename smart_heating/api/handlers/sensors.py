@@ -252,3 +252,122 @@ async def handle_get_weather_entities(hass: HomeAssistant) -> web.Response:
             )
 
     return web.json_response({"entities": entities})
+
+
+async def handle_get_trv_candidates(hass: HomeAssistant) -> web.Response:
+    """Get all sensor and binary_sensor entities useful for TRV selection.
+
+    Args:
+        hass: Home Assistant instance
+
+    Returns:
+        JSON response with list of candidate entities
+    """
+    entities = []
+
+    # Sensors (numeric valve position candidates)
+    for entity_id in hass.states.async_entity_ids("sensor"):
+        state = hass.states.get(entity_id)
+        if state:
+            entities.append(
+                {
+                    "entity_id": entity_id,
+                    "state": state.state,
+                    "attributes": {
+                        "friendly_name": state.attributes.get("friendly_name", entity_id),
+                        "unit_of_measurement": state.attributes.get("unit_of_measurement"),
+                    },
+                }
+            )
+
+    # Binary sensors (open/closed candidates)
+    for entity_id in hass.states.async_entity_ids("binary_sensor"):
+        state = hass.states.get(entity_id)
+        if state:
+            entities.append(
+                {
+                    "entity_id": entity_id,
+                    "state": state.state,
+                    "attributes": {
+                        "friendly_name": state.attributes.get("friendly_name", entity_id),
+                        "device_class": state.attributes.get("device_class"),
+                    },
+                }
+            )
+
+    return web.json_response({"entities": entities})
+
+
+async def handle_add_trv_entity(
+    hass: HomeAssistant, area_manager: AreaManager, area_id: str, data: dict
+) -> web.Response:
+    """Add a TRV entity to an area configuration.
+
+    Args:
+        hass: Home Assistant instance
+        area_manager: Area manager instance
+        area_id: Area identifier
+        data: Request data with entity_id and optional role/name
+
+    Returns:
+        JSON response
+    """
+    entity_id = data.get("entity_id")
+    if not entity_id:
+        return web.json_response({"error": "entity_id required"}, status=400)
+
+    role = data.get("role")
+    name = data.get("name")
+
+    try:
+        area = area_manager.get_area(area_id)
+        if not area:
+            raise ValueError(f"Area {area_id} not found")
+
+        area.add_trv_entity(entity_id, role=role, name=name)
+        await area_manager.async_save()
+
+        # Refresh coordinator
+        coordinator = get_coordinator(hass)
+        if coordinator:
+            from ...utils.coordinator_helpers import call_maybe_async
+
+            await call_maybe_async(coordinator.async_request_refresh)
+
+        return web.json_response({"success": True, "entity_id": entity_id})
+    except ValueError as err:
+        return web.json_response({"error": str(err)}, status=400)
+
+
+async def handle_remove_trv_entity(
+    hass: HomeAssistant, area_manager: AreaManager, area_id: str, entity_id: str
+) -> web.Response:
+    """Remove a TRV entity from an area.
+
+    Args:
+        hass: Home Assistant instance
+        area_manager: Area manager instance
+        area_id: Area identifier
+        entity_id: Entity ID to remove
+
+    Returns:
+        JSON response
+    """
+    try:
+        area = area_manager.get_area(area_id)
+        if not area:
+            raise ValueError(f"Area {area_id} not found")
+
+        area.remove_trv_entity(entity_id)
+        await area_manager.async_save()
+
+        # Refresh coordinator
+        coordinator = get_coordinator(hass)
+        if coordinator:
+            from ...utils.coordinator_helpers import call_maybe_async
+
+            await call_maybe_async(coordinator.async_request_refresh)
+
+        return web.json_response({"success": True})
+    except ValueError as err:
+        return web.json_response({"error": str(err)}, status=404)

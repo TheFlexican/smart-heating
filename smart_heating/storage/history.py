@@ -4,6 +4,7 @@
 # pragma: no cover
 
 import logging
+import json
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -147,6 +148,7 @@ class HistoryTracker:
                 Column("current_temperature", Float, nullable=False),
                 Column("target_temperature", Float, nullable=False),
                 Column("state", String(50), nullable=False),
+                Column("trvs", String, nullable=True),
             )
 
             # Create table if it doesn't exist
@@ -241,6 +243,13 @@ class HistoryTracker:
                         if area_id not in history_dict:
                             history_dict[area_id] = []
 
+                        # Parse TRV JSON if present
+                        trvs = None
+                        try:
+                            trvs = json.loads(row.trvs) if row.trvs else None
+                        except Exception:
+                            trvs = None
+
                         history_dict[area_id].append(
                             {
                                 "timestamp": row.timestamp.isoformat(),
@@ -251,6 +260,7 @@ class HistoryTracker:
                                 "state": row.state.lower()
                                 if isinstance(row.state, str)
                                 else row.state,
+                                "trvs": trvs,
                             }
                         )
 
@@ -392,6 +402,7 @@ class HistoryTracker:
         current_temp: float,
         target_temp: float,
         state: str,
+        trvs: list[dict] | None = None,
     ) -> None:
         """Record a temperature reading.
 
@@ -400,6 +411,7 @@ class HistoryTracker:
             current_temp: Current temperature
             target_temp: Target temperature
             state: Area state (heating/idle/off)
+            trvs: Optional list of TRV states to include in the entry
         """
         timestamp = datetime.now()
         entry = {
@@ -407,6 +419,7 @@ class HistoryTracker:
             "current_temperature": current_temp,
             "target_temperature": target_temp,
             "state": state,
+            "trvs": trvs,
         }
 
         # Always maintain in-memory cache
@@ -422,7 +435,7 @@ class HistoryTracker:
         # Persist to storage backend
         if self._storage_backend == HISTORY_STORAGE_DATABASE and self._db_table is not None:
             await self._async_save_to_database_entry(
-                area_id, timestamp, current_temp, target_temp, state
+                area_id, timestamp, current_temp, target_temp, state, trvs
             )
 
         _LOGGER.debug(
@@ -441,6 +454,7 @@ class HistoryTracker:
         current_temp: float,
         target_temp: float,
         state: str,
+        trvs: list[dict] | None = None,
     ) -> None:
         """Save a single entry to the database."""
         try:
@@ -454,6 +468,7 @@ class HistoryTracker:
                         current_temperature=current_temp,
                         target_temperature=target_temp,
                         state=state,
+                        trvs=json.dumps(trvs) if trvs is not None else None,
                     )
                     conn.execute(stmt)
                     conn.commit()
@@ -652,6 +667,9 @@ class HistoryTracker:
                             current_temperature=entry["current_temperature"],
                             target_temperature=entry["target_temperature"],
                             state=entry["state"],
+                            trvs=json.dumps(entry.get("trvs"))
+                            if entry.get("trvs") is not None
+                            else None,
                         )
                         conn.execute(stmt)
                 conn.commit()

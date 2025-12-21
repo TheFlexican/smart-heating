@@ -12,6 +12,7 @@ import {
   Checkbox,
   Stack,
 } from '@mui/material'
+import { TrvHistoryEntry } from '../types'
 import {
   Line,
   XAxis,
@@ -31,6 +32,7 @@ interface HistoryEntry {
   current_temperature: number
   target_temperature: number
   state: string
+  trvs?: TrvHistoryEntry[]
 }
 
 interface HistoryChartProps {
@@ -48,6 +50,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
   const [endTime, setEndTime] = useState('')
   const [showHeating, setShowHeating] = useState(true)
   const [showCooling, setShowCooling] = useState(true)
+  const [showTrvs, setShowTrvs] = useState(true)
 
   const loadHistory = useCallback(async () => {
     try {
@@ -108,21 +111,37 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
     return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   })
 
-  // Format data for chart
-  const chartData = sortedData.map(entry => ({
-    time: new Date(entry.timestamp).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }),
-    current: entry.current_temperature,
-    target: entry.target_temperature,
-    // For heating/cooling indicator scatter plot
-    heatingDot: entry.state === 'heating' ? entry.current_temperature : null,
-    coolingDot: entry.state === 'cooling' ? entry.current_temperature : null,
-    // Store state for custom tooltip
-    heatingState: entry.state,
-  }))
+  // Derive TRV entity ids present in history entries
+  const trvIds = Array.from(new Set(sortedData.flatMap(e => (e.trvs || []).map(t => t.entity_id))))
+
+  // Format data for chart and include TRV fields dynamically
+  const chartData = sortedData.map(entry => {
+    const base: any = {
+      time: new Date(entry.timestamp).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }),
+      current: entry.current_temperature,
+      target: entry.target_temperature,
+      // For heating/cooling indicator scatter plot
+      heatingDot: entry.state === 'heating' ? entry.current_temperature : null,
+      coolingDot: entry.state === 'cooling' ? entry.current_temperature : null,
+      // Store state for custom tooltip
+      heatingState: entry.state,
+    }
+
+    // Add TRV series fields
+    for (const id of trvIds) {
+      const trv = (entry.trvs || []).find(t => t.entity_id === id)
+      const sanitized = id.replace(/[^a-zA-Z0-9_]/g, '_')
+      base[`trv_${sanitized}_position`] = trv?.position ?? null
+      // For open markers, use position when available, else a fixed 100 marker
+      base[`trv_${sanitized}_open`] = trv?.open ? (trv.position ?? 100) : null
+    }
+
+    return base
+  })
 
   const hasCooling = chartData.some(d => d.coolingDot !== null && d.coolingDot !== undefined)
 
@@ -277,6 +296,22 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
                 fill: '#9e9e9e',
               }}
             />
+
+            {trvIds.length > 0 && (
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                stroke="#9e9e9e"
+                tick={{ fill: '#9e9e9e' }}
+                domain={[0, 100]}
+                label={{
+                  value: 'Position (%)',
+                  angle: 90,
+                  position: 'insideRight',
+                  fill: '#9e9e9e',
+                }}
+              />
+            )}
             <Tooltip content={<CustomTooltip />} />
             <Legend
               wrapperStyle={{ color: '#e1e1e1' }}
@@ -329,6 +364,38 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
               dot={false}
               name={t('areaDetail.targetTempLine')}
             />
+
+            {/* TRV series (position line + optional open markers) */}
+            {trvIds.map((id, idx) => {
+              const sanitized = id
+                .replaceAll('.', '_')
+                .replaceAll('/', '_')
+                .replaceAll(':', '_')
+                .replaceAll('-', '_')
+              const colors = ['#8bc34a', '#9c27b0', '#ff5722', '#607d8b', '#795548']
+              const color = colors[idx % colors.length]
+              return (
+                <span key={`trv-series-${id}`}>
+                  <Line
+                    dataKey={`trv_${sanitized}_position`}
+                    yAxisId="right"
+                    stroke={color}
+                    strokeWidth={2}
+                    dot={false}
+                    name={`TRV ${id} position`}
+                  />
+                  {showTrvs && (
+                    <Scatter
+                      dataKey={`trv_${sanitized}_open`}
+                      yAxisId="right"
+                      fill={color}
+                      shape="triangle"
+                      name={`TRV ${id} open`}
+                    />
+                  )}
+                </span>
+              )
+            })}
             {/** Render heating/cooling activity only if present in history entries */}
             {(() => {
               const hasHeating = chartData.some(
@@ -390,6 +457,18 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
               />
             }
             label={t('areaDetail.coolingActiveLineShort', 'Cooling')}
+          />
+        )}
+        {trvIds.length > 0 && (
+          <FormControlLabel
+            control={
+              <Checkbox
+                data-testid="history-toggle-trvs"
+                checked={showTrvs}
+                onChange={e => setShowTrvs(e.target.checked)}
+              />
+            }
+            label={t('areaDetail.trvs', 'TRVs')}
           />
         )}
       </Box>

@@ -695,6 +695,18 @@ npm run test:ui         # Interactieve modus
 - Geschiedenis visualisatie
 - Zie `tests/e2e/README.md` voor details
 
+### TRV Frontend Integratie
+
+- Nieuwe frontend onderdelen voor per-zone TRV configuratie en visualisatie:
+  - `src/components/TrvConfigDialog.tsx` — Dialoog om TRV-entiteiten te kiezen (sensoren + binary_sensors), rol te kiezen (`position`|`open`|`both`) en optionele naam in te voeren. Gebruikt `/api/smart_heating/trv_candidates`, `POST /areas/{area_id}/trv`, `DELETE /areas/{area_id}/trv/{entity_id}`.
+  - `src/pages/AreaDetail.tsx` — Voegt een TRV-status sectie toe onder Temperatuurbesturing met geconfigureerde TRVs en runtime status (open/gesloten, positie %, running_state).
+  - `src/components/HistoryChart.tsx` — Plot per-TRV positie (%) en open markers wanneer geschiedenisitems `trvs` bevatten.
+- Data vormen:
+  - `TrvEntityConfig`: `{ entity_id: string, role?: 'position'|'open'|'both', name?: string }`
+  - `TrvHistoryEntry`: `{ entity_id: string, open?: boolean|null, position?: number|null, running_state?: string|null }`
+
+- Tests: Unittests zijn toegevoegd voor de nieuwe dialoog en geschiedenisweergave. Voeg E2E tests toe om configure → display → history te dekken.
+
 ### Documentatie
 
 **ALTIJD bijwerken bij wijzigingen:**
