@@ -44,6 +44,8 @@ const TrvConfigDialog = ({
   const [role, setRole] = useState<'position' | 'open' | 'both'>('both')
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
+  const [search, setSearch] = useState('')
+  const [showAll, setShowAll] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -54,7 +56,7 @@ const TrvConfigDialog = ({
   const loadCandidates = async () => {
     setLoading(true)
     try {
-      const data = await getTrvCandidates()
+      const data = await getTrvCandidates(areaId)
       setEntities(data)
     } catch (err) {
       console.error('Failed to load TRV candidates:', err)
@@ -98,7 +100,27 @@ const TrvConfigDialog = ({
     setSelectedEntity('')
     setName('')
     setRole('both')
+    setSearch('')
+    setShowAll(false)
     onClose()
+  }
+
+  const displayedEntities = () => {
+    const q = search.trim().toLowerCase()
+    let filtered = entities
+    if (q) {
+      filtered = entities.filter(
+        ent =>
+          (ent.attributes?.friendly_name || '').toLowerCase().includes(q) ||
+          ent.entity_id.toLowerCase().includes(q),
+      )
+    }
+
+    if (!q && !showAll) {
+      return filtered.slice(0, 10)
+    }
+
+    return filtered
   }
 
   return (
@@ -120,8 +142,8 @@ const TrvConfigDialog = ({
                   label="Entity"
                   onChange={e => setSelectedEntity(e.target.value)}
                 >
-                  {entities.length > 0 ? (
-                    entities.map(e => (
+                  {displayedEntities().length > 0 ? (
+                    displayedEntities().map(e => (
                       <MenuItem
                         key={e.entity_id}
                         value={e.entity_id}
@@ -136,9 +158,39 @@ const TrvConfigDialog = ({
                 </Select>
               </FormControl>
 
+              <TextField
+                placeholder="Search entities"
+                data-testid="trv-search-input"
+                value={search}
+                onChange={e => {
+                  setSearch(e.target.value)
+                  setShowAll(false)
+                }}
+                size="small"
+                fullWidth
+                sx={{ mb: 1 }}
+              />
+
+              {entities.length > 10 && !search && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+                  <Button
+                    data-testid="trv-show-all"
+                    size="small"
+                    onClick={() => setShowAll(!showAll)}
+                  >
+                    {showAll ? 'Show less' : `Show all (${entities.length})`}
+                  </Button>
+                </Box>
+              )}
+
               <FormControl fullWidth>
                 <InputLabel>Role</InputLabel>
-                <Select value={role} label="Role" onChange={e => setRole(e.target.value as any)}>
+                <Select
+                  data-testid="trv-role-select"
+                  value={role}
+                  label="Role"
+                  onChange={e => setRole(e.target.value as any)}
+                >
                   <MenuItem value="position">Position</MenuItem>
                   <MenuItem value="open">Open/Closed</MenuItem>
                   <MenuItem value="both">Both</MenuItem>

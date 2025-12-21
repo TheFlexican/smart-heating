@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any
 
 from homeassistant.components.recorder import get_instance
+from homeassistant.components.recorder.models import StatisticMeanType
 from homeassistant.components.recorder.statistics import (
     StatisticData,
     StatisticMetaData,
@@ -185,7 +186,8 @@ class LearningEngine:
             source="smart_heating",
             statistic_id=statistic_id,
             unit_of_measurement=unit,
-            mean_type="mean",  # Required for HA 2025.11+ compatibility
+            mean_type=StatisticMeanType.ARITHMETIC,  # Required for HA 2025.11+ compatibility
+            unit_class=None,  # No unit converter for generic metrics
         )
 
         async_add_external_statistics(self.hass, metadata, [])
@@ -316,8 +318,8 @@ class LearningEngine:
                 source="smart_heating",
                 statistic_id=statistic_id,
                 unit_of_measurement="°C/min",
-                mean_type="mean",  # Required for HA 2025.11+ compatibility
-                unit_class="temperature",  # Required to prevent runtime errors
+                mean_type=StatisticMeanType.ARITHMETIC,  # Required for HA 2025.11+ compatibility
+                unit_class=None,  # No unit converter for rates (°C/min)
             )
 
             # Add statistics asynchronously
@@ -374,8 +376,8 @@ class LearningEngine:
                 source="smart_heating",
                 statistic_id=statistic_id,
                 unit_of_measurement=UnitOfTemperature.CELSIUS,
-                mean_type="mean",  # Required for HA 2025.11+ compatibility
-                unit_class="temperature",  # Required to prevent runtime errors
+                mean_type=StatisticMeanType.ARITHMETIC,  # Required for HA 2025.11+ compatibility
+                unit_class="temperature",  # Temperature has a unit converter
             )
 
             await get_instance(self.hass).async_add_executor_job(

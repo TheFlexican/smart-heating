@@ -153,6 +153,58 @@ class HistoryTracker:
 
             # Create table if it doesn't exist
             metadata.create_all(self._db_engine)
+
+            # Ensure 'trvs' column exists
+            try:
+                from sqlalchemy import inspect, text
+
+                inspector = inspect(self._db_engine)
+                existing_cols = [c["name"] for c in inspector.get_columns(DB_TABLE_NAME)]
+
+                if "trvs" not in existing_cols:
+                    _LOGGER.info(
+                        "Database table '%s' missing 'trvs' column - adding it", DB_TABLE_NAME
+                    )
+                    alter_sql = None
+                    dialect = (
+                        self._db_engine.name.lower() if hasattr(self._db_engine, "name") else ""
+                    )
+
+                    # Use TEXT for compatibility across MySQL/Postgres/MariaDB
+                    if "mysql" in dialect or "mariadb" in dialect:
+                        alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT NULL"
+                    elif "postgres" in dialect or "postgresql" in dialect:
+                        alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT"
+                    else:
+                        # Fallback generic SQL (may work for many DBs)
+                        alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT"
+
+                    if alter_sql:
+
+                        def _alter():
+                            with self._db_engine.connect() as conn:
+                                conn.execute(text(alter_sql))
+                                # Some DBs require an explicit commit
+                                try:
+                                    conn.commit()
+                                except Exception:
+                                    pass
+
+                        # Run migration synchronously (this is called from init time)
+                        try:
+                            self._db_engine.begin()
+                            _alter()
+                            _LOGGER.info("Added 'trvs' column to %s", DB_TABLE_NAME)
+                        except Exception as e:
+                            _LOGGER.exception("Failed to add 'trvs' column: %s", e)
+                            # Do not fail initialization; fallback to JSON storage will be handled elsewhere
+                            self._storage_backend = HISTORY_STORAGE_JSON
+            except Exception:
+                # If inspection or alter fails, log and continue - JSON fallback will apply later
+                _LOGGER.debug(
+                    "Could not verify/add 'trvs' column; continuing with best-effort setup"
+                )
+
             _LOGGER.info("Database table '%s' ready for history storage", DB_TABLE_NAME)
 
         except Exception as e:

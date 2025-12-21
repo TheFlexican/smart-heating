@@ -41,8 +41,9 @@ export const setAreaPresenceConfig = async (areaId: string, useGlobal: boolean):
 }
 
 // TRV endpoints
-export const getTrvCandidates = async (): Promise<HassEntity[]> => {
-  const response = await axios.get(`${API_BASE}/trv_candidates`)
+export const getTrvCandidates = async (areaId?: string): Promise<HassEntity[]> => {
+  const url = areaId ? `${API_BASE}/areas/${areaId}/trv_candidates` : `${API_BASE}/trv_candidates`
+  const response = await axios.get(url)
   // Backend returns { entities: [] }
   return response.data.entities || []
 }

@@ -71,6 +71,11 @@ it('renders TRV position series and toggle when history contains trv entries', a
 
   // TRV toggle should be present
   await waitFor(() => expect(screen.getByTestId('history-toggle-trvs')).toBeInTheDocument())
+
+  // Ensure TRV ids were detected and exposed for testing
+  await waitFor(() =>
+    expect(screen.getByTestId('history-trv-ids').textContent).toContain('sensor.trv_pos'),
+  )
 })
 
 it('defaults to 4h selector and exposes range buttons', async () => {

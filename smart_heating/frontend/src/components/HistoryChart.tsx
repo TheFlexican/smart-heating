@@ -1,4 +1,22 @@
 import { useState, useEffect, useCallback } from 'react'
+
+// Helper moved outside component for lint rules and testability
+function legendFormatter(value: any, entry: any) {
+  let id = 'history-legend-item-unknown'
+  const val = String(value || '')
+  if (entry?.dataKey) {
+    id = `history-legend-item-${entry.dataKey}`
+  } else if (val.includes('currentTempLine') || val.toLowerCase().includes('current')) {
+    id = 'history-legend-item-current'
+  } else if (val.includes('targetTempLine') || val.toLowerCase().includes('target')) {
+    id = 'history-legend-item-target'
+  } else if (val.toLowerCase().includes('heating')) {
+    id = 'history-legend-item-heating'
+  } else if (val.toLowerCase().includes('cooling')) {
+    id = 'history-legend-item-cooling'
+  }
+  return <span data-testid={id}>{value}</span>
+}
 import { useTranslation } from 'react-i18next'
 import {
   Box,
@@ -13,6 +31,8 @@ import {
   Stack,
 } from '@mui/material'
 import { TrvHistoryEntry } from '../types'
+import CustomTooltip from './CustomTooltip'
+
 import {
   Line,
   XAxis,
@@ -134,7 +154,12 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
     // Add TRV series fields
     for (const id of trvIds) {
       const trv = (entry.trvs || []).find(t => t.entity_id === id)
-      const sanitized = id.replace(/[^a-zA-Z0-9_]/g, '_')
+      const sanitized = id
+        .replaceAll('.', '_')
+        .replaceAll('/', '_')
+        .replaceAll(':', '_')
+        .replaceAll('-', '_')
+        .replaceAll(' ', '_')
       base[`trv_${sanitized}_position`] = trv?.position ?? null
       // For open markers, use position when available, else a fixed 100 marker
       base[`trv_${sanitized}_open`] = trv?.open ? (trv.position ?? 100) : null
@@ -145,43 +170,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
 
   const hasCooling = chartData.some(d => d.coolingDot !== null && d.coolingDot !== undefined)
 
-  // Custom tooltip to show heating as Active/Inactive
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-      return (
-        <Box
-          sx={{
-            backgroundColor: '#1c1c1c',
-            border: '1px solid #2c2c2c',
-            borderRadius: '8px',
-            padding: '8px 12px',
-            color: '#e1e1e1',
-          }}
-        >
-          <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>{data.time}</div>
-          <div style={{ color: '#03a9f4' }}>Current: {data.current.toFixed(1)}°C</div>
-          <div style={{ color: '#ffc107' }}>Target: {data.target.toFixed(1)}°C</div>
-          {(() => {
-            let stateLabel: string
-            let color: string
-            if (data.heatingState === 'heating') {
-              stateLabel = `${t('areaDetail.heatingActiveLineShort', 'Heating')}: Active`
-              color = '#f44336'
-            } else if (data.heatingState === 'cooling') {
-              stateLabel = `${t('areaDetail.coolingActiveLineShort', 'Cooling')}: Active`
-              color = '#03a9f4'
-            } else {
-              stateLabel = `${t('areaDetail.heatingActiveLineShort', 'Heating')}: Inactive`
-              color = '#e1e1e1'
-            }
-            return <div style={{ color }}>{stateLabel}</div>
-          })()}
-        </Box>
-      )
-    }
-    return null
-  }
+  // Custom tooltip moved outside to satisfy lint rules; t passed in as prop
 
   // Calculate average target temperature for reference line
   const avgTarget =
@@ -312,29 +301,8 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
                 }}
               />
             )}
-            <Tooltip content={<CustomTooltip />} />
-            <Legend
-              wrapperStyle={{ color: '#e1e1e1' }}
-              formatter={(value: any, entry: any) => {
-                let id = 'history-legend-item-unknown'
-                const val = String(value || '')
-                if (entry && entry.dataKey) {
-                  id = `history-legend-item-${entry.dataKey}`
-                } else if (
-                  val.includes('currentTempLine') ||
-                  val.toLowerCase().includes('current')
-                ) {
-                  id = 'history-legend-item-current'
-                } else if (val.includes('targetTempLine') || val.toLowerCase().includes('target')) {
-                  id = 'history-legend-item-target'
-                } else if (val.toLowerCase().includes('heating')) {
-                  id = 'history-legend-item-heating'
-                } else if (val.toLowerCase().includes('cooling')) {
-                  id = 'history-legend-item-cooling'
-                }
-                return <span data-testid={id}>{value}</span>
-              }}
-            />
+            <Tooltip content={<CustomTooltip t={t} />} />
+            <Legend wrapperStyle={{ color: '#e1e1e1' }} formatter={legendFormatter} />
             {avgTarget && (
               <ReferenceLine
                 y={avgTarget}
@@ -434,6 +402,11 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
         {hasCooling ? '1' : '0'}
       </div>
 
+      {/* test-only list of TRV ids detected in the history entries */}
+      <div data-testid="history-trv-ids" style={{ display: 'none' }}>
+        {trvIds.join(',')}
+      </div>
+
       <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
         {chartData.some(d => d.heatingDot !== null && d.heatingDot !== undefined) && (
           <FormControlLabel
@@ -447,6 +420,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
             label={t('areaDetail.heatingActiveLineShort', 'Heating')}
           />
         )}
+
         {hasCooling && (
           <FormControlLabel
             control={
@@ -459,6 +433,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
             label={t('areaDetail.coolingActiveLineShort', 'Cooling')}
           />
         )}
+
         {trvIds.length > 0 && (
           <FormControlLabel
             control={
