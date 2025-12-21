@@ -193,6 +193,7 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
                   primary={device.name || device.id}
                   slotProps={{
                     primary: { sx: { color: 'text.primary' } },
+                    secondary: { component: 'div' },
                   }}
                   secondary={
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
