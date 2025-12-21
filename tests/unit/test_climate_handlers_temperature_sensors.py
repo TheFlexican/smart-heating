@@ -456,8 +456,8 @@ class TestAsyncGetOutdoorTemperature:
         mock_area.weather_entity_id = "weather.home"
 
         state = MagicMock()
-        state.state = "5.5"
-        state.attributes = {"unit_of_measurement": "°C"}
+        state.state = "sunny"
+        state.attributes = {"temperature": 5.5, "unit_of_measurement": "°C"}
         mock_hass.states.get.return_value = state
 
         result = await temp_handler.async_get_outdoor_temperature(mock_area)
@@ -470,8 +470,8 @@ class TestAsyncGetOutdoorTemperature:
         mock_area.weather_entity_id = "weather.home"
 
         state = MagicMock()
-        state.state = "41"
-        state.attributes = {"unit_of_measurement": "°F"}
+        state.state = "sunny"
+        state.attributes = {"temperature": 41.0, "unit_of_measurement": "°F"}
         mock_hass.states.get.return_value = state
 
         result = await temp_handler.async_get_outdoor_temperature(mock_area)

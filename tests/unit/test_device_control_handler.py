@@ -20,6 +20,7 @@ def make_area():
     area.get_switches.return_value = []
     area.get_valves.return_value = []
     area.area_id = "a1"
+    area.heating_curve_coefficient = None
     return area
 
 
@@ -128,10 +129,11 @@ async def test_handle_thermostat_turn_off_behavior():
     state = MagicMock()
     state.attributes = {"supported_features": 128}
     hass.states.get = MagicMock(return_value=state)
-    handler._async_turn_off_climate_power = AsyncMock()
+    # Mock the thermostat_handler's method since we delegate to it
+    handler.thermostat_handler._async_turn_off_climate_power = AsyncMock()
     await handler._handle_thermostat_turn_off("climate.t1")
     hass.services.async_call.assert_awaited()
-    handler._async_turn_off_climate_power.assert_awaited()
+    handler.thermostat_handler._async_turn_off_climate_power.assert_awaited()
 
     # Thermostat does not support turn_off -> set min (frost_protection_temp)
     state.attributes = {"supported_features": 0}
@@ -315,13 +317,20 @@ def test_compute_candidate_and_enforce_minimum(monkeypatch):
     class Area:
         def __init__(self):
             self.target_temperature = 20.0
+            self.current_temperature = 19.0
             self.weather_entity_id = "weather.home"
             self.heating_type = "radiator"
+            self.heating_curve_coefficient = None
 
     a = Area()
     area_manager.get_area.return_value = a
-    monkeypatch.setattr(handler, "_apply_heating_curve", lambda *a, **k: 25.0)
-    monkeypatch.setattr(handler, "_apply_pid_adjustment", lambda *a, **k: 26.0)
+    # Set default_heating_curve_coefficient to avoid MagicMock issues
+    area_manager.default_heating_curve_coefficient = 1.0
+    # Monkeypatch the module functions instead of handler methods
+    from smart_heating.climate.controllers import heating_curve_manager, pid_controller_manager
+
+    monkeypatch.setattr(heating_curve_manager, "_apply_heating_curve", lambda *a, **k: 25.0)
+    monkeypatch.setattr(pid_controller_manager, "apply_pid_adjustment", lambda *a, **k: 26.0)
 
     cand = handler._compute_area_candidate("a1", 2.0, True, True, True)
     assert cand == 26.0  # NOSONAR

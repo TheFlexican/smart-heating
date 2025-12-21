@@ -30,9 +30,15 @@ async def test_async_update_area_temperatures_updates(mock_hass, mock_area_manag
     area.get_thermostats.return_value = []
     area.current_temperature = None
     mock_area_manager.get_all_areas.return_value = {"a1": area}
-    # Patch handler
+    # Patch handler to update area temperature directly (new behavior)
     cc.temp_handler = MagicMock()
-    cc.temp_handler.collect_area_temperatures.return_value = [20.0, 21.0]
+
+    def mock_update_temperatures(area_mgr):
+        # Simulate the new update_all_area_temperatures method behavior
+        for area_id, a in area_mgr.get_all_areas().items():
+            a.current_temperature = 20.5
+
+    cc.temp_handler.update_all_area_temperatures = mock_update_temperatures
     await cc.async_update_area_temperatures()
     assert abs(area.current_temperature - 20.5) < 1e-6
 
@@ -634,8 +640,8 @@ class TestOutdoorTemperature:
         mock_area.weather_entity_id = "weather.home"
 
         mock_state = MagicMock()
-        mock_state.state = "15.5"
-        mock_state.attributes = {"unit_of_measurement": "°C"}
+        mock_state.state = "sunny"
+        mock_state.attributes = {"temperature": 15.5, "unit_of_measurement": "°C"}
         mock_hass.states.get = MagicMock(return_value=mock_state)
 
         temp = await climate_controller._async_get_outdoor_temperature(mock_area)
@@ -650,8 +656,8 @@ class TestOutdoorTemperature:
         mock_area.weather_entity_id = "weather.home"
 
         mock_state = MagicMock()
-        mock_state.state = "60.0"
-        mock_state.attributes = {"unit_of_measurement": "°F"}
+        mock_state.state = "sunny"
+        mock_state.attributes = {"temperature": 60.0, "unit_of_measurement": "°F"}
         mock_hass.states.get = MagicMock(return_value=mock_state)
 
         temp = await climate_controller._async_get_outdoor_temperature(mock_area)

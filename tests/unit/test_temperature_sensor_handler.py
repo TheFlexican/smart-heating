@@ -79,8 +79,8 @@ async def test_async_get_outdoor_temperature():
     area = MagicMock()
     area.weather_entity_id = "weather.home"
     state = MagicMock()
-    state.state = "12.5"
-    state.attributes = {"unit_of_measurement": "°C"}
+    state.state = "sunny"
+    state.attributes = {"temperature": 12.5, "unit_of_measurement": "°C"}
     hass.states.get = MagicMock(return_value=state)
     t = await handler.async_get_outdoor_temperature(area)
     assert t == pytest.approx(12.5)

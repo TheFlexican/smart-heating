@@ -612,8 +612,8 @@ class TestDeviceControl:
     async def test_async_get_outdoor_temperature_success(self, controller, mock_hass, mock_area):
         """Test getting outdoor temperature."""
         state = MagicMock()
-        state.state = "15.0"
-        state.attributes = {"unit_of_measurement": "°C"}
+        state.state = "sunny"
+        state.attributes = {"temperature": 15.0, "unit_of_measurement": "°C"}
         mock_hass.states.get.return_value = state
 
         mock_area.weather_entity_id = "weather.home"

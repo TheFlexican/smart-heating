@@ -1,13 +1,67 @@
 """Temperature sensor handling for climate control."""
 
 import logging
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from homeassistant.core import HomeAssistant
 
 from ..models import Area
 
+if TYPE_CHECKING:
+    from ..core.area_manager import AreaManager
+
 _LOGGER = logging.getLogger(__name__)
+
+
+def get_outdoor_temperature_from_weather_entity(
+    hass: HomeAssistant, weather_entity_id: str
+) -> Optional[float]:
+    """Get outdoor temperature from a weather entity.
+
+    This is a standalone helper that can be imported by any module.
+    For weather entities, temperature is stored in attributes, not state.
+    Handles unit conversion (F to C) and invalid states.
+
+    Args:
+        hass: Home Assistant instance
+        weather_entity_id: Weather entity ID
+
+    Returns:
+        Outdoor temperature in Celsius or None if not available
+    """
+    if not weather_entity_id:
+        return None
+
+    state = hass.states.get(weather_entity_id)
+    if not state or state.state in ("unknown", "unavailable"):
+        return None
+
+    try:
+        # For weather entities, temperature is in attributes, not state
+        temp = state.attributes.get("temperature")
+        if temp is None:
+            return None
+
+        temp = float(temp)
+
+        # Check for Fahrenheit and convert to Celsius
+        unit = state.attributes.get("unit_of_measurement", "°C")
+        if unit in ("°F", "F"):
+            temp = (temp - 32) * 5 / 9
+            _LOGGER.debug(
+                "Converted outdoor temperature from %s: %.1f°F -> %.1f°C",
+                weather_entity_id,
+                state.attributes.get("temperature"),
+                temp,
+            )
+        return temp
+    except (ValueError, TypeError):
+        _LOGGER.warning(
+            "Invalid temperature from weather entity %s: %s",
+            weather_entity_id,
+            state.attributes.get("temperature"),
+        )
+        return None
 
 
 class TemperatureSensorHandler:
@@ -156,27 +210,42 @@ class TemperatureSensorHandler:
         return temps
 
     async def async_get_outdoor_temperature(self, area: Area) -> Optional[float]:
-        """Get outdoor temperature for learning.
+        """Get outdoor temperature from weather entity.
+
+        Delegates to standalone helper function for consistent behavior.
 
         Args:
             area: Area instance (checks weather_entity_id)
 
         Returns:
-            Outdoor temperature or None if not available
+            Outdoor temperature in Celsius or None if not available
         """
-        if not area.weather_entity_id:
-            return None
+        return get_outdoor_temperature_from_weather_entity(self.hass, area.weather_entity_id)
 
-        state = self.hass.states.get(area.weather_entity_id)
-        if not state or state.state in ("unknown", "unavailable"):
-            return None
+    def update_all_area_temperatures(self, area_manager: "AreaManager") -> None:
+        """Update current temperatures for all areas from sensors.
 
-        try:
-            temp = float(state.state)
-            # Check for Fahrenheit and convert
-            unit = state.attributes.get("unit_of_measurement", "°C")
-            if unit in ("°F", "F"):
-                temp = (temp - 32) * 5 / 9
-            return temp
-        except (ValueError, TypeError):
-            return None
+        Collects temperatures from sensors and thermostats for each area,
+        calculates the average, and updates the area's current_temperature attribute.
+
+        Args:
+            area_manager: Area manager instance with areas to update
+        """
+        for area_id, area in area_manager.get_all_areas().items():
+            temp_sensors = area.get_temperature_sensors()
+            thermostats = area.get_thermostats()
+
+            if not temp_sensors and not thermostats:
+                continue
+
+            temps = self.collect_area_temperatures(area)
+
+            if temps:
+                avg_temp = sum(temps) / len(temps)
+                area.current_temperature = avg_temp
+                _LOGGER.debug(
+                    "Area %s temperature: %.1f°C (from %d sensors)",
+                    area_id,
+                    avg_temp,
+                    len(temps),
+                )

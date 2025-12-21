@@ -156,7 +156,13 @@ class TestAsyncPrepareHeatingCycle:
         """Test preparation with temperature sensors."""
         mock_area.get_temperature_sensors.return_value = ["sensor.temp1"]
         mock_area.get_thermostats.return_value = []
-        mock_temp_handler.collect_area_temperatures.return_value = [20.5, 21.0, 20.2]
+
+        # Mock the new update_all_area_temperatures method behavior
+        def mock_update_temperatures(area_mgr):
+            for area_id, a in area_mgr.get_all_areas().items():
+                a.current_temperature = 20.566666666666666  # avg of [20.5, 21.0, 20.2]
+
+        mock_temp_handler.update_all_area_temperatures = mock_update_temperatures
 
         heating_cycle_handler.area_manager.get_all_areas.return_value = {"living_room": mock_area}
 
@@ -176,7 +182,13 @@ class TestAsyncPrepareHeatingCycle:
         """Test preparation with thermostats."""
         mock_area.get_temperature_sensors.return_value = []
         mock_area.get_thermostats.return_value = ["climate.thermostat1"]
-        mock_temp_handler.collect_area_temperatures.return_value = [19.5]
+
+        # Mock the new update_all_area_temperatures method behavior
+        def mock_update_temperatures(area_mgr):
+            for area_id, a in area_mgr.get_all_areas().items():
+                a.current_temperature = 19.5
+
+        mock_temp_handler.update_all_area_temperatures = mock_update_temperatures
 
         heating_cycle_handler.area_manager.get_all_areas.return_value = {"bedroom": mock_area}
 
@@ -530,8 +542,18 @@ class TestHeatingCycleIntegration:
         # Setup area with sensors
         mock_area.get_temperature_sensors.return_value = ["sensor.temp1"]
         mock_area.get_thermostats.return_value = ["climate.thermo1"]
-        mock_temp_handler.collect_area_temperatures.return_value = [18.0]
         mock_temp_handler.async_get_outdoor_temperature.return_value = 3.5
+
+        # Track call count for temperature updates
+        temp_update_call_count = [0]
+
+        def mock_update_temperatures(area_mgr):
+            for area_id, a in area_mgr.get_all_areas().items():
+                # First call sets 18.0, second call sets 21.0
+                a.current_temperature = 18.0 if temp_update_call_count[0] == 0 else 21.0
+                temp_update_call_count[0] += 1
+
+        mock_temp_handler.update_all_area_temperatures = mock_update_temperatures
 
         heating_cycle_handler.area_manager.get_all_areas.return_value = {"living_room": mock_area}
 
@@ -557,7 +579,6 @@ class TestHeatingCycleIntegration:
         assert "living_room" in heating_cycle_handler._area_heating_events
 
         # 3. Update temperature (simulating warming up)
-        mock_temp_handler.collect_area_temperatures.return_value = [21.0]
         await heating_cycle_handler.async_prepare_heating_cycle(
             mock_temp_handler, mock_sensor_handler
         )

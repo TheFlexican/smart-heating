@@ -2,9 +2,11 @@
 
 import logging
 from typing import TYPE_CHECKING, Any, Optional
-from ...models import DeviceEvent
 
 from homeassistant.core import HomeAssistant
+
+from ...const import TEMP_COMPARISON_TOLERANCE
+from ...models import DeviceEvent
 
 if TYPE_CHECKING:
     from ...area_manager import AreaManager
@@ -111,9 +113,9 @@ class BaseDeviceHandler:
         """Return True when temperature should be updated based on current and last set values."""
         try:
             if current_temp is not None and isinstance(current_temp, (int, float)):
-                if abs(current_temp - target_temp) < 0.1:
+                if abs(current_temp - target_temp) < TEMP_COMPARISON_TOLERANCE:
                     return False
-            if last_temp is not None and abs(last_temp - target_temp) < 0.1:
+            if last_temp is not None and abs(last_temp - target_temp) < TEMP_COMPARISON_TOLERANCE:
                 return False
         except (TypeError, AttributeError):
             # Handle test mocks or invalid values

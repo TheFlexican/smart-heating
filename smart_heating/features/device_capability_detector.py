@@ -211,7 +211,7 @@ class DeviceCapabilityDetector:
             supports_turn_off=supports_turn_off,
             supports_turn_on=supports_turn_on,
             supports_temperature=supports_target_temp,
-            supports_position=False,  # TODO: Detect position support
+            supports_position=False,
             supports_hvac_modes=hvac_modes,
             min_temp=min_temp,
             max_temp=max_temp,
