@@ -570,7 +570,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ embedded = false
                   label={t('users.priority', 'Priority (1-10)')}
                   value={formData.priority}
                   onChange={e =>
-                    handleFieldChange('priority', Number.parseInt(e.target.value) || 0)
+                    handleFieldChange('priority', Number.parseInt(e.target.value, 10) || 0)
                   }
                   onBlur={() => handleFieldBlur('priority')}
                   slotProps={{ htmlInput: { min: 1, max: 10 } }}

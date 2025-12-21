@@ -66,13 +66,13 @@ coverage.xml
 *.cover
 .hypothesis/
 coverage_html/
+coverage
+test-results
 
 # Other files
 .ha_token
 .ruff_cache
 venv
 ideas
-coverage
 .tmp_logs
-test-results
 .continue

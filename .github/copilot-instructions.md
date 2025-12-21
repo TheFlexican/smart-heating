@@ -7,7 +7,7 @@ Home Assistant integration for zone-based heating control with learning capabili
 
 ## Production API Access
 **Production Home Assistant URL:** http://homeassistant.local:8123
-**Production API Token:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwNTc5M2FmNzM5Y2I0ZGQ2ODkzNjZlNzQ0MWRmMWM1YiIsImlhdCI6MTc2NTI5OTk5NywiZXhwIjoyMDgwNjU5OTk3fQ.fBxqcbRlz7oyoH50cBjEmUcJoNr2kMiRDqoJg9T0JFs`
+**Production API Token:** ASK USER FOR CURRENT TOKEN
 
 **Example API calls:**
 ```bash

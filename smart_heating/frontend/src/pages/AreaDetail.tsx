@@ -277,7 +277,7 @@ const ZoneDetail = () => {
   }
 
   const handleDeleteTrv = async (entityId: string) => {
-    if (!confirm(`Remove ${entityId} from area?`)) return
+    if (!globalThis.confirm(`Remove ${entityId} from area?`)) return
     try {
       await removeTrvEntity(areaId as string, entityId)
       await loadData()
@@ -891,7 +891,7 @@ const ZoneDetail = () => {
                       'boost-duration-input',
                     ) as HTMLInputElement
                     const temp = Number.parseFloat(tempInput.value)
-                    const duration = Number.parseInt(durationInput.value)
+                    const duration = Number.parseInt(durationInput.value, 10)
                     await setBoostMode(area.id, duration, temp)
                     loadData()
                   } catch (error) {
@@ -1960,7 +1960,7 @@ const ZoneDetail = () => {
                     disabled={migrating}
                     onClick={async () => {
                       if (
-                        !confirm(
+                        !globalThis.confirm(
                           'Migrate history data to database? This requires MariaDB, MySQL, or PostgreSQL. SQLite is not supported.',
                         )
                       )
@@ -1992,7 +1992,8 @@ const ZoneDetail = () => {
                     size="small"
                     disabled={migrating}
                     onClick={async () => {
-                      if (!confirm('Migrate history data back to JSON file storage?')) return
+                      if (!globalThis.confirm('Migrate history data back to JSON file storage?'))
+                        return
                       setMigrating(true)
                       try {
                         const result = await migrateHistoryStorage('json')

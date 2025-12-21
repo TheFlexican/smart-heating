@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -47,13 +47,7 @@ const TrvConfigDialog = ({
   const [search, setSearch] = useState('')
   const [showAll, setShowAll] = useState(false)
 
-  useEffect(() => {
-    if (open) {
-      loadCandidates()
-    }
-  }, [open])
-
-  const loadCandidates = async () => {
+  const loadCandidates = useCallback(async () => {
     setLoading(true)
     try {
       const data = await getTrvCandidates(areaId)
@@ -63,7 +57,13 @@ const TrvConfigDialog = ({
     } finally {
       setLoading(false)
     }
-  }
+  }, [areaId])
+
+  useEffect(() => {
+    if (open) {
+      loadCandidates()
+    }
+  }, [open, loadCandidates])
 
   const handleAdd = async () => {
     if (!selectedEntity) return
@@ -83,7 +83,7 @@ const TrvConfigDialog = ({
   }
 
   const handleRemove = async (entityId: string) => {
-    if (!confirm(`Remove ${entityId} from area?`)) return
+    if (!globalThis.confirm(`Remove ${entityId} from area?`)) return
     setBusy(true)
     try {
       await removeTrvEntity(areaId, entityId)
