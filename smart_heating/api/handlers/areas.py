@@ -115,8 +115,8 @@ async def _trigger_immediate_updates(area: Area, temperature: float, climate_con
             getattr(area, "hvac_mode", None),
             getattr(area, "enabled", None),
         )
-    except Exception:
-        _LOGGER.debug("Failed to log area device/thermostat state for %s", area.name)
+    except Exception as err:
+        _LOGGER.debug("Failed to log area device/thermostat state for %s: %s", area.name, err)
 
     if not climate_controller:
         return
@@ -160,8 +160,8 @@ async def _trigger_immediate_updates(area: Area, temperature: float, climate_con
                 _LOGGER.exception(
                     "Failed to proactively update thermostats for %s: %s", area.name, err
                 )
-    except Exception:
-        _LOGGER.debug("Failed to evaluate proactive thermostat update for %s", area.name)
+    except Exception as err:
+        _LOGGER.debug("Failed to evaluate proactive thermostat update for %s: %s", area.name, err)
 
 
 # noqa: ASYNC109 - Web API handlers must be async per aiohttp convention

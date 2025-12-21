@@ -165,6 +165,6 @@ class BaseDeviceHandler:
             except Exception:
                 # Best-effort: ignore logging failures
                 _LOGGER.debug("Failed to append device event for %s", device_id)
-        except Exception:
+        except Exception as err:
             # Never raise from logging helper
-            _LOGGER.debug("_record_device_event failed for %s", device_id)
+            _LOGGER.debug("_record_device_event failed for %s: %s", device_id, err)

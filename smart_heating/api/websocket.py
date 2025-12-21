@@ -135,8 +135,8 @@ def websocket_subscribe_device_logs(
     def unsub_callback():
         try:
             area_manager.remove_device_log_listener(forward_event)
-        except Exception:
-            pass
+        except Exception as err:
+            _LOGGER.debug("Failed to remove device log listener: %s", err)
 
     connection.subscriptions[msg["id"]] = unsub_callback
     connection.send_result(msg["id"])
