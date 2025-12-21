@@ -169,6 +169,10 @@ class Area:
         # Each entry is a dict: {"entity_id": str, "role": "position"|"open"|"both"|None, "name": Optional[str]}
         self.trv_entities: list[dict[str, Any]] = []
 
+        # TRV entity configuration for this area
+        # Each entry is a dict: {"entity_id": str, "role": "position"|"open"|"both"|None, "name": Optional[str]}
+        self.trv_entities: list[dict[str, Any]] = []
+
     # Device management methods - delegate to AreaDeviceManager
     def add_device(self, device_id: str, device_type: str, mqtt_topic: str | None = None) -> None:
         """Add a device to the area.
