@@ -97,6 +97,7 @@ import SensorConfigDialog from '../components/SensorConfigDialog'
 import TrvConfigDialog from '../components/TrvConfigDialog'
 import DraggableSettings, { SettingSection } from '../components/DraggableSettings'
 import { useWebSocket } from '../hooks/useWebSocket'
+import HistoryMigrationControls from '../components/HistoryMigrationControls'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -1952,67 +1953,53 @@ const ZoneDetail = () => {
               </Box>
 
               {/* Migration Buttons */}
-              <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-                {storageBackend === 'json' && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    disabled={migrating}
-                    onClick={async () => {
-                      if (
-                        !globalThis.confirm(
-                          'Migrate history data to database? This requires MariaDB, MySQL, or PostgreSQL. SQLite is not supported.',
-                        )
+              <Box sx={{ mb: 0 }}>
+                <HistoryMigrationControls
+                  storageBackend={storageBackend as 'json' | 'database'}
+                  migrating={migrating}
+                  onMigrateToDatabase={async () => {
+                    if (
+                      !globalThis.confirm(
+                        'Migrate history data to database? This requires MariaDB, MySQL, or PostgreSQL. SQLite is not supported.',
                       )
-                        return
-                      setMigrating(true)
-                      try {
-                        const result = await migrateHistoryStorage('database')
-                        if (result.success) {
-                          alert(
-                            `Successfully migrated ${result.migrated_entries} entries to database!`,
-                          )
-                          await loadHistoryConfig()
-                        } else {
-                          alert(`Migration failed: ${result.message}`)
-                        }
-                      } catch (error: any) {
-                        alert(`Migration error: ${error.message}`)
-                      } finally {
-                        setMigrating(false)
+                    )
+                      return
+                    setMigrating(true)
+                    try {
+                      const result = await migrateHistoryStorage('database')
+                      if (result.success) {
+                        alert(
+                          `Successfully migrated ${result.migrated_entries} entries to database!`,
+                        )
+                        await loadHistoryConfig()
+                      } else {
+                        alert(`Migration failed: ${result.message}`)
                       }
-                    }}
-                  >
-                    {migrating ? 'Migrating...' : 'Migrate to Database'}
-                  </Button>
-                )}
-                {storageBackend === 'database' && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    disabled={migrating}
-                    onClick={async () => {
-                      if (!globalThis.confirm('Migrate history data back to JSON file storage?'))
-                        return
-                      setMigrating(true)
-                      try {
-                        const result = await migrateHistoryStorage('json')
-                        if (result.success) {
-                          alert(`Successfully migrated ${result.migrated_entries} entries to JSON!`)
-                          await loadHistoryConfig()
-                        } else {
-                          alert(`Migration failed: ${result.message}`)
-                        }
-                      } catch (error: any) {
-                        alert(`Migration error: ${error.message}`)
-                      } finally {
-                        setMigrating(false)
+                    } catch (error: any) {
+                      alert(`Migration error: ${error.message}`)
+                    } finally {
+                      setMigrating(false)
+                    }
+                  }}
+                  onMigrateToJson={async () => {
+                    if (!globalThis.confirm('Migrate history data back to JSON file storage?'))
+                      return
+                    setMigrating(true)
+                    try {
+                      const result = await migrateHistoryStorage('json')
+                      if (result.success) {
+                        alert(`Successfully migrated ${result.migrated_entries} entries to JSON!`)
+                        await loadHistoryConfig()
+                      } else {
+                        alert(`Migration failed: ${result.message}`)
                       }
-                    }}
-                  >
-                    {migrating ? 'Migrating...' : 'Migrate to JSON'}
-                  </Button>
-                )}
+                    } catch (error: any) {
+                      alert(`Migration error: ${error.message}`)
+                    } finally {
+                      setMigrating(false)
+                    }
+                  }}
+                />
               </Box>
 
               <Alert severity="info" sx={{ mt: 2 }} icon={false}>
