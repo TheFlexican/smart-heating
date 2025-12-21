@@ -60,7 +60,6 @@ import {
   setZoneTemperature,
   enableZone,
   disableZone,
-  setPresetMode,
   setBoostMode,
   cancelBoost,
   setHvacMode,
@@ -99,6 +98,7 @@ import DraggableSettings, { SettingSection } from '../components/DraggableSettin
 import { useWebSocket } from '../hooks/useWebSocket'
 import HistoryMigrationControls from '../components/HistoryMigrationControls'
 import StorageBackendInfo from '../components/StorageBackendInfo'
+import PresetControls from '../components/PresetControls'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -638,66 +638,13 @@ const ZoneDetail = () => {
             : t(`presets.${area.preset_mode}`),
         defaultExpanded: false,
         content: (
-          <>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>{t('settingsCards.currentPreset')}</InputLabel>
-              <Select
-                data-testid="preset-mode-select"
-                disabled={!areaEnabled || area.state === 'off'}
-                value={area.preset_mode || 'none'}
-                label={t('settingsCards.currentPreset')}
-                onChange={async e => {
-                  try {
-                    await setPresetMode(area.id, e.target.value)
-                    loadData()
-                  } catch (error) {
-                    console.error('Failed to set preset mode:', error)
-                  }
-                }}
-              >
-                <MenuItem value="none">{t('settingsCards.presetNoneManual')}</MenuItem>
-                <MenuItem value="away">
-                  {t('settingsCards.presetAwayTemp', {
-                    temp: getPresetTemp('away', area.away_temp, 16),
-                  })}
-                </MenuItem>
-                <MenuItem value="eco">
-                  {t('settingsCards.presetEcoTemp', {
-                    temp: getPresetTemp('eco', area.eco_temp, 18),
-                  })}
-                </MenuItem>
-                <MenuItem value="comfort">
-                  {t('settingsCards.presetComfortTemp', {
-                    temp: getPresetTemp('comfort', area.comfort_temp, 22),
-                  })}
-                </MenuItem>
-                <MenuItem value="home">
-                  {t('settingsCards.presetHomeTemp', {
-                    temp: getPresetTemp('home', area.home_temp, 21),
-                  })}
-                </MenuItem>
-                <MenuItem value="sleep">
-                  {t('settingsCards.presetSleepTemp', {
-                    temp: getPresetTemp('sleep', area.sleep_temp, 19),
-                  })}
-                </MenuItem>
-                <MenuItem value="activity">
-                  {t('settingsCards.presetActivityTemp', {
-                    temp: getPresetTemp('activity', area.activity_temp, 23),
-                  })}
-                </MenuItem>
-                <MenuItem value="boost">{t('settingsCards.presetBoost')}</MenuItem>
-              </Select>
-            </FormControl>
-
-            {areaEnabled && area.state !== 'off' && (
-              <Alert severity="info">
-                {t('settingsCards.currentPresetInfo', {
-                  preset: t(`presets.${area.preset_mode || 'none'}`),
-                })}
-              </Alert>
-            )}
-          </>
+          <PresetControls
+            area={area}
+            areaEnabled={areaEnabled}
+            globalPresets={globalPresets}
+            getPresetTemp={getPresetTemp}
+            loadData={loadData}
+          />
         ),
       },
       {
