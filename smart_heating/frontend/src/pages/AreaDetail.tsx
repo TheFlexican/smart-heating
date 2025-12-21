@@ -46,15 +46,7 @@ import SpeedIcon from '@mui/icons-material/Speed'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
 import ArticleIcon from '@mui/icons-material/Article'
 import { useTranslation } from 'react-i18next'
-import {
-  Zone,
-  WindowSensorConfig,
-  PresenceSensorConfig,
-  Device,
-  GlobalPresets,
-  HassEntity,
-  TrvRuntimeState,
-} from '../types'
+import { Zone, Device, GlobalPresets, HassEntity, TrvRuntimeState } from '../types'
 import {
   getZones,
   setZoneTemperature,
@@ -71,15 +63,7 @@ import {
   addDeviceToZone,
   removeDeviceFromZone,
 } from '../api/areas'
-import {
-  addTrvEntity,
-  addWindowSensor,
-  removeWindowSensor,
-  addPresenceSensor,
-  removePresenceSensor,
-  setAreaPresenceConfig,
-  removeTrvEntity,
-} from '../api/sensors'
+import { addTrvEntity, setAreaPresenceConfig, removeTrvEntity } from '../api/sensors'
 import { getAreaLogs, AreaLogEntry } from '../api/logs'
 import {
   getHistoryConfig,
@@ -92,7 +76,7 @@ import { getGlobalPresets } from '../api/presets'
 import { getEntityState, getWeatherEntities } from '../api/config'
 import ScheduleEditor from '../components/ScheduleEditor'
 import HistoryChart from '../components/HistoryChart'
-import SensorConfigDialog from '../components/SensorConfigDialog'
+import SensorConfigControls from '../components/SensorConfigControls'
 import TrvConfigDialog from '../components/TrvConfigDialog'
 import DraggableSettings, { SettingSection } from '../components/DraggableSettings'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -144,8 +128,7 @@ const ZoneDetail = () => {
   const [databaseStats, setDatabaseStats] = useState<any>(null)
   const [migrating, setMigrating] = useState(false)
   const [recordInterval, setRecordInterval] = useState(5)
-  const [sensorDialogOpen, setSensorDialogOpen] = useState(false)
-  const [sensorDialogType, setSensorDialogType] = useState<'window' | 'presence'>('window')
+
   const [trvDialogOpen, setTrvDialogOpen] = useState(false)
   const [expandedCard, setExpandedCard] = useState<string | null>(null) // Accordion state
   const [logs, setLogs] = useState<AreaLogEntry[]>([])
@@ -1094,67 +1077,7 @@ const ZoneDetail = () => {
         badge: area.window_sensors?.length || undefined,
         defaultExpanded: false,
         content: (
-          <>
-            {area.window_sensors && area.window_sensors.length > 0 ? (
-              <List dense>
-                {area.window_sensors.map(sensor => {
-                  const sensorConfig =
-                    typeof sensor === 'string'
-                      ? { entity_id: sensor, action_when_open: 'reduce_temperature', temp_drop: 5 }
-                      : sensor
-
-                  let secondaryText = ''
-                  if (sensorConfig.action_when_open === 'turn_off') {
-                    secondaryText = 'Turn off heating when open'
-                  } else if (sensorConfig.action_when_open === 'reduce_temperature') {
-                    secondaryText = `Reduce temperature by ${sensorConfig.temp_drop}°C when open`
-                  } else {
-                    secondaryText = 'No action when open'
-                  }
-
-                  return (
-                    <ListItem
-                      key={sensorConfig.entity_id}
-                      data-testid="window-sensor-item"
-                      secondaryAction={
-                        <IconButton
-                          edge="end"
-                          onClick={async () => {
-                            try {
-                              await removeWindowSensor(area.id, sensorConfig.entity_id)
-                              loadData()
-                            } catch (error) {
-                              console.error('Failed to remove window sensor:', error)
-                            }
-                          }}
-                        >
-                          <RemoveCircleOutlineIcon />
-                        </IconButton>
-                      }
-                    >
-                      <ListItemText primary={sensorConfig.entity_id} secondary={secondaryText} />
-                    </ListItem>
-                  )
-                })}
-              </List>
-            ) : (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                No window sensors configured. Add binary sensors to enable window detection.
-              </Alert>
-            )}
-
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={() => {
-                setSensorDialogType('window')
-                setSensorDialogOpen(true)
-              }}
-              data-testid="add-window-sensor-button"
-            >
-              Add Window Sensor
-            </Button>
-          </>
+          <SensorConfigControls area={area} entityStates={entityStates} loadData={loadData} />
         ),
       },
       {
@@ -1203,92 +1126,7 @@ const ZoneDetail = () => {
           </Box>
         ),
       },
-      {
-        id: 'presence-sensors',
-        title: t('settingsCards.presenceSensorsTitle'),
-        description: t('settingsCards.presenceSensorsDescription'),
-        icon: <SensorOccupiedIcon />,
-        badge: area.presence_sensors?.length || undefined,
-        defaultExpanded: false,
-        content: (
-          <>
-            {area.presence_sensors && area.presence_sensors.length > 0 ? (
-              <List dense>
-                {area.presence_sensors.map(sensor => {
-                  const entity_id = typeof sensor === 'string' ? sensor : sensor.entity_id
 
-                  const entityState = entityStates[entity_id]
-                  const friendlyName = entityState?.attributes?.friendly_name || entity_id
-                  const state = entityState?.state || 'unknown'
-                  const isAway = state === 'not_home' || state === 'off' || state === 'away'
-                  const isActive = isAway || state === 'home' || state === 'on'
-
-                  return (
-                    <ListItem
-                      key={entity_id}
-                      data-testid="presence-sensor-item"
-                      secondaryAction={
-                        <IconButton
-                          edge="end"
-                          onClick={async () => {
-                            try {
-                              await removePresenceSensor(area.id, entity_id)
-                              loadData()
-                            } catch (error) {
-                              console.error('Failed to remove presence sensor:', error)
-                            }
-                          }}
-                        >
-                          <RemoveCircleOutlineIcon />
-                        </IconButton>
-                      }
-                    >
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography>{friendlyName}</Typography>
-                            {isActive && (
-                              <Chip
-                                label={
-                                  isAway ? t('settingsCards.awayChip') : t('settingsCards.homeChip')
-                                }
-                                size="small"
-                                color={isAway ? 'warning' : 'success'}
-                                sx={{ height: '20px', fontSize: '0.7rem' }}
-                              />
-                            )}
-                          </Box>
-                        }
-                        secondary={
-                          <Typography component="span" variant="body2" color="text.secondary">
-                            {t('settingsCards.presenceSensorDescription')}
-                          </Typography>
-                        }
-                      />
-                    </ListItem>
-                  )
-                })}
-              </List>
-            ) : (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                {t('settingsCards.noPresenceSensors')}
-              </Alert>
-            )}
-
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={() => {
-                setSensorDialogType('presence')
-                setSensorDialogOpen(true)
-              }}
-              data-testid="add-presence-sensor-button"
-            >
-              {t('settingsCards.addPresenceSensor')}
-            </Button>
-          </>
-        ),
-      },
       {
         id: 'auto-preset',
         title: t('settingsCards.autoPresetTitle'),
@@ -2707,28 +2545,6 @@ const ZoneDetail = () => {
             />
           </Box>
         </TabPanel>
-
-        {/* Sensor Configuration Dialog */}
-        <SensorConfigDialog
-          open={sensorDialogOpen}
-          onClose={() => setSensorDialogOpen(false)}
-          onAdd={async config => {
-            if (!area) return
-            try {
-              if (sensorDialogType === 'window') {
-                await addWindowSensor(area.id, config as WindowSensorConfig)
-              } else {
-                await addPresenceSensor(area.id, config as PresenceSensorConfig)
-              }
-              setSensorDialogOpen(false)
-              await loadData()
-            } catch (error) {
-              console.error('Failed to add sensor:', error)
-              alert(`Failed to add sensor: ${error}`)
-            }
-          }}
-          sensorType={sensorDialogType}
-        />
 
         {/* TRV Configuration Dialog */}
         <TrvConfigDialog
