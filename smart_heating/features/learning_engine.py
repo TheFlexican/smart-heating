@@ -185,6 +185,7 @@ class LearningEngine:
             source="smart_heating",
             statistic_id=statistic_id,
             unit_of_measurement=unit,
+            mean_type="mean",  # Required for HA 2025.11+ compatibility
         )
 
         async_add_external_statistics(self.hass, metadata, [])
@@ -315,7 +316,8 @@ class LearningEngine:
                 source="smart_heating",
                 statistic_id=statistic_id,
                 unit_of_measurement="°C/min",
-                mean_type="mean",  # Required by HA 2025+
+                mean_type="mean",  # Required for HA 2025.11+ compatibility
+                unit_class="temperature",  # Required to prevent runtime errors
             )
 
             # Add statistics asynchronously
@@ -372,7 +374,8 @@ class LearningEngine:
                 source="smart_heating",
                 statistic_id=statistic_id,
                 unit_of_measurement=UnitOfTemperature.CELSIUS,
-                mean_type="mean",  # Required by HA 2025+
+                mean_type="mean",  # Required for HA 2025.11+ compatibility
+                unit_class="temperature",  # Required to prevent runtime errors
             )
 
             await get_instance(self.hass).async_add_executor_job(
