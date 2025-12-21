@@ -1,6 +1,16 @@
 import axios from 'axios'
 import { Area, ScheduleEntry, LearningStats, DeviceAdd } from '../types'
 
+type PresetConfig = Record<string, boolean | number | string | null>
+type PresetResponse = Record<string, boolean | number | string | null>
+type BoostPayload = { duration: number; temperature?: number }
+type CopySchedulePayload = {
+  source_area_id: string
+  target_area_id: string
+  source_days?: string[]
+  target_days?: string[]
+}
+
 const API_BASE = '/api/smart_heating'
 
 export const getZones = async (): Promise<Area[]> => {
@@ -80,7 +90,7 @@ export const setBoostMode = async (
   duration: number,
   temperature?: number,
 ): Promise<void> => {
-  const data: any = { duration }
+  const data: BoostPayload = { duration }
   if (temperature !== undefined) {
     data.temperature = temperature
   }
@@ -109,7 +119,7 @@ export const copySchedule = async (
   sourceDays?: string[],
   targetDays?: string[],
 ): Promise<void> => {
-  const data: any = {
+  const data: CopySchedulePayload = {
     source_area_id: sourceAreaId,
     target_area_id: targetAreaId,
   }
@@ -134,11 +144,14 @@ export const setHeatingType = async (
   await axios.post(`${API_BASE}/areas/${areaId}/heating_type`, data)
 }
 
-export const setAreaPresetConfig = async (areaId: string, config: Partial<any>): Promise<void> => {
+export const setAreaPresetConfig = async (
+  areaId: string,
+  config: Partial<PresetConfig>,
+): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/preset_config`, config)
 }
 
-export const getAreaPresetConfig = async (areaId: string): Promise<any> => {
+export const getAreaPresetConfig = async (areaId: string): Promise<PresetResponse> => {
   const response = await axios.get(`${API_BASE}/areas/${areaId}/preset_config`)
   return response.data
 }
@@ -148,7 +161,7 @@ export const setAreaHeatingCurve = async (
   useGlobal: boolean,
   coefficient?: number,
 ): Promise<void> => {
-  const data: any = { use_global: useGlobal }
+  const data: { use_global: boolean; coefficient?: number } = { use_global: useGlobal }
   if (coefficient !== undefined) {
     data.coefficient = coefficient
   }
