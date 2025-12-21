@@ -285,8 +285,14 @@ class Area:
             role: Optional role: "position", "open", or "both"
             name: Optional friendly name override
         """
-        if not any(e.get("entity_id") == entity_id for e in self.trv_entities):
-            self.trv_entities.append({"entity_id": entity_id, "role": role, "name": name})
+        # If entity exists, update role/name; otherwise add as new
+        for e in self.trv_entities:
+            if e.get("entity_id") == entity_id:
+                e["role"] = role
+                e["name"] = name
+                return
+
+        self.trv_entities.append({"entity_id": entity_id, "role": role, "name": name})
 
     def remove_trv_entity(self, entity_id: str) -> None:
         """Remove a TRV entity from the area configuration.
