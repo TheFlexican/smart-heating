@@ -3,6 +3,8 @@
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
+from ..temperature_sensors import get_outdoor_temperature_from_weather_entity
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
@@ -34,18 +36,8 @@ def compute_area_candidate(
     if not area:
         return None
 
-    # Determine outside temperature if available on area
-    outside_temp = None
-    if area.weather_entity_id:
-        ws = hass.states.get(area.weather_entity_id)
-        try:
-            # For weather entities, temperature is in attributes, not state
-            if ws and ws.state not in ("unknown", "unavailable"):
-                outside_temp = ws.attributes.get("temperature")
-                if outside_temp is not None:
-                    outside_temp = float(outside_temp)
-        except Exception:
-            outside_temp = None
+    # Get outside temperature using centralized helper
+    outside_temp = get_outdoor_temperature_from_weather_entity(hass, area.weather_entity_id)
 
     # Default candidate: max target + overhead
     candidate = area.target_temperature + overhead

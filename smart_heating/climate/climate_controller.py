@@ -183,25 +183,11 @@ class ClimateController:
     async def async_update_area_temperatures(
         self,
     ) -> None:  # NOSONAR - intentionally async (awaited by callers)
-        """Update current temperatures for all areas from sensors."""
-        for area_id, area in self.area_manager.get_all_areas().items():
-            temp_sensors = area.get_temperature_sensors()
-            thermostats = area.get_thermostats()
+        """Update current temperatures for all areas from sensors.
 
-            if not temp_sensors and not thermostats:
-                continue
-
-            temps = self.temp_handler.collect_area_temperatures(area)
-
-            if temps:
-                avg_temp = sum(temps) / len(temps)
-                area.current_temperature = avg_temp
-                _LOGGER.debug(
-                    "Area %s temperature: %.1f°C (from %d sensors)",
-                    area_id,
-                    avg_temp,
-                    len(temps),
-                )
+        Delegates to centralized temperature handler for consistent behavior.
+        """
+        self.temp_handler.update_all_area_temperatures(self.area_manager)
 
     async def _async_set_area_heating(
         self, area, heating: bool, target_temp: Optional[float] = None

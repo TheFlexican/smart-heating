@@ -16,6 +16,8 @@ from homeassistant.components.recorder.statistics import (
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 
+from ..climate.temperature_sensors import get_outdoor_temperature_from_weather_entity
+
 _LOGGER = logging.getLogger(__name__)
 
 # Minimum data points needed before making predictions
@@ -390,20 +392,12 @@ class LearningEngine:
     ) -> float | None:  # NOSONAR - intentionally async (awaited by callers)
         """Get current outdoor temperature from weather entity.
 
+        Delegates to centralized helper for consistent weather entity access.
+
         Returns:
-            Outdoor temperature or None if unavailable
+            Outdoor temperature in Celsius or None if unavailable
         """
-        if not self._weather_entity:
-            return None
-
-        state = self.hass.states.get(self._weather_entity)
-        if not state:
-            return None
-
-        try:
-            return float(state.attributes.get("temperature", 0))
-        except (ValueError, TypeError):
-            return None
+        return get_outdoor_temperature_from_weather_entity(self.hass, self._weather_entity)
 
     async def async_predict_heating_time(
         self,

@@ -224,6 +224,26 @@ DEFAULT_HOME_TEMP: Final = 20.0
 DEFAULT_SLEEP_TEMP: Final = 18.5
 DEFAULT_ACTIVITY_TEMP: Final = 21.0
 
+# Temperature control constants
+TEMP_COMPARISON_TOLERANCE: Final = 0.1  # °C - Minimum temperature difference to trigger updates
+DEFAULT_HYSTERESIS: Final = 0.5  # °C - Default hysteresis for temperature control
+DEBUG_SENTINEL_TEMP: Final = -999.0  # °C - Sentinel value for debugging/missing data
+
+# OpenTherm Gateway constants
+OPENTHERM_OVERHEAD_DEFAULT: Final = 20.0  # °C - Default overhead for boiler setpoint
+OPENTHERM_OVERHEAD_MAX: Final = 27.2  # °C - Maximum overhead for boiler setpoint
+
+# Minimum setpoint constants
+MIN_SETPOINT_FLOOR_HEATING: Final = 40.0  # °C - Minimum boiler setpoint for floor heating
+MIN_SETPOINT_RADIATOR: Final = 55.0  # °C - Minimum boiler setpoint for radiators
+
+# Climate feature flags
+SUPPORT_TURN_OFF_FLAG: Final = 128  # Climate entity feature flag for turn_off support
+
+# Learning engine temperature adjustment thresholds
+LEARNING_TEMP_ADJUSTMENT_SMALL: Final = 0.02  # °C - Small temperature adjustment
+LEARNING_TEMP_ADJUSTMENT_MEDIUM: Final = 0.05  # °C - Medium temperature adjustment
+
 # Safety sensor (smoke/CO) settings
 ATTR_SAFETY_SENSOR_ID: Final = "safety_sensor_id"
 ATTR_SAFETY_SENSOR_ATTRIBUTE: Final = "safety_sensor_attribute"

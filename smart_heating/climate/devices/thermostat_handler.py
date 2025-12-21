@@ -8,6 +8,12 @@ from homeassistant.components.climate.const import DOMAIN as CLIMATE_DOMAIN
 from homeassistant.components.climate.const import SERVICE_SET_TEMPERATURE
 from homeassistant.const import ATTR_TEMPERATURE, SERVICE_TURN_OFF, SERVICE_TURN_ON
 
+from ...const import (
+    DEBUG_SENTINEL_TEMP,
+    DEFAULT_TRV_IDLE_TEMP,
+    SUPPORT_TURN_OFF_FLAG,
+    TEMP_COMPARISON_TOLERANCE,
+)
 from .base_device_handler import BaseDeviceHandler
 
 if TYPE_CHECKING:
@@ -201,14 +207,8 @@ class ThermostatHandler(BaseDeviceHandler):
 
         base_name = climate_entity_id.split(".", 1)[1]
 
-        # Check for common power switch patterns
-        power_switch_patterns = [
-            f"switch.{base_name}_power",  # switch.air_conditioning_air_care_power
-            f"switch.{base_name}_switch",
-            f"switch.{base_name}",
-        ]
-
-        for switch_id in power_switch_patterns:
+        # Check for common power switch patterns (from base handler)
+        for switch_id in self._power_switch_patterns(base_name):
             state = self.hass.states.get(switch_id)
             if state:
                 # Found a power switch, ensure it's on
@@ -275,14 +275,8 @@ class ThermostatHandler(BaseDeviceHandler):
 
         base_name = climate_entity_id.split(".", 1)[1]
 
-        # Check for common power switch patterns
-        power_switch_patterns = [
-            f"switch.{base_name}_power",
-            f"switch.{base_name}_switch",
-            f"switch.{base_name}",
-        ]
-
-        for switch_id in power_switch_patterns:
+        # Check for common power switch patterns (from base handler)
+        for switch_id in self._power_switch_patterns(base_name):
             state = self.hass.states.get(switch_id)
             if state:
                 # Found a power switch, turn it off
@@ -415,7 +409,7 @@ class ThermostatHandler(BaseDeviceHandler):
                 target_temp,
             )
 
-            if last_temp is None or abs(last_temp - target_temp) >= 0.1:
+            if last_temp is None or abs(last_temp - target_temp) >= TEMP_COMPARISON_TOLERANCE:
                 try:
                     # Update cache BEFORE service call to prevent false manual override detection
                     self._last_set_temperatures[thermostat_id] = target_temp
@@ -597,7 +591,7 @@ class ThermostatHandler(BaseDeviceHandler):
         # from external room sensors. Setting to idle temp ensures valve closes
         # regardless of where the room sensor is located.
         if self._is_trv_device(thermostat_id):
-            idle_temp = getattr(self.area_manager, "trv_idle_temp", 10.0)
+            idle_temp = getattr(self.area_manager, "trv_idle_temp", DEFAULT_TRV_IDLE_TEMP)
             last_temp = self._last_set_temperatures.get(thermostat_id)
 
             _LOGGER.debug(
@@ -605,10 +599,10 @@ class ThermostatHandler(BaseDeviceHandler):
                 thermostat_id,
                 target_temp,
                 idle_temp,
-                last_temp if last_temp is not None else -999.0,
+                last_temp if last_temp is not None else DEBUG_SENTINEL_TEMP,
             )
 
-            if last_temp is None or abs(last_temp - idle_temp) >= 0.1:
+            if last_temp is None or abs(last_temp - idle_temp) >= TEMP_COMPARISON_TOLERANCE:
                 try:
                     # Update cache BEFORE service call to prevent false manual override detection
                     self._last_set_temperatures[thermostat_id] = idle_temp
@@ -727,7 +721,7 @@ class ThermostatHandler(BaseDeviceHandler):
             last_temp,
         )
 
-        if last_temp is None or abs(last_temp - desired_setpoint) >= 0.1:
+        if last_temp is None or abs(last_temp - desired_setpoint) >= TEMP_COMPARISON_TOLERANCE:
             # Update cache BEFORE service call to prevent false manual override detection
             self._last_set_temperatures[thermostat_id] = desired_setpoint
             await self.hass.services.async_call(
@@ -790,18 +784,18 @@ class ThermostatHandler(BaseDeviceHandler):
 
         # For TRV devices, set to trv_idle_temp to close valve (don't use turn_off as many TRVs don't support it)
         if self._is_trv_device(thermostat_id):
-            off_temp = getattr(self.area_manager, "trv_idle_temp", 10.0)
+            off_temp = getattr(self.area_manager, "trv_idle_temp", DEFAULT_TRV_IDLE_TEMP)
             last_temp = self._last_set_temperatures.get(thermostat_id)
 
             _LOGGER.debug(
                 "TRV %s turn_off: off_setpoint=%.1f°C, last_cached=%.1f°C",
                 thermostat_id,
                 off_temp,
-                last_temp if last_temp is not None else -999.0,
+                last_temp if last_temp is not None else DEBUG_SENTINEL_TEMP,
             )
 
             # Only send command if temperature changed or never set
-            if last_temp is None or abs(last_temp - off_temp) >= 0.1:
+            if last_temp is None or abs(last_temp - off_temp) >= TEMP_COMPARISON_TOLERANCE:
                 # Update cache BEFORE service call to prevent false manual override detection
                 self._last_set_temperatures[thermostat_id] = off_temp
                 await self.hass.services.async_call(
@@ -828,7 +822,7 @@ class ThermostatHandler(BaseDeviceHandler):
         if state:
             # Check supported features - SUPPORT_TURN_OFF is feature flag 128
             supported_features = state.attributes.get("supported_features", 0)
-            supports_turn_off = (supported_features & 128) != 0
+            supports_turn_off = (supported_features & SUPPORT_TURN_OFF_FLAG) != 0
 
         if supports_turn_off:
             try:

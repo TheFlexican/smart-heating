@@ -13,7 +13,7 @@ from typing import Optional
 from homeassistant.core import HomeAssistant
 
 from ..core.area_manager import AreaManager
-from ..models import Area, DeviceEvent
+from ..models import Area
 from .devices import (
     OpenThermHandler,
     SwitchHandler,
@@ -22,8 +22,6 @@ from .devices import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-UNKNOWN_AREA_NAME = "<unknown>"
 
 
 class DeviceControlHandler:
@@ -56,42 +54,6 @@ class DeviceControlHandler:
         )
         self.valve_handler = ValveHandler(hass, area_manager, capability_detector)
         self.opentherm_handler = OpenThermHandler(hass, area_manager, capability_detector)
-
-    def _record_device_event(
-        self,
-        area_id: str | None,
-        device_id: str,
-        direction: str,
-        command_type: str,
-        payload: dict,
-        status: str | None = None,
-        error: str | None = None,
-    ) -> None:
-        """Record a device event via the AreaManager's logging API.
-
-        `area_id` may be None; in that case we try to discover the area
-        that owns the device. Failures to record are logged but do not
-        interrupt device control flows.
-        """
-        try:
-            if area_id is None:
-                area_id = self.area_manager.find_area_by_device(device_id)
-            if area_id is None:
-                area_id = UNKNOWN_AREA_NAME
-
-            ev = DeviceEvent.now(
-                area_id=area_id,
-                device_id=device_id,
-                direction=direction,
-                command_type=command_type,
-                payload=payload,
-                status=status,
-                error=error,
-            )
-            # AreaManager stores logs in-memory; call synchronous API
-            self.area_manager.async_add_device_event(area_id, ev)
-        except Exception:  # pragma: no cover - best effort logging
-            _LOGGER.exception("Failed to record device event for %s", device_id)
 
     # === Thermostat Operations (delegated) ===
 
@@ -281,39 +243,22 @@ class DeviceControlHandler:
         heating_curve_enabled: bool,
         pid_enabled: bool,
     ):
-        """Compute area candidate setpoint.
+        """Compute area candidate setpoint (delegates to heating curve manager).
 
-        Implements logic here for testability (methods can be monkeypatched).
+        This orchestrator method delegates to the controller manager to maintain
+        a single source of truth and avoid code duplication.
         """
-        area = self.area_manager.get_area(area_id)
-        if not area:
-            return None
+        from .controllers.heating_curve_manager import compute_area_candidate
 
-        # Determine outside temperature if available on area
-        outside_temp = None
-        if area.weather_entity_id:
-            ws = self.hass.states.get(area.weather_entity_id)
-            try:
-                # For weather entities, temperature is in attributes, not state
-                if ws and ws.state not in ("unknown", "unavailable"):
-                    outside_temp = ws.attributes.get("temperature")
-                    if outside_temp is not None:
-                        outside_temp = float(outside_temp)
-            except Exception:
-                outside_temp = None
-
-        # Default candidate: max target + overhead
-        candidate = area.target_temperature + overhead
-
-        # Heating curve - call method that can be monkeypatched
-        candidate = self._apply_heating_curve(
-            area_id, candidate, outside_temp, advanced_enabled, heating_curve_enabled
+        return compute_area_candidate(
+            self.hass,
+            self.area_manager,
+            area_id,
+            overhead,
+            advanced_enabled,
+            heating_curve_enabled,
+            pid_enabled,
         )
-
-        # PID adjustment - call method that can be monkeypatched
-        candidate = self._apply_pid_adjustment(area_id, candidate, pid_enabled, advanced_enabled)
-
-        return candidate
 
     def _enforce_minimum_setpoints(
         self, heating_area_ids: list[str], boiler_setpoint: float, gateway_device_id: str

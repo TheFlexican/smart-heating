@@ -48,25 +48,8 @@ class HeatingCycleHandler:
         """
         from ..const import DOMAIN
 
-        # Update all temperatures
-        for area_id, area in self.area_manager.get_all_areas().items():
-            temp_sensors = area.get_temperature_sensors()
-            thermostats = area.get_thermostats()
-
-            if not temp_sensors and not thermostats:
-                continue
-
-            temps = temp_handler.collect_area_temperatures(area)
-
-            if temps:
-                avg_temp = sum(temps) / len(temps)
-                area.current_temperature = avg_temp
-                _LOGGER.debug(
-                    "Area %s temperature: %.1f°C (from %d sensors)",
-                    area_id,
-                    avg_temp,
-                    len(temps),
-                )
+        # Update all area temperatures using centralized helper
+        temp_handler.update_all_area_temperatures(self.area_manager)
 
         # Update window and presence sensor states
         await sensor_handler.async_update_sensor_states()
@@ -258,7 +241,6 @@ class HeatingCycleHandler:
         if self.learning_engine and area_id not in self._area_heating_events:
             outdoor_temp = await temp_handler.async_get_outdoor_temperature(area)
             # Reuse heating event tracker for cooling events
-            # TODO: Consider separate cooling event tracking in learning engine
             self._area_heating_events[area_id] = True  # Track active cooling event
             _LOGGER.debug(
                 "Started cooling event for area %s (outdoor: %s°C)",
@@ -330,7 +312,6 @@ class HeatingCycleHandler:
         # End cooling event if active
         if self.learning_engine and area_id in self._area_heating_events:
             del self._area_heating_events[area_id]
-            # TODO: Add async_end_cooling_event to learning engine
             _LOGGER.debug(
                 "Completed cooling event for area %s (reached %.1f°C)",
                 area_id,

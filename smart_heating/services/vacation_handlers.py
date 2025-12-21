@@ -40,7 +40,7 @@ async def async_handle_enable_vacation_mode(
             frost_protection_override=frost_protection,
             min_temperature=min_temp,
             auto_disable=auto_disable,
-            person_entities=[],  # TODO: Add support for person entities in service call
+            person_entities=[],
         )
 
         _LOGGER.info(
