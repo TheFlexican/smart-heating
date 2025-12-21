@@ -52,8 +52,6 @@ import {
   setZoneTemperature,
   enableZone,
   disableZone,
-  setBoostMode,
-  cancelBoost,
   setHvacMode,
   setSwitchShutdown,
   setAreaPresetConfig,
@@ -79,6 +77,7 @@ import HistoryChart from '../components/HistoryChart'
 import SensorConfigControls from '../components/SensorConfigControls'
 import PrimaryTemperatureSensor from '../components/PrimaryTemperatureSensor'
 import TrvConfigDialog from '../components/TrvConfigDialog'
+import BoostControls from '../components/BoostControls'
 import DraggableSettings, { SettingSection } from '../components/DraggableSettings'
 import { useWebSocket } from '../hooks/useWebSocket'
 import HistoryMigrationControls from '../components/HistoryMigrationControls'
@@ -737,78 +736,7 @@ const ZoneDetail = () => {
         icon: <SpeedIcon />,
         badge: area.boost_mode_active ? 'ACTIVE' : undefined,
         defaultExpanded: area.boost_mode_active,
-        content:
-          area.heating_type === 'airco' ? (
-            <Alert severity="info" data-testid="boost-mode-disabled-airco">
-              {t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')}
-            </Alert>
-          ) : area.boost_mode_active ? (
-            <Box data-testid="boost-mode-active">
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                Boost mode is <strong>ACTIVE</strong>! Temperature: {area.boost_temp}°C, Duration:{' '}
-                {area.boost_duration} minutes
-              </Alert>
-              <Button
-                variant="outlined"
-                color="error"
-                data-testid="cancel-boost-button"
-                onClick={async () => {
-                  try {
-                    await cancelBoost(area.id)
-                    loadData()
-                  } catch (error) {
-                    console.error('Failed to cancel boost:', error)
-                  }
-                }}
-              >
-                Cancel Boost Mode
-              </Button>
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
-              <TextField
-                data-testid="boost-temperature-input"
-                label="Boost Temperature"
-                type="number"
-                defaultValue={25}
-                slotProps={{ htmlInput: { min: 15, max: 30, step: 0.5 } }}
-                sx={{ flex: 1 }}
-                id="boost-temp-input"
-              />
-              <TextField
-                data-testid="boost-duration-input"
-                label="Duration (minutes)"
-                type="number"
-                defaultValue={60}
-                slotProps={{ htmlInput: { min: 5, max: 180, step: 5 } }}
-                sx={{ flex: 1 }}
-                id="boost-duration-input"
-              />
-              <Button
-                variant="contained"
-                color="primary"
-                data-testid="activate-boost-button"
-                onClick={async () => {
-                  try {
-                    const tempInput = document.getElementById(
-                      'boost-temp-input',
-                    ) as HTMLInputElement
-                    const durationInput = document.getElementById(
-                      'boost-duration-input',
-                    ) as HTMLInputElement
-                    const temp = Number.parseFloat(tempInput.value)
-                    const duration = Number.parseInt(durationInput.value, 10)
-                    await setBoostMode(area.id, duration, temp)
-                    loadData()
-                  } catch (error) {
-                    console.error('Failed to activate boost:', error)
-                  }
-                }}
-              >
-                Activate Boost
-              </Button>
-            </Box>
-          ),
+        content: <BoostControls area={area} loadData={loadData} />,
       },
       {
         id: 'hvac-mode',
