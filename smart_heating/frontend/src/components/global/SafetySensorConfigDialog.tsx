@@ -64,10 +64,14 @@ const SafetySensorConfigDialog = ({
     }
 
     try {
+      let parsedAlertValue: any = alertValue
+      if (alertValue === 'true') parsedAlertValue = true
+      else if (alertValue === 'false') parsedAlertValue = false
+
       const config: SafetySensorConfig = {
         sensor_id: selectedEntity,
         attribute: attribute,
-        alert_value: alertValue === 'true' ? true : alertValue === 'false' ? false : alertValue,
+        alert_value: parsedAlertValue,
         enabled: enabled,
       }
       await onAdd(config)
@@ -168,7 +172,6 @@ const SafetySensorConfigDialog = ({
                   data-testid="safety-entity-native"
                   value={selectedEntity}
                   onChange={e => setSelectedEntity(e.target.value)}
-                  aria-hidden="true"
                   style={{ display: 'none' }}
                 >
                   {filteredEntities.length === 0 ? (

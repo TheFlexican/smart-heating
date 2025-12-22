@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect } from 'vitest'
 import SafetySensorConfigDialog from './SafetySensorConfigDialog'
@@ -45,20 +45,22 @@ describe('SafetySensorConfigDialog', () => {
       />,
     )
 
-    const select = await screen.findByTestId('safety-entity-select')
-    await userEvent.click(select)
+    // use the hidden native select to set the value reliably in tests
+    const native = await screen.findByTestId('safety-entity-native')
+    import('@testing-library/dom').then(({ fireEvent }) => {
+      fireEvent.change(native, { target: { value: 'binary.smoke1' } })
+    })
 
-    const option = await screen.findByText('Smoke 1')
-    await userEvent.click(option)
+    // set attribute and alert value (find input inside TextField wrapper)
+    const attrWrapper = screen.getByTestId('safety-attribute-input')
+    const attrInput = within(attrWrapper).getByRole('textbox')
+    await userEvent.clear(attrInput)
+    await userEvent.type(attrInput, 'state')
 
-    // set attribute and alert value
-    const attr = screen.getByTestId('safety-attribute-input') as HTMLInputElement
-    await userEvent.clear(attr)
-    await userEvent.type(attr, 'state')
-
-    const alertVal = screen.getByTestId('safety-alert-value') as HTMLInputElement
-    await userEvent.clear(alertVal)
-    await userEvent.type(alertVal, 'detected')
+    const alertWrapper = screen.getByTestId('safety-alert-value')
+    const alertInput = within(alertWrapper).getByRole('textbox')
+    await userEvent.clear(alertInput)
+    await userEvent.type(alertInput, 'detected')
 
     const addBtn = screen.getByTestId('safety-add-button')
     await userEvent.click(addBtn)

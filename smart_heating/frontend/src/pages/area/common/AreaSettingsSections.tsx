@@ -1,4 +1,3 @@
-import React from 'react'
 import { SettingSection } from '../../../components/common/DraggableSettings'
 import * as areasApi from '../../../api/areas'
 import PresetControls from '../../../components/common/PresetControls'
@@ -10,10 +9,8 @@ import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew'
 import PersonIcon from '@mui/icons-material/Person'
 import HistoryIcon from '@mui/icons-material/History'
 
-type Params = any
-
-export default function buildAreaSettingsSections(p: Params): SettingSection[] {
-  if (!p || !p.area) return []
+export default function buildAreaSettingsSections(p: any): SettingSection[] {
+  if (!p?.area) return []
   const area = p.area
 
   const presetSection: SettingSection = {
@@ -23,6 +20,7 @@ export default function buildAreaSettingsSections(p: Params): SettingSection[] {
     content: (
       <PresetControls
         area={area}
+        areaEnabled={!!area.enabled}
         globalPresets={p.globalPresets}
         getPresetTemp={p.getPresetTemp}
         loadData={p.loadData}
@@ -84,7 +82,7 @@ export default function buildAreaSettingsSections(p: Params): SettingSection[] {
     content: (
       <Box>
         <Switch
-          inputProps={{ 'data-testid': 'auto-preset-toggle' }}
+          data-testid="auto-preset-toggle"
           checked={!!area.auto_preset_enabled}
           onChange={async e => {
             try {
@@ -109,7 +107,7 @@ export default function buildAreaSettingsSections(p: Params): SettingSection[] {
         <FormControlLabel
           control={
             <Switch
-              inputProps={{ 'data-testid': 'shutdown-switches-input' }}
+              data-testid="shutdown-switches-input"
               checked={!!area.shutdown_switches_when_idle}
               disabled={area.heating_type === 'airco'}
               onChange={async e => {

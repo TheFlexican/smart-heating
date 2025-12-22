@@ -168,6 +168,16 @@ export const setAreaHeatingCurve = async (
   await axios.post(`${API_BASE}/areas/${areaId}/heating_curve`, data)
 }
 
+// Auto preset toggle
+export const setAreaAutoPreset = async (areaId: string, enabled: boolean): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/auto_preset`, { auto_preset_enabled: enabled })
+}
+
+// Generic call_service wrapper for services like set_night_boost
+export const callService = async (payload: Record<string, any>): Promise<void> => {
+  await axios.post(`${API_BASE}/call_service`, payload)
+}
+
 export const setManualOverride = async (areaId: string, enabled: boolean): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/manual_override`, { enabled })
 }

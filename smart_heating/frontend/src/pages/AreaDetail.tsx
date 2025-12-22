@@ -1,25 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import {
-  Box,
-  Paper,
-  Typography,
-  Tabs,
-  Tab,
-  CircularProgress,
-  Button,
-  Slider,
-  Switch,
-  Alert,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  FormControlLabel,
-  RadioGroup,
-  Radio,
-} from '@mui/material'
+import { Box, Paper, Typography, Tabs, Tab, CircularProgress, Button, Alert } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import SensorsIcon from '@mui/icons-material/Sensors'
@@ -28,14 +9,6 @@ import AcUnitIcon from '@mui/icons-material/AcUnit'
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew'
 import TuneIcon from '@mui/icons-material/Tune'
 // EditIcon removed - TRV editing moved to component
-import NightsStayIcon from '@mui/icons-material/NightsStay'
-import PsychologyIcon from '@mui/icons-material/Psychology'
-import WindowIcon from '@mui/icons-material/Window'
-import SensorOccupiedIcon from '@mui/icons-material/SensorOccupied'
-import PersonIcon from '@mui/icons-material/Person'
-import HistoryIcon from '@mui/icons-material/History'
-import SpeedIcon from '@mui/icons-material/Speed'
-import BookmarkIcon from '@mui/icons-material/Bookmark'
 import ArticleIcon from '@mui/icons-material/Article'
 import { useTranslation } from 'react-i18next'
 import { Zone, Device, GlobalPresets } from '../types'
@@ -44,44 +17,27 @@ import {
   setZoneTemperature,
   enableZone,
   disableZone,
-  setHvacMode,
-  setSwitchShutdown,
-  setAreaPresetConfig,
-  setHeatingType,
-  setAreaHeatingCurve,
   addDeviceToZone,
   removeDeviceFromZone,
 } from '../api/areas'
-import { setAreaPresenceConfig } from '../api/sensors'
+
 import { getAreaLogs, AreaLogEntry } from '../api/logs'
-import {
-  getHistoryConfig,
-  setHistoryRetention as updateHistoryRetention,
-  migrateHistoryStorage,
-  getDatabaseStats,
-} from '../api/history'
+import { getHistoryConfig, getDatabaseStats } from '../api/history'
 import { getDevices } from '../api/devices'
 import { getGlobalPresets } from '../api/presets'
 import { getEntityState } from '../api/config'
-import OutdoorSensorControls from '../components/area/OutdoorSensorControls'
 import ScheduleEditor from '../components/area/ScheduleEditor'
-import HistoryChart from '../components/area/HistoryChart'
-import SensorConfigControls from '../components/area/SensorConfigControls'
 import PrimaryTemperatureSensor from '../components/area/PrimaryTemperatureSensor'
 import TrvConfigDialog from '../components/area/TrvConfigDialog'
-import BoostControls from '../components/common/BoostControls'
 import LearningStats from '../components/area/LearningStats'
 import DevicesPanel from '../components/common/DevicesPanel'
 import TemperatureControl from '../components/area/TemperatureControl'
 import QuickStats from '../components/area/QuickStats'
-import DraggableSettings, { SettingSection } from '../components/common/DraggableSettings'
+import DraggableSettings from '../components/common/DraggableSettings'
+import buildAreaSettingsSections from './area/common/AreaSettingsSections'
+import { HistoryTabContent, LogsTabContent } from './area/common/AreaHistoryAndLogs'
 import { useWebSocket } from '../hooks/useWebSocket'
-import HistoryMigrationControls from '../components/area/HistoryMigrationControls'
-import StorageBackendInfo from '../components/common/StorageBackendInfo'
-import PresetControls from '../components/common/PresetControls'
-import AutoPresetControls from '../components/global/AutoPresetControls'
 import AreaHeader from '../components/area/AreaHeader'
-import LogsPanel from '../components/area/LogsPanel'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -110,8 +66,61 @@ const ZoneDetail = () => {
   const { areaId } = useParams<{ areaId: string }>()
   const navigate = useNavigate()
   // Helper: accepts boolean or string forms of enabled and returns boolean true only
-  const isEnabledVal = (v: boolean | string | undefined | null) =>
-    v === true || String(v) === 'true'
+  const isEnabledVal = useCallback(
+    (v: boolean | string | undefined | null) => v === true || String(v) === 'true',
+    [],
+  )
+
+  // Small helper to compute display temperature for a zone without nested ternaries
+  const getDisplayTempForZone = useCallback(
+    (z: Zone | null) => {
+      if (!z) return 0
+      if (!isEnabledVal(z.enabled) || z.state === 'off') return z.target_temperature
+      if (z.preset_mode && z.preset_mode !== 'none' && z.effective_target_temperature != null)
+        return z.effective_target_temperature
+      return z.target_temperature
+    },
+    [isEnabledVal],
+  )
+
+  const loadEntityStates = useCallback(async (currentZone: Zone) => {
+    try {
+      const states: Record<string, any> = {}
+
+      const loadPresence = async () => {
+        if (!currentZone.presence_sensors) return
+        for (const sensor of currentZone.presence_sensors) {
+          const entity_id = typeof sensor === 'string' ? sensor : sensor.entity_id
+          try {
+            const s = await getEntityState(entity_id)
+            states[entity_id] = { state: s?.state, name: s?.attributes?.friendly_name }
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      const loadWindow = async () => {
+        if (!currentZone.window_sensors) return
+        for (const sensor of currentZone.window_sensors) {
+          const entity_id = typeof sensor === 'string' ? sensor : sensor.entity_id
+          try {
+            const state = await getEntityState(entity_id)
+            states[entity_id] = state
+          } catch (err) {
+            console.error(`Failed to load state for ${entity_id}:`, err)
+          }
+        }
+      }
+
+      await loadPresence()
+      await loadWindow()
+
+      setEntityStates(states)
+    } catch (err) {
+      console.error('Failed to load entity states:', err)
+    }
+  }, [])
   const [area, setArea] = useState<Zone | null>(null)
   const [availableDevices, setAvailableDevices] = useState<Device[]>([])
   const [entityStates, setEntityStates] = useState<Record<string, any>>({})
@@ -144,30 +153,14 @@ const ZoneDetail = () => {
     onZoneUpdate: updatedZone => {
       if (updatedZone.id === areaId) {
         setArea(updatedZone)
-        const displayTemp =
-          !isEnabledVal(updatedZone.enabled) || updatedZone.state === 'off'
-            ? updatedZone.target_temperature
-            : updatedZone.preset_mode &&
-                updatedZone.preset_mode !== 'none' &&
-                updatedZone.effective_target_temperature != null
-              ? updatedZone.effective_target_temperature
-              : updatedZone.target_temperature
-        setTemperature(displayTemp)
+        setTemperature(getDisplayTempForZone(updatedZone))
       }
     },
     onZonesUpdate: areas => {
       const currentZone = areas.find(z => z.id === areaId)
       if (currentZone) {
         setArea(currentZone)
-        const displayTemp =
-          !isEnabledVal(currentZone.enabled) || currentZone.state === 'off'
-            ? currentZone.target_temperature
-            : currentZone.preset_mode &&
-                currentZone.preset_mode !== 'none' &&
-                currentZone.effective_target_temperature != null
-              ? currentZone.effective_target_temperature
-              : currentZone.target_temperature
-        setTemperature(displayTemp)
+        setTemperature(getDisplayTempForZone(currentZone))
       }
     },
   })
@@ -176,7 +169,7 @@ const ZoneDetail = () => {
   // full weather entities list isn't loaded (keeps behavior for tests).
   useEffect(() => {
     const ensureSelected = async () => {
-      if (!area || !area.weather_entity_id) return
+      if (!area?.weather_entity_id) return
       try {
         await getEntityState(area.weather_entity_id)
       } catch {
@@ -201,15 +194,7 @@ const ZoneDetail = () => {
       }
 
       setArea(currentZone)
-      const displayTemp =
-        !isEnabledVal(currentZone.enabled) || currentZone.state === 'off'
-          ? currentZone.target_temperature
-          : currentZone.preset_mode &&
-              currentZone.preset_mode !== 'none' &&
-              currentZone.effective_target_temperature != null
-            ? currentZone.effective_target_temperature
-            : currentZone.target_temperature
-      setTemperature(displayTemp)
+      setTemperature(getDisplayTempForZone(currentZone))
       // Load global presets for preset configuration section
       try {
         const presets = await getGlobalPresets()
@@ -240,7 +225,7 @@ const ZoneDetail = () => {
     } finally {
       setLoading(false)
     }
-  }, [areaId, navigate])
+  }, [areaId, navigate, getDisplayTempForZone, loadEntityStates])
 
   // TRV editing logic moved to TrvList component
 
@@ -271,42 +256,6 @@ const ZoneDetail = () => {
     loadData()
     loadHistoryConfig()
   }, [areaId, loadData, loadHistoryConfig])
-
-  const loadEntityStates = async (currentZone: Zone) => {
-    try {
-      const states: Record<string, any> = {}
-
-      // Load presence sensor states and names
-      if (currentZone.presence_sensors) {
-        for (const sensor of currentZone.presence_sensors) {
-          const entity_id = typeof sensor === 'string' ? sensor : sensor.entity_id
-          try {
-            const state = await getEntityState(entity_id)
-            states[entity_id] = state
-          } catch (error) {
-            console.error(`Failed to load state for ${entity_id}:`, error)
-          }
-        }
-      }
-
-      // Load window sensor states and names
-      if (currentZone.window_sensors) {
-        for (const sensor of currentZone.window_sensors) {
-          const entity_id = typeof sensor === 'string' ? sensor : sensor.entity_id
-          try {
-            const state = await getEntityState(entity_id)
-            states[entity_id] = state
-          } catch (error) {
-            console.error(`Failed to load state for ${entity_id}:`, error)
-          }
-        }
-      }
-
-      setEntityStates(states)
-    } catch (error) {
-      console.error('Failed to load entity states:', error)
-    }
-  }
 
   const loadAvailableDevices = async (currentZone: Zone) => {
     try {
@@ -467,40 +416,44 @@ const ZoneDetail = () => {
     }
   }
 
-  const getDeviceStatus = (device: any) => {
-    if (device.type === 'thermostat') {
-      const parts = []
-      if (device.current_temperature !== undefined && device.current_temperature !== null) {
-        parts.push(`${device.current_temperature.toFixed(1)}°C`)
-      }
-      // Use area target temperature instead of device's stale target
-      if (
-        area?.target_temperature !== undefined &&
-        area.target_temperature !== null &&
-        device.current_temperature !== undefined &&
-        device.current_temperature !== null &&
-        area.target_temperature > device.current_temperature
-      ) {
-        parts.push(`→ ${area.target_temperature.toFixed(1)}°C`)
-      }
-      return parts.length > 0 ? parts.join(' · ') : device.state || 'unknown'
-    } else if (device.type === 'temperature_sensor') {
-      if (device.temperature !== undefined && device.temperature !== null) {
-        return `${device.temperature.toFixed(1)}°C`
-      }
-      return device.state || 'unknown'
-    } else if (device.type === 'valve') {
-      const parts = []
-      if (device.position !== undefined) {
-        parts.push(`${device.position}%`)
-      }
-      if (device.state) {
-        parts.push(device.state)
-      }
-      return parts.length > 0 ? parts.join(' · ') : 'unknown'
-    } else {
-      return device.state || 'unknown'
+  const getThermostatStatus = (area: Zone | null, device: any) => {
+    const parts: string[] = []
+    if (device.current_temperature !== undefined && device.current_temperature !== null) {
+      parts.push(`${device.current_temperature.toFixed(1)}°C`)
     }
+
+    if (
+      area?.target_temperature !== undefined &&
+      area.target_temperature !== null &&
+      device.current_temperature !== undefined &&
+      device.current_temperature !== null &&
+      area.target_temperature > device.current_temperature
+    ) {
+      parts.push(`→ ${area.target_temperature.toFixed(1)}°C`)
+    }
+
+    return parts.length > 0 ? parts.join(' · ') : device.state || 'unknown'
+  }
+
+  const getTemperatureSensorStatus = (device: any) => {
+    if (device.temperature !== undefined && device.temperature !== null) {
+      return `${device.temperature.toFixed(1)}°C`
+    }
+    return device.state || 'unknown'
+  }
+
+  const getValveStatus = (device: any) => {
+    const parts: string[] = []
+    if (device.position !== undefined) parts.push(`${device.position}%`)
+    if (device.state) parts.push(device.state)
+    return parts.length > 0 ? parts.join(' · ') : 'unknown'
+  }
+
+  const getDeviceStatus = (device: any) => {
+    if (device.type === 'thermostat') return getThermostatStatus(area, device)
+    if (device.type === 'temperature_sensor') return getTemperatureSensorStatus(device)
+    if (device.type === 'valve') return getValveStatus(device)
+    return device.state || 'unknown'
   }
 
   const getStateColor = (state: string) => {
@@ -534,1027 +487,7 @@ const ZoneDetail = () => {
     return `${customTemp ?? fallback}°C (custom)`
   }
 
-  // Generate settings sections for draggable layout
-  const getSettingsSections = (): SettingSection[] => {
-    if (!area) return []
-    const areaEnabled = isEnabledVal(area.enabled)
-
-    return [
-      {
-        id: 'preset-modes',
-        title: t('settingsCards.presetModesTitle'),
-        description: t('settingsCards.presetModesDescription'),
-        icon: <BookmarkIcon />,
-        badge:
-          !areaEnabled || area.state === 'off' || area.preset_mode === 'none'
-            ? undefined
-            : t(`presets.${area.preset_mode}`),
-        defaultExpanded: false,
-        content: (
-          <PresetControls
-            area={area}
-            areaEnabled={areaEnabled}
-            globalPresets={globalPresets}
-            getPresetTemp={getPresetTemp}
-            loadData={loadData}
-          />
-        ),
-      },
-      {
-        id: 'preset-config',
-        title: t('settingsCards.presetTemperatureConfigTitle'),
-        description: t('settingsCards.presetTemperatureConfigDescription'),
-        icon: <BookmarkIcon />,
-        defaultExpanded: false,
-        content: (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {globalPresets &&
-              [
-                {
-                  key: 'away',
-                  label: 'Away',
-                  global: globalPresets.away_temp,
-                  custom: area.away_temp,
-                },
-                { key: 'eco', label: 'Eco', global: globalPresets.eco_temp, custom: area.eco_temp },
-                {
-                  key: 'comfort',
-                  label: 'Comfort',
-                  global: globalPresets.comfort_temp,
-                  custom: area.comfort_temp,
-                },
-                {
-                  key: 'home',
-                  label: 'Home',
-                  global: globalPresets.home_temp,
-                  custom: area.home_temp,
-                },
-                {
-                  key: 'sleep',
-                  label: 'Sleep',
-                  global: globalPresets.sleep_temp,
-                  custom: area.sleep_temp,
-                },
-                {
-                  key: 'activity',
-                  label: 'Activity',
-                  global: globalPresets.activity_temp,
-                  custom: area.activity_temp,
-                },
-              ].map(preset => {
-                const useGlobalKey = `use_global_${preset.key}` as keyof Zone
-                const useGlobal = (area[useGlobalKey] as boolean | undefined) ?? true
-                const effectiveTemp = useGlobal ? preset.global : preset.custom
-
-                return (
-                  <Box key={preset.key}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={useGlobal}
-                          onChange={async e => {
-                            e.stopPropagation()
-                            const newValue = e.target.checked
-                            try {
-                              await setAreaPresetConfig(area.id, { [useGlobalKey]: newValue })
-                              await loadData()
-                            } catch (error) {
-                              console.error('Failed to update preset config:', error)
-                              alert(`Failed to update preset: ${error}`)
-                            }
-                          }}
-                        />
-                      }
-                      label={
-                        <Box>
-                          <Typography variant="body1">
-                            {useGlobal
-                              ? t('settingsCards.presetUseGlobal', { preset: preset.label })
-                              : t('settingsCards.presetUseCustom', { preset: preset.label })}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {useGlobal
-                              ? t('settingsCards.usingGlobalSetting', { temp: preset.global })
-                              : t('settingsCards.usingCustomSetting', {
-                                  temp: preset.custom ?? 'not set',
-                                })}
-                          </Typography>
-                        </Box>
-                      }
-                    />
-                    {!useGlobal && (
-                      <Box sx={{ mt: 2, pl: 2 }}>
-                        <Typography variant="body2" gutterBottom>
-                          {t('settingsCards.customTemperature')}:{' '}
-                          {preset.custom?.toFixed(1) ?? effectiveTemp?.toFixed(1)}°C
-                        </Typography>
-                        <Slider
-                          value={preset.custom ?? effectiveTemp ?? 20}
-                          min={10}
-                          max={30}
-                          step={0.5}
-                          marks={[
-                            { value: 15, label: '15°C' },
-                            { value: 20, label: '20°C' },
-                            { value: 25, label: '25°C' },
-                          ]}
-                          valueLabelDisplay="auto"
-                          onChange={async (_, newValue) => {
-                            const tempValue = newValue as number
-                            const tempKey = `${preset.key}_temp` as keyof Zone
-                            try {
-                              await setAreaPresetConfig(area.id, { [tempKey]: tempValue })
-                              await loadData()
-                            } catch (error) {
-                              console.error('Failed to update custom temperature:', error)
-                              alert(`Failed to update temperature: ${error}`)
-                            }
-                          }}
-                        />
-                      </Box>
-                    )}
-                  </Box>
-                )
-              })}
-
-            <Alert severity="info" sx={{ mt: 2 }}>
-              {t('settingsCards.presetConfigInfo')}
-            </Alert>
-          </Box>
-        ),
-      },
-      {
-        id: 'boost-mode',
-        title: t('settingsCards.boostModeTitle'),
-        description:
-          area.heating_type === 'airco'
-            ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')
-            : t('settingsCards.boostModeDescription'),
-        icon: <SpeedIcon />,
-        badge: area.boost_mode_active ? 'ACTIVE' : undefined,
-        defaultExpanded: area.boost_mode_active,
-        content: <BoostControls area={area} loadData={loadData} />,
-      },
-      {
-        id: 'hvac-mode',
-        title: 'HVAC Mode',
-        description: 'Control the heating/cooling mode for this area',
-        icon: <TuneIcon />,
-        badge: area.hvac_mode || 'heat',
-        defaultExpanded: false,
-        content: (
-          <FormControl fullWidth>
-            <InputLabel>HVAC Mode</InputLabel>
-            <Select
-              data-testid="hvac-mode-select"
-              value={area.hvac_mode || 'heat'}
-              label="HVAC Mode"
-              onChange={async e => {
-                try {
-                  await setHvacMode(area.id, e.target.value)
-                  loadData()
-                } catch (error) {
-                  console.error('Failed to set HVAC mode:', error)
-                }
-              }}
-            >
-              <MenuItem value="heat">Heat</MenuItem>
-              <MenuItem value="cool">Cool</MenuItem>
-              <MenuItem value="auto">Auto</MenuItem>
-              <MenuItem value="off">Off</MenuItem>
-            </Select>
-          </FormControl>
-        ),
-      },
-      {
-        id: 'heating-type',
-        title: t('settingsCards.heatingTypeTitle', 'Heating Type'),
-        description: t(
-          'settingsCards.heatingTypeDescription',
-          'Select radiator or floor heating to optimize temperature control',
-        ),
-        icon: <LocalFireDepartmentIcon />,
-        badge:
-          area.heating_type === 'floor_heating'
-            ? t('settingsCards.floorHeating', 'Floor Heating')
-            : area.heating_type === 'airco'
-              ? t('settingsCards.airConditioner', 'Air Conditioner')
-              : t('settingsCards.radiator', 'Radiator'),
-        defaultExpanded: false,
-        content: (
-          <Box>
-            <RadioGroup
-              data-testid="heating-type-control"
-              aria-label={t('settingsCards.heatingTypeTitle', 'Heating Type')}
-              value={area.heating_type || 'radiator'}
-              onChange={async e => {
-                try {
-                  await setHeatingType(
-                    area.id,
-                    e.target.value as 'radiator' | 'floor_heating' | 'airco',
-                  )
-                  loadData()
-                } catch (error) {
-                  console.error('Failed to update heating type:', error)
-                }
-              }}
-            >
-              <FormControlLabel
-                value="radiator"
-                control={<Radio />}
-                label={
-                  <Box>
-                    <Typography variant="body1">
-                      {t('settingsCards.radiator', 'Radiator')}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {t(
-                        'settingsCards.radiatorDescription',
-                        'Fast response, higher overhead temperature (default: +20°C)',
-                      )}
-                    </Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel
-                value="floor_heating"
-                control={<Radio />}
-                label={
-                  <Box>
-                    <Typography variant="body1">
-                      {t('settingsCards.floorHeating', 'Floor Heating')}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {t(
-                        'settingsCards.floorHeatingDescription',
-                        'Slow response, lower overhead temperature (default: +5°C)',
-                      )}
-                    </Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel
-                value="airco"
-                control={<Radio />}
-                label={
-                  <Box>
-                    <Typography variant="body1">
-                      {t('settingsCards.airConditioner', 'Air Conditioner')}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {t(
-                        'settingsCards.aircoDescription',
-                        'Use air conditioner (cooling/heating). Radiator/floor-specific settings are disabled.',
-                      )}
-                    </Typography>
-                  </Box>
-                }
-              />
-            </RadioGroup>
-
-            <Alert severity="info" sx={{ mt: 2 }}>
-              {t(
-                'settingsCards.heatingTypeInfo',
-                'Heating type affects the boiler setpoint temperature. Radiators use higher temperature for faster heating, floor heating uses lower temperature for gradual heating.',
-              )}
-            </Alert>
-
-            {/* Per-area heating curve coefficient */}
-            <Box sx={{ mt: 2 }} data-testid="heating-curve-control">
-              <Typography variant="subtitle1">
-                {t('settingsCards.heatingCurveTitle', 'Heating Curve Coefficient')}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t(
-                  'settingsCards.heatingCurveDescription',
-                  'Optional per-area coefficient used in heating curve calculations. Leave blank to use the global coefficient.',
-                )}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      data-testid="heating-curve-override-switch"
-                      checked={!useGlobalHeatingCurve}
-                      onChange={e => setUseGlobalHeatingCurve(!e.target.checked)}
-                    />
-                  }
-                  label={t('settingsCards.heatingCurveUseArea', 'Use area-specific coefficient')}
-                />
-                <TextField
-                  label="Coefficient"
-                  type="number"
-                  value={areaHeatingCurveCoefficient ?? ''}
-                  onChange={e =>
-                    setAreaHeatingCurveCoefficient(e.target.value ? Number(e.target.value) : null)
-                  }
-                  disabled={useGlobalHeatingCurve || area.heating_type === 'airco'}
-                  slotProps={{ htmlInput: { step: 0.1, min: 0.1, max: 10 } }}
-                  inputProps={{ 'data-testid': 'heating-curve-control' }}
-                  helperText={
-                    area.heating_type === 'airco'
-                      ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')
-                      : useGlobalHeatingCurve
-                        ? t(
-                            'settingsCards.heatingCurveHelper.usingGlobal',
-                            'Using global coefficient',
-                          )
-                        : t(
-                            'settingsCards.heatingCurveHelper.overrideActive',
-                            'Per-area override active',
-                          )
-                  }
-                />
-                <Button
-                  variant="contained"
-                  onClick={async () => {
-                    try {
-                      await setAreaHeatingCurve(
-                        area.id,
-                        useGlobalHeatingCurve,
-                        areaHeatingCurveCoefficient ?? undefined,
-                      )
-                      await loadData()
-                    } catch (err) {
-                      console.error('Failed to save heating curve coefficient', err)
-                    }
-                  }}
-                >
-                  {t('common.save', 'Save')}
-                </Button>
-              </Box>
-            </Box>
-          </Box>
-        ),
-      },
-      {
-        id: 'switch-control',
-        title: t('settingsCards.switchPumpControlTitle'),
-        description: t('settingsCards.switchPumpControlDescription'),
-        icon: <PowerSettingsNewIcon />,
-        badge: (area.shutdown_switches_when_idle ?? true) ? 'Auto Off' : 'Always On',
-        defaultExpanded: false,
-        content: (
-          <Box>
-            <FormControlLabel
-              control={
-                <Switch
-                  data-testid="shutdown-switches-input"
-                  checked={area.shutdown_switches_when_idle ?? true}
-                  disabled={area.heating_type === 'airco'}
-                  onChange={async e => {
-                    try {
-                      await setSwitchShutdown(area.id, e.target.checked)
-                      loadData()
-                    } catch (error) {
-                      console.error('Failed to update switch shutdown setting:', error)
-                    }
-                  }}
-                />
-              }
-              label={t('settingsCards.shutdownSwitchesPumps')}
-            />
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              display="block"
-              sx={{ mt: 1, ml: 4 }}
-            >
-              {area.heating_type === 'airco'
-                ? t('settingsCards.disabledForAirco')
-                : t('settingsCards.shutdownSwitchesDescription')}
-            </Typography>
-          </Box>
-        ),
-      },
-      {
-        id: 'window-sensors',
-        title: t('settingsCards.windowSensorsTitle'),
-        description: t('settingsCards.windowSensorsDescription'),
-        icon: <WindowIcon />,
-        badge: area.window_sensors?.length || undefined,
-        defaultExpanded: false,
-        content: (
-          <SensorConfigControls area={area} entityStates={entityStates} loadData={loadData} />
-        ),
-      },
-      {
-        id: 'presence-config',
-        title: t('settingsCards.presenceConfigTitle'),
-        description: t('settingsCards.presenceConfigDescription'),
-        icon: <SensorOccupiedIcon />,
-        defaultExpanded: false,
-        content: (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={area.use_global_presence ?? false}
-                  onChange={async e => {
-                    e.stopPropagation()
-                    const newValue = e.target.checked
-                    try {
-                      await setAreaPresenceConfig(area.id, newValue)
-                      // Force reload to get updated data
-                      await loadData()
-                    } catch (error) {
-                      console.error('Failed to update presence config:', error)
-                      alert(`Failed to update presence config: ${error}`)
-                    }
-                  }}
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body1">
-                    {area.use_global_presence
-                      ? t('settingsCards.useGlobalPresence')
-                      : t('settingsCards.useAreaSpecificSensors')}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {area.use_global_presence
-                      ? t('settingsCards.useGlobalPresenceDescription')
-                      : t('settingsCards.useAreaSpecificDescription')}
-                  </Typography>
-                </Box>
-              }
-            />
-
-            <Alert severity="info">{t('settingsCards.presenceToggleInfo')}</Alert>
-          </Box>
-        ),
-      },
-
-      {
-        id: 'auto-preset',
-        title: t('settingsCards.autoPresetTitle'),
-        description: t('settingsCards.autoPresetDescription'),
-        icon: <PersonIcon />,
-        badge: area.auto_preset_enabled ? 'AUTO' : 'OFF',
-        defaultExpanded: false,
-        content: (
-          <>
-            <Box
-              sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}
-            >
-              <Box>
-                <Typography variant="body1" color="text.primary">
-                  {t('settingsCards.enableAutoPreset')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {t('settingsCards.enableAutoPresetDescription')}
-                </Typography>
-              </Box>
-              <Switch
-                data-testid="auto-preset-toggle"
-                checked={area.auto_preset_enabled ?? false}
-                onChange={async e => {
-                  try {
-                    await fetch(`/api/smart_heating/areas/${area.id}/auto_preset`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        auto_preset_enabled: e.target.checked,
-                      }),
-                    })
-                    loadData()
-                  } catch (error) {
-                    console.error('Failed to update auto preset:', error)
-                  }
-                }}
-              />
-            </Box>
-
-            <AutoPresetControls area={area} loadData={loadData} />
-          </>
-        ),
-      },
-      {
-        id: 'night-boost',
-        title: t('settingsCards.nightBoostTitle'),
-        description:
-          area.heating_type === 'airco'
-            ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')
-            : t('settingsCards.nightBoostDescription'),
-        icon: <NightsStayIcon />,
-        badge: area.night_boost_enabled ? 'ON' : 'OFF',
-        defaultExpanded: false,
-        content:
-          area.heating_type === 'airco' ? (
-            <Alert severity="info" data-testid="night-boost-disabled-airco">
-              {t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')}
-            </Alert>
-          ) : (
-            <>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mb: 3,
-                }}
-              >
-                <Box>
-                  <Typography variant="body1" color="text.primary">
-                    {t('settingsCards.enableNightBoost')}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {t('settingsCards.enableNightBoostDescription')}
-                  </Typography>
-                </Box>
-                <Switch
-                  checked={area.night_boost_enabled ?? true}
-                  onChange={async e => {
-                    try {
-                      await fetch('/api/smart_heating/call_service', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          service: 'set_night_boost',
-                          area_id: area.id,
-                          night_boost_enabled: e.target.checked,
-                        }),
-                      })
-                      loadData()
-                    } catch (error) {
-                      console.error('Failed to update night boost:', error)
-                    }
-                  }}
-                />
-              </Box>
-
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {t('settingsCards.nightBoostPeriod')}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                <TextField
-                  label={t('settingsCards.startTime')}
-                  type="time"
-                  value={area.night_boost_start_time ?? '22:00'}
-                  data-testid="night-boost-start-time-input"
-                  onChange={async e => {
-                    try {
-                      await fetch('/api/smart_heating/call_service', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          service: 'set_night_boost',
-                          area_id: area.id,
-                          night_boost_start_time: e.target.value,
-                        }),
-                      })
-                      loadData()
-                    } catch (error) {
-                      console.error('Failed to update night boost start time:', error)
-                    }
-                  }}
-                  disabled={!area.night_boost_enabled}
-                  slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 300 } }}
-                  sx={{ flex: 1 }}
-                />
-                <TextField
-                  label={t('settingsCards.endTime')}
-                  type="time"
-                  value={area.night_boost_end_time ?? '06:00'}
-                  data-testid="night-boost-end-time-input"
-                  onChange={async e => {
-                    try {
-                      await fetch('/api/smart_heating/call_service', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          service: 'set_night_boost',
-                          area_id: area.id,
-                          night_boost_end_time: e.target.value,
-                        }),
-                      })
-                      loadData()
-                    } catch (error) {
-                      console.error('Failed to update night boost end time:', error)
-                    }
-                  }}
-                  disabled={!area.night_boost_enabled}
-                  slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 300 } }}
-                  sx={{ flex: 1 }}
-                />
-              </Box>
-
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {t('settingsCards.nightBoostOffset')}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Slider
-                  value={area.night_boost_offset ?? 0.5}
-                  onChange={async (_e, value) => {
-                    try {
-                      await fetch('/api/smart_heating/call_service', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          service: 'set_night_boost',
-                          area_id: area.id,
-                          night_boost_offset: value,
-                        }),
-                      })
-                      loadData()
-                    } catch (error) {
-                      console.error('Failed to update night boost offset:', error)
-                    }
-                  }}
-                  min={0}
-                  max={3}
-                  step={0.1}
-                  marks={[
-                    { value: 0, label: '0°C' },
-                    { value: 1.5, label: '1.5°C' },
-                    { value: 3, label: '3°C' },
-                  ]}
-                  valueLabelDisplay="auto"
-                  valueLabelFormat={value => `+${value}°C`}
-                  disabled={!area.night_boost_enabled}
-                  sx={{ flexGrow: 1 }}
-                />
-                <Typography variant="h6" color="primary" sx={{ minWidth: 60 }}>
-                  +{area.night_boost_offset ?? 0.5}°C
-                </Typography>
-              </Box>
-            </>
-          ),
-      },
-      {
-        id: 'smart-night-boost',
-        title: t('settingsCards.smartNightBoostTitle'),
-        description:
-          area.heating_type === 'airco'
-            ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')
-            : t('settingsCards.smartNightBoostDescription'),
-        icon: <PsychologyIcon />,
-        badge: area.smart_boost_enabled ? 'LEARNING' : 'OFF',
-        defaultExpanded: false,
-        content:
-          area.heating_type === 'airco' ? (
-            <Alert severity="info" data-testid="smart-night-boost-disabled-airco">
-              {t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')}
-            </Alert>
-          ) : (
-            <>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('settingsCards.smartNightBoostIntro')}
-              </Typography>
-
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mb: 3,
-                }}
-              >
-                <Box>
-                  <Typography variant="body1" color="text.primary">
-                    {t('settingsCards.enableSmartNightBoost')}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {t('settingsCards.enableSmartNightBoostDescription')}
-                  </Typography>
-                </Box>
-                <Switch
-                  checked={area.smart_boost_enabled ?? false}
-                  onChange={async e => {
-                    try {
-                      await fetch('/api/smart_heating/call_service', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          service: 'set_night_boost',
-                          area_id: area.id,
-                          smart_boost_enabled: e.target.checked,
-                        }),
-                      })
-                      loadData()
-                    } catch (error) {
-                      console.error('Failed to update smart night boost:', error)
-                    }
-                  }}
-                />
-              </Box>
-
-              <TextField
-                label={t('settingsCards.targetWakeupTime')}
-                type="time"
-                value={area.smart_boost_target_time ?? '06:00'}
-                data-testid="smart-night-boost-target-time-input"
-                onChange={async e => {
-                  try {
-                    await fetch('/api/smart_heating/call_service', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        service: 'set_night_boost',
-                        area_id: area.id,
-                        smart_boost_target_time: e.target.value,
-                      }),
-                    })
-                    loadData()
-                  } catch (error) {
-                    console.error('Failed to update target time:', error)
-                  }
-                }}
-                disabled={!area.smart_boost_enabled}
-                fullWidth
-                helperText={t('settingsCards.targetWakeupTimeHelper')}
-                slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 300 } }}
-                sx={{ mb: 3 }}
-              />
-
-              <OutdoorSensorControls area={area} loadData={loadData} />
-
-              {area.smart_boost_enabled && (
-                <Box sx={{ mt: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    <strong>{t('settingsCards.smartNightBoostHowItWorksTitle')}</strong>
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" component="div">
-                    • {t('settingsCards.smartNightBoostBullet1')}
-                    <br />• {t('settingsCards.smartNightBoostBullet2')}
-                    <br />• {t('settingsCards.smartNightBoostBullet3')}
-                    <br />• {t('settingsCards.smartNightBoostBullet4')}
-                  </Typography>
-                </Box>
-              )}
-            </>
-          ),
-      },
-      {
-        id: 'heating-control',
-        title: t('settingsCards.heatingControlTitle'),
-        description:
-          area.heating_type === 'airco'
-            ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')
-            : t('settingsCards.heatingControlDescription'),
-        icon: <TuneIcon />,
-        defaultExpanded: false,
-        content:
-          area.heating_type === 'airco' ? (
-            <Alert severity="info" data-testid="heating-control-disabled-airco">
-              {t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')}
-            </Alert>
-          ) : (
-            <>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {t('settingsCards.temperatureHysteresis')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                {t('settingsCards.temperatureHysteresisDescription')}
-              </Typography>
-
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={
-                      area.hysteresis_override === null || area.hysteresis_override === undefined
-                    }
-                    onChange={async e => {
-                      const useGlobal = e.target.checked
-
-                      // Optimistic update
-                      const updatedArea = {
-                        ...area,
-                        hysteresis_override: useGlobal ? null : 0.5,
-                      }
-                      setArea(updatedArea)
-
-                      try {
-                        const response = await fetch(
-                          `/api/smart_heating/areas/${area.id}/hysteresis`,
-                          {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              use_global: useGlobal,
-                              hysteresis: useGlobal ? null : 0.5,
-                            }),
-                          },
-                        )
-                        if (!response.ok) {
-                          const errorText = await response.text()
-                          console.error('Failed to update hysteresis setting:', errorText)
-                          // Revert on error
-                          setArea(area)
-                        }
-                      } catch (error) {
-                        console.error('Failed to update hysteresis setting:', error)
-                        // Revert on error
-                        setArea(area)
-                      }
-                    }}
-                  />
-                }
-                label={t('settingsCards.useGlobalHysteresis')}
-                sx={{ mb: 2 }}
-              />
-
-              {area.hysteresis_override === null || area.hysteresis_override === undefined ? (
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  {t('settingsCards.usingGlobalHysteresis')}
-                </Alert>
-              ) : (
-                <>
-                  <Alert severity="warning" sx={{ mb: 2 }}>
-                    {t('settingsCards.usingAreaHysteresis')}
-                  </Alert>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-                    <Slider
-                      value={area.hysteresis_override || 0.5}
-                      onChange={async (_e, value) => {
-                        // Optimistic update
-                        const updatedArea = {
-                          ...area,
-                          hysteresis_override: typeof value === 'number' ? value : 0.5,
-                        }
-                        setArea(updatedArea)
-
-                        try {
-                          const response = await fetch(
-                            `/api/smart_heating/areas/${area.id}/hysteresis`,
-                            {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                use_global: false,
-                                hysteresis: value,
-                              }),
-                            },
-                          )
-                          if (!response.ok) {
-                            const errorText = await response.text()
-                            console.error('Failed to update hysteresis:', errorText)
-                            // Revert on error
-                            setArea(area)
-                          }
-                        } catch (error) {
-                          console.error('Failed to update hysteresis:', error)
-                          // Revert on error
-                          setArea(area)
-                        }
-                      }}
-                      min={0.1}
-                      max={2}
-                      step={0.1}
-                      marks={[
-                        { value: 0.1, label: '0.1°C' },
-                        { value: 1, label: '1.0°C' },
-                        { value: 2, label: '2.0°C' },
-                      ]}
-                      valueLabelDisplay="on"
-                      valueLabelFormat={value => `${value}°C`}
-                      sx={{ flexGrow: 1 }}
-                    />
-                  </Box>
-                </>
-              )}
-
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {t('settingsCards.temperatureLimits')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                {t('settingsCards.temperatureLimitsDescription')}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 3 }}>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    {t('settingsCards.minimumTemperature')}
-                  </Typography>
-                  <Typography variant="h4" color="text.primary">
-                    5°C
-                  </Typography>
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    {t('settingsCards.maximumTemperature')}
-                  </Typography>
-                  <Typography variant="h4" color="text.primary">
-                    30°C
-                  </Typography>
-                </Box>
-              </Box>
-            </>
-          ),
-      },
-      {
-        id: 'history-management',
-        title: t('settingsCards.historyManagementTitle'),
-        description: t('settingsCards.historyManagementDescription'),
-        icon: <HistoryIcon />,
-        defaultExpanded: false,
-        content: (
-          <>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              {t('settingsCards.dataRetentionDescription', { interval: recordInterval })}
-            </Typography>
-
-            {/* Storage Backend Display */}
-            <StorageBackendInfo storageBackend={storageBackend} databaseStats={databaseStats} />
-            {/* Migration Buttons */}
-            <Box sx={{ mb: 0 }}>
-              <HistoryMigrationControls
-                storageBackend={storageBackend as 'json' | 'database'}
-                migrating={migrating}
-                onMigrateToDatabase={async () => {
-                  if (
-                    !globalThis.confirm(
-                      'Migrate history data to database? This requires MariaDB, MySQL, or PostgreSQL. SQLite is not supported.',
-                    )
-                  )
-                    return
-                  setMigrating(true)
-                  try {
-                    const result = await migrateHistoryStorage('database')
-                    if (result.success) {
-                      alert(`Successfully migrated ${result.migrated_entries} entries to database!`)
-                      await loadHistoryConfig()
-                    } else {
-                      alert(`Migration failed: ${result.message}`)
-                    }
-                  } catch (error: any) {
-                    alert(`Migration error: ${error.message}`)
-                  } finally {
-                    setMigrating(false)
-                  }
-                }}
-                onMigrateToJson={async () => {
-                  if (!globalThis.confirm('Migrate history data back to JSON file storage?')) return
-                  setMigrating(true)
-                  try {
-                    const result = await migrateHistoryStorage('json')
-                    if (result.success) {
-                      alert(`Successfully migrated ${result.migrated_entries} entries to JSON!`)
-                      await loadHistoryConfig()
-                    } else {
-                      alert(`Migration failed: ${result.message}`)
-                    }
-                  } catch (error: any) {
-                    alert(`Migration error: ${error.message}`)
-                  } finally {
-                    setMigrating(false)
-                  }
-                }}
-              />
-            </Box>
-
-            <Alert severity="info" sx={{ mt: 2 }} icon={false}>
-              <Typography variant="caption">
-                <strong>Database storage</strong> requires MariaDB ≥10.3, MySQL ≥8.0, or PostgreSQL
-                ≥12. SQLite is not supported and will automatically fall back to JSON storage.
-              </Typography>
-            </Alert>
-
-            {/* Retention Period Slider */}
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {t('settingsCards.dataRetentionPeriod', { days: historyRetention })}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2, mb: 3 }}>
-              <Slider
-                value={historyRetention}
-                onChange={(_, value) => setHistoryRetention(value as number)}
-                min={1}
-                max={365}
-                step={1}
-                marks={[
-                  { value: 1, label: '1d' },
-                  { value: 30, label: '30d' },
-                  { value: 90, label: '90d' },
-                  { value: 180, label: '180d' },
-                  { value: 365, label: '365d' },
-                ]}
-                valueLabelDisplay="auto"
-                valueLabelFormat={value => `${value}d`}
-                sx={{ flexGrow: 1 }}
-              />
-              <Button
-                variant="contained"
-                size="small"
-                onClick={async () => {
-                  try {
-                    await updateHistoryRetention(historyRetention)
-                    await loadHistoryConfig()
-                  } catch (error) {
-                    console.error('Failed to update history retention:', error)
-                  }
-                }}
-              >
-                {t('common.save')}
-              </Button>
-            </Box>
-
-            <Alert severity="info" sx={{ mt: 2 }}>
-              <strong>Note:</strong> {t('settingsCards.historyNote', { interval: recordInterval })}
-            </Alert>
-          </>
-        ),
-      },
-    ]
-  }
+  // Settings builder is used directly in the JSX below
 
   if (loading) {
     return (
@@ -1685,21 +618,7 @@ const ZoneDetail = () => {
 
         {/* History Tab */}
         <TabPanel value={tabValue} index={3}>
-          <Box sx={{ maxWidth: { xs: 800, lg: 1200 }, mx: 'auto' }}>
-            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <HistoryIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-                <Typography variant="h5" color="text.primary" sx={{ fontWeight: 600 }}>
-                  {t('areaDetail.temperatureHistory')}
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('areaDetail.historyDescription')}
-              </Typography>
-
-              {area.id && <HistoryChart areaId={area.id} />}
-            </Paper>
-          </Box>
+          <HistoryTabContent area={area} />
         </TabPanel>
 
         {/* Settings Tab */}
@@ -1707,7 +626,26 @@ const ZoneDetail = () => {
           <Box sx={{ maxWidth: 1600, mx: 'auto', px: 2 }}>
             <DraggableSettings
               key={`settings-${area.id}-${area.presence_sensors?.length || 0}-${area.window_sensors?.length || 0}`}
-              sections={getSettingsSections()}
+              sections={buildAreaSettingsSections({
+                t,
+                area: area,
+                globalPresets,
+                getPresetTemp,
+                loadData,
+                useGlobalHeatingCurve,
+                setUseGlobalHeatingCurve,
+                areaHeatingCurveCoefficient,
+                setAreaHeatingCurveCoefficient,
+                entityStates,
+                historyRetention,
+                setHistoryRetention,
+                storageBackend,
+                databaseStats,
+                migrating,
+                setMigrating,
+                recordInterval,
+                loadHistoryConfig,
+              } as any)}
               storageKey={`area-settings-order-${area.id}`}
               expandedCard={expandedCard}
               onExpandedChange={setExpandedCard}
@@ -1807,15 +745,13 @@ const ZoneDetail = () => {
 
         {/* Logs Tab */}
         <TabPanel value={tabValue} index={6}>
-          <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
-            <LogsPanel
-              logs={logs}
-              logsLoading={logsLoading}
-              logFilter={logFilter}
-              setLogFilter={setLogFilter}
-              loadLogs={loadLogs}
-            />
-          </Box>
+          <LogsTabContent
+            logs={logs}
+            logsLoading={logsLoading}
+            logFilter={logFilter}
+            setLogFilter={setLogFilter}
+            loadLogs={loadLogs}
+          />
         </TabPanel>
       </Box>
     </Box>
