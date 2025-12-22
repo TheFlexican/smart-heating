@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { WindowSensorConfig, PresenceSensorConfig } from '../types'
+import { WindowSensorConfig, PresenceSensorConfig, HassEntity } from '../types'
 const API_BASE = '/api/smart_heating'
 
 export const addWindowSensor = async (
@@ -38,6 +38,25 @@ export const setGlobalPresence = async (sensors: PresenceSensorConfig[]): Promis
 
 export const setAreaPresenceConfig = async (areaId: string, useGlobal: boolean): Promise<void> => {
   await axios.post(`${API_BASE}/areas/${areaId}/preset_config`, { use_global_presence: useGlobal })
+}
+
+// TRV endpoints
+export const getTrvCandidates = async (areaId?: string): Promise<HassEntity[]> => {
+  const url = areaId ? `${API_BASE}/areas/${areaId}/trv_candidates` : `${API_BASE}/trv_candidates`
+  const response = await axios.get(url)
+  // Backend returns { entities: [] }
+  return response.data.entities || []
+}
+
+export const addTrvEntity = async (
+  areaId: string,
+  payload: { entity_id: string; role?: 'position' | 'open' | 'both'; name?: string },
+): Promise<void> => {
+  await axios.post(`${API_BASE}/areas/${areaId}/trv`, payload)
+}
+
+export const removeTrvEntity = async (areaId: string, entityId: string): Promise<void> => {
+  await axios.delete(`${API_BASE}/areas/${areaId}/trv/${entityId}`)
 }
 
 export default {}

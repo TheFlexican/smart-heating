@@ -1,4 +1,22 @@
 import { useState, useEffect, useCallback } from 'react'
+
+// Helper moved outside component for lint rules and testability
+function legendFormatter(value: any, entry: any) {
+  let id = 'history-legend-item-unknown'
+  const val = String(value || '')
+  if (entry?.dataKey) {
+    id = `history-legend-item-${entry.dataKey}`
+  } else if (val.includes('currentTempLine') || val.toLowerCase().includes('current')) {
+    id = 'history-legend-item-current'
+  } else if (val.includes('targetTempLine') || val.toLowerCase().includes('target')) {
+    id = 'history-legend-item-target'
+  } else if (val.toLowerCase().includes('heating')) {
+    id = 'history-legend-item-heating'
+  } else if (val.toLowerCase().includes('cooling')) {
+    id = 'history-legend-item-cooling'
+  }
+  return <span data-testid={id}>{value}</span>
+}
 import { useTranslation } from 'react-i18next'
 import {
   Box,
@@ -12,6 +30,9 @@ import {
   Checkbox,
   Stack,
 } from '@mui/material'
+import { TrvHistoryEntry } from '../types'
+import CustomTooltip from './CustomTooltip'
+
 import {
   Line,
   XAxis,
@@ -31,6 +52,7 @@ interface HistoryEntry {
   current_temperature: number
   target_temperature: number
   state: string
+  trvs?: TrvHistoryEntry[]
 }
 
 interface HistoryChartProps {
@@ -48,6 +70,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
   const [endTime, setEndTime] = useState('')
   const [showHeating, setShowHeating] = useState(true)
   const [showCooling, setShowCooling] = useState(true)
+  const [showTrvs, setShowTrvs] = useState(true)
 
   const loadHistory = useCallback(async () => {
     try {
@@ -108,61 +131,46 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
     return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   })
 
-  // Format data for chart
-  const chartData = sortedData.map(entry => ({
-    time: new Date(entry.timestamp).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }),
-    current: entry.current_temperature,
-    target: entry.target_temperature,
-    // For heating/cooling indicator scatter plot
-    heatingDot: entry.state === 'heating' ? entry.current_temperature : null,
-    coolingDot: entry.state === 'cooling' ? entry.current_temperature : null,
-    // Store state for custom tooltip
-    heatingState: entry.state,
-  }))
+  // Derive TRV entity ids present in history entries
+  const trvIds = Array.from(new Set(sortedData.flatMap(e => (e.trvs || []).map(t => t.entity_id))))
+
+  // Format data for chart and include TRV fields dynamically
+  const chartData = sortedData.map(entry => {
+    const base: any = {
+      time: new Date(entry.timestamp).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }),
+      current: entry.current_temperature,
+      target: entry.target_temperature,
+      // For heating/cooling indicator scatter plot
+      heatingDot: entry.state === 'heating' ? entry.current_temperature : null,
+      coolingDot: entry.state === 'cooling' ? entry.current_temperature : null,
+      // Store state for custom tooltip
+      heatingState: entry.state,
+    }
+
+    // Add TRV series fields
+    for (const id of trvIds) {
+      const trv = (entry.trvs || []).find(t => t.entity_id === id)
+      const sanitized = id
+        .replaceAll('.', '_')
+        .replaceAll('/', '_')
+        .replaceAll(':', '_')
+        .replaceAll('-', '_')
+        .replaceAll(' ', '_')
+      base[`trv_${sanitized}_position`] = trv?.position ?? null
+      // For open markers, use position when available, else a fixed 100 marker
+      base[`trv_${sanitized}_open`] = trv?.open ? (trv.position ?? 100) : null
+    }
+
+    return base
+  })
 
   const hasCooling = chartData.some(d => d.coolingDot !== null && d.coolingDot !== undefined)
 
-  // Custom tooltip to show heating as Active/Inactive
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-      return (
-        <Box
-          sx={{
-            backgroundColor: '#1c1c1c',
-            border: '1px solid #2c2c2c',
-            borderRadius: '8px',
-            padding: '8px 12px',
-            color: '#e1e1e1',
-          }}
-        >
-          <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>{data.time}</div>
-          <div style={{ color: '#03a9f4' }}>Current: {data.current.toFixed(1)}°C</div>
-          <div style={{ color: '#ffc107' }}>Target: {data.target.toFixed(1)}°C</div>
-          {(() => {
-            let stateLabel: string
-            let color: string
-            if (data.heatingState === 'heating') {
-              stateLabel = `${t('areaDetail.heatingActiveLineShort', 'Heating')}: Active`
-              color = '#f44336'
-            } else if (data.heatingState === 'cooling') {
-              stateLabel = `${t('areaDetail.coolingActiveLineShort', 'Cooling')}: Active`
-              color = '#03a9f4'
-            } else {
-              stateLabel = `${t('areaDetail.heatingActiveLineShort', 'Heating')}: Inactive`
-              color = '#e1e1e1'
-            }
-            return <div style={{ color }}>{stateLabel}</div>
-          })()}
-        </Box>
-      )
-    }
-    return null
-  }
+  // Custom tooltip moved outside to satisfy lint rules; t passed in as prop
 
   // Calculate average target temperature for reference line
   const avgTarget =
@@ -277,29 +285,24 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
                 fill: '#9e9e9e',
               }}
             />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend
-              wrapperStyle={{ color: '#e1e1e1' }}
-              formatter={(value: any, entry: any) => {
-                let id = 'history-legend-item-unknown'
-                const val = String(value || '')
-                if (entry && entry.dataKey) {
-                  id = `history-legend-item-${entry.dataKey}`
-                } else if (
-                  val.includes('currentTempLine') ||
-                  val.toLowerCase().includes('current')
-                ) {
-                  id = 'history-legend-item-current'
-                } else if (val.includes('targetTempLine') || val.toLowerCase().includes('target')) {
-                  id = 'history-legend-item-target'
-                } else if (val.toLowerCase().includes('heating')) {
-                  id = 'history-legend-item-heating'
-                } else if (val.toLowerCase().includes('cooling')) {
-                  id = 'history-legend-item-cooling'
-                }
-                return <span data-testid={id}>{value}</span>
-              }}
-            />
+
+            {trvIds.length > 0 && (
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                stroke="#9e9e9e"
+                tick={{ fill: '#9e9e9e' }}
+                domain={[0, 100]}
+                label={{
+                  value: 'Position (%)',
+                  angle: 90,
+                  position: 'insideRight',
+                  fill: '#9e9e9e',
+                }}
+              />
+            )}
+            <Tooltip content={<CustomTooltip t={t} />} />
+            <Legend wrapperStyle={{ color: '#e1e1e1' }} formatter={legendFormatter} />
             {avgTarget && (
               <ReferenceLine
                 y={avgTarget}
@@ -329,6 +332,38 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
               dot={false}
               name={t('areaDetail.targetTempLine')}
             />
+
+            {/* TRV series (position line + optional open markers) */}
+            {trvIds.map((id, idx) => {
+              const sanitized = id
+                .replaceAll('.', '_')
+                .replaceAll('/', '_')
+                .replaceAll(':', '_')
+                .replaceAll('-', '_')
+              const colors = ['#8bc34a', '#9c27b0', '#ff5722', '#607d8b', '#795548']
+              const color = colors[idx % colors.length]
+              return (
+                <span key={`trv-series-${id}`}>
+                  <Line
+                    dataKey={`trv_${sanitized}_position`}
+                    yAxisId="right"
+                    stroke={color}
+                    strokeWidth={2}
+                    dot={false}
+                    name={`TRV ${id} position`}
+                  />
+                  {showTrvs && (
+                    <Scatter
+                      dataKey={`trv_${sanitized}_open`}
+                      yAxisId="right"
+                      fill={color}
+                      shape="triangle"
+                      name={`TRV ${id} open`}
+                    />
+                  )}
+                </span>
+              )
+            })}
             {/** Render heating/cooling activity only if present in history entries */}
             {(() => {
               const hasHeating = chartData.some(
@@ -367,6 +402,11 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
         {hasCooling ? '1' : '0'}
       </div>
 
+      {/* test-only list of TRV ids detected in the history entries */}
+      <div data-testid="history-trv-ids" style={{ display: 'none' }}>
+        {trvIds.join(',')}
+      </div>
+
       <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
         {chartData.some(d => d.heatingDot !== null && d.heatingDot !== undefined) && (
           <FormControlLabel
@@ -380,6 +420,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
             label={t('areaDetail.heatingActiveLineShort', 'Heating')}
           />
         )}
+
         {hasCooling && (
           <FormControlLabel
             control={
@@ -390,6 +431,19 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
               />
             }
             label={t('areaDetail.coolingActiveLineShort', 'Cooling')}
+          />
+        )}
+
+        {trvIds.length > 0 && (
+          <FormControlLabel
+            control={
+              <Checkbox
+                data-testid="history-toggle-trvs"
+                checked={showTrvs}
+                onChange={e => setShowTrvs(e.target.checked)}
+              />
+            }
+            label={t('areaDetail.trvs', 'TRVs')}
           />
         )}
       </Box>

@@ -302,9 +302,57 @@ class ClimateController:
     async def _record_area_history(self, area_id, area, should_record_history, history_tracker):
         """Record history if enabled and available."""
         if should_record_history and history_tracker and area.current_temperature is not None:
+            trvs = self._collect_trv_states(area)
             await history_tracker.async_record_temperature(
-                area_id, area.current_temperature, area.target_temperature, area.state
+                area_id, area.current_temperature, area.target_temperature, area.state, trvs
             )
+
+    def _collect_trv_states(self, area) -> list[dict]:
+        """Collect TRV states for an area's configured TRV entities.
+
+        Returns a list of dicts with keys: entity_id, open, position, running_state
+        """
+        trv_states: list[dict] = []
+        for trv in getattr(area, "trv_entities", []):
+            entity_id = trv.get("entity_id")
+            if not entity_id:
+                continue
+
+            state = self.hass.states.get(entity_id)
+            open_state = None
+            position = None
+            running_state = getattr(area, "state", None)
+
+            try:
+                domain = entity_id.split(".")[0]
+                if domain == "binary_sensor":
+                    if state and state.state not in ("unknown", "unavailable"):
+                        open_state = state.state in ("on", "open")
+                else:
+                    if state and state.state not in ("unknown", "unavailable"):
+                        try:
+                            position = float(state.state)
+                        except (ValueError, TypeError):
+                            for attr in ("position", "valve_position", "current_position"):
+                                if attr in state.attributes:
+                                    try:
+                                        position = float(state.attributes.get(attr))
+                                        break
+                                    except (ValueError, TypeError):
+                                        continue
+            except Exception:
+                continue
+
+            trv_states.append(
+                {
+                    "entity_id": entity_id,
+                    "open": open_state,
+                    "position": position,
+                    "running_state": running_state,
+                }
+            )
+
+        return trv_states
 
     async def _handle_disabled_area(self, area_id, area, history_tracker, should_record_history):
         """Handle an area that is disabled and return True if processing should stop."""

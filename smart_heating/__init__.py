@@ -115,6 +115,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await history_tracker.async_load()
     hass.data[DOMAIN]["history"] = history_tracker
 
+    # Create event store for learning engine
+    from .storage.event_store import EventStore
+
+    event_store = EventStore(hass)
+    await event_store.async_load()
+    hass.data[DOMAIN]["event_store"] = event_store
+    _LOGGER.info("Event store initialized")
+
     # Create area logger for development logging
     # Store logs in .storage/smart_heating/logs/{area_id}/{event_type}.jsonl
     storage_path = hass.config.path(".storage", DOMAIN)
@@ -166,7 +174,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.info("Safety monitor initialized")
 
     # Create learning engine
-    learning_engine = LearningEngine(hass)
+    learning_engine = LearningEngine(hass, event_store)
     await learning_engine.async_setup()
     hass.data[DOMAIN]["learning_engine"] = learning_engine
     _LOGGER.info("Learning engine initialized")

@@ -94,6 +94,11 @@ HISTORY_RECORD_INTERVAL_SECONDS: Final = 300  # Record every 5 minutes
 HISTORY_STORAGE_JSON: Final = "json"  # JSON file storage (default)
 HISTORY_STORAGE_DATABASE: Final = "database"  # Database storage (MariaDB/PostgreSQL)
 
+# Event storage settings for learning engine
+EVENT_RETENTION_DAYS: Final = 90  # Retention period for learning events (90 days)
+EVENT_STORAGE_JSON: Final = "json"  # JSON file storage (default)
+EVENT_STORAGE_DATABASE: Final = "database"  # Database storage (MariaDB/PostgreSQL)
+
 HVAC_MODES: Final = [
     HVAC_MODE_OFF,
     HVAC_MODE_HEAT,

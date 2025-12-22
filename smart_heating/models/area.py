@@ -165,6 +165,14 @@ class Area:
         self._preset_manager = AreaPresetManager(self)
         self._schedule_manager = AreaScheduleManager(self)
 
+        # TRV entity configuration for this area
+        # Each entry is a dict: {"entity_id": str, "role": "position"|"open"|"both"|None, "name": Optional[str]}
+        self.trv_entities: list[dict[str, Any]] = []
+
+        # TRV entity configuration for this area
+        # Each entry is a dict: {"entity_id": str, "role": "position"|"open"|"both"|None, "name": Optional[str]}
+        self.trv_entities: list[dict[str, Any]] = []
+
     # Device management methods - delegate to AreaDeviceManager
     def add_device(self, device_id: str, device_type: str, mqtt_topic: str | None = None) -> None:
         """Add a device to the area.
@@ -270,6 +278,33 @@ class Area:
             entity_id: Entity ID of the presence sensor
         """
         return self._sensor_manager.remove_presence_sensor(entity_id)
+
+    def add_trv_entity(
+        self, entity_id: str, role: str | None = None, name: str | None = None
+    ) -> None:
+        """Add a TRV-related entity to the area configuration.
+
+        Args:
+            entity_id: Entity ID (sensor or binary_sensor)
+            role: Optional role: "position", "open", or "both"
+            name: Optional friendly name override
+        """
+        # If entity exists, update role/name; otherwise add as new
+        for e in self.trv_entities:
+            if e.get("entity_id") == entity_id:
+                e["role"] = role
+                e["name"] = name
+                return
+
+        self.trv_entities.append({"entity_id": entity_id, "role": role, "name": name})
+
+    def remove_trv_entity(self, entity_id: str) -> None:
+        """Remove a TRV entity from the area configuration.
+
+        Args:
+            entity_id: Entity ID to remove
+        """
+        self.trv_entities = [e for e in self.trv_entities if e.get("entity_id") != entity_id]
 
     # Preset management methods - delegate to AreaPresetManager
     def get_preset_temperature(self) -> float:
@@ -470,6 +505,8 @@ class Area:
             # Heating type configuration
             "heating_type": self.heating_type,
             "custom_overhead_temp": self.custom_overhead_temp,
+            # TRV entities configured for this area
+            "trv_entities": self.trv_entities,
         }
 
     @classmethod
@@ -547,6 +584,9 @@ class Area:
         # Heating type configuration
         area.heating_type = data.get("heating_type", "radiator")
         area.custom_overhead_temp = data.get("custom_overhead_temp")
+
+        # TRV entities configuration (backwards compatible - default to empty list)
+        area.trv_entities = data.get("trv_entities", [])
 
         # Window sensors - support both old string format and new dict format
         window_sensors_data = data.get("window_sensors", [])
