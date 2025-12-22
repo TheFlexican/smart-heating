@@ -4,19 +4,12 @@ import {
   Box,
   Paper,
   Typography,
-  IconButton,
   Tabs,
   Tab,
   CircularProgress,
   Button,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Chip,
   Slider,
   Switch,
-  Divider,
   Alert,
   TextField,
   Select,
@@ -27,15 +20,14 @@ import {
   RadioGroup,
   Radio,
 } from '@mui/material'
-// ArrowBackIcon moved into AreaHeader
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import SensorsIcon from '@mui/icons-material/Sensors'
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import AcUnitIcon from '@mui/icons-material/AcUnit'
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew'
 import TuneIcon from '@mui/icons-material/Tune'
-import EditIcon from '@mui/icons-material/Edit'
+// EditIcon removed - TRV editing moved to component
 import NightsStayIcon from '@mui/icons-material/NightsStay'
 import PsychologyIcon from '@mui/icons-material/Psychology'
 import WindowIcon from '@mui/icons-material/Window'
@@ -45,10 +37,8 @@ import HistoryIcon from '@mui/icons-material/History'
 import SpeedIcon from '@mui/icons-material/Speed'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
 import ArticleIcon from '@mui/icons-material/Article'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { useTranslation } from 'react-i18next'
-import AreaHeader from '../components/AreaHeader'
-import { Zone, Device, GlobalPresets, TrvRuntimeState } from '../types'
+import { Zone, Device, GlobalPresets } from '../types'
 import {
   getZones,
   setZoneTemperature,
@@ -62,7 +52,7 @@ import {
   addDeviceToZone,
   removeDeviceFromZone,
 } from '../api/areas'
-import { addTrvEntity, setAreaPresenceConfig, removeTrvEntity } from '../api/sensors'
+import { setAreaPresenceConfig } from '../api/sensors'
 import { getAreaLogs, AreaLogEntry } from '../api/logs'
 import {
   getHistoryConfig,
@@ -73,21 +63,25 @@ import {
 import { getDevices } from '../api/devices'
 import { getGlobalPresets } from '../api/presets'
 import { getEntityState } from '../api/config'
-import OutdoorSensorControls from '../components/OutdoorSensorControls'
-import ScheduleEditor from '../components/ScheduleEditor'
-import HistoryChart from '../components/HistoryChart'
-import SensorConfigControls from '../components/SensorConfigControls'
-import PrimaryTemperatureSensor from '../components/PrimaryTemperatureSensor'
-import TrvConfigDialog from '../components/TrvConfigDialog'
-import BoostControls from '../components/BoostControls'
-import LearningStats from '../components/LearningStats'
-import DevicesPanel from '../components/DevicesPanel'
-import DraggableSettings, { SettingSection } from '../components/DraggableSettings'
+import OutdoorSensorControls from '../components/area/OutdoorSensorControls'
+import ScheduleEditor from '../components/area/ScheduleEditor'
+import HistoryChart from '../components/area/HistoryChart'
+import SensorConfigControls from '../components/area/SensorConfigControls'
+import PrimaryTemperatureSensor from '../components/area/PrimaryTemperatureSensor'
+import TrvConfigDialog from '../components/area/TrvConfigDialog'
+import BoostControls from '../components/common/BoostControls'
+import LearningStats from '../components/area/LearningStats'
+import DevicesPanel from '../components/common/DevicesPanel'
+import TemperatureControl from '../components/area/TemperatureControl'
+import QuickStats from '../components/area/QuickStats'
+import DraggableSettings, { SettingSection } from '../components/common/DraggableSettings'
 import { useWebSocket } from '../hooks/useWebSocket'
-import HistoryMigrationControls from '../components/HistoryMigrationControls'
-import StorageBackendInfo from '../components/StorageBackendInfo'
-import PresetControls from '../components/PresetControls'
-import AutoPresetControls from '../components/AutoPresetControls'
+import HistoryMigrationControls from '../components/area/HistoryMigrationControls'
+import StorageBackendInfo from '../components/common/StorageBackendInfo'
+import PresetControls from '../components/common/PresetControls'
+import AutoPresetControls from '../components/global/AutoPresetControls'
+import AreaHeader from '../components/area/AreaHeader'
+import LogsPanel from '../components/area/LogsPanel'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -138,10 +132,7 @@ const ZoneDetail = () => {
   const [logFilter, setLogFilter] = useState<string>('all')
   const [learningStats, setLearningStats] = useState<any>(null)
   const [learningStatsLoading, setLearningStatsLoading] = useState(false)
-  // TRV inline edit state
-  const [editingTrvId, setEditingTrvId] = useState<string | null>(null)
-  const [editingTrvName, setEditingTrvName] = useState<string | null>(null)
-  const [editingTrvRole, setEditingTrvRole] = useState<'position' | 'open' | 'both' | null>(null)
+  // TRV dialog state (editing moved to TrvList)
 
   const [areaHeatingCurveCoefficient, setAreaHeatingCurveCoefficient] = useState<number | null>(
     null,
@@ -251,43 +242,7 @@ const ZoneDetail = () => {
     }
   }, [areaId, navigate])
 
-  const startEditingTrv = (trv: any) => {
-    setEditingTrvId(trv.entity_id)
-    setEditingTrvName(trv.name ?? '')
-    setEditingTrvRole((trv.role as any) ?? 'both')
-  }
-
-  const cancelEditingTrv = () => {
-    setEditingTrvId(null)
-    setEditingTrvName(null)
-    setEditingTrvRole(null)
-  }
-
-  const handleSaveTrv = async (trv: any) => {
-    try {
-      await addTrvEntity(areaId as string, {
-        entity_id: trv.entity_id,
-        role: editingTrvRole ?? trv.role,
-        name: editingTrvName ?? undefined,
-      })
-      await loadData()
-      cancelEditingTrv()
-    } catch (err) {
-      console.error('Failed to save TRV edit:', err)
-      alert(`Failed to save TRV: ${err}`)
-    }
-  }
-
-  const handleDeleteTrv = async (entityId: string) => {
-    if (!globalThis.confirm(`Remove ${entityId} from area?`)) return
-    try {
-      await removeTrvEntity(areaId as string, entityId)
-      await loadData()
-    } catch (err) {
-      console.error('Failed to delete TRV:', err)
-      alert(`Failed to delete TRV: ${err}`)
-    }
-  }
+  // TRV editing logic moved to TrvList component
 
   const loadHistoryConfig = useCallback(async () => {
     try {
@@ -1642,8 +1597,8 @@ const ZoneDetail = () => {
       <AreaHeader
         area={area}
         enabled={enabled}
-        onBack={() => navigate('/')}
         onToggle={handleToggle}
+        onBack={() => navigate('/')}
         getStateColor={getStateColor}
       />
 
@@ -1689,293 +1644,18 @@ const ZoneDetail = () => {
         {/* Overview Tab */}
         <TabPanel value={tabValue} index={0}>
           <Box sx={{ maxWidth: { xs: 800, lg: 1200 }, mx: 'auto', px: { xs: 0, sm: 0 } }}>
-            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                <ThermostatIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-                <Typography
-                  variant="h5"
-                  color="text.primary"
-                  sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem' }, fontWeight: 600 }}
-                >
-                  {t('areaDetail.temperatureControl')}
-                </Typography>
-              </Box>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                >
-                  {t('areaDetail.targetTemperature')}
-                </Typography>
-                <Typography
-                  variant="h4"
-                  color="primary"
-                  sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}
-                >
-                  {temperature}°C
-                </Typography>
-              </Box>
-              <Slider
-                value={temperature}
-                sx={{
-                  '& .MuiSlider-thumb': {
-                    width: { xs: 24, sm: 20 },
-                    height: { xs: 24, sm: 20 },
-                  },
-                  '& .MuiSlider-track': {
-                    height: { xs: 6, sm: 4 },
-                  },
-                  '& .MuiSlider-rail': {
-                    height: { xs: 6, sm: 4 },
-                  },
-                }}
-                onChange={handleTemperatureChange}
-                onChangeCommitted={handleTemperatureCommit}
-                min={5}
-                max={30}
-                step={0.1}
-                marks={[
-                  { value: 5, label: '5°' },
-                  { value: 15, label: '15°' },
-                  { value: 20, label: '20°' },
-                  { value: 25, label: '25°' },
-                  { value: 30, label: '30°' },
-                ]}
-                valueLabelDisplay="auto"
-                disabled={!enabled || !!(area.preset_mode && area.preset_mode !== 'none')}
-              />
-              {enabled &&
-                area.state !== 'off' &&
-                area.preset_mode &&
-                area.preset_mode !== 'none' && (
-                  <Box mt={1} display="flex" alignItems="center" gap={1}>
-                    <BookmarkIcon fontSize="small" color="secondary" />
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      dangerouslySetInnerHTML={{
-                        __html: t('areaDetail.presetModeActive', {
-                          mode: t(`presets.${area.preset_mode}`).toUpperCase(),
-                        }),
-                      }}
-                    />
-                  </Box>
-                )}
+            <TemperatureControl
+              area={area}
+              temperature={temperature}
+              enabled={enabled}
+              onTemperatureChange={handleTemperatureChange}
+              onTemperatureCommit={handleTemperatureCommit}
+              onOpenTrvDialog={() => setTrvDialogOpen(true)}
+              trvs={area.trvs}
+              loadData={loadData}
+            />
 
-              {area.current_temperature !== undefined && (
-                <>
-                  <Divider sx={{ my: 3 }} />
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body1" color="text.secondary">
-                      {t('areaDetail.currentTemperature')}
-                    </Typography>
-                    <Typography variant="h5" color="text.primary">
-                      {area.current_temperature?.toFixed(1)}°C
-                    </Typography>
-                  </Box>
-
-                  {/* TRV status section */}
-                  <Box sx={{ mt: 3 }}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Typography variant="subtitle1">{t('areaDetail.trvs')}</Typography>
-                      <Button
-                        data-testid="trv-add-button-overview"
-                        variant="outlined"
-                        size="small"
-                        onClick={() => setTrvDialogOpen(true)}
-                      >
-                        Add TRV
-                      </Button>
-                    </Box>
-
-                    {area.trv_entities && area.trv_entities.length > 0 ? (
-                      <Box
-                        sx={{
-                          display: 'grid',
-                          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
-                          gap: 2,
-                          mt: 1,
-                        }}
-                      >
-                        {area.trv_entities.map(trv => {
-                          const runtime = (area.trvs || []).find(
-                            t => t.entity_id === trv.entity_id,
-                          ) as TrvRuntimeState | undefined
-                          const name = trv.name || runtime?.name || trv.entity_id
-                          const open = runtime?.open
-                          const position = runtime?.position
-
-                          const isEditing = editingTrvId === trv.entity_id
-
-                          return (
-                            <Paper
-                              key={trv.entity_id}
-                              sx={{
-                                p: 2,
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                              }}
-                            >
-                              <Box sx={{ flex: 1 }}>
-                                {!isEditing ? (
-                                  <>
-                                    <Typography variant="body1">{name}</Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                      {trv.role || 'both'}
-                                    </Typography>
-                                    <Box sx={{ mt: 1 }}>
-                                      {open !== undefined && (
-                                        <Chip
-                                          label={
-                                            open
-                                              ? t('areaDetail.trvOpen')
-                                              : t('areaDetail.trvClosed')
-                                          }
-                                          color={open ? 'success' : 'default'}
-                                          size="small"
-                                          data-testid={`trv-open-${trv.entity_id}`}
-                                        />
-                                      )}
-                                      <Typography
-                                        variant="caption"
-                                        sx={{ ml: 1 }}
-                                        data-testid={`trv-position-${trv.entity_id}`}
-                                      >
-                                        {position !== undefined && position !== null
-                                          ? `${position}%`
-                                          : '—'}
-                                      </Typography>
-                                    </Box>
-                                  </>
-                                ) : (
-                                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                    <TextField
-                                      size="small"
-                                      value={editingTrvName ?? ''}
-                                      onChange={e => setEditingTrvName(e.target.value)}
-                                      data-testid={`trv-edit-name-${trv.entity_id}`}
-                                    />
-                                    <FormControl size="small">
-                                      <Select
-                                        value={editingTrvRole ?? trv.role ?? 'both'}
-                                        onChange={e => setEditingTrvRole(e.target.value as any)}
-                                        data-testid={`trv-edit-role-${trv.entity_id}`}
-                                      >
-                                        <MenuItem value="position">Position</MenuItem>
-                                        <MenuItem value="open">Open/Closed</MenuItem>
-                                        <MenuItem value="both">Both</MenuItem>
-                                      </Select>
-                                    </FormControl>
-                                  </Box>
-                                )}
-                              </Box>
-
-                              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                {!isEditing ? (
-                                  <>
-                                    <IconButton
-                                      aria-label={`edit-${trv.entity_id}`}
-                                      data-testid={`trv-edit-${trv.entity_id}`}
-                                      size="small"
-                                      onClick={() => startEditingTrv(trv)}
-                                    >
-                                      <EditIcon />
-                                    </IconButton>
-                                    <IconButton
-                                      aria-label={`delete-${trv.entity_id}`}
-                                      data-testid={`trv-delete-${trv.entity_id}`}
-                                      size="small"
-                                      onClick={() => handleDeleteTrv(trv.entity_id)}
-                                    >
-                                      <RemoveCircleOutlineIcon />
-                                    </IconButton>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Button
-                                      size="small"
-                                      variant="contained"
-                                      data-testid={`trv-save-${trv.entity_id}`}
-                                      onClick={() => handleSaveTrv(trv)}
-                                    >
-                                      Save
-                                    </Button>
-                                    <Button
-                                      size="small"
-                                      data-testid={`trv-cancel-edit-${trv.entity_id}`}
-                                      onClick={() => cancelEditingTrv()}
-                                    >
-                                      Cancel
-                                    </Button>
-                                  </>
-                                )}
-                              </Box>
-                            </Paper>
-                          )
-                        })}
-                      </Box>
-                    ) : (
-                      <Alert severity="info">
-                        No TRVs configured for this area. Click Add TRV to add one.
-                      </Alert>
-                    )}
-                  </Box>
-                </>
-              )}
-            </Paper>
-
-            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                <SpeedIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-                <Typography variant="h5" color="text.primary" sx={{ fontWeight: 600 }}>
-                  {t('areaDetail.quickStats')}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-                  gap: 3,
-                }}
-              >
-                <Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {t('areaDetail.devices')}
-                  </Typography>
-                  <Typography variant="h6" color="text.primary">
-                    {t('areaDetail.devicesAssigned', { count: area.devices.length })}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {t('areaDetail.status')}
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    color="text.primary"
-                    sx={{ textTransform: 'capitalize' }}
-                  >
-                    {area.state}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {t('areaDetail.zoneId')}
-                  </Typography>
-                  <Typography variant="h6" color="text.primary" sx={{ fontSize: '1rem' }}>
-                    {area.id}
-                  </Typography>
-                </Box>
-              </Box>
-            </Paper>
+            <QuickStats area={area} />
           </Box>
         </TabPanel>
 
@@ -2128,190 +1808,13 @@ const ZoneDetail = () => {
         {/* Logs Tab */}
         <TabPanel value={tabValue} index={6}>
           <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
-            <Paper sx={{ p: 3 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mb: 2,
-                }}
-              >
-                <Typography variant="h6" color="text.primary">
-                  {t('areaDetail.heatingStrategyLogs')}
-                </Typography>
-                <Button variant="outlined" size="small" onClick={loadLogs} disabled={logsLoading}>
-                  {logsLoading ? 'Loading...' : t('areaDetail.refresh')}
-                </Button>
-              </Box>
-
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('areaDetail.logsDescription')}
-              </Typography>
-
-              <Box sx={{ mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Chip
-                  label={t('areaDetail.allEvents')}
-                  onClick={() => setLogFilter('all')}
-                  color={logFilter === 'all' ? 'primary' : 'default'}
-                  variant={logFilter === 'all' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-                <Chip
-                  label={t('areaDetail.temperature')}
-                  onClick={() => setLogFilter('temperature')}
-                  color={logFilter === 'temperature' ? 'info' : 'default'}
-                  variant={logFilter === 'temperature' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-                <Chip
-                  label={t('areaDetail.heating')}
-                  onClick={() => setLogFilter('heating')}
-                  color={logFilter === 'heating' ? 'error' : 'default'}
-                  variant={logFilter === 'heating' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-                <Chip
-                  label={t('areaDetail.schedule')}
-                  onClick={() => setLogFilter('schedule')}
-                  color={logFilter === 'schedule' ? 'success' : 'default'}
-                  variant={logFilter === 'schedule' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-                <Chip
-                  label={t('areaDetail.smartBoost')}
-                  onClick={() => setLogFilter('smart_boost')}
-                  color={logFilter === 'smart_boost' ? 'secondary' : 'default'}
-                  variant={logFilter === 'smart_boost' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-                <Chip
-                  label={t('areaDetail.sensors')}
-                  onClick={() => setLogFilter('sensor')}
-                  color={logFilter === 'sensor' ? 'warning' : 'default'}
-                  variant={logFilter === 'sensor' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-                <Chip
-                  label={t('areaDetail.mode')}
-                  onClick={() => setLogFilter('mode')}
-                  color={logFilter === 'mode' ? 'primary' : 'default'}
-                  variant={logFilter === 'mode' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-              </Box>
-
-              {(() => {
-                if (logsLoading) {
-                  return (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                      <CircularProgress />
-                    </Box>
-                  )
-                }
-
-                if (logs.length === 0) {
-                  return (
-                    <Box data-testid="area-logs-empty" sx={{ textAlign: 'center', py: 4 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {t('settingsCards.noLogsYet')}
-                      </Typography>
-                    </Box>
-                  )
-                }
-
-                return (
-                  <List sx={{ bgcolor: 'background.paper' }}>
-                    {logs.map((log, index) => {
-                      const timestamp = new Date(log.timestamp)
-                      const timeStr = timestamp.toLocaleTimeString('nl-NL', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })
-                      const dateStr = timestamp.toLocaleDateString('nl-NL')
-
-                      // Color coding by event type
-                      const getEventColor = (type: string) => {
-                        switch (type) {
-                          case 'heating':
-                            return 'error'
-                          case 'temperature':
-                            return 'info'
-                          case 'schedule':
-                            return 'success'
-                          case 'smart_boost':
-                            return 'secondary'
-                          case 'sensor':
-                            return 'warning'
-                          case 'mode':
-                            return 'primary'
-                          default:
-                            return 'default'
-                        }
-                      }
-
-                      return (
-                        <Box key={`${log.timestamp}-${index}`}>
-                          {index > 0 && <Divider />}
-                          <ListItem alignItems="flex-start" sx={{ py: 2 }}>
-                            <ListItemIcon sx={{ minWidth: 40, mt: 0.5 }}>
-                              <Chip
-                                label={log.type}
-                                color={getEventColor(log.type)}
-                                size="small"
-                                sx={{ fontSize: '0.7rem', height: 20 }}
-                              />
-                            </ListItemIcon>
-                            <ListItemText
-                              primary={
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                  }}
-                                >
-                                  <Typography variant="body2" color="text.primary">
-                                    {log.message}
-                                  </Typography>
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                    sx={{ ml: 2 }}
-                                  >
-                                    {dateStr} {timeStr}
-                                  </Typography>
-                                </Box>
-                              }
-                              secondary={
-                                log.details &&
-                                Object.keys(log.details).length > 0 && (
-                                  <Box
-                                    component="pre"
-                                    sx={{
-                                      mt: 1,
-                                      p: 1,
-                                      bgcolor: 'action.hover',
-                                      borderRadius: 1,
-                                      fontSize: '0.75rem',
-                                      overflow: 'auto',
-                                      fontFamily: 'monospace',
-                                    }}
-                                  >
-                                    {JSON.stringify(log.details, null, 2)}
-                                  </Box>
-                                )
-                              }
-                            />
-                          </ListItem>
-                        </Box>
-                      )
-                    })}
-                  </List>
-                )
-              })()}
-            </Paper>
+            <LogsPanel
+              logs={logs}
+              logsLoading={logsLoading}
+              logFilter={logFilter}
+              setLogFilter={setLogFilter}
+              loadLogs={loadLogs}
+            />
           </Box>
         </TabPanel>
       </Box>

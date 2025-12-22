@@ -1,5 +1,5 @@
 import { Box, Paper } from '@mui/material'
-import DeviceLogsPanel from '../components/DeviceLogsPanel'
+import DeviceLogsPanel from '../components/global/DeviceLogsPanel'
 
 const DeviceLogsView = () => {
   return (

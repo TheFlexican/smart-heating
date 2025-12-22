@@ -2,12 +2,13 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from homeassistant.util import dt as dt_util
 from smart_heating.features.learning_engine import MIN_LEARNING_EVENTS, HeatingEvent, LearningEngine
 
 
 def test_heating_event_metrics():
-    start = datetime.now() - timedelta(minutes=10)
-    end = datetime.now()
+    start = dt_util.now() - timedelta(minutes=10)
+    end = dt_util.now()
     ev = HeatingEvent("a1", start, end, 18.0, 20.0, 5.0)
     assert ev.duration_minutes > 0
     assert abs(ev.heating_rate - (2.0 / ev.duration_minutes)) < 1e-6
@@ -59,7 +60,7 @@ async def test_start_end_heating_event_records(monkeypatch):
     assert "a1" in le._active_heating_events
 
     # Make a start_time in the past to create duration > 5 min
-    le._active_heating_events["a1"]["start_time"] = datetime.now() - timedelta(minutes=6)
+    le._active_heating_events["a1"]["start_time"] = dt_util.now() - timedelta(minutes=6)
     # patch record function
     le._async_record_heating_event = AsyncMock()
     await le.async_end_heating_event("a1", 21.0)
@@ -97,7 +98,7 @@ class TestHeatingEvent:
 
     def test_heating_event_creation(self):
         """Test creating a heating event."""
-        start_time = datetime.now()
+        start_time = dt_util.now()
         end_time = start_time + timedelta(minutes=30)
 
         event = HeatingEvent(
@@ -121,7 +122,7 @@ class TestHeatingEvent:
 
     def test_heating_event_no_outdoor_temp(self):
         """Test creating event without outdoor temperature."""
-        start_time = datetime.now()
+        start_time = dt_util.now()
         end_time = start_time + timedelta(minutes=20)
 
         event = HeatingEvent(
@@ -138,7 +139,7 @@ class TestHeatingEvent:
 
     def test_heating_event_zero_duration(self):
         """Test handling zero duration."""
-        now = datetime.now()
+        now = dt_util.now()
 
         event = HeatingEvent(
             area_id="test",
@@ -242,7 +243,7 @@ class TestHeatingEventTracking:
         """Test ending event with too short duration (< 5 minutes)."""
         # Start event
         learning_engine._active_heating_events["living_room"] = {
-            "start_time": datetime.now(),  # Very recent
+            "start_time": dt_util.now(),  # Very recent
             "start_temp": 19.0,
             "outdoor_temp": 10.0,
         }
@@ -260,7 +261,7 @@ class TestHeatingEventTracking:
     async def test_end_heating_event_insignificant_change(self, learning_engine):
         """Test ending event with insignificant temperature change (< 0.1°C)."""
         learning_engine._active_heating_events["living_room"] = {
-            "start_time": datetime.now() - timedelta(minutes=10),
+            "start_time": dt_util.now() - timedelta(minutes=10),
             "start_temp": 19.0,
             "outdoor_temp": 10.0,
         }
@@ -279,7 +280,7 @@ class TestHeatingEventTracking:
     async def test_end_heating_event_valid(self, learning_engine):
         """Test ending event with valid data."""
         learning_engine._active_heating_events["living_room"] = {
-            "start_time": datetime.now() - timedelta(minutes=30),
+            "start_time": dt_util.now() - timedelta(minutes=30),
             "start_temp": 18.0,
             "outdoor_temp": 10.0,
         }

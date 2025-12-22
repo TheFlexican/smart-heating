@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from homeassistant.util import dt as dt_util
 from smart_heating.storage.history import CLEANUP_INTERVAL, HistoryTracker
 
 
@@ -82,7 +83,7 @@ class TestHistoryTrackerLoad:
             "history": {
                 "living_room": [
                     {
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": dt_util.now().isoformat(),
                         "current_temperature": 20.0,
                         "target_temperature": 21.0,
                         "state": "heating",
@@ -152,7 +153,7 @@ class TestHistoryTrackerCleanup:
     async def test_cleanup_old_entries(self, history_tracker, mock_store):
         """Test cleaning up old entries."""
         # Create entries: some old, some new
-        now = datetime.now()
+        now = dt_util.now()
         old_entry = {
             "timestamp": (now - timedelta(days=100)).isoformat(),
             "current_temperature": 19.0,
@@ -181,7 +182,7 @@ class TestHistoryTrackerCleanup:
     @pytest.mark.asyncio
     async def test_cleanup_no_old_entries(self, history_tracker, mock_store):
         """Test cleanup when no old entries."""
-        now = datetime.now()
+        now = dt_util.now()
         new_entry = {
             "timestamp": now.isoformat(),
             "current_temperature": 20.0,
@@ -296,7 +297,7 @@ class TestHistoryTrackerGet:
 
     def test_get_history_hours(self, history_tracker):
         """Test getting history for specific hours."""
-        now = datetime.now()
+        now = dt_util.now()
         old_entry = {
             "timestamp": (now - timedelta(hours=25)).isoformat(),
             "current_temperature": 19.0,
@@ -320,7 +321,7 @@ class TestHistoryTrackerGet:
 
     def test_get_history_custom_range(self, history_tracker):
         """Test getting history for custom time range."""
-        now = datetime.now()
+        now = dt_util.now()
         entries = [
             {
                 "timestamp": (now - timedelta(days=5)).isoformat(),

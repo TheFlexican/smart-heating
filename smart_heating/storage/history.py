@@ -12,6 +12,7 @@ from homeassistant.components.recorder import get_instance
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
 from sqlalchemy import (
     Column,
     DateTime,
@@ -389,7 +390,7 @@ class HistoryTracker:
 
     async def _async_cleanup_json(self) -> None:
         """Clean up old entries in JSON storage."""
-        cutoff = datetime.now() - timedelta(days=self._retention_days)
+        cutoff = dt_util.now() - timedelta(days=self._retention_days)
         cutoff_iso = cutoff.isoformat()
 
         total_removed = 0
@@ -420,7 +421,7 @@ class HistoryTracker:
         """Clean up old entries in database storage."""
         try:
             recorder = get_instance(self.hass)
-            cutoff = datetime.now() - timedelta(days=self._retention_days)
+            cutoff = dt_util.now() - timedelta(days=self._retention_days)
 
             def _cleanup():
                 with recorder.engine.connect() as conn:
@@ -465,7 +466,7 @@ class HistoryTracker:
             state: Area state (heating/idle/off)
             trvs: Optional list of TRV states to include in the entry
         """
-        timestamp = datetime.now()
+        timestamp = dt_util.now()
         entry = {
             "timestamp": timestamp.isoformat(),
             "current_temperature": current_temp,
@@ -563,7 +564,7 @@ class HistoryTracker:
             ]
         elif hours:
             # Hours-based query
-            cutoff = datetime.now() - timedelta(hours=hours)
+            cutoff = dt_util.now() - timedelta(hours=hours)
             cutoff_iso = cutoff.isoformat()
             entries = [entry for entry in self._history[area_id] if entry["timestamp"] > cutoff_iso]
         else:

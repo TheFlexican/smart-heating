@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react'
-import SettingsSection from '../components/SettingsSection'
+import SettingsSection from '../components/common/SettingsSection'
 import {
   FormControl,
   InputLabel,

@@ -11,6 +11,7 @@ from typing import Any, Optional
 from homeassistant.components.recorder import get_instance
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.util import dt as dt_util
 from sqlalchemy import (
     Boolean,
     Column,
@@ -308,7 +309,7 @@ class AdvancedMetricsCollector:
         try:
             # Prepare insert data
             insert_data = {
-                "timestamp": datetime.now(),
+                "timestamp": dt_util.now(),
                 "outdoor_temp": opentherm_metrics.get("outdoor_temp"),
                 "boiler_flow_temp": opentherm_metrics.get("boiler_flow_temp"),
                 "boiler_return_temp": opentherm_metrics.get("boiler_return_temp"),
@@ -344,7 +345,7 @@ class AdvancedMetricsCollector:
             return
 
         try:
-            cutoff_date = datetime.now() - timedelta(days=RETENTION_DAYS)
+            cutoff_date = dt_util.now() - timedelta(days=RETENTION_DAYS)
 
             recorder = get_instance(self.hass)
             deleted = await recorder.async_add_executor_job(
@@ -390,10 +391,10 @@ class AdvancedMetricsCollector:
 
         try:
             if minutes is not None:
-                start_date = datetime.now() - timedelta(minutes=minutes)
+                start_date = dt_util.now() - timedelta(minutes=minutes)
             else:
                 # default to days if minutes not provided
-                start_date = datetime.now() - timedelta(days=days or 7)
+                start_date = dt_util.now() - timedelta(days=days or 7)
 
             recorder = get_instance(self.hass)
             results = await recorder.async_add_executor_job(

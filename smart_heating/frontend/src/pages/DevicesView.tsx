@@ -11,7 +11,7 @@ import {
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { useNavigate } from 'react-router-dom'
-import DevicePanel from '../components/DevicePanel'
+import DevicePanel from '../components/common/DevicePanel'
 import { getDevices } from '../api/devices'
 import { getZones } from '../api/areas'
 import { Device } from '../types'

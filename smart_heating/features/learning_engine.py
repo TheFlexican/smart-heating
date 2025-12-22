@@ -16,6 +16,7 @@ from homeassistant.components.recorder.statistics import (
 )
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
 from ..climate.temperature_sensors import get_outdoor_temperature_from_weather_entity
 
@@ -190,7 +191,10 @@ class LearningEngine:
             unit_class=None,  # No unit converter for generic metrics
         )
 
-        async_add_external_statistics(self.hass, metadata, [])
+        try:
+            await async_add_external_statistics(self.hass, metadata, [])
+        except Exception as err:
+            _LOGGER.debug("Failed to register statistic metadata for %s: %s", name, err)
 
     async def async_start_heating_event(
         self,
@@ -206,7 +210,7 @@ class LearningEngine:
         outdoor_temp = await self._async_get_outdoor_temperature()
 
         self._active_heating_events[area_id] = {
-            "start_time": datetime.now(),
+            "start_time": dt_util.now(),
             "start_temp": current_temp,
             "outdoor_temp": outdoor_temp,
         }
@@ -248,7 +252,7 @@ class LearningEngine:
         event = HeatingEvent(
             area_id=area_id,
             start_time=event_data["start_time"],
-            end_time=datetime.now(),
+            end_time=dt_util.now(),
             start_temp=event_data["start_temp"],
             end_temp=current_temp,
             outdoor_temp=event_data.get("outdoor_temp"),
@@ -323,9 +327,7 @@ class LearningEngine:
             )
 
             # Add statistics asynchronously
-            await get_instance(self.hass).async_add_executor_job(
-                async_add_external_statistics, self.hass, metadata, statistics_data
-            )
+            await async_add_external_statistics(self.hass, metadata, statistics_data)
 
             _LOGGER.info(
                 "[LEARNING] ✓ Successfully recorded heating rate statistic for %s: %.3f°C/min (statistic_id: %s)",
@@ -380,9 +382,7 @@ class LearningEngine:
                 unit_class="temperature",  # Temperature has a unit converter
             )
 
-            await get_instance(self.hass).async_add_executor_job(
-                async_add_external_statistics, self.hass, metadata, statistics_data
-            )
+            await async_add_external_statistics(self.hass, metadata, statistics_data)
 
             _LOGGER.debug(
                 "Recorded outdoor correlation for %s: %.1f°C",
@@ -473,7 +473,7 @@ class LearningEngine:
         statistic_id = self._get_statistic_id("heating_rate", area_id)
 
         # Calculate time range
-        end_time = datetime.now()
+        end_time = dt_util.now()
         start_time = end_time - timedelta(days=days)
 
         try:
@@ -668,7 +668,7 @@ class LearningEngine:
         )
 
         statistic_id = self._get_statistic_id("heating_rate", area_id)
-        end_time = datetime.now()
+        end_time = dt_util.now()
         start_time = end_time - timedelta(days=days)
 
         _LOGGER.info(
@@ -694,7 +694,7 @@ class LearningEngine:
 
             # Get all-time statistics for total count
             # Use a very old date instead of None (HA 2025+ doesn't accept None)
-            all_time_start = datetime(1970, 1, 1)
+            all_time_start = dt_util.as_utc(datetime(1970, 1, 1))
             all_time_stats = await get_instance(self.hass).async_add_executor_job(
                 statistics_during_period,
                 self.hass,

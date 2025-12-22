@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react'
 import mergeZones from './utils/areaOrder'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider, CssBaseline, Box, Snackbar, Alert, CircularProgress } from '@mui/material'
-import Header from './components/Header'
-import ZoneList from './components/ZoneList'
-import DevicePanel from './components/DevicePanel'
-import MobileBottomNav from './components/MobileBottomNav'
-import { VacationModeBanner } from './components/VacationModeBanner'
+import Header from './components/common/Header'
+import ZoneList from './components/common/ZoneList'
+import DevicePanel from './components/common/DevicePanel'
+import MobileBottomNav from './components/common/MobileBottomNav'
+import { VacationModeBanner } from './components/global/VacationModeBanner'
 import { Zone, Device } from './types'
 import { getZones } from './api/areas'
 import { getDevices } from './api/devices'
@@ -17,12 +17,12 @@ import { createHATheme } from './theme'
 
 // Lazy load heavy components for better performance
 const ZoneDetail = lazy(() => import('./pages/AreaDetail'))
-const SettingsLayout = lazy(() => import('./components/SettingsLayout'))
+const SettingsLayout = lazy(() => import('./components/common/SettingsLayout'))
 const DevicesView = lazy(() => import('./pages/DevicesView'))
 const AnalyticsMenu = lazy(() => import('./pages/AnalyticsMenu'))
-const EfficiencyReports = lazy(() => import('./components/EfficiencyReports'))
-const HistoricalComparisons = lazy(() => import('./components/HistoricalComparisons'))
-const AdvancedMetricsDashboard = lazy(() => import('./components/AdvancedMetricsDashboard'))
+const EfficiencyReports = lazy(() => import('./components/common/EfficiencyReports'))
+const HistoricalComparisons = lazy(() => import('./components/common/HistoricalComparisons'))
+const AdvancedMetricsDashboard = lazy(() => import('./components/common/AdvancedMetricsDashboard'))
 const DeviceLogsView = lazy(() => import('./pages/DeviceLogsView'))
 
 // Loading component
