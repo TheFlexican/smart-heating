@@ -153,3 +153,74 @@ class TestLogsHandlers:
 
         assert "error" in body
         assert "Database error" in body["error"]
+
+    @pytest.mark.asyncio
+    async def test_handle_get_area_device_logs_no_manager(self, mock_hass):
+        """Test device logs handler returns empty when no manager provided."""
+        mock_request = MagicMock()
+        mock_request.query = {}
+
+        # Pass area_manager as None
+        from smart_heating.api.handlers.logs import handle_get_area_device_logs
+
+        response = await handle_get_area_device_logs(mock_hass, None, "living_room", mock_request)
+        assert response.status == 200
+        import json
+
+        body = json.loads(response.body.decode())
+        assert body["logs"] == []
+
+    @pytest.mark.asyncio
+    async def test_handle_get_area_device_logs_with_manager(self, mock_hass):
+        """Test device logs handler returns logs and passes params through."""
+        mock_request = MagicMock()
+        mock_request.query = {
+            "limit": "5",
+            "since": "2025-01-01T00:00:00Z",
+            "device_id": "d1",
+            "direction": "sent",
+        }
+
+        # Mock manager
+        manager = MagicMock()
+        manager.async_get_device_logs = MagicMock(return_value=[{"device_id": "d1"}])
+
+        from smart_heating.api.handlers.logs import handle_get_area_device_logs
+
+        response = await handle_get_area_device_logs(
+            mock_hass, manager, "living_room", mock_request
+        )
+        assert response.status == 200
+        import json
+
+        body = json.loads(response.body.decode())
+        assert "logs" in body
+        assert body["logs"][0]["device_id"] == "d1"
+        manager.async_get_device_logs.assert_called_once_with(
+            area_id="living_room",
+            limit=5,
+            since="2025-01-01T00:00:00Z",
+            device_id="d1",
+            direction="sent",
+        )
+
+    @pytest.mark.asyncio
+    async def test_handle_get_area_device_logs_error(self, mock_hass):
+        """Test device logs handler returns 500 on errors."""
+        mock_request = MagicMock()
+        mock_request.query = {}
+
+        manager = MagicMock()
+        manager.async_get_device_logs = MagicMock(side_effect=Exception("boom"))
+
+        from smart_heating.api.handlers.logs import handle_get_area_device_logs
+
+        response = await handle_get_area_device_logs(
+            mock_hass, manager, "living_room", mock_request
+        )
+        assert response.status == 500
+        import json
+
+        body = json.loads(response.body.decode())
+        assert "error" in body
+        assert "boom" in body["error"]

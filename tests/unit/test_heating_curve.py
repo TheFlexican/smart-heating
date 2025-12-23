@@ -59,6 +59,16 @@ def test_update_and_value():
     assert hc.value is not None
 
 
+def test_calculate_coefficient_zero_returns_current():
+    hc = HeatingCurve(heating_system=HEATING_SYSTEM_RADIATOR, coefficient=1.5)
+    # Use target and outside such that calculate() == 0
+    coeff = hc.calculate_coefficient(
+        setpoint=60.0, target_temperature=20.0, outside_temperature=20.0
+    )
+    # When heating_curve_value == 0, calculate_coefficient should return the current coefficient
+    assert coeff == pytest.approx(1.5)
+
+
 def test_calculate_coefficient():
     hc = HeatingCurve(heating_system=HEATING_SYSTEM_RADIATOR, coefficient=1.0)
     coeff = hc.calculate_coefficient(
@@ -72,3 +82,15 @@ def test_default_base_offsets():
     hc_rad = HeatingCurve(heating_system=HEATING_SYSTEM_RADIATOR, coefficient=1.0)
     assert hc_floor.base_offset == pytest.approx(40.0, rel=1e-3)
     assert hc_rad.base_offset == pytest.approx(55.0, rel=1e-3)
+
+
+def test_autotune_branches():
+    hc = HeatingCurve()
+    # Call autotune multiple times with varying setpoints to exercise derivative branches
+    seq = [50.0, 70.0, 60.0, 90.0, 40.0, 100.0]
+    res = None
+    for sp in seq:
+        res = hc.autotune(sp, 22.0, 10.0)
+        assert res is None or isinstance(res, float)
+    # After multiple updates, optimal_coefficient should be set or remain None
+    assert hc.optimal_coefficient is None or isinstance(hc.optimal_coefficient, float)
