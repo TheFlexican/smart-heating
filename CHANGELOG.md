@@ -1,6 +1,7 @@
 ### Fixed
 - Preserve zones overview viewport when updating an area's temperature; avoid large list loader during small updates to prevent scrolling/jumps. (frontend)
 - Area cards are no longer clickable; area configuration is now accessible from the area card's three-dots menu (ensures a consistent way to reach settings).
+- Align Area detail displayed temperature logic with dashboard Area card to avoid mismatched shown values (e.g., dashboard: 19.5°C vs detail: 20°C). (frontend)
 
 - Safety sensors: preserve multiple configured safety sensors when adding a new sensor via the API (backend). Previously adding a sensor replaced the entire list; now the API adds or updates a single sensor without clearing others. (fix)
 

@@ -200,6 +200,37 @@ it('switch/pump control is disabled for airco area', async () => {
   expect(switchInput.disabled).toBe(true)
 })
 
+// New test: display uses effective target temp when manual override is false and effective differs
+it('shows effective target temperature when manual override is false and effective differs', async () => {
+  await userEvent.setup()
+
+  const area2 = {
+    ...area,
+    id: 'area_effective',
+    enabled: true,
+    state: 'heating',
+    target_temperature: 20,
+    effective_target_temperature: 19.5,
+    manual_override: false,
+    preset_mode: 'none',
+  }
+
+  vi.spyOn(areas, 'getZones').mockResolvedValue([area2])
+
+  const { MemoryRouter, Routes, Route } = Router as any
+  render(
+    <MemoryRouter initialEntries={[`/areas/${area2.id}`]}>
+      <Routes>
+        <Route path="/areas/:areaId" element={<ZoneDetail />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+
+  await waitFor(() => expect(screen.getByTestId('target-temperature-display')).not.toBeNull())
+  const display = screen.getByTestId('target-temperature-display') as HTMLElement
+  expect(display.textContent).toContain('19.5')
+})
+
 it('renders TRV section with runtime state', async () => {
   await userEvent.setup()
 
