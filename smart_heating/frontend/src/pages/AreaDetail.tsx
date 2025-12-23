@@ -180,6 +180,25 @@ const ZoneDetail = () => {
     },
   })
 
+  // Helper function to compute the display temperature consistently with ZoneCard
+  const getDisplayTemperature = useCallback((zone: Zone | null | undefined): number => {
+    if (!zone) return 20
+    const enabled = zone.enabled === true || String(zone.enabled) === 'true'
+
+    // If area is disabled or off, always show base target temperature
+    if (!enabled || zone.state === 'off') return zone.target_temperature
+
+    // When not in manual override and an effective target exists, prefer the effective temperature
+    if (!zone.manual_override && zone.effective_target_temperature != null) {
+      if (Math.abs(zone.effective_target_temperature - zone.target_temperature) >= 0.1) {
+        return zone.effective_target_temperature
+      }
+    }
+
+    // Otherwise show the base target temperature
+    return zone.target_temperature
+  }, [])
+
   const loadData = useCallback(async () => {
     if (!areaId) return
 
@@ -225,7 +244,7 @@ const ZoneDetail = () => {
     } finally {
       setLoading(false)
     }
-  }, [areaId, navigate])
+  }, [areaId, navigate, getDisplayTemperature])
 
   const startEditingTrv = (trv: any) => {
     setEditingTrvId(trv.entity_id)
@@ -597,25 +616,6 @@ const ZoneDetail = () => {
     return `${customTemp ?? fallback}°C (custom)`
   }
 
-  // Helper function to compute the display temperature consistently with ZoneCard
-  const getDisplayTemperature = (zone: Zone | null | undefined): number => {
-    if (!zone) return 20
-    const enabled = isEnabledVal(zone.enabled)
-
-    // If area is disabled or off, always show base target temperature
-    if (!enabled || zone.state === 'off') return zone.target_temperature
-
-    // When not in manual override and an effective target exists, prefer the effective temperature
-    if (!zone.manual_override && zone.effective_target_temperature != null) {
-      if (Math.abs(zone.effective_target_temperature - zone.target_temperature) >= 0.1) {
-        return zone.effective_target_temperature
-      }
-    }
-
-    // Otherwise show the base target temperature
-    return zone.target_temperature
-  }
-
   // Generate settings sections for draggable layout
   const getSettingsSections = (): SettingSection[] => {
     if (!area) return []
@@ -639,7 +639,13 @@ const ZoneDetail = () => {
               <Select
                 data-testid="preset-mode-select"
                 disabled={!areaEnabled || area.state === 'off'}
-                value={area.preset_mode || 'none'}
+                value={
+                  ['none', 'away', 'eco', 'comfort', 'home', 'sleep', 'activity', 'boost'].includes(
+                    area.preset_mode || '',
+                  )
+                    ? area.preset_mode
+                    : ''
+                }
                 label={t('settingsCards.currentPreset')}
                 onChange={async e => {
                   try {
@@ -682,6 +688,21 @@ const ZoneDetail = () => {
                   })}
                 </MenuItem>
                 <MenuItem value="boost">{t('settingsCards.presetBoost')}</MenuItem>
+                {area.preset_mode &&
+                  ![
+                    'none',
+                    'away',
+                    'eco',
+                    'comfort',
+                    'home',
+                    'sleep',
+                    'activity',
+                    'boost',
+                  ].includes(area.preset_mode) && (
+                    <MenuItem value={area.preset_mode}>
+                      {t(`presets.${area.preset_mode}`, { defaultValue: area.preset_mode })}
+                    </MenuItem>
+                  )}
               </Select>
             </FormControl>
 
@@ -2247,6 +2268,7 @@ const ZoneDetail = () => {
                 <Typography
                   variant="h4"
                   color="primary"
+                  data-testid="target-temperature-display"
                   sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}
                 >
                   {temperature}°C

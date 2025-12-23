@@ -89,14 +89,22 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
     return area.target_temperature
   }, [area, enabled])
 
-  const [temperature, setTemperature] = useState(getDisplayTemperature())
+  const normalizeTemperature = useCallback(
+    (val: number | undefined | null) =>
+      Number.isFinite(val as number) ? (val as number) : (area.target_temperature ?? 20),
+    [area.target_temperature],
+  )
+
+  const [temperature, setTemperature] = useState(() =>
+    normalizeTemperature(getDisplayTemperature()),
+  )
   const [presenceState, setPresenceState] = useState<string | null>(null)
 
   // Sync local temperature state when area or devices change
   useEffect(() => {
     const displayTemp = getDisplayTemperature()
-    setTemperature(displayTemp)
-  }, [getDisplayTemperature])
+    setTemperature(normalizeTemperature(displayTemp))
+  }, [getDisplayTemperature, normalizeTemperature])
 
   useEffect(() => {
     const loadPresenceState = async () => {
@@ -538,12 +546,14 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
               data-testid="target-temperature-display"
               sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}
             >
-              {temperature}°C
+              {Number.isFinite(temperature)
+                ? `${temperature}°C`
+                : (formatTemperature(area.target_temperature) ?? '-')}
             </Typography>
           </Box>
           <Slider
             data-testid="temperature-slider"
-            value={temperature}
+            value={Number.isFinite(temperature) ? temperature : (area.target_temperature ?? 20)}
             onChange={handleTemperatureChange}
             onChangeCommitted={handleTemperatureCommit}
             min={5}
