@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import {
   Box,
   Typography,
@@ -607,8 +607,8 @@ export default function OpenThermLogger() {
               </TableRow>
             ) : (
               logs.map((log, index) => (
-                <>
-                  <TableRow key={index} hover>
+                <Fragment key={`${log.timestamp}-${index}`}>
+                  <TableRow hover>
                     <TableCell>
                       <IconButton size="small" onClick={() => toggleRow(index)}>
                         {expandedRows.has(index) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
@@ -662,7 +662,7 @@ export default function OpenThermLogger() {
                       </Collapse>
                     </TableCell>
                   </TableRow>
-                </>
+                </Fragment>
               ))
             )}
           </TableBody>

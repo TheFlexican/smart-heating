@@ -194,8 +194,12 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
                   slotProps={{
                     primary: { sx: { color: 'text.primary' } },
                   }}
+                  secondaryTypographyProps={{ component: 'div' }}
                   secondary={
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
+                    <Box
+                      component="span"
+                      sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}
+                    >
                       <Chip
                         data-testid={`device-type-chip-${(device.name || device.id).toLowerCase().replaceAll(' ', '-')}`}
                         label={getDeviceTypeLabel(device.type)}
