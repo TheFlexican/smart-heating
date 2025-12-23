@@ -197,14 +197,19 @@ class LearningEngine:
         )
 
         # Only record meaningful events (>5 minutes, >0.1°C change)
-        if event.duration_minutes < 5 or abs(event.temp_change) < 0.1:
+        too_short = event.duration_minutes < 5
+        insignificant_temp = abs(event.temp_change) < 0.1
+        if too_short or insignificant_temp:
+            reasons: list[str] = []
+            if too_short:
+                reasons.append(f"duration: {event.duration_minutes:.1f} min < 5 min")
+            if insignificant_temp:
+                reasons.append(f"temp change: {event.temp_change:.2f}°C < 0.1°C")
+
             _LOGGER.warning(
-                "[LEARNING] Skipping short/insignificant heating event for %s "
-                "(duration: %.1f min < 5 min, temp change: %.2f°C < 0.1°C) - "
-                "Event not stored in database",
+                "[LEARNING] Skipping heating event for %s - %s. Event not stored in database",
                 area_id,
-                event.duration_minutes,
-                event.temp_change,
+                "; ".join(reasons),
             )
             return
 

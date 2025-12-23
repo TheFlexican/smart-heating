@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import logging
 from homeassistant.util import dt as dt_util
 from smart_heating.features.learning_engine import MIN_LEARNING_EVENTS, HeatingEvent, LearningEngine
 
@@ -239,7 +240,9 @@ class TestHeatingEventTracking:
         assert "living_room" not in learning_engine._active_heating_events
 
     @pytest.mark.asyncio
-    async def test_end_heating_event_short_duration(self, learning_engine, mock_event_store):
+    async def test_end_heating_event_short_duration(
+        self, learning_engine, mock_event_store, caplog
+    ):
         """Test ending event with too short duration (< 5 minutes)."""
         # Start event
         learning_engine._active_heating_events["living_room"] = {
@@ -248,14 +251,18 @@ class TestHeatingEventTracking:
             "outdoor_temp": 10.0,
         }
 
-        await learning_engine.async_end_heating_event("living_room", 19.5)
+        with caplog.at_level(logging.WARNING):
+            await learning_engine.async_end_heating_event("living_room", 19.5)
 
         # Should not record (too short)
         mock_event_store.async_record_event.assert_not_called()
         assert "living_room" not in learning_engine._active_heating_events
+        assert "duration" in caplog.text
 
     @pytest.mark.asyncio
-    async def test_end_heating_event_insignificant_change(self, learning_engine, mock_event_store):
+    async def test_end_heating_event_insignificant_change(
+        self, learning_engine, mock_event_store, caplog
+    ):
         """Test ending event with insignificant temperature change (< 0.1°C)."""
         learning_engine._active_heating_events["living_room"] = {
             "start_time": dt_util.now() - timedelta(minutes=10),
@@ -263,10 +270,14 @@ class TestHeatingEventTracking:
             "outdoor_temp": 10.0,
         }
 
-        await learning_engine.async_end_heating_event("living_room", 19.05)  # Only 0.05°C change
+        with caplog.at_level(logging.WARNING):
+            await learning_engine.async_end_heating_event(
+                "living_room", 19.05
+            )  # Only 0.05°C change
 
         # Should not record (insignificant change)
         mock_event_store.async_record_event.assert_not_called()
+        assert "temp change" in caplog.text
 
     @pytest.mark.asyncio
     async def test_end_heating_event_valid(self, learning_engine, mock_event_store):

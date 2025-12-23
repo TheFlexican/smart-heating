@@ -1,4 +1,5 @@
 ### Opgelost
+- De logmelding wanneer verwarmingsgebeurtenissen worden overgeslagen geeft nu de specifieke reden(en) (duur en/of temperatuursverandering) in plaats van beide ongeacht welke faalt; voorkomt misleidende berichten zoals "44.1 min < 5 min" wanneer alleen de temperatuursverandering onvoldoende is. (backend) — Zie PR #103
 - Gebiedskaarten zijn niet langer klikbaar; gebiedsconfiguratie is nu toegankelijk via het menu met drie puntjes op de gebiedskaart (zorgt voor een consistente manier om instellingen te bereiken).
 
 ### Chore
