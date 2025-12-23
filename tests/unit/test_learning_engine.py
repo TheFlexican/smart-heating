@@ -2,31 +2,23 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from homeassistant.util import dt as dt_util
 from smart_heating.features.learning_engine import MIN_LEARNING_EVENTS, HeatingEvent, LearningEngine
 
 
 def test_heating_event_metrics():
-    start = datetime.now() - timedelta(minutes=10)
-    end = datetime.now()
+    start = dt_util.now() - timedelta(minutes=10)
+    end = dt_util.now()
     ev = HeatingEvent("a1", start, end, 18.0, 20.0, 5.0)
     assert ev.duration_minutes > 0
     assert abs(ev.heating_rate - (2.0 / ev.duration_minutes)) < 1e-6
 
 
-def test_get_statistic_id_and_outdoor_adjustment():
-    hass = MagicMock()
-    le = LearningEngine(hass)
-    assert le._get_statistic_id("heating_rate", "a1") == "smart_heating:heating_rate_a1"
-
-    # test outdoor adjustments - skip complex assertion for now
-    # This test needs proper async handling
-    pass  # placeholder for outdoor adjustment test
-
-
 @pytest.mark.asyncio
 async def test_get_outdoor_temperature_and_predict_heating_time():
     hass = MagicMock()
-    le = LearningEngine(hass)
+    mock_event_store = MagicMock()
+    le = LearningEngine(hass, mock_event_store)
     le._weather_entity = "weather.home"
     hass.states.get = MagicMock()
     state = MagicMock()
@@ -52,18 +44,19 @@ async def test_get_outdoor_temperature_and_predict_heating_time():
 @pytest.mark.asyncio
 async def test_start_end_heating_event_records(monkeypatch):
     hass = MagicMock()
-    le = LearningEngine(hass)
+    mock_event_store = MagicMock()
+    mock_event_store.async_record_event = AsyncMock()
+    le = LearningEngine(hass, mock_event_store)
     le._async_get_outdoor_temperature = AsyncMock(return_value=5.0)
     # Start event
     await le.async_start_heating_event("a1", 18.0)
     assert "a1" in le._active_heating_events
 
     # Make a start_time in the past to create duration > 5 min
-    le._active_heating_events["a1"]["start_time"] = datetime.now() - timedelta(minutes=6)
-    # patch record function
-    le._async_record_heating_event = AsyncMock()
+    le._active_heating_events["a1"]["start_time"] = dt_util.now() - timedelta(minutes=6)
+    # End event should record to event store
     await le.async_end_heating_event("a1", 21.0)
-    le._async_record_heating_event.assert_awaited()
+    mock_event_store.async_record_event.assert_awaited()
 
 
 """Tests for learning engine.
@@ -87,9 +80,19 @@ def mock_hass():
 
 
 @pytest.fixture
-def learning_engine(mock_hass):
+def mock_event_store():
+    """Create a mock EventStore instance."""
+    event_store = MagicMock()
+    event_store.async_record_event = AsyncMock()
+    event_store.async_get_events = AsyncMock(return_value=[])
+    event_store.async_get_event_count = AsyncMock(return_value=0)
+    return event_store
+
+
+@pytest.fixture
+def learning_engine(mock_hass, mock_event_store):
     """Create a learning engine instance."""
-    return LearningEngine(mock_hass)
+    return LearningEngine(mock_hass, mock_event_store)
 
 
 class TestHeatingEvent:
@@ -97,7 +100,7 @@ class TestHeatingEvent:
 
     def test_heating_event_creation(self):
         """Test creating a heating event."""
-        start_time = datetime.now()
+        start_time = dt_util.now()
         end_time = start_time + timedelta(minutes=30)
 
         event = HeatingEvent(
@@ -121,7 +124,7 @@ class TestHeatingEvent:
 
     def test_heating_event_no_outdoor_temp(self):
         """Test creating event without outdoor temperature."""
-        start_time = datetime.now()
+        start_time = dt_util.now()
         end_time = start_time + timedelta(minutes=20)
 
         event = HeatingEvent(
@@ -138,7 +141,7 @@ class TestHeatingEvent:
 
     def test_heating_event_zero_duration(self):
         """Test handling zero duration."""
-        now = datetime.now()
+        now = dt_util.now()
 
         event = HeatingEvent(
             area_id="test",
@@ -169,8 +172,7 @@ class TestLearningEngineSetup:
         mock_hass.states.async_entity_ids.return_value = ["weather.home"]
         mock_hass.states.get.return_value = weather_state
 
-        with patch.object(learning_engine, "_async_register_statistics_metadata", AsyncMock()):
-            await learning_engine.async_setup()
+        await learning_engine.async_setup()
 
         assert learning_engine._weather_entity == "weather.home"
 
@@ -179,8 +181,7 @@ class TestLearningEngineSetup:
         """Test setup without weather entity."""
         mock_hass.states.async_entity_ids.return_value = []
 
-        with patch.object(learning_engine, "_async_register_statistics_metadata", AsyncMock()):
-            await learning_engine.async_setup()
+        await learning_engine.async_setup()
 
         assert learning_engine._weather_entity is None
 
@@ -238,82 +239,64 @@ class TestHeatingEventTracking:
         assert "living_room" not in learning_engine._active_heating_events
 
     @pytest.mark.asyncio
-    async def test_end_heating_event_short_duration(self, learning_engine):
+    async def test_end_heating_event_short_duration(self, learning_engine, mock_event_store):
         """Test ending event with too short duration (< 5 minutes)."""
         # Start event
         learning_engine._active_heating_events["living_room"] = {
-            "start_time": datetime.now(),  # Very recent
+            "start_time": dt_util.now(),  # Very recent
             "start_temp": 19.0,
             "outdoor_temp": 10.0,
         }
 
-        with patch.object(
-            learning_engine, "_async_record_heating_event", AsyncMock()
-        ) as mock_record:
-            await learning_engine.async_end_heating_event("living_room", 19.5)
+        await learning_engine.async_end_heating_event("living_room", 19.5)
 
         # Should not record (too short)
-        mock_record.assert_not_called()
+        mock_event_store.async_record_event.assert_not_called()
         assert "living_room" not in learning_engine._active_heating_events
 
     @pytest.mark.asyncio
-    async def test_end_heating_event_insignificant_change(self, learning_engine):
+    async def test_end_heating_event_insignificant_change(self, learning_engine, mock_event_store):
         """Test ending event with insignificant temperature change (< 0.1°C)."""
         learning_engine._active_heating_events["living_room"] = {
-            "start_time": datetime.now() - timedelta(minutes=10),
+            "start_time": dt_util.now() - timedelta(minutes=10),
             "start_temp": 19.0,
             "outdoor_temp": 10.0,
         }
 
-        with patch.object(
-            learning_engine, "_async_record_heating_event", AsyncMock()
-        ) as mock_record:
-            await learning_engine.async_end_heating_event(
-                "living_room", 19.05
-            )  # Only 0.05°C change
+        await learning_engine.async_end_heating_event("living_room", 19.05)  # Only 0.05°C change
 
         # Should not record (insignificant change)
-        mock_record.assert_not_called()
+        mock_event_store.async_record_event.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_end_heating_event_valid(self, learning_engine):
+    async def test_end_heating_event_valid(self, learning_engine, mock_event_store):
         """Test ending event with valid data."""
         learning_engine._active_heating_events["living_room"] = {
-            "start_time": datetime.now() - timedelta(minutes=30),
+            "start_time": dt_util.now() - timedelta(minutes=30),
             "start_temp": 18.0,
             "outdoor_temp": 10.0,
         }
 
-        with patch.object(
-            learning_engine, "_async_record_heating_event", AsyncMock()
-        ) as mock_record:
-            await learning_engine.async_end_heating_event("living_room", 21.0)
+        await learning_engine.async_end_heating_event("living_room", 21.0)
 
-        # Should record the event
-        mock_record.assert_called_once()
-        call_args = mock_record.call_args[0][0]
-        assert isinstance(call_args, HeatingEvent)
-        assert call_args.area_id == "living_room"
-        assert call_args.start_temp == 18.0
-        assert call_args.end_temp == 21.0
+        # Should record the event to event store
+        mock_event_store.async_record_event.assert_called_once()
+        call_args = mock_event_store.async_record_event.call_args[0]
+        assert call_args[0] == "living_room"  # area_id
+        event_data = call_args[1]
+        assert event_data["start_temp"] == 18.0
+        assert event_data["end_temp"] == 21.0
         assert "living_room" not in learning_engine._active_heating_events
 
 
-class TestStatistics:
-    """Tests for statistics functionality."""
-
-    def test_get_statistic_id(self, learning_engine):
-        """Test generating statistic IDs."""
-        stat_id = learning_engine._get_statistic_id("heating_rate", "living_room")
-        assert stat_id == "smart_heating:heating_rate_living_room"
+class TestEventStore:
+    """Tests for event store integration."""
 
     @pytest.mark.asyncio
-    async def test_async_register_statistics_metadata(self, learning_engine):
-        """Test registering statistics metadata (does nothing in current implementation)."""
-        # This method currently does nothing (just passes)
-        await learning_engine._async_register_statistics_metadata()
-        # No error means success
-        assert True
+    async def test_event_store_integration(self, learning_engine, mock_event_store):
+        """Test that learning engine uses event store correctly."""
+        # Verify event store is set
+        assert learning_engine.event_store is mock_event_store
 
 
 class TestOutdoorTemperature:
@@ -458,43 +441,37 @@ class TestLearningStats:
     """Tests for learning statistics."""
 
     @pytest.mark.asyncio
-    async def test_get_learning_stats_no_data(self, learning_engine):
+    async def test_get_learning_stats_no_data(self, learning_engine, mock_event_store):
         """Test getting learning stats with no data."""
-        with patch.object(
-            learning_engine,
-            "_async_get_recent_heating_rates",
-            AsyncMock(return_value=[]),
-        ):
-            stats = await learning_engine.async_get_learning_stats("living_room")
+        mock_event_store.async_get_events.return_value = []
+        mock_event_store.async_get_event_count.return_value = 0
+
+        stats = await learning_engine.async_get_learning_stats("living_room")
 
         assert stats["data_points"] == 0
         assert stats["avg_heating_rate"] == 0
         assert stats["ready_for_predictions"] is False
+        assert stats["total_events_all_time"] == 0
 
     @pytest.mark.asyncio
-    async def test_get_learning_stats_with_data(self, learning_engine):
+    async def test_get_learning_stats_with_data(self, learning_engine, mock_event_store):
         """Test getting learning stats with data."""
-        heating_rates = [0.08, 0.10, 0.12, 0.09, 0.11] * 4  # 20 data points
+        # Create mock events
+        events_30d = [
+            {
+                "start_time": "2024-01-01T10:00:00",
+                "heating_rate": rate,
+                "start_temp": 18.0,
+                "end_temp": 20.0,
+            }
+            for rate in [0.08, 0.10, 0.12, 0.09, 0.11] * 4  # 20 events
+        ]
 
         learning_engine._weather_entity = "weather.home"
+        mock_event_store.async_get_events.return_value = events_30d
+        mock_event_store.async_get_event_count.return_value = 25
 
-        detailed_stats = {
-            "heating_rates": heating_rates,
-            "recent_events": [
-                {"timestamp": "2024-01-01T10:00:00", "heating_rate": 0.10},
-                {"timestamp": "2024-01-01T11:00:00", "heating_rate": 0.12},
-            ],
-            "first_event_time": "2024-01-01T08:00:00",
-            "last_event_time": "2024-01-01T12:00:00",
-            "total_events_all_time": 25,
-        }
-
-        with patch.object(
-            learning_engine,
-            "_async_get_detailed_statistics",
-            AsyncMock(return_value=detailed_stats),
-        ):
-            stats = await learning_engine.async_get_learning_stats("living_room")
+        stats = await learning_engine.async_get_learning_stats("living_room")
 
         assert stats["data_points"] == 20
         assert stats["avg_heating_rate"] == pytest.approx(0.10, abs=0.01)
@@ -502,10 +479,8 @@ class TestLearningStats:
         assert stats["max_heating_rate"] == pytest.approx(0.12)
         assert stats["ready_for_predictions"] is True
         assert stats["outdoor_temp_available"] is True
-        assert stats["first_event_time"] == "2024-01-01T08:00:00"
-        assert stats["last_event_time"] == "2024-01-01T12:00:00"
         assert stats["total_events_all_time"] == 25
-        assert len(stats["recent_events"]) == 2
+        assert len(stats["recent_events"]) == 10  # Last 10 events
 
     @pytest.mark.asyncio
     async def test_calculate_smart_boost(self, learning_engine):
