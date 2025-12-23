@@ -166,14 +166,7 @@ const ZoneDetail = () => {
     onZoneUpdate: updatedZone => {
       if (updatedZone.id === areaId) {
         setArea(updatedZone)
-        const displayTemp =
-          !isEnabledVal(updatedZone.enabled) || updatedZone.state === 'off'
-            ? updatedZone.target_temperature
-            : updatedZone.preset_mode &&
-                updatedZone.preset_mode !== 'none' &&
-                updatedZone.effective_target_temperature != null
-              ? updatedZone.effective_target_temperature
-              : updatedZone.target_temperature
+        const displayTemp = getDisplayTemperature(updatedZone)
         setTemperature(displayTemp)
       }
     },
@@ -181,14 +174,7 @@ const ZoneDetail = () => {
       const currentZone = areas.find(z => z.id === areaId)
       if (currentZone) {
         setArea(currentZone)
-        const displayTemp =
-          !isEnabledVal(currentZone.enabled) || currentZone.state === 'off'
-            ? currentZone.target_temperature
-            : currentZone.preset_mode &&
-                currentZone.preset_mode !== 'none' &&
-                currentZone.effective_target_temperature != null
-              ? currentZone.effective_target_temperature
-              : currentZone.target_temperature
+        const displayTemp = getDisplayTemperature(currentZone)
         setTemperature(displayTemp)
       }
     },
@@ -208,15 +194,7 @@ const ZoneDetail = () => {
       }
 
       setArea(currentZone)
-      const displayTemp =
-        !isEnabledVal(currentZone.enabled) || currentZone.state === 'off'
-          ? currentZone.target_temperature
-          : currentZone.preset_mode &&
-              currentZone.preset_mode !== 'none' &&
-              currentZone.effective_target_temperature != null
-            ? currentZone.effective_target_temperature
-            : currentZone.target_temperature
-      setTemperature(displayTemp)
+      setTemperature(getDisplayTemperature(currentZone))
       // Load global presets for preset configuration section
       try {
         const presets = await getGlobalPresets()
@@ -617,6 +595,25 @@ const ZoneDetail = () => {
       return `${globalPresets[globalKey]}°C (global)`
     }
     return `${customTemp ?? fallback}°C (custom)`
+  }
+
+  // Helper function to compute the display temperature consistently with ZoneCard
+  const getDisplayTemperature = (zone: Zone | null | undefined): number => {
+    if (!zone) return 20
+    const enabled = isEnabledVal(zone.enabled)
+
+    // If area is disabled or off, always show base target temperature
+    if (!enabled || zone.state === 'off') return zone.target_temperature
+
+    // When not in manual override and an effective target exists, prefer the effective temperature
+    if (!zone.manual_override && zone.effective_target_temperature != null) {
+      if (Math.abs(zone.effective_target_temperature - zone.target_temperature) >= 0.1) {
+        return zone.effective_target_temperature
+      }
+    }
+
+    // Otherwise show the base target temperature
+    return zone.target_temperature
   }
 
   // Generate settings sections for draggable layout

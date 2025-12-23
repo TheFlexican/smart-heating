@@ -1,6 +1,7 @@
 ### Opgelost
 - De logmelding wanneer verwarmingsgebeurtenissen worden overgeslagen geeft nu de specifieke reden(en) (duur en/of temperatuursverandering) in plaats van beide ongeacht welke faalt; voorkomt misleidende berichten zoals "44.1 min < 5 min" wanneer alleen de temperatuursverandering onvoldoende is. (backend) — Zie PR #103
 - Gebiedskaarten zijn niet langer klikbaar; gebiedsconfiguratie is nu toegankelijk via het menu met drie puntjes op de gebiedskaart (zorgt voor een consistente manier om instellingen te bereiken).
+- De weergave van de doeltemperatuur in het gebiedsoverzicht is nu consistent met de detailweergave — de logica is gelijkgetrokken, waardoor verschillen zoals dashboard 19.5°C vs detail 20°C niet meer optreden. (frontend)
 
 ### Chore
 - WebSocket client/server-integratie voor apparaatlogboeken is hersteld: de backend registreert nu `smart_heating/subscribe_device_logs`, de frontend voegt automatisch een `id` toe aan WebSocket-commando's en een tijdelijke `console.debug` voor debuggen is verwijderd. Dit maakt het mogelijk dat Global Settings → Device Logs zich abonneert en live apparaatgebeurtenissen ontvangt. (frontend + backend) — Zie PR #87
