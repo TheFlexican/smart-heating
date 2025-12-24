@@ -65,17 +65,18 @@ tar czf /tmp/smart_heating_sync.tar.gz \
 cd - > /dev/null
 
 # Extract in production container
+echo -e "${YELLOW}[2/3]${NC} Copying current folder to backup..."
+cp -R /Volumes/config/custom_components/smart_heating /Users/ralf/backup/smart_heating_backup_$(date +%Y%m%d_%H%M%S)
+
 echo -e "${YELLOW}[2/3]${NC} Unpacking integration files..."
 tar xzf /tmp/smart_heating_sync.tar.gz -C /Volumes/config/custom_components/smart_heating
 
 # Need to restart Home Assistant for changes to take effect
 echo -e "${YELLOW}[2/3]${NC} Restarting Home Assistant..."
-ssh root@192.168.2.2 -p 22222 "ha core restart"
+ssh root@192.168.2.2 -p 22222 "ha core start"
 
 # Clean up
 rm /tmp/smart_heating_sync.tar.gz
-
-
 
 echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
 echo -e "${GREEN}  Sync Complete!${NC}"

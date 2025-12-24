@@ -1,9 +1,10 @@
 """Zone Manager for Smart Heating integration."""
 
 import logging
+import asyncio
 from typing import Any, Dict, Deque, List
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -60,17 +61,6 @@ class AreaManager:
         # UI Settings
         self.hide_devices_panel: bool = False
 
-        # Device event logging (in-memory per-area circular buffer)
-        # Use a modest default capacity to avoid unbounded memory growth
-        self._device_log_capacity: int = 500
-        self._device_logs: dict[str, Deque[DeviceEvent]] = {}
-        # Time-based retention for device events (minutes). Events older than this
-        # will be purged from the per-area buffer. Default 60 minutes.
-        self._device_event_retention_minutes: int = 60
-        # Device log listeners (callbacks notified on new events)
-        # Each listener is a callable accepting a single event dict parameter
-        self._device_log_listeners: list = []
-
         # Advanced control features (disabled by default)
         self.advanced_control_enabled: bool = False
         self.heating_curve_enabled: bool = False
@@ -108,6 +98,13 @@ class AreaManager:
         self._safety_state_unsub = None  # State listener unsubscribe callback
 
         _LOGGER.debug("AreaManager initialized")
+
+        # Device event logging (in-memory per-area circular buffer)
+        # Use modest defaults to avoid unbounded memory growth
+        self._device_log_capacity: int = 500
+        self._device_logs: dict[str, Deque[DeviceEvent]] = {}
+        self._device_event_retention_minutes: int = 60  # minutes
+        self._device_log_listeners: list = []
 
     async def async_load(self) -> None:
         """Load areas from storage."""
@@ -214,3 +211,470 @@ class AreaManager:
         }
         await self._store.async_save(data)
         _LOGGER.info("Saved %d areas and global config to storage", len(self.areas))
+
+    def get_area(self, area_id: str) -> Area | None:
+        """Get a area by ID.
+
+        Args:
+            area_id: Zone identifier
+
+        Returns:
+            Zone or None if not found
+        """
+        return self.areas.get(area_id)
+
+    def get_all_areas(self) -> dict[str, Area]:
+        """Get all areas.
+
+        Returns:
+            Dictionary of all areas
+        """
+        return self.areas
+
+    def add_device_to_area(
+        self,
+        area_id: str,
+        device_id: str,
+        device_type: str,
+        mqtt_topic: str | None = None,
+    ) -> None:
+        """Add a device to a area.
+
+        Args:
+            area_id: Zone identifier
+            device_id: Device identifier
+            device_type: Type of device
+            mqtt_topic: MQTT topic for the device
+
+        Raises:
+            ValueError: If area does not exist
+        """
+        area = self.get_area(area_id)
+        if area is None:
+            raise ValueError(f"Area {area_id} does not exist")
+
+        area.add_device(device_id, device_type, mqtt_topic)
+
+    def remove_device_from_area(self, area_id: str, device_id: str) -> None:
+        """Remove a device from a area.
+
+        Args:
+            area_id: Zone identifier
+            device_id: Device identifier
+
+        Raises:
+            ValueError: If area does not exist
+        """
+        area = self.get_area(area_id)
+        if area is None:
+            raise ValueError(f"Area {area_id} does not exist")
+
+        area.remove_device(device_id)
+
+    def update_area_temperature(self, area_id: str, temperature: float) -> None:
+        """Update the current temperature of a area.
+
+        Args:
+            area_id: Zone identifier
+            temperature: New temperature value
+
+        Raises:
+            ValueError: If area does not exist
+        """
+        area = self.get_area(area_id)
+        if area is None:
+            raise ValueError(f"Area {area_id} does not exist")
+
+        area.current_temperature = temperature
+        _LOGGER.debug("Updated area %s temperature to %.1f°C", area_id, temperature)
+
+    def set_area_target_temperature(self, area_id: str, temperature: float) -> None:
+        """Set the target temperature of a area.
+
+        Args:
+            area_id: Zone identifier
+            temperature: Target temperature
+
+        Raises:
+            ValueError: If area does not exist
+        """
+        area = self.get_area(area_id)
+        if area is None:
+            raise ValueError(f"Area {area_id} does not exist")
+
+        old_temp = area.target_temperature
+        area.target_temperature = temperature
+        _LOGGER.info(
+            "TARGET TEMP CHANGE for %s: %.1f°C → %.1f°C (preset: %s)",
+            area_id,
+            old_temp,
+            temperature,
+            area.preset_mode,
+        )
+
+    def enable_area(self, area_id: str) -> None:
+        """Enable a area.
+
+        Args:
+            area_id: Zone identifier
+
+        Raises:
+            ValueError: If area does not exist
+        """
+        area = self.get_area(area_id)
+        if area is None:
+            raise ValueError(f"Area {area_id} does not exist")
+
+        area.enabled = True
+        _LOGGER.info("Enabled area %s", area_id)
+
+    def disable_area(self, area_id: str) -> None:
+        """Disable a area.
+
+        Args:
+            area_id: Zone identifier
+
+        Raises:
+            ValueError: If area does not exist
+        """
+        area = self.get_area(area_id)
+        if area is None:
+            raise ValueError(f"Area {area_id} does not exist")
+
+        area.enabled = False
+        _LOGGER.info("Disabled area %s", area_id)
+
+    def add_schedule_to_area(
+        self,
+        area_id: str,
+        schedule_id: str,
+        time: str,
+        temperature: float,
+        days: list[str] | None = None,
+    ) -> Schedule:
+        """Add a schedule to an area.
+
+        Args:
+            area_id: Area identifier
+            schedule_id: Unique schedule identifier
+            time: Time in HH:MM format
+            temperature: Target temperature
+            days: Days of week or None for all days
+
+        Returns:
+            Created schedule
+
+        Raises:
+            ValueError: If area does not exist
+        """
+        area = self.get_area(area_id)
+        if area is None:
+            raise ValueError(f"Area {area_id} does not exist")
+
+        schedule = Schedule(schedule_id, time, temperature, days)
+        area.add_schedule(schedule)
+        _LOGGER.info("Added schedule %s to area %s", schedule_id, area_id)
+        return schedule
+
+    def remove_schedule_from_area(self, area_id: str, schedule_id: str) -> None:
+        """Remove a schedule from an area.
+
+        Args:
+            area_id: Area identifier
+            schedule_id: Schedule identifier
+
+        Raises:
+            ValueError: If area does not exist
+        """
+        area = self.get_area(area_id)
+        if area is None:
+            raise ValueError(f"Area {area_id} does not exist")
+
+        area.remove_schedule(schedule_id)
+        _LOGGER.info("Removed schedule %s from area %s", schedule_id, area_id)
+
+    async def set_opentherm_gateway(self, gateway_id: str | None) -> None:
+        """Set the global OpenTherm gateway device ID.
+
+        Args:
+            gateway_id: Device ID of the OpenTherm gateway (from integration configuration ID field)
+        """
+        self.opentherm_gateway_id = gateway_id
+
+        # Auto-enable heating curve when OpenTherm gateway is configured
+        # This provides SAT-like optimal heating out of the box
+        if gateway_id:
+            if not self.advanced_control_enabled:
+                self.advanced_control_enabled = True
+                _LOGGER.info("Auto-enabled advanced control (OpenTherm gateway configured)")
+            if not self.heating_curve_enabled:
+                self.heating_curve_enabled = True
+                _LOGGER.info("Auto-enabled heating curve for optimal energy efficiency")
+
+        # When a gateway id is configured, the integration will control it automatically.
+        _LOGGER.info("OpenTherm gateway set to %s", gateway_id)
+        await self.async_save()
+
+    def add_safety_sensor(
+        self,
+        sensor_id: str,
+        attribute: str = "smoke",
+        alert_value: str | bool = True,
+        enabled: bool = True,
+    ) -> None:
+        """Add a safety sensor (smoke/CO detector).
+
+        Args:
+            sensor_id: Entity ID of the safety sensor
+            attribute: Attribute to monitor (e.g., "smoke", "carbon_monoxide", "gas", "state")
+            alert_value: Value that indicates danger (True, "on", "alarm", etc.)
+            enabled: Whether safety monitoring is enabled for this sensor
+        """
+        # Check if sensor already exists
+        for sensor in self.safety_sensors:
+            if sensor["sensor_id"] == sensor_id:
+                # Update existing sensor
+                sensor["attribute"] = attribute
+                sensor["alert_value"] = alert_value
+                sensor["enabled"] = enabled
+                _LOGGER.info(
+                    "Safety sensor updated: %s (attribute: %s, alert_value: %s, enabled: %s)",
+                    sensor_id,
+                    attribute,
+                    alert_value,
+                    enabled,
+                )
+                return
+
+        # Add new sensor
+        self.safety_sensors.append(
+            {
+                "sensor_id": sensor_id,
+                "attribute": attribute,
+                "alert_value": alert_value,
+                "enabled": enabled,
+            }
+        )
+        _LOGGER.info(
+            "Safety sensor added: %s (attribute: %s, alert_value: %s, enabled: %s)",
+            sensor_id,
+            attribute,
+            alert_value,
+            enabled,
+        )
+
+    def remove_safety_sensor(self, sensor_id: str) -> None:
+        """Remove a safety sensor by ID.
+
+        Args:
+            sensor_id: Entity ID of the safety sensor to remove
+        """
+        self.safety_sensors = [s for s in self.safety_sensors if s["sensor_id"] != sensor_id]
+        # Clear alert if no sensors remain
+        if not self.safety_sensors:
+            self._safety_alert_active = False
+        _LOGGER.info("Safety sensor removed: %s", sensor_id)
+
+    def get_safety_sensors(self) -> list[dict[str, Any]]:
+        """Get all configured safety sensors.
+
+        Returns:
+            List of safety sensor configurations
+        """
+        return self.safety_sensors.copy()
+
+    def clear_safety_sensors(self) -> None:
+        """Clear all configured safety sensors."""
+        self.safety_sensors = []
+        self._safety_alert_active = False
+        _LOGGER.info("Cleared all safety sensors")
+
+    def check_safety_sensor_status(self) -> tuple[bool, str | None]:
+        """Check if any safety sensor is in alert state.
+
+        Returns:
+            Tuple of (is_alert, sensor_id) - True if any sensor is alerting, with the sensor ID
+        """
+        if not self.safety_sensors:
+            return False, None
+
+        for sensor in self.safety_sensors:
+            if not sensor.get("enabled", True):
+                continue
+
+            sensor_id = sensor["sensor_id"]
+            attribute = sensor.get("attribute", "smoke")
+            alert_value = sensor.get("alert_value", True)
+
+            state = self.hass.states.get(sensor_id)
+            if not state:
+                _LOGGER.debug("Safety sensor %s not found", sensor_id)
+                continue
+
+            # Check the specified attribute or state
+            if attribute == "state":
+                # Check state directly
+                current_value = state.state
+            else:
+                # Check attribute
+                current_value = state.attributes.get(attribute)
+
+            # Compare with alert value
+            is_alert = current_value == alert_value
+
+            if is_alert:
+                _LOGGER.warning(
+                    "\ud83d\udea8 Safety sensor %s is in alert state! %s = %s",
+                    sensor_id,
+                    attribute,
+                    current_value,
+                )
+                return True, sensor_id
+
+        # No sensors in alert state
+        return False, None
+
+    def is_safety_alert_active(self) -> bool:
+        """Check if safety alert is currently active.
+
+        Returns:
+            True if in emergency shutdown mode due to safety alert
+        """
+        return self._safety_alert_active
+
+    def set_safety_alert_active(self, active: bool) -> None:
+        """Set the safety alert state.
+
+        Args:
+            active: Whether safety alert is active
+        """
+        if self._safety_alert_active != active:
+            self._safety_alert_active = active
+            _LOGGER.info("Safety alert state changed to: %s", active)
+
+    def set_trv_temperatures(
+        self, heating_temp: float, idle_temp: float, temp_offset: float | None = None
+    ) -> None:
+        """Set global TRV temperature limits for areas without position control.
+
+        Args:
+            heating_temp: Temperature to set when heating (default 25°C)
+            idle_temp: Temperature to set when idle (default 10°C)
+            temp_offset: Temperature offset above target for temp-controlled valves (default 10°C)
+        """
+        self.trv_heating_temp = heating_temp
+        self.trv_idle_temp = idle_temp
+        if temp_offset is not None:
+            self.trv_temp_offset = temp_offset
+            _LOGGER.info(
+                "TRV temperatures set: heating=%.1f°C, idle=%.1f°C, offset=%.1f°C",
+                heating_temp,
+                idle_temp,
+                temp_offset,
+            )
+        else:
+            _LOGGER.info(
+                "TRV temperatures set: heating=%.1f°C, idle=%.1f°C",
+                heating_temp,
+                idle_temp,
+            )
+
+    # Device event logging helpers ------------------------------------
+    def async_add_device_event(self, area_id: str, event: DeviceEvent) -> None:
+        """Add a device event to the per-area logs and notify listeners.
+
+        Note: Named "async_" to indicate it may schedule coroutines; it is a
+        synchronous helper so tests can call it without awaiting.
+        """
+        # Ensure deque exists
+        if area_id not in self._device_logs:
+            self._device_logs[area_id] = deque(maxlen=self._device_log_capacity)
+
+        # Append new event to the left so newest events are first
+        self._device_logs[area_id].appendleft(event)
+
+        # Purge old events by retention
+        cutoff = datetime.now(timezone.utc) - timedelta(
+            minutes=self._device_event_retention_minutes
+        )
+        # Remove from right while events are older than cutoff
+        while self._device_logs[area_id]:
+            try:
+                ts = self._device_logs[area_id][-1].timestamp
+                ts_dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            except Exception:
+                # If parsing fails, keep the event (tests expect malformed timestamps to be included)
+                break
+
+            if ts_dt < cutoff:
+                self._device_logs[area_id].pop()
+            else:
+                break
+
+        # Notify listeners
+        event_dict = event.to_dict() if hasattr(event, "to_dict") else event
+        for listener in list(self._device_log_listeners):
+            try:
+                if asyncio.iscoroutinefunction(listener):
+                    try:
+                        self.hass.async_create_task(listener(event_dict))
+                    except Exception:
+                        asyncio.create_task(listener(event_dict))
+                else:
+                    listener(event_dict)
+            except Exception:
+                _LOGGER.exception("Device log listener failed")
+
+    def async_get_device_logs(
+        self,
+        area_id: str,
+        device_id: str | None = None,
+        direction: str | None = None,
+        since: str | None = None,
+    ) -> list[dict]:
+        """Retrieve device logs with optional filtering.
+
+        Returns newest-first list of dicts.
+        """
+        if area_id not in self._device_logs:
+            return []
+
+        events = list(self._device_logs[area_id])
+
+        # Filter by device_id and direction
+        if device_id is not None:
+            events = [e for e in events if getattr(e, "device_id", None) == device_id]
+        if direction is not None:
+            events = [e for e in events if getattr(e, "direction", None) == direction]
+
+        # Filter by since (ISO timestamp string)
+        if since is not None:
+            try:
+                since_dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
+            except Exception:
+                since_dt = None
+
+            def since_filter(e):
+                try:
+                    ts = datetime.fromisoformat(e.timestamp.replace("Z", "+00:00"))
+                    return ts >= since_dt if since_dt is not None else True
+                except Exception:
+                    # If parsing fails for the event, include it
+                    return True
+
+            events = [e for e in events if since_filter(e)]
+
+        # Convert to dicts and return
+        return [e.to_dict() if hasattr(e, "to_dict") else e for e in events]
+
+    def add_device_log_listener(self, cb) -> None:
+        """Register a callback to receive device events. Idempotent."""
+        if cb not in self._device_log_listeners:
+            self._device_log_listeners.append(cb)
+
+    def remove_device_log_listener(self, cb) -> None:
+        """Remove a previously registered listener. Silent if not present."""
+        try:
+            self._device_log_listeners.remove(cb)
+        except ValueError:
+            pass
