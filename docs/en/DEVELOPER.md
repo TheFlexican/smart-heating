@@ -113,6 +113,7 @@ For OpenTherm Gateway specific testing guidelines, see [OpenTherm Integration](O
 
 - A new "Device Logs" panel is available under Global Settings → Device Logs. It surfaces recent thermostat failure/backoff events collected by the advanced metrics collector so operators can quickly identify thermostats that are repeatedly failing to accept commands or are in backoff. The panel displays area, thermostat entity, failure count, last failure timestamp, and current backoff interval.
 
+- Maintenance (2025-12-24) — PR #108 restored the server-side device log subscription and recording logic that was accidentally removed during a refactor, and also restored missing LearningEngine methods used by backend predictions and statistics. All unit tests were run locally and now pass (1318 total tests).
 ### TRV Frontend Integration
 
 - New frontend pieces to support per-area TRV configuration and visualization:
