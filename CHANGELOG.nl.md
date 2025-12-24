@@ -1,4 +1,5 @@
 ### Opgelost
+- Hersteld: LearningEngine en AreaManager apparaatlogboek functionaliteit na accidentele verwijdering tijdens refactor; herstelt serverzijde abonnement op apparaatlogboeken, gebeurtenisregistratie en voorspellingshelpers, en repareert meerdere falende tests (backend). — Zie PR #108
 - De logmelding wanneer verwarmingsgebeurtenissen worden overgeslagen geeft nu de specifieke reden(en) (duur en/of temperatuursverandering) in plaats van beide ongeacht welke faalt; voorkomt misleidende berichten zoals "44.1 min < 5 min" wanneer alleen de temperatuursverandering onvoldoende is. (backend) — Zie PR #103
 - Gebiedskaarten zijn niet langer klikbaar; gebiedsconfiguratie is nu toegankelijk via het menu met drie puntjes op de gebiedskaart (zorgt voor een consistente manier om instellingen te bereiken).
 - De weergave van de doeltemperatuur in het gebiedsoverzicht is nu consistent met de detailweergave — de logica is gelijkgetrokken, waardoor verschillen zoals dashboard 19.5°C vs detail 20°C niet meer optreden. (frontend)

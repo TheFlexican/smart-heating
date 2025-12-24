@@ -1,4 +1,5 @@
 ### Fixed
+- Restore LearningEngine and AreaManager device logging after accidental removal in a refactor; restores server-side device log subscription, event recording and prediction helpers used by the API and fixes multiple failing tests (backend). — See PR #108
 - Log when heating events are skipped now reports the specific failing reason(s) (duration and/or temperature change) instead of listing both unconditionally; prevents misleading messages like "44.1 min < 5 min" when only the temperature change is insufficient. (backend) — See PR #103
 - Preserve zones overview viewport when updating an area's temperature; avoid large list loader during small updates to prevent scrolling/jumps. (frontend)
 - Area cards are no longer clickable; area configuration is now accessible from the area card's three-dots menu (ensures a consistent way to reach settings).

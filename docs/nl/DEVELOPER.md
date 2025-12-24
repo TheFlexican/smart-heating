@@ -9,6 +9,8 @@
     - Dit maakt het mogelijk dat het paneel Globale Instellingen → Device Logs zich abonneert en live `device_event` berichten ontvangt.
     - Zie de changelog en PR #87 voor volledige details.
 
+ - PR #108 (fix/restore-learning-area-manager) — samengevoegd in `fix/restore-learning-area-manager` op 2025-12-24: Herstelt per-gebied apparaatlogboekregistratie en ontbrekende LearningEngine-methoden die noodzakelijk zijn voor voorspellingen en statistieken; repareert testregressies en zorgt dat alle unit tests weer slagen (1318/1318).
+
 # Ontwikkelaar Snelle Referentie
 
 Snelle referentie voor het ontwikkelen en uitbreiden van Smart Heating.
