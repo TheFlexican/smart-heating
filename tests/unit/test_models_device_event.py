@@ -1,4 +1,5 @@
 """Tests for DeviceEvent model."""
+
 from datetime import datetime, timezone
 
 from smart_heating.models.device_event import DeviceEvent

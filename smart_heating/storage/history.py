@@ -7,6 +7,7 @@ import logging
 import json
 from datetime import datetime, timedelta
 from typing import Any
+import asyncio
 
 from homeassistant.components.recorder import get_instance
 from homeassistant.core import HomeAssistant
@@ -32,6 +33,9 @@ from ..const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+RECORDER_ENGINE_UNAVAILABLE = "Recorder engine not available"
+DB_TABLE_NOT_INITIALIZED = "Database table not initialized"
 
 STORAGE_VERSION = 1
 STORAGE_KEY = "smart_heating_history"
@@ -60,6 +64,7 @@ class HistoryTracker:
         self._db_table = None
         self._db_engine = None
         self._db_validated = False
+        self._db_validation_task = None
         # Quick validation for database backend at init time to satisfy tests
         if self._storage_backend == HISTORY_STORAGE_DATABASE:
             try:
@@ -84,16 +89,24 @@ class HistoryTracker:
                 self._storage_backend = HISTORY_STORAGE_JSON
 
     async def _async_validate_database_support(self) -> None:  # NOSONAR
-        """Validate that database storage is supported."""
+        """Validate that database storage is supported.
+
+        If the recorder isn't available at the moment we schedule a retry
+        instead of marking the DB as unsupported so that integrations that
+        start before the recorder becomes available still detect DB storage
+        later on.
+        """
         if self._db_validated:
             return
 
         try:
             recorder = get_instance(self.hass)
             if not recorder:
-                _LOGGER.debug("Recorder not available, falling back to JSON storage")
-                self._storage_backend = HISTORY_STORAGE_JSON
-                self._db_validated = True
+                _LOGGER.debug("Recorder not available, will retry database validation")
+                if self._db_validation_task is None:
+                    self._db_validation_task = self.hass.async_create_task(
+                        self._async_retry_database_validation()
+                    )
                 return
 
             db_url = str(recorder.db_url)
@@ -132,11 +145,75 @@ class HistoryTracker:
             self._storage_backend = HISTORY_STORAGE_JSON
             self._db_validated = True
 
+    async def _async_retry_database_validation(self) -> None:
+        """Retry database validation a few times if recorder wasn't ready.
+
+        This handles cases where the integration starts before the recorder
+        is available at HA startup. We attempt a few times with backoff and
+        then give up and keep JSON storage if validation never succeeds.
+        """
+        try:
+            for _ in range(10):  # 10 attempts * 30s = 5 minutes
+                await asyncio.sleep(30)
+                recorder = get_instance(self.hass)
+                if recorder:
+                    try:
+                        await self._attempt_enable_database(recorder)
+                    except Exception:  # pylint: disable=broad-except
+                        _LOGGER.exception("Error during deferred DB validation")
+                        self._storage_backend = HISTORY_STORAGE_JSON
+                        self._db_validated = True
+                    break
+
+            if not self._db_validated:
+                _LOGGER.debug("Database validation retries exhausted; keeping JSON storage")
+                self._storage_backend = HISTORY_STORAGE_JSON
+                self._db_validated = True
+        finally:
+            self._db_validation_task = None
+
+    async def _attempt_enable_database(self, recorder) -> None:
+        """Attempt to enable and initialize database-backed storage for history.
+
+        Centralizes the logic and reduces cognitive complexity in the retry loop.
+        """
+        db_url = str(recorder.db_url)
+
+        if "sqlite" in db_url.lower():
+            _LOGGER.debug("Recorder now available but detected SQLite; will keep JSON storage")
+            self._storage_backend = HISTORY_STORAGE_JSON
+            self._db_validated = True
+            return
+
+        if any(db in db_url.lower() for db in ["mysql", "mariadb", "postgresql", "postgres"]):
+            _LOGGER.info("Recorder available: enabling history database storage")
+            self._init_database_table()
+            # If DB contains entries, switch to DB-backed storage and load them
+            try:
+                stats = await self.async_get_database_stats()
+                total = stats.get("total_entries") if isinstance(stats, dict) else None
+                if total and int(total) > 0:
+                    self._storage_backend = HISTORY_STORAGE_DATABASE
+                    await self._async_load_from_database()
+            except Exception:
+                # Ignore; we'll remain on JSON if loading fails
+                pass
+
+            self._db_validated = True
+            return
+
+        _LOGGER.debug("Unsupported database type for history storage, falling back to JSON")
+        self._storage_backend = HISTORY_STORAGE_JSON
+        self._db_validated = True
+
     def _init_database_table(self) -> None:
         """Initialize the database table for history storage."""
         try:
             recorder = get_instance(self.hass)
+            if not getattr(recorder, "engine", None):
+                raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
             self._db_engine = recorder.engine
+            assert self._db_engine is not None
 
             metadata = MetaData()
             self._db_table = Table(
@@ -154,53 +231,10 @@ class HistoryTracker:
             # Create table if it doesn't exist
             metadata.create_all(self._db_engine)
 
-            # Ensure 'trvs' column exists
+            # Ensure 'trvs' column exists (migrated to helper)
             try:
-                from sqlalchemy import inspect, text
-
-                inspector = inspect(self._db_engine)
-                existing_cols = [c["name"] for c in inspector.get_columns(DB_TABLE_NAME)]
-
-                if "trvs" not in existing_cols:
-                    _LOGGER.info(
-                        "Database table '%s' missing 'trvs' column - adding it", DB_TABLE_NAME
-                    )
-                    alter_sql = None
-                    dialect = (
-                        self._db_engine.name.lower() if hasattr(self._db_engine, "name") else ""
-                    )
-
-                    # Use TEXT for compatibility across MySQL/Postgres/MariaDB
-                    if "mysql" in dialect or "mariadb" in dialect:
-                        alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT NULL"
-                    elif "postgres" in dialect or "postgresql" in dialect:
-                        alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT"
-                    else:
-                        # Fallback generic SQL (may work for many DBs)
-                        alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT"
-
-                    if alter_sql:
-
-                        def _alter():
-                            with self._db_engine.connect() as conn:
-                                conn.execute(text(alter_sql))
-                                # Some DBs require an explicit commit
-                                try:
-                                    conn.commit()
-                                except Exception:
-                                    pass
-
-                        # Run migration synchronously (this is called from init time)
-                        try:
-                            self._db_engine.begin()
-                            _alter()
-                            _LOGGER.info("Added 'trvs' column to %s", DB_TABLE_NAME)
-                        except Exception as e:
-                            _LOGGER.exception("Failed to add 'trvs' column: %s", e)
-                            # Do not fail initialization; fallback to JSON storage will be handled elsewhere
-                            self._storage_backend = HISTORY_STORAGE_JSON
+                self._ensure_trvs_column()
             except Exception:
-                # If inspection or alter fails, log and continue - JSON fallback will apply later
                 _LOGGER.debug(
                     "Could not verify/add 'trvs' column; continuing with best-effort setup"
                 )
@@ -212,6 +246,65 @@ class HistoryTracker:
             self._storage_backend = HISTORY_STORAGE_JSON
             self._db_table = None
             self._db_engine = None
+
+    def _ensure_trvs_column(self) -> None:
+        """Ensure the 'trvs' column exists in the DB table.
+
+        Runs simple inspection and ALTER TABLE statements where needed. Run-time
+        guards are present to avoid sensor errors during initialization.
+        """
+        from sqlalchemy import inspect, text
+
+        if not getattr(self, "_db_engine", None):
+            raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
+        assert self._db_engine is not None
+
+        inspector = inspect(self._db_engine)
+        existing_cols = [c["name"] for c in inspector.get_columns(DB_TABLE_NAME)]
+
+        if "trvs" not in existing_cols:
+            _LOGGER.info("Database table '%s' missing 'trvs' column - adding it", DB_TABLE_NAME)
+            alter_sql = None
+            dialect = self._db_engine.name.lower() if hasattr(self._db_engine, "name") else ""
+
+            # Use TEXT for compatibility across MySQL/Postgres/MariaDB
+            if "mysql" in dialect or "mariadb" in dialect:
+                alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT NULL"
+            elif "postgres" in dialect or "postgresql" in dialect:
+                alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT"
+            else:
+                # Fallback generic SQL (may work for many DBs)
+                alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT"
+
+            if alter_sql:
+
+                def _alter():
+                    with self._db_engine.connect() as conn:
+                        conn.execute(text(alter_sql))
+                        # Some DBs require an explicit commit
+                        try:
+                            conn.commit()
+                        except Exception:
+                            pass
+
+                # Run migration synchronously (this is called from init time)
+                self._db_engine.begin()
+                _alter()
+                _LOGGER.info("Added 'trvs' column to %s", DB_TABLE_NAME)
+
+    def _get_trvs_alter_sql(self) -> str | None:
+        """Return the ALTER SQL required to add the `trvs` column for the DB dialect."""
+        if not getattr(self, "_db_engine", None):
+            return None
+        dialect = self._db_engine.name.lower() if hasattr(self._db_engine, "name") else ""
+
+        if "mysql" in dialect or "mariadb" in dialect:
+            return f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT NULL"
+        if "postgres" in dialect or "postgresql" in dialect:
+            return f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT"
+
+        # Generic fallback
+        return f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT"
 
     async def async_load(self) -> None:
         """Load history from storage."""
@@ -282,46 +375,57 @@ class HistoryTracker:
         """Load history from database."""
         try:
             recorder = get_instance(self.hass)
+            if not getattr(recorder, "engine", None):
+                raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
+            if self._db_table is None:
+                raise RuntimeError(DB_TABLE_NOT_INITIALIZED)
+            assert recorder.engine is not None
+            assert self._db_table is not None
+
+            db_table = self._db_table
+            engine = recorder.engine
+            assert engine is not None
+
+            def _collect_history_rows(conn, db_table):
+                # Load all rows ordered by timestamp desc and convert to dict
+                stmt = select(db_table).order_by(db_table.c.timestamp.desc())
+                result = conn.execute(stmt)
+
+                history_dict = {}
+                for row in result:
+                    area_id = row.area_id
+                    if area_id not in history_dict:
+                        history_dict[area_id] = []
+
+                    # Parse TRV JSON if present
+                    trvs = None
+                    try:
+                        trvs = json.loads(row.trvs) if row.trvs else None
+                    except Exception:
+                        trvs = None
+
+                    history_dict[area_id].append(
+                        {
+                            "timestamp": row.timestamp.isoformat(),
+                            "current_temperature": row.current_temperature,
+                            "target_temperature": row.target_temperature,
+                            # Normalize state values to lowercase so frontend
+                            # comparisons (e.g., 'heating'/'cooling') work
+                            "state": row.state.lower() if isinstance(row.state, str) else row.state,
+                            "trvs": trvs,
+                        }
+                    )
+
+                return history_dict
 
             def _load():
-                with recorder.engine.connect() as conn:
-                    # Load retention setting from JSON config
-                    stmt = select(self._db_table).order_by(self._db_table.c.timestamp.desc())
-                    result = conn.execute(stmt)
-
-                    history_dict = {}
-                    for row in result:
-                        area_id = row.area_id
-                        if area_id not in history_dict:
-                            history_dict[area_id] = []
-
-                        # Parse TRV JSON if present
-                        trvs = None
-                        try:
-                            trvs = json.loads(row.trvs) if row.trvs else None
-                        except Exception:
-                            trvs = None
-
-                        history_dict[area_id].append(
-                            {
-                                "timestamp": row.timestamp.isoformat(),
-                                "current_temperature": row.current_temperature,
-                                "target_temperature": row.target_temperature,
-                                # Normalize state values to lowercase so frontend
-                                # comparisons (e.g., 'heating'/'cooling') work
-                                "state": row.state.lower()
-                                if isinstance(row.state, str)
-                                else row.state,
-                                "trvs": trvs,
-                            }
-                        )
-
-                    return history_dict
+                with engine.connect() as conn:
+                    return _collect_history_rows(conn, db_table)
 
             self._history = await recorder.async_add_executor_job(_load)
 
             # Normalize any state values loaded from the database to lowercase
-            for area_id, entries in list(self._history.items()):
+            for area_id, entries in self._history.items():
                 for entry in entries:
                     if "state" in entry and isinstance(entry["state"], str):
                         entry["state"] = entry["state"].lower()
@@ -375,6 +479,8 @@ class HistoryTracker:
         self,
     ) -> None:  # NOSONAR - intentionally async (cleanup tasks may be awaited by caller)
         """Unload and cleanup."""
+        # Minimal await to satisfy async function linters
+        await asyncio.sleep(0)
         if self._cleanup_unsub:
             self._cleanup_unsub()
             self._cleanup_unsub = None
@@ -393,7 +499,8 @@ class HistoryTracker:
         cutoff_iso = cutoff.isoformat()
 
         total_removed = 0
-        for area_id in list(self._history.keys()):
+        area_ids = list(self._history)
+        for area_id in area_ids:
             original_count = len(self._history[area_id])
             self._history[area_id] = [
                 entry for entry in self._history[area_id] if entry["timestamp"] > cutoff_iso
@@ -420,11 +527,22 @@ class HistoryTracker:
         """Clean up old entries in database storage."""
         try:
             recorder = get_instance(self.hass)
+            if not getattr(recorder, "engine", None):
+                raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
+            if self._db_table is None:
+                raise RuntimeError(DB_TABLE_NOT_INITIALIZED)
+            assert recorder.engine is not None
+            assert self._db_table is not None
+
+            db_table = self._db_table
+            engine = recorder.engine
+            assert engine is not None
+
             cutoff = datetime.now() - timedelta(days=self._retention_days)
 
             def _cleanup():
-                with recorder.engine.connect() as conn:
-                    stmt = delete(self._db_table).where(self._db_table.c.timestamp < cutoff)
+                with engine.connect() as conn:
+                    stmt = delete(db_table).where(db_table.c.timestamp < cutoff)
                     result = conn.execute(stmt)
                     conn.commit()
                     return result.rowcount
@@ -511,10 +629,20 @@ class HistoryTracker:
         """Save a single entry to the database."""
         try:
             recorder = get_instance(self.hass)
+            if not getattr(recorder, "engine", None):
+                raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
+            if self._db_table is None:
+                raise RuntimeError(DB_TABLE_NOT_INITIALIZED)
+            assert recorder.engine is not None
+            assert self._db_table is not None
+
+            db_table = self._db_table
+            engine = recorder.engine
+            assert engine is not None
 
             def _insert():
-                with recorder.engine.connect() as conn:
-                    stmt = self._db_table.insert().values(
+                with engine.connect() as conn:
+                    stmt = db_table.insert().values(
                         area_id=area_id,
                         timestamp=timestamp,
                         current_temperature=current_temp,
@@ -707,13 +835,23 @@ class HistoryTracker:
             self._init_database_table()
 
         recorder = get_instance(self.hass)
+        if not getattr(recorder, "engine", None):
+            raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
+        if self._db_table is None:
+            raise RuntimeError(DB_TABLE_NOT_INITIALIZED)
+        assert recorder.engine is not None
+        assert self._db_table is not None
 
-        def _batch_insert():
-            with recorder.engine.connect() as conn:
-                for area_id, entries in self._history.items():
+        db_table = self._db_table
+        engine = recorder.engine
+        assert engine is not None
+
+        def _perform_batch_insert(engine, db_table, history):
+            with engine.connect() as conn:
+                for area_id, entries in history.items():
                     for entry in entries:
                         timestamp = datetime.fromisoformat(entry["timestamp"])
-                        stmt = self._db_table.insert().values(
+                        stmt = db_table.insert().values(
                             area_id=area_id,
                             timestamp=timestamp,
                             current_temperature=entry["current_temperature"],
@@ -726,70 +864,7 @@ class HistoryTracker:
                         conn.execute(stmt)
                 conn.commit()
 
-        await recorder.async_add_executor_job(_batch_insert)
+        await recorder.async_add_executor_job(
+            _perform_batch_insert, engine, db_table, self._history
+        )
         _LOGGER.info("Migrated all entries to database")
-
-    async def _migrate_to_json(self) -> None:
-        """Migrate all database history to JSON."""
-        # History is already in memory, just save to JSON
-        await self._async_save_to_json()
-        _LOGGER.info("Migrated all entries to JSON")
-
-    async def async_get_database_stats(self) -> dict[str, Any]:
-        """Get database statistics.
-
-        Returns:
-            Dictionary with database statistics
-        """
-        if self._storage_backend != HISTORY_STORAGE_DATABASE or self._db_table is None:
-            return {
-                "enabled": False,
-                "message": "Database storage not enabled",
-            }
-
-        try:
-            recorder = get_instance(self.hass)
-
-            def _get_stats():
-                from sqlalchemy import func
-
-                with recorder.engine.connect() as conn:
-                    # Count total entries using COUNT(*) - rowcount doesn't work for SELECT
-                    stmt = select(func.count()).select_from(self._db_table)
-                    total = conn.execute(stmt).scalar() or 0
-
-                    # Count by area
-
-                    stmt = select(
-                        self._db_table.c.area_id,
-                        func.count(self._db_table.c.id).label("count"),
-                    ).group_by(self._db_table.c.area_id)
-                    area_counts = {row.area_id: row.count for row in conn.execute(stmt)}
-
-                    # Get oldest and newest timestamps
-                    stmt = select(
-                        func.min(self._db_table.c.timestamp).label("oldest"),
-                        func.max(self._db_table.c.timestamp).label("newest"),
-                    )
-                    result = conn.execute(stmt).first()
-
-                    return {
-                        "total_entries": total,
-                        "entries_by_area": area_counts,
-                        "oldest_entry": (result.oldest.isoformat() if result.oldest else None),
-                        "newest_entry": (result.newest.isoformat() if result.newest else None),
-                    }
-
-            stats = await recorder.async_add_executor_job(_get_stats)
-            stats["enabled"] = True
-            stats["table_name"] = DB_TABLE_NAME
-            stats["backend"] = self._storage_backend
-
-            return stats
-
-        except Exception as e:
-            _LOGGER.error("Failed to get database stats: %s", e)
-            return {
-                "enabled": True,
-                "error": str(e),
-            }

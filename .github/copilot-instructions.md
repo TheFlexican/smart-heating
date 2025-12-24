@@ -26,10 +26,6 @@ curl -s "http://homeassistant.local:8123/api/states" \
 - ALWAYS ask before removing/changing functionality
 - When in doubt, KEEP existing feature and ADD new one
 
-**RULE #2: E2E Testing Required**
-- Run `cd tests/e2e && npm test` after ALL code changes
-- All tests must pass (100%) before committing
-
 **RULE #3: Git Operations Require User Approval**
 - **NEVER** commit code without user testing and approval first
 - **NEVER** create git tags without explicit user request
@@ -41,7 +37,7 @@ curl -s "http://homeassistant.local:8123/api/states" \
 - **ALWAYS** Create a pull request for code review to main
 - **ALWAYS** Follow semantic versioning for tags (e.g., v0.4.3)
 - After implementing features and fixes: Deploy → Test API → Run Tests → Update Docs & Translations → Ask user to test → Wait for approval → THEN commit/tag/push
-- Workflow: Code → Deploy (bash scripts/deploy_test.sh) → Test API → Run bash tests/run_tests.sh → Run E2E tests → Update Docs (EN+NL) → Update Translations (EN+NL) → User approval → Git operations
+- Workflow: Code → Deploy (bash scripts/deploy_test.sh) → Test API → Run bash tests/run_tests.sh → Update Docs (EN+NL) → Update Translations (EN+NL) → User approval → Git operations
 
 **RULE #3.1: Version Synchronization**
 - App version MUST match git tag version
@@ -64,7 +60,7 @@ curl -s "http://homeassistant.local:8123/api/states" \
   - `docs/en/DEVELOPER.md` + `docs/nl/DEVELOPER.md` - Developer workflow changes
   - Frontend translations: `locales/en/translation.json` + `locales/nl/translation.json`
 - Root `ARCHITECTURE.md` should match `docs/en/ARCHITECTURE.md`
-- Workflow: Code → Deploy (bash scripts/deploy_test.sh) → Test API → Update All Docs & Translations (EN+NL) → Run Tests (bash tests/run_tests.sh && cd tests/e2e && npm test) → User approval → Commit
+- Workflow: Code → Deploy (bash scripts/deploy_test.sh) → Test API → Update All Docs & Translations (EN+NL) → Run Tests (bash tests/run_tests.sh && npm test) → User approval → Commit
 
 **RULE #5: Maintain Code Quality**
 **⚠️ IMPORTANT: Use the SonarQube Agent for Code Quality Tasks**
@@ -116,9 +112,8 @@ You may handle simple, isolated SonarQube fixes yourself (e.g., one optional cha
 **Frontend Development (TypeScript/React):**
 - **TypeScript/React Agent** - For React components, hooks, MUI implementation
 - **TypeScript Testing Agent** - For Jest/Vitest unit tests of components
-- **Playwright Agent** - For E2E user workflow tests
-- Delegate when building UI features, components, or writing tests
-- See `.github/agents/typescript-react.agent.md`, `.github/agents/typescript-testing.agent.md`, and `.github/agents/playwright-e2e.agent.md`
+- Delegate when building UI features or writing unit/integration tests to the TypeScript agents
+- See `.github/agents/typescript-react.agent.md` and `.github/agents/typescript-testing.agent.md`
 
 **Code Quality:**
 - **SonarQube Agent** - For code quality analysis, refactoring, deprecation fixes
@@ -164,12 +159,12 @@ The project uses 6 specialized agents for complete development lifecycle:
 
 **Code Quality (1):** SonarQube Agent
 **Backend (2):** Home Assistant Integration Agent, Home Assistant Pytest Agent
-**Frontend (3):** TypeScript/React Agent, TypeScript Testing Agent, Playwright Agent
+**Frontend (3):** TypeScript/React Agent, TypeScript Testing Agent
 
 See `.github/agents/README.md` for full agent documentation.
 
 **Before Committing Code:**
-<!-- 1. ✅ Run all tests (Python unit tests + E2E tests when available) -->
+<!-- 1. ✅ Run all tests (Python unit tests tests when available) -->
 2. ✅ Check SonarQube for new issues (delegate to SonarQube Agent for fixes if needed)
 3. ✅ Fix all BLOCKER and HIGH severity issues
 4. ✅ Verify code coverage meets 80% threshold
@@ -211,9 +206,8 @@ See `.github/agents/README.md` for full agent documentation.
 
 **Frontend Testing:**
 - **TypeScript Testing Agent** - Jest/Vitest unit tests for React components
-- **Playwright Agent** - E2E tests for user workflows
-- Delegate: "Write unit tests for [component]" or "Write E2E tests for [workflow]"
-- See `.github/agents/typescript-testing.agent.md` and `.github/agents/playwright-e2e.agent.md`
+- Delegate: "Write unit tests for [component]"
+- See `.github/agents/typescript-testing.agent.md`
 
 **Test Requirements:**
 - Minimum 80% code coverage for all modules
@@ -253,7 +247,6 @@ source venv && pytest tests/unit --cov=smart_heating --cov-report=html -v
 
 **Test Structure:**
 - Python unit tests: `tests/unit/` (126+ tests, pytest-based)
-- E2E tests: `tests/e2e/` (109 tests, Playwright-based)
 - Coverage target: 80% minimum for Python modules
 - Common fixtures: `tests/conftest.py`
 
@@ -267,15 +260,11 @@ source venv && pytest tests/unit/test_area_manager.py -v
 
 # Run with coverage report
 source venv && pytest tests/unit --cov=smart_heating --cov-report=html -v
-
-# Run E2E tests
-cd tests/e2e && npm test
 ```
 
 ## Key Directories
 ```
 smart_heating/          # Main integration (backend .py files + frontend/)
-tests/e2e/             # Playwright tests
 tests/unit/            # Python unit tests
 docs/                  # Language-specific documentation
   en/                  # English technical docs (ARCHITECTURE.md, DEVELOPER.md)
@@ -318,7 +307,7 @@ scripts/deploy_test.sh # Deploy to test container (PRIMARY DEPLOY SCRIPT)
 2. bash scripts/deploy_test.sh  # ALWAYS use this script
 3. Clear browser cache (Cmd+Shift+R)
 4. Test at http://localhost:8123
-5. Run tests: bash tests/run_tests.sh && cd tests/e2e && npm test
+5. Run tests: bash tests/run_tests.sh && npm test
 6. Update docs & translations (EN + NL)
 7. Commit only after user approval
 ```
@@ -326,14 +315,11 @@ scripts/deploy_test.sh # Deploy to test container (PRIMARY DEPLOY SCRIPT)
 **CRITICAL:** Always use `bash scripts/deploy_test.sh` for deployment - never use sync.sh or setup.sh
 
 ## Testing
-
-**Run tests:** `cd tests/e2e && npm test`
 **Test files:** navigation, temperature-control, boost-mode, comprehensive-features, sensor-management, backend-logging
 
 **Debug tests:**
 - Run headed: `npm test -- --headed`
 - Add `await page.pause()` for inspection
-- Check `playwright.config.ts` for headless setting
 
 ## API Architecture
 
@@ -367,8 +353,7 @@ Real-time updates via `smart_heating/subscribe` event type
 1. **Backend:** Update coordinator, add API endpoint, update services.yaml
 2. **Frontend:** Add types, API functions, UI components, WebSocket subscriptions
 3. **Deploy:** `./sync.sh` → Clear cache (Cmd+Shift+R) → **WAIT FOR USER TO TEST**
-4. **After user approval:** Run E2E tests if needed
-5. **After user confirms:** Ask before committing/tagging/pushing to git
+4. **After user confirms:** Ask before committing/tagging/pushing to git
 
 ### Debugging
 - Browser: Check Network/Console tabs

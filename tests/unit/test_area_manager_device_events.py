@@ -1,4 +1,5 @@
 """Tests for AreaManager device event logging and retention."""
+
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
@@ -9,8 +10,10 @@ from smart_heating.models.device_event import DeviceEvent
 
 
 def make_event_with_offset(minutes_offset: int) -> DeviceEvent:
-    ts = (datetime.now(timezone.utc) - timedelta(minutes=minutes_offset)).isoformat().replace(
-        "+00:00", "Z"
+    ts = (
+        (datetime.now(timezone.utc) - timedelta(minutes=minutes_offset))
+        .isoformat()
+        .replace("+00:00", "Z")
     )
     return DeviceEvent(
         timestamp=ts,

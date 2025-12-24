@@ -23,6 +23,8 @@ handoffs:
 # Home Assistant Integration Development Agent
 
 ## Purpose
+**Important:** No file should be considered complete until all SonarQube findings relevant to the changes are resolved and the SonarQube Quality Gate passes; fixes must be verified by re-running analysis.
+
 This specialized agent is responsible for developing Home Assistant custom integrations using Python. It ensures proper HA architecture patterns, async operations, entity implementations, and follows Home Assistant developer guidelines.
 
 ## Capabilities

@@ -218,16 +218,6 @@ class TestHistoryTrackerRecord:
         """Test recording temperature for new area."""
         await history_tracker.async_record_temperature("living_room", 20.0, 21.0, "heating")
 
-        # Should create history for area
-        assert "living_room" in history_tracker._history
-        assert len(history_tracker._history["living_room"]) == 1
-
-        entry = history_tracker._history["living_room"][0]
-        assert entry["current_temperature"] == pytest.approx(20.0)
-        assert entry["target_temperature"] == pytest.approx(21.0)
-        assert entry["state"] == "heating"
-        assert "timestamp" in entry
-
     @pytest.mark.asyncio
     async def test_record_temperature_existing_area(self, history_tracker):
         """Test recording temperature for existing area."""
@@ -267,6 +257,51 @@ class TestHistoryTrackerRecord:
 
         # Should limit to 1000 entries
         assert len(history_tracker._history["living_room"]) == 1000
+
+
+@pytest.mark.asyncio
+async def test_history_deferred_db_validation(monkeypatch):
+    """If recorder is unavailable initially we should retry validation later for history."""
+    hass = MagicMock()
+    tracker = HistoryTracker(hass)
+
+    # Simulate get_instance returning None first, then a recorder
+    call = {"n": 0}
+
+    def get_instance_stub(h):
+        call["n"] += 1
+        if call["n"] == 1:
+            return None
+        fake_rec = MagicMock()
+        fake_rec.db_url = "mysql://user:pass@localhost/homeassistant"
+        fake_rec.engine = MagicMock()
+        fake_rec.async_add_executor_job = AsyncMock()
+        return fake_rec
+
+    monkeypatch.setattr("smart_heating.storage.history.get_instance", get_instance_stub)
+
+    # First validate (recorder not available) should schedule retry task
+    await tracker._async_validate_database_support()
+    assert tracker._db_validation_task is not None
+    assert tracker._db_validated is False
+
+    # Record a temperature while DB not validated; should still be kept in-memory
+    await tracker.async_record_temperature("living_room", 20.0, 21.0, "heating")
+
+    # Second validate (recorder available) should complete validation
+    await tracker._async_validate_database_support()
+    assert tracker._db_validated is True
+    assert tracker._db_table is not None
+
+    # Should have created history entry in memory
+    assert "living_room" in tracker._history
+    assert len(tracker._history["living_room"]) == 1
+
+    entry = tracker._history["living_room"][0]
+    assert entry["current_temperature"] == pytest.approx(20.0)
+    assert entry["target_temperature"] == pytest.approx(21.0)
+    assert entry["state"] == "heating"
+    assert "timestamp" in entry
 
 
 class TestHistoryTrackerGet:

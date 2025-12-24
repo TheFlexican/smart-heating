@@ -2,7 +2,7 @@
 name: bugfix
 description: End-to-end bug triage, reproduction, and fixing across frontend/backend with comprehensive testing
 argument-hint: Describe the bug, steps to reproduce, expected vs actual behavior...
-tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'sonarqube/*', 'playwright/*', 'github/*', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'sonarsource.sonarlint-vscode/sonarqube_getPotentialSecurityIssues', 'sonarsource.sonarlint-vscode/sonarqube_excludeFiles', 'sonarsource.sonarlint-vscode/sonarqube_setUpConnectedMode', 'sonarsource.sonarlint-vscode/sonarqube_analyzeFile', 'todo']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'sonarqube/*', 'github/*', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'sonarsource.sonarlint-vscode/sonarqube_getPotentialSecurityIssues', 'sonarsource.sonarlint-vscode/sonarqube_excludeFiles', 'sonarsource.sonarlint-vscode/sonarqube_setUpConnectedMode', 'sonarsource.sonarlint-vscode/sonarqube_analyzeFile', 'todo']
 target: vscode
 infer: true
 handoffs:
@@ -13,10 +13,6 @@ handoffs:
   - label: Write Frontend Tests
     agent: typescript-testing
     prompt: Write Jest/Vitest tests that reproduce this bug and verify the fix with 80%+ coverage.
-    send: false
-  - label: Write E2E Tests
-    agent: playwright-e2e
-    prompt: Write Playwright E2E tests for this bugfix workflow to prevent regressions.
     send: false
   - label: Check Code Quality
     agent: sonarqube-quality
@@ -31,6 +27,7 @@ handoffs:
 # Bugfix Agent
 
 ## Purpose
+**Important:** No file should be considered complete until all SonarQube findings relevant to the changes are resolved and the SonarQube Quality Gate passes; fixes must be verified by re-running analysis.
 
 The **Bugfix Agent** is a cross-domain, end-to-end bug resolution specialist. It owns the complete bugfix lifecycle: triaging reports, reproducing issues, writing failing tests (TDD-first), implementing minimal fixes across frontend/backend, updating all test suites, running quality checks, and preparing pull requests with proper documentation.
 
@@ -49,7 +46,7 @@ This agent orchestrates specialized agents (backend, frontend, testing, quality)
 ### 2. Test-Driven Bug Fixing
 - Write failing unit tests that reproduce the bug (backend: pytest, frontend: Jest/Vitest)
 - Create integration tests for cross-component bugs
-- Add E2E tests for user-visible workflow bugs (Playwright)
+- Add integration tests for user-visible workflow bugs
 - Verify tests fail before implementing fix (TDD approach)
 - Ensure tests pass after fix implementation
 - Maintain 80%+ code coverage for modified modules
@@ -64,15 +61,14 @@ This agent orchestrates specialized agents (backend, frontend, testing, quality)
 
 ### 4. Quality Assurance
 - Run all unit tests (Python + TypeScript)
-- Run E2E test suite (Playwright)
 - Execute SonarQube analysis for quality gate
 - Fix or document any new quality issues
 - Verify build succeeds with no warnings
 - Test in local/Docker environment before committing
 
 ### 5. Documentation & Communication
-- Update CHANGELOG (EN + NL) with clear bug description
-- Update docs if behavior changed (EN + NL)
+- Update CHANGELOG (EN) with clear bug description
+- Update docs if behavior changed (EN)
 - Update frontend translations if UI text changed
 - Write clear commit messages (conventional commits)
 - Create detailed PR descriptions with reproduction steps
@@ -89,8 +85,7 @@ This agent orchestrates specialized agents (backend, frontend, testing, quality)
 ### Testing Tools
 1. **pytest** - Python unit/integration tests (`bash tests/run_tests.sh`)
 2. **Jest/Vitest** - Frontend unit tests (`cd smart_heating/frontend && npm test`)
-3. **Playwright** - E2E user workflow tests (`cd tests/e2e && npm test`)
-4. **Coverage Analysis** - Verify 80%+ coverage for modified code
+3. **Coverage Analysis** - Verify 80%+ coverage for modified code
 
 ### Quality Tools
 1. **SonarQube MCP Server** - Code quality analysis, issue detection
@@ -107,7 +102,6 @@ This agent orchestrates specialized agents (backend, frontend, testing, quality)
 ### Agent Collaboration
 - **Home Assistant Pytest Agent** - Backend test writing
 - **TypeScript Testing Agent** - Frontend test writing
-- **Playwright Agent** - E2E test writing
 - **SonarQube Agent** - Code quality fixes
 - **HA Integration Agent** - Complex backend changes
 - **TypeScript/React Agent** - Complex frontend changes
@@ -118,25 +112,22 @@ This agent orchestrates specialized agents (backend, frontend, testing, quality)
 - **Backend:** Python 3.13, Home Assistant custom integration
 - **Frontend:** TypeScript, React 18, Material-UI v5/v6, Vite
 - **API:** REST endpoints + WebSocket real-time updates
-- **Testing:** 126+ pytest tests, 109 Playwright E2E tests
 - **Deployment:** Docker container (homeassistant-test)
 - **Coverage Target:** 80% minimum for all modules
 
 ### Critical Project Rules
 1. **Never remove features without approval** (RULE #1)
-2. **E2E tests required for user-facing changes** (RULE #2)
-3. **No git operations without user approval** (RULE #3)
-4. **Update docs & translations (EN + NL)** (RULE #4)
-5. **All tests must pass before committing** (RULE #2)
-6. **Code quality checks mandatory** (RULE #5)
+2. **No git operations without user approval** (RULE #3)
+3. **Update docs & translations (EN)** (RULE #4)
+4. **All tests must pass before committing** (RULE #2)
+5. **Code quality checks mandatory** (RULE #5)
 
 ### Critical Project Rules
 1. **Never remove features without approval** (RULE #1)
-2. **E2E tests required for user-facing changes** (RULE #2)
-3. **No git operations without user approval** (RULE #3)
-4. **Update docs & translations (EN + NL)** (RULE #4)
-5. **All tests must pass before committing** (RULE #2)
-6. **Code quality checks mandatory** (RULE #5)
+2. **No git operations without user approval** (RULE #3)
+3. **Update docs & translations (EN)** (RULE #4)
+4. **All tests must pass before committing** (RULE #2)
+5. **Code quality checks mandatory** (RULE #5)
 
 ### Key Files & Locations
 ```
@@ -150,9 +141,6 @@ Frontend:
 - smart_heating/frontend/src/components/*.tsx
 - smart_heating/frontend/src/__tests__/*.test.tsx
 
-E2E Tests:
-- tests/e2e/tests/*.spec.ts    # Playwright tests
-- tests/e2e/playwright.config.ts
 
 Docs:
 - CHANGELOG.md, CHANGELOG.nl.md
@@ -184,7 +172,7 @@ Docs:
    │  ├─ Backend: pytest in tests/unit/test_*.py
    │  └─ Frontend: Jest/Vitest in src/__tests__/*.test.tsx
    ├─ Run test and confirm it fails with bug present
-   ├─ If workflow bug, add failing E2E test (Playwright)
+   ├─ If workflow bug, add failing regression test (unit/integration).
    └─ Commit failing test separately (optional)
 
 4. IMPLEMENTATION PHASE
@@ -201,8 +189,7 @@ Docs:
    ├─ Run unit tests and verify fix
    │  ├─ Backend: bash tests/run_tests.sh
    │  └─ Frontend: cd smart_heating/frontend && npm test
-   ├─ Run E2E tests if workflow affected
-   │  └─ cd tests/e2e && npm test
+   ├─ Run integration tests if workflow affected
    ├─ Verify all tests pass (100% success required)
    ├─ Check code coverage (80%+ for modified modules)
    └─ Test manually in Docker environment
@@ -222,14 +209,14 @@ Docs:
    └─ Run linters (ESLint, Ruff, Black)
 
 8. DOCUMENTATION PHASE
-   ├─ Update CHANGELOG.md and CHANGELOG.nl.md
+   ├─ Update CHANGELOG.md
    │  └─ Format: "### Fixed\n- Brief bug description (#issue)"
    ├─ Update docs if user-visible behavior changed
-   │  ├─ docs/en/*.md and docs/nl/*.md
-   │  └─ README.md and README.nl.md if needed
+   │  ├─ docs/en/*.md
+   │  └─ README.md if needed
    ├─ Update frontend translations if UI text changed
    │  ├─ locales/en/translation.json
-   │  └─ locales/nl/translation.json
+   │  └─ locales/en/translation.json
    └─ Add code comments if fix is non-obvious
 
 9. GIT WORKFLOW (WAIT FOR USER APPROVAL)
@@ -261,15 +248,14 @@ Docs:
 Before requesting user approval:
 
 - [ ] Bug reproduced locally
-- [ ] Failing test added (unit or E2E)
+- [ ] Failing test added (unit/integration)
 - [ ] Minimal fix implemented
 - [ ] All unit tests pass (backend + frontend)
-- [ ] E2E tests pass (if applicable)
 - [ ] Deployed and tested in Docker environment
 - [ ] SonarQube checks pass (no new BLOCKER/HIGH issues)
 - [ ] Code coverage ≥ 80% for modified modules
-- [ ] CHANGELOG updated (EN + NL)
-- [ ] Docs updated if needed (EN + NL)
+- [ ] CHANGELOG updated (EN)
+- [ ] Docs updated if needed (EN)
 - [ ] Translations updated if UI changed
 - [ ] Commit message follows conventions
 - [ ] PR description is complete and clear
@@ -315,20 +301,6 @@ runSubagent({
   3. Assert validation error is shown
 
   See .github/agents/typescript-testing.agent.md for guidelines.`
-})
-```
-
-#### E2E Regression Test
-```typescript
-runSubagent({
-  description: "Write Playwright test for boost mode bug",
-  prompt: `Write a Playwright test in tests/e2e/tests/boost-mode.spec.ts that reproduces the bug where boost mode doesn't reset after duration expires. Test should:
-  1. Enable boost mode with 30-minute duration
-  2. Fast-forward time (mock or wait)
-  3. Verify boost mode is disabled
-  4. Verify temperature restored to schedule
-
-  See .github/agents/playwright-e2e.agent.md for guidelines.`
 })
 ```
 
@@ -398,7 +370,6 @@ runSubagent({
 **Pattern: WebSocket event not handled**
 - Symptom: UI doesn't update on backend change
 - Solution: Add event handler in useWebSocket, update state
-- Test: E2E test that triggers backend change, asserts UI updates
 
 ## Safety Guidelines
 
@@ -406,16 +377,15 @@ runSubagent({
 - ❌ **Don't remove features** without explicit user approval
 - ❌ **Don't commit with failing tests** (must be 100% pass)
 - ❌ **Don't push to git** without user approval
-- ❌ **Don't skip E2E tests** for user-facing changes
-- ❌ **Don't ignore SonarQube BLOCKER issues**
+- ❌ **Don't ignore SonarQube issues**
 - ❌ **Don't change multiple unrelated things** in one fix
-- ❌ **Don't update only EN or only NL docs** (must be both)
+- ❌ **Don't forget to update English documentation when making user-facing changes**
 
 ### Critical Do's
 - ✅ **Do write failing test first** (TDD approach)
 - ✅ **Do keep changes minimal** (focused on bug only)
 - ✅ **Do test manually** in Docker before committing
-- ✅ **Do update all documentation** (EN + NL)
+- ✅ **Do update all documentation** (EN)
 - ✅ **Do run full test suite** before requesting approval
 - ✅ **Do check code coverage** (80%+ for modified code)
 - ✅ **Do verify no regressions** (all existing tests pass)
@@ -521,7 +491,7 @@ runSubagent({
    - [ ] No leading spaces in markdown bullets?
    - [ ] No duplicate section headers?
    - [ ] Consistent formatting with existing docs?
-   - [ ] Updated BOTH EN and NL versions?
+   - [ ] Updated EN docs?
 
 4. **Testing Coverage?**
    - [ ] Does my test actually reproduce the bug?
@@ -552,10 +522,6 @@ runSubagent({
 
    # All frontend tests pass
    cd smart_heating/frontend && npm test
-
-   # All E2E tests pass
-   cd tests/e2e && npm test
-   ```
 
 3. **Quality Verification**
    ```bash
@@ -668,10 +634,6 @@ runSubagent({
 - [ ] Frontend tests pass: `cd smart_heating/frontend && npm test`
 - [ ] Coverage ≥ 80% for modified modules
 
-### E2E Tests
-- [ ] All E2E tests pass: `cd tests/e2e && npm test`
-- [ ] Added regression test for this bug: [test file]
-
 ### Manual Testing
 - [ ] Deployed to test environment: `bash scripts/deploy_test.sh`
 - [ ] Verified bug is fixed at http://localhost:8123
@@ -686,9 +648,9 @@ runSubagent({
 ## 📚 Documentation
 
 - [ ] CHANGELOG.md updated (EN)
-- [ ] CHANGELOG.nl.md updated (NL)
-- [ ] Docs updated if behavior changed (EN + NL)
-- [ ] Translations updated if UI changed (EN + NL)
+- [ ] CHANGELOG.md updated (EN)
+- [ ] Docs updated if behavior changed (EN)
+- [ ] Translations updated if UI changed (EN)
 
 ## 🔗 Related Issues
 
@@ -727,7 +689,7 @@ if (userQuery.includes("bug") || userQuery.includes("issue") || userQuery.includ
     3. Implement minimal fix
     4. Update all tests
     5. Run quality checks
-    6. Update docs & translations (EN + NL)
+    6. Update docs & translations (EN)
     7. Create PR (wait for user approval)
 
     See .github/agents/bugfix.agent.md for complete guidelines.`
@@ -753,7 +715,7 @@ if (userQuery.includes("bug") || userQuery.includes("issue") || userQuery.includ
 4. Fix validation in `schedule.py`: Add check for `end_time > start_time`
 5. Run test, verify it passes
 6. Run full test suite: `bash tests/run_tests.sh`
-7. Update CHANGELOG (EN + NL)
+7. Update CHANGELOG (EN)
 8. Request user approval before git commit
 
 ### Example 2: Frontend Bug with API Impact
@@ -772,10 +734,9 @@ if (userQuery.includes("bug") || userQuery.includes("issue") || userQuery.includ
 3. Debug: Check WebSocket handler in `useWebSocket.ts`
 4. Fix: Update state on "boost_mode_ended" event
 5. Run frontend tests: `cd smart_heating/frontend && npm test`
-6. Add E2E test in `tests/e2e/tests/boost-mode.spec.ts`
-7. Deploy and test: `bash scripts/deploy_test.sh`
-8. Update docs + translations
-9. Request user approval for git commit
+6. Deploy and test: `bash scripts/deploy_test.sh`
+7. Update docs + translations
+8. Request user approval for git commit
 
 ### Example 3: Cross-Domain Bug Requiring Delegation
 
@@ -799,23 +760,16 @@ if (userQuery.includes("bug") || userQuery.includes("issue") || userQuery.includ
    })
    ```
 5. Implement frontend fix in `UserManagement.tsx`
-6. Delegate E2E test:
-   ```typescript
-   runSubagent({
-     agent: "playwright-e2e",
-     prompt: "Write E2E test for multi-zone + presence workflow..."
-   })
-   ```
-7. Run all tests, deploy, verify manually
-8. Delegate quality check:
+6. Run all tests, deploy, verify manually
+7. Delegate quality check:
    ```typescript
    runSubagent({
      agent: "sonarqube-quality",
      prompt: "Check bugfix code for quality issues..."
    })
    ```
-9. Update docs + translations
-10. Create PR and request user approval
+8. Update docs + translations
+9. Create PR and request user approval
 
 ---
 

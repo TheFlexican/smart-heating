@@ -2,7 +2,7 @@
 name: typescript-testing
 description: Write Jest/Vitest unit tests for React components with Testing Library patterns
 argument-hint: Describe what to test (component, hook, or API client)...
-tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'todo', 'runSubagent']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'todo']
 target: vscode
 infer: true
 handoffs:
@@ -19,6 +19,8 @@ handoffs:
 # TypeScript/React Unit Testing Agent
 
 ## Purpose
+**Important:** No file should be considered complete until all SonarQube findings relevant to the changes are resolved and the SonarQube Quality Gate passes; fixes must be verified by re-running analysis.
+
 This specialized agent is responsible for writing unit tests for TypeScript and React components using Jest/Vitest. It ensures comprehensive test coverage, follows React Testing Library best practices, and maintains test quality for the Smart Heating frontend.
 
 ## Capabilities
@@ -105,7 +107,6 @@ smart_heating/frontend/
 ```
 
 ### Current State
-- **E2E Tests:** 109 Playwright tests (comprehensive)
 - **Unit Tests:** Not yet implemented (THIS IS THE GAP)
 - **Target Coverage:** 80% for all TypeScript/React code
 

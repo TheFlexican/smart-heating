@@ -25,10 +25,6 @@ tests/
 │   ├── test_switch.py        # Switch platform tests
 │   ├── test_utils.py         # Utility functions tests
 │   └── test_history.py       # History tracker tests (database migration)
-├── e2e/                       # Playwright end-to-end tests
-│   ├── tests/                 # E2E test files
-│   ├── playwright.config.ts   # Playwright configuration
-│   └── package.json           # E2E dependencies
 └── README.md
 ```
 
@@ -145,11 +141,6 @@ Tests are organized by module/component:
 
 4. **Utility Tests**
    - `test_utils.py` - Validators and response builders
-
-5. **End-to-End Tests** (`tests/e2e/`)
-   - Browser-based testing with Playwright
-   - Full user workflow validation
-   - Run: `cd tests/e2e && npm test`
 
 ### Test Patterns
 

@@ -28,8 +28,6 @@ Thumbs.db
 
 # Test files
 test-results/
-playwright-report/
-playwright/.cache/
 
 # Logs
 *.log

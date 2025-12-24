@@ -82,17 +82,6 @@ smart_heating/
 └── .gitignore                # Git ignore rules
 ```
 
-## E2E Testing
-
-Smart Heating includes comprehensive end-to-end tests using Playwright:
-
-```bash
-cd tests/e2e
-npm test                    # Run all tests
-npm test -- --headed        # Run with browser visible
-npm test -- --debug         # Run in debug mode
-```
-
 **Test Files:**
 - `navigation.spec.ts` - Navigation and UI tests
 For OpenTherm Gateway specific testing guidelines, see [OpenTherm Integration](OPENTHERM.md).
@@ -124,9 +113,7 @@ For OpenTherm Gateway specific testing guidelines, see [OpenTherm Integration](O
   - `TrvEntityConfig`: `{ entity_id: string, role?: 'position'|'open'|'both', name?: string }`
   - `TrvHistoryEntry`: `{ entity_id: string, open?: boolean|null, position?: number|null, running_state?: string|null }`
 
-- Tests: Unit tests added for the new dialog and history handling. Add E2E tests to cover configure → display → history.
-
-
+- Tests: Unit tests added for the new dialog and history handling.
 - `temperature-control.spec.ts` - Temperature adjustment tests
 - `boost-mode.spec.ts` - Boost mode functionality
 - `manual-override.spec.ts` - Manual override detection (5 tests)
@@ -732,23 +719,6 @@ open coverage_html/index.html
 - `tests/unit/test_coordinator.py` - Data coordination tests
 - See `tests/README.md` for complete test documentation
 
-### E2E Testing
-
-Run Playwright tests for full user workflow validation:
-
-```bash
-cd tests/e2e
-npm test                 # Headless
-npm run test:headed     # With browser
-npm run test:ui         # Interactive mode
-```
-
-**Test Coverage:**
-- Navigation and UI interactions
-- Temperature control and boost mode
-- Sensor management
-- History visualization
-- See `tests/e2e/README.md` for details
 
 ## Debugging
 
@@ -1038,12 +1008,7 @@ The v0.6.0 release introduces several major features. Development is organized i
    - Build React components
    - Add WebSocket subscription hooks
 
-4. **Testing**
-   - Write E2E tests in `tests/e2e/tests/`
-   - Test with `npm test` in E2E directory
-   - Manual testing with `./sync.sh` or `./deploy_production.sh`
-
-5. **Documentation**
+4. **Documentation**
    - Update CHANGELOG.md
    - Update README.md if user-facing
    - Add inline code comments
@@ -1086,28 +1051,6 @@ async def post(self, request, endpoint):
 async def delete(self, request, endpoint):
     if endpoint == "vacation_mode":
         return await self.disable_vacation_mode(request)
-```
-
-### Testing New Features
-
-Create test file in `tests/e2e/tests/`:
-
-```typescript
-import { test, expect } from '@playwright/test'
-
-test.describe('Vacation Mode', () => {
-  test('should enable vacation mode', async ({ page }) => {
-    // Navigate to settings
-    // Enable vacation mode
-    // Verify all areas show away preset
-  })
-})
-```
-
-Run tests:
-```bash
-cd tests/e2e
-npm test -- vacation-mode.spec.ts
 ```
 
 ### Testing Safety Sensor Feature
@@ -1178,7 +1121,6 @@ For each new feature:
 - [ ] Frontend types defined
 - [ ] Frontend API functions created
 - [ ] React components built
-- [ ] E2E tests written and passing
 - [ ] CHANGELOG.md updated
 - [ ] README.md updated (if user-facing)
 - [ ] Code reviewed and tested

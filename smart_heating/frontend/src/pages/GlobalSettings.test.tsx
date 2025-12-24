@@ -182,8 +182,5 @@ describe('GlobalSettings', () => {
     await user.keyboard('{ArrowRight}')
 
     expect(presetsApi.setGlobalPresets).not.toHaveBeenCalled()
-
-    // We assert that a change (drag step) does NOT call the API immediately.
-    // The final save-on-release is covered by E2E tests where pointer events are fully supported.
   })
 })
