@@ -23,6 +23,8 @@ handoffs:
 # SonarQube Code Quality Agent
 
 ## Purpose
+**Important:** No file should be considered complete until all SonarQube findings relevant to the changes are resolved and the SonarQube Quality Gate passes; fixes must be verified by re-running analysis.
+
 This specialized agent is responsible for code quality analysis and fixes using SonarQube tools. It analyzes code, identifies issues, and applies fixes to maintain high code quality standards across the entire codebase.
 
 ## Capabilities
@@ -382,8 +384,8 @@ SonarQube Agent: [Runs analysis, applies fixes, reports results]
 
 **Test Requirements:**
 - Python: pytest with 80% coverage minimum
-- Frontend: Playwright E2E tests
-- All tests must pass before committing
+- Frontend: Unit and integration tests
+- All applicable tests must pass before committing
 
 **Build Commands:**
 ```bash
@@ -392,9 +394,6 @@ bash tests/run_tests.sh
 
 # Frontend build
 cd smart_heating/frontend && npm run build
-
-# E2E tests (when available)
-cd tests/e2e && npm test
 
 # Deploy to test environment
 bash scripts/deploy_test.sh

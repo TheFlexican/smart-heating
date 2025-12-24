@@ -225,11 +225,6 @@ git clone https://github.com/TheFlexican/smart_heating.git
 cd smart_heating/frontend
 npm install
 
-# Run tests
-cd ../..
-./run_tests.sh  # Python unit tests
-cd tests/e2e && npm test  # E2E tests
-
 # Format and lint (pre-commit hooks)
 git commit -m "Your changes"  # Auto-runs black + ruff
 ```

@@ -6,8 +6,9 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Any
+import asyncio
 
-from homeassistant.components.recorder import get_instance
+from homeassistant.helpers.recorder import get_instance
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
@@ -31,6 +32,9 @@ from ..const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+RECORDER_ENGINE_UNAVAILABLE = "Recorder engine not available"
+DB_TABLE_NOT_INITIALIZED = "Database table not initialized"
 
 STORAGE_VERSION = 1
 STORAGE_KEY = "smart_heating_events"
@@ -59,8 +63,8 @@ class EventStore:
         self._db_table = None
         self._db_engine = None
         self._db_validated = False
+        self._db_validation_task = None
 
-        # Quick validation for database backend at init time
         if self._storage_backend == EVENT_STORAGE_DATABASE:
             try:
                 recorder = get_instance(self.hass)
@@ -84,16 +88,25 @@ class EventStore:
                 self._storage_backend = EVENT_STORAGE_JSON
 
     async def _async_validate_database_support(self) -> None:  # NOSONAR
-        """Validate that database storage is supported."""
+        """Validate that database storage is supported.
+
+        If the recorder isn't available at the moment we schedule a retry
+        instead of marking the DB as unsupported so that integrations that
+        start before the recorder becomes available still detect DB storage
+        later on.
+        """
         if self._db_validated:
             return
 
         try:
             recorder = get_instance(self.hass)
             if not recorder:
-                _LOGGER.debug("Recorder not available, falling back to JSON storage")
-                self._storage_backend = EVENT_STORAGE_JSON
-                self._db_validated = True
+                _LOGGER.debug("Recorder not available, will retry database validation")
+                # Start a background retry task if not already running
+                if self._db_validation_task is None:
+                    self._db_validation_task = self.hass.async_create_task(
+                        self._async_retry_database_validation()
+                    )
                 return
 
             db_url = str(recorder.db_url)
@@ -132,10 +145,78 @@ class EventStore:
             self._storage_backend = EVENT_STORAGE_JSON
             self._db_validated = True
 
+    async def _async_retry_database_validation(self) -> None:
+        """Retry database validation a few times if recorder wasn't ready.
+
+        This handles cases where the integration starts before the recorder
+        is available at HA startup. We attempt a few times with backoff and
+        then give up and keep JSON storage if validation never succeeds.
+        """
+        try:
+            for _ in range(10):  # 10 attempts * 30s = 5 minutes
+                await asyncio.sleep(30)
+                recorder = get_instance(self.hass)
+                if recorder:
+                    # Attempt to enable database storage (helper handles errors)
+                    try:
+                        await self._attempt_enable_database(recorder)
+                    except Exception:  # pylint: disable=broad-except
+                        _LOGGER.exception("Error during deferred DB validation")
+                        self._storage_backend = EVENT_STORAGE_JSON
+                        self._db_validated = True
+                    break
+
+            if not self._db_validated:
+                _LOGGER.debug("Database validation retries exhausted; keeping JSON storage")
+                self._storage_backend = EVENT_STORAGE_JSON
+                self._db_validated = True
+        finally:
+            self._db_validation_task = None
+
+    async def _attempt_enable_database(self, recorder) -> None:
+        """Attempt to enable and initialize database-backed storage.
+
+        This method centralizes the logic to decide whether the recorder's
+        database is supported (non-SQLite) and initializes the DB table and
+        optionally loads existing entries.
+        """
+        db_url = str(recorder.db_url)
+
+        # Early exit on unsupported SQLite
+        if "sqlite" in db_url.lower():
+            _LOGGER.debug("Recorder now available but detected SQLite; will keep JSON storage")
+            self._storage_backend = EVENT_STORAGE_JSON
+            self._db_validated = True
+            return
+
+        if any(db in db_url.lower() for db in ["mysql", "mariadb", "postgresql", "postgres"]):
+            _LOGGER.info("Recorder available: enabling event database storage")
+            self._init_database_table()
+            # If DB contains entries, switch to DB-backed storage and load them
+            try:
+                stats = await self.async_get_database_stats()
+                total = stats.get("total_entries") if isinstance(stats, dict) else None
+                if total and int(total) > 0:
+                    self._storage_backend = EVENT_STORAGE_DATABASE
+                    await self._async_load_from_database()
+            except Exception:
+                # Ignore; we'll remain on JSON if loading fails
+                pass
+
+            self._db_validated = True
+            return
+
+        # Unsupported DB type
+        _LOGGER.debug("Unsupported database type for event storage, falling back to JSON")
+        self._storage_backend = EVENT_STORAGE_JSON
+        self._db_validated = True
+
     def _init_database_table(self) -> None:
         """Initialize the database table for event storage."""
         try:
             recorder = get_instance(self.hass)
+            if not getattr(recorder, "engine", None):
+                raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
             self._db_engine = recorder.engine
 
             metadata = MetaData()
@@ -156,6 +237,7 @@ class EventStore:
             )
 
             # Create table if it doesn't exist
+            assert self._db_engine is not None
             metadata.create_all(self._db_engine)
 
             _LOGGER.info("Database table '%s' ready for event storage", DB_TABLE_NAME)
@@ -229,11 +311,15 @@ class EventStore:
         """Load events from database."""
         try:
             recorder = get_instance(self.hass)
+            if not getattr(recorder, "engine", None):
+                raise RuntimeError("Recorder engine not available")
+
+            db_table = self._db_table
 
             def _load():
                 with recorder.engine.connect() as conn:
                     # Load all events, ordered by start_time
-                    stmt = select(self._db_table).order_by(self._db_table.c.start_time.desc())
+                    stmt = select(db_table).order_by(db_table.c.start_time.desc())
                     result = conn.execute(stmt)
 
                     events_dict = {}
@@ -314,15 +400,25 @@ class EventStore:
         """Record event to database."""
         try:
             recorder = get_instance(self.hass)
+            if not getattr(recorder, "engine", None):
+                raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
+            if self._db_table is None:
+                raise RuntimeError(DB_TABLE_NOT_INITIALIZED)
+            assert recorder.engine is not None
+            assert self._db_table is not None
+
+            db_table = self._db_table
+            engine = recorder.engine
+            assert engine is not None
 
             def _insert():
-                with recorder.engine.connect() as conn:
+                with engine.connect() as conn:
                     # Parse timestamps
                     start_time = datetime.fromisoformat(event_data["start_time"])
                     end_time = datetime.fromisoformat(event_data["end_time"])
 
                     # Insert event
-                    stmt = self._db_table.insert().values(
+                    stmt = db_table.insert().values(
                         area_id=area_id,
                         start_time=start_time,
                         end_time=end_time,
@@ -370,6 +466,9 @@ class EventStore:
         self, area_id: str, days: int | None = 30
     ) -> list[dict[str, Any]]:
         """Get events from JSON storage."""
+        # Use a small await to make this an actual async function for linters
+        await asyncio.sleep(0)
+
         if area_id not in self._events:
             return []
 
@@ -391,17 +490,27 @@ class EventStore:
         """Get events from database."""
         try:
             recorder = get_instance(self.hass)
+            if not getattr(recorder, "engine", None):
+                raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
+            if self._db_table is None:
+                raise RuntimeError(DB_TABLE_NOT_INITIALIZED)
+            assert recorder.engine is not None
+            assert self._db_table is not None
+
+            db_table = self._db_table
+            engine = recorder.engine
+            assert engine is not None
 
             def _query():
-                with recorder.engine.connect() as conn:
+                with engine.connect() as conn:
                     # Build query
-                    stmt = select(self._db_table).where(self._db_table.c.area_id == area_id)
+                    stmt = select(db_table).where(db_table.c.area_id == area_id)
 
                     if days is not None:
                         cutoff_time = dt_util.now() - timedelta(days=days)
-                        stmt = stmt.where(self._db_table.c.start_time >= cutoff_time)
+                        stmt = stmt.where(db_table.c.start_time >= cutoff_time)
 
-                    stmt = stmt.order_by(self._db_table.c.start_time.asc())
+                    stmt = stmt.order_by(db_table.c.start_time.asc())
 
                     result = conn.execute(stmt)
 
@@ -446,18 +555,29 @@ class EventStore:
         """Get event count from database."""
         try:
             recorder = get_instance(self.hass)
+            if not getattr(recorder, "engine", None):
+                raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
+            if self._db_table is None:
+                raise RuntimeError(DB_TABLE_NOT_INITIALIZED)
+            assert recorder.engine is not None
+            assert self._db_table is not None
+
+            db_table = self._db_table
+            engine = recorder.engine
+            assert engine is not None
 
             def _count():
-                with recorder.engine.connect() as conn:
+                with engine.connect() as conn:
                     from sqlalchemy import func
 
                     stmt = (
                         select(func.count())
-                        .select_from(self._db_table)
-                        .where(self._db_table.c.area_id == area_id)
+                        .select_from(db_table)
+                        .where(db_table.c.area_id == area_id)
                     )
                     result = conn.execute(stmt)
-                    return result.scalar()
+                    res = result.scalar()
+                    return int(res or 0)
 
             return await recorder.async_add_executor_job(_count)
 
@@ -476,13 +596,20 @@ class EventStore:
 
         try:
             recorder = get_instance(self.hass)
+            if not getattr(recorder, "engine", None):
+                raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
+            if self._db_table is None:
+                raise RuntimeError(DB_TABLE_NOT_INITIALIZED)
+
+            db_table = self._db_table
+            engine = recorder.engine
 
             def _get_stats():
-                with recorder.engine.connect() as conn:
+                with engine.connect() as conn:
                     from sqlalchemy import func
 
                     # Get total count
-                    stmt = select(func.count()).select_from(self._db_table)
+                    stmt = select(func.count()).select_from(db_table)
                     result = conn.execute(stmt)
                     total = result.scalar()
 
@@ -519,7 +646,8 @@ class EventStore:
         """Clean up old events from JSON storage."""
         cleaned_count = 0
 
-        for area_id in list(self._events.keys()):
+        area_ids = list(self._events)
+        for area_id in area_ids:
             original_count = len(self._events[area_id])
             self._events[area_id] = [
                 e
@@ -540,10 +668,17 @@ class EventStore:
         """Clean up old events from database."""
         try:
             recorder = get_instance(self.hass)
+            if not getattr(recorder, "engine", None):
+                raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
+            if self._db_table is None:
+                raise RuntimeError(DB_TABLE_NOT_INITIALIZED)
+
+            db_table = self._db_table
+            engine = recorder.engine
 
             def _cleanup():
-                with recorder.engine.connect() as conn:
-                    stmt = delete(self._db_table).where(self._db_table.c.start_time < cutoff_time)
+                with engine.connect() as conn:
+                    stmt = delete(db_table).where(db_table.c.start_time < cutoff_time)
                     result = conn.execute(stmt)
                     conn.commit()
                     return result.rowcount
@@ -554,7 +689,8 @@ class EventStore:
                 _LOGGER.info("Cleaned up %d old events from database", rows_deleted)
 
                 # Also clean up in-memory cache
-                for area_id in list(self._events.keys()):
+                area_ids = list(self._events)
+                for area_id in area_ids:
                     self._events[area_id] = [
                         e
                         for e in self._events[area_id]

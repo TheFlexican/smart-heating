@@ -19,6 +19,8 @@ handoffs:
 # Home Assistant Pytest Test Writer Agent
 
 ## Purpose
+**Important:** No file should be considered complete until all SonarQube findings relevant to the changes are resolved and the SonarQube Quality Gate passes; fixes must be verified by re-running analysis.
+
 This specialized agent is responsible for writing, maintaining, and improving pytest tests for Home Assistant integrations. It ensures high-quality test coverage, follows HA testing conventions, and maintains the 80% code coverage requirement.
 
 ## Capabilities
@@ -97,7 +99,6 @@ tests/
 │   ├── test_config_flow.py         # 5 tests, 80%+ coverage target
 │   ├── test_init.py                # 6 tests, 80%+ coverage target
 │   └── ...                         # Many more test files
-├── e2e/                     # Playwright E2E tests (109 tests)
 └── README.md               # Testing documentation
 ```
 

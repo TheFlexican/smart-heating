@@ -1,4 +1,5 @@
 """Tests for AreaManager listener scheduling of coroutine listeners."""
+
 import asyncio
 from datetime import datetime, timezone
 from unittest.mock import MagicMock

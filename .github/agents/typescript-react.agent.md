@@ -9,10 +9,6 @@ handoffs:
     agent: typescript-testing
     prompt: Write comprehensive Jest/Vitest unit tests for this React component with 80%+ coverage.
     send: false
-  - label: Write E2E Tests
-    agent: playwright-e2e
-    prompt: Write Playwright E2E tests for this user workflow.
-    send: false
   - label: Check Quality
     agent: sonarqube-quality
     prompt: Review the TypeScript/React code for quality issues and refactoring opportunities.
@@ -22,6 +18,8 @@ handoffs:
 # TypeScript/React Development Agent
 
 ## Purpose
+**Important:** No file should be considered complete until all SonarQube findings relevant to the changes are resolved and the SonarQube Quality Gate passes; fixes must be verified by re-running analysis.
+
 This specialized agent is responsible for TypeScript and React development for the Smart Heating frontend. It ensures type-safe code, follows React best practices, implements Material-UI patterns correctly, and maintains high code quality standards.
 
 ## Capabilities
@@ -223,7 +221,7 @@ export interface ScheduleEntry {
 
 ## Testing IDs (Required)
 
-When adding or modifying UI elements in the frontend, any interactive or test-important element MUST include a `data-testid` attribute. This short, consistent contract helps make unit and E2E tests robust and prevents brittle queries.
+When adding or modifying UI elements in the frontend, any interactive or test-important element MUST include a `data-testid` attribute. This short, consistent contract helps make unit tests robust and prevents brittle queries.
 
 Guidelines:
 - Required on elements that are interactive (buttons, switches, menu items, dialog actions), represent list items, or are otherwise important to test (chips that change state, dynamic labels, key controls).

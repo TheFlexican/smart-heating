@@ -1,4 +1,5 @@
 """Tests for AreaManager log retrieval and listener registration helpers."""
+
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
@@ -7,8 +8,10 @@ from smart_heating.models.device_event import DeviceEvent
 
 
 def iso_z(minutes_offset=0):
-    return (datetime.now(timezone.utc) - timedelta(minutes=minutes_offset)).isoformat().replace(
-        "+00:00", "Z"
+    return (
+        (datetime.now(timezone.utc) - timedelta(minutes=minutes_offset))
+        .isoformat()
+        .replace("+00:00", "Z")
     )
 
 
@@ -49,9 +52,7 @@ def test_async_get_device_logs_filters():
     assert all(l["direction"] == "sent" for l in logs)
 
     # Filter by since (only include events newer or equal than since)
-    since = (datetime.now(timezone.utc) - timedelta(minutes=6)).isoformat().replace(
-        "+00:00", "Z"
-    )
+    since = (datetime.now(timezone.utc) - timedelta(minutes=6)).isoformat().replace("+00:00", "Z")
     logs = am.async_get_device_logs("a1", since=since)
     assert [l["device_id"] for l in logs] == ["d1", "d2"]
 
@@ -72,9 +73,7 @@ def test_since_parsing_invalid_includes_event():
 
     am.async_add_device_event("a1", bad_ev)
 
-    since = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat().replace(
-        "+00:00", "Z"
-    )
+    since = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat().replace("+00:00", "Z")
 
     logs = am.async_get_device_logs("a1", since=since)
     # If parsing fails, the event should be included

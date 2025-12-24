@@ -210,3 +210,36 @@ async def test_record_event_database_fallbacks_to_json_on_db_error(monkeypatch):
     assert area in store._events
     assert len(store._events[area]) == 1
     store._store.async_save.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_deferred_db_validation(monkeypatch):
+    """If recorder is unavailable initially we should retry validation later."""
+    hass = MagicMock()
+    store = EventStore(hass)
+
+    # Simulate get_instance returning None first, then a recorder
+    call = {"n": 0}
+
+    def get_instance_stub(h):
+        call["n"] += 1
+        if call["n"] == 1:
+            return None
+        fake_rec = MagicMock()
+        fake_rec.db_url = "mysql://user:pass@localhost/homeassistant"
+        fake_rec.engine = MagicMock()
+        fake_rec.async_add_executor_job = AsyncMock()
+        return fake_rec
+
+    monkeypatch.setattr("smart_heating.storage.event_store.get_instance", get_instance_stub)
+
+    # First validate (recorder not available) should schedule retry task
+    await store._async_validate_database_support()
+    assert store._db_validation_task is not None
+    assert store._db_validated is False
+
+    # Second validate (recorder available) should complete validation
+    await store._async_validate_database_support()
+    assert store._db_validated is True
+    # DB table should have been initialized
+    assert store._db_table is not None
