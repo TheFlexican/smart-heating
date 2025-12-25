@@ -94,21 +94,23 @@ async def _async_drop_recorder_tables(hass: HomeAssistant, table_names: Iterable
 
         engine = recorder.engine
 
-        # Validate table names to avoid SQL injection via table name.
-        # Accept only identifiers: start with letter or underscore, then letters/numbers/underscores.
-        identifier_re = re.compile(r"^[A-Za-z_]\w*$")
+        def _validate_tables(names: Iterable[str]) -> list[str]:
+            identifier_re = re.compile(r"^[A-Za-z_]\w*$")
+            out: list[str] = []
+            for tbl in names:
+                if not isinstance(tbl, str):
+                    _LOGGER.warning("Skipping invalid table name when attempting drop: %s", tbl)
+                    continue
+                if not identifier_re.match(tbl):
+                    _LOGGER.warning("Skipping invalid table name when attempting drop: %s", tbl)
+                    continue
+                if len(tbl) > 255:
+                    _LOGGER.warning("Skipping table name (too long): %s", tbl)
+                    continue
+                out.append(tbl)
+            return out
 
-        valid_tables = []
-        for tbl in table_names:
-            if not isinstance(tbl, str) or not identifier_re.match(tbl):
-                _LOGGER.warning("Skipping invalid table name when attempting drop: %s", tbl)
-                continue
-            # Protect against excessively long names
-            if len(tbl) > 255:
-                _LOGGER.warning("Skipping table name (too long): %s", tbl)
-                continue
-            valid_tables.append(tbl)
-
+        valid_tables = _validate_tables(table_names)
         if not valid_tables:
             _LOGGER.debug("No valid recorder table names to drop; skipping")
             return
@@ -125,7 +127,23 @@ async def _async_drop_recorder_tables(hass: HomeAssistant, table_names: Iterable
                     except Exception as err:
                         _LOGGER.warning("Failed to drop table %s: %s", tbl, err)
 
-        await hass.async_add_executor_job(_drop)
+        # Use recorder's executor when available to comply with HA recorder warnings
+        # (accessing DB must use recorder's executor for proper IO handling).
+        #
+        # NOTE: A fallback to `hass.async_add_executor_job` is kept for
+        # non-Home Assistant test environments or legacy test doubles that
+        # don't provide `recorder.async_add_executor_job`. This fallback is
+        # only intended for testing/CI compatibility; running DB access via
+        # the hass executor in a real HA runtime will trigger recorder
+        # warnings and is not recommended.
+        if hasattr(recorder, "async_add_executor_job"):
+            await recorder.async_add_executor_job(_drop)
+        else:
+            _LOGGER.warning(
+                "Recorder executor unavailable; falling back to hass.async_add_executor_job("
+                "tests/CI only). This may trigger recorder warnings in Home Assistant."
+            )
+            await hass.async_add_executor_job(_drop)
 
     except Exception as err:
         _LOGGER.warning("Error while attempting to drop recorder tables: %s", err)

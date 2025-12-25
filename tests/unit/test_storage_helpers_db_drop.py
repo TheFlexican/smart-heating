@@ -42,6 +42,12 @@ async def test_drop_tables_invokes_drop_statements(monkeypatch):
     recorder = Mock()
     recorder.engine = engine
 
+    # Ensure recorder provides an async_add_executor_job compatible with HA
+    async def _rec_run(fn, *a, **k):
+        return fn(*a, **k)
+
+    recorder.async_add_executor_job = _rec_run
+
     # Patch get_recorder_instance used inside storage_helpers
     monkeypatch.setattr(storage_helpers, "get_recorder_instance", lambda hass_arg: recorder)
 
