@@ -137,6 +137,7 @@ This specialized agent is responsible for code quality analysis and fixes using 
 ### Thresholds to Maintain
 - **Cognitive Complexity:** Functions must be ≤ 15
 - **Code Coverage:** Minimum 80% for all modules
+- **New-code coverage rule:** Any **new or changed lines** introduced to resolve issues or during normal development must be covered at **>= 80%** on the diff; the repository enforces this via the `Enforce New-Code Coverage` GitHub Action (uses diff-cover to fail PRs below threshold).
 - **Duplicated Blocks:** No more than 3% duplication
 - **Maintainability Rating:** A or B rating required
 - **Security Rating:** A rating required

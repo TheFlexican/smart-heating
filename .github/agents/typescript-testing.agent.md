@@ -52,6 +52,7 @@ This specialized agent is responsible for writing unit tests for TypeScript and 
 
 ### 4. Quality Assurance
 - Achieve high code coverage (80%+)
+- **New-code coverage rule:** Any **new or changed lines** introduced by this agent must be covered at **>= 80%** on the diff; the repository enforces this via the `Enforce New-Code Coverage` GitHub Action (uses diff-cover to fail PRs below threshold).
 - Write meaningful test descriptions
 - Test success and error scenarios
 - Verify accessibility
