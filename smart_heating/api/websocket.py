@@ -52,10 +52,28 @@ def websocket_subscribe_updates(
     # Subscribe to coordinator updates
     unsub = coordinator.async_add_listener(forward_cb)
 
+    # Also subscribe to uninstall events and forward them to the client
+    def _uninstall_event_listener(event):
+        try:
+            connection.send_message(
+                result_message(msg["id"], {"event": "uninstall", "data": dict(event.data)})
+            )
+        except Exception:
+            _LOGGER.exception("Failed to forward uninstall event to websocket client")
+
+    bus_unsub = hass.bus.async_listen("smart_heating_uninstalled", _uninstall_event_listener)
+
     @callback
     def unsub_callback():
         """Unsubscribe from updates."""
-        unsub()
+        try:
+            unsub()
+        except Exception:
+            pass
+        try:
+            bus_unsub()
+        except Exception:
+            pass
 
     connection.subscriptions[msg["id"]] = unsub_callback
     connection.send_result(msg["id"])

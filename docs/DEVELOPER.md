@@ -425,6 +425,24 @@ class Area:
     def to_dict() -> dict
 ```
 
+## Uninstall behavior
+
+When the Smart Heating integration is removed from Home Assistant the integration
+will, by default, delete all persistent Smart Heating data (configuration,
+history, learning events, logs and custom DB tables). This is an all-or-nothing
+behavior controlled by a pre-set options flag `keep_data_on_uninstall` available
+in the integration Options (default: `False`).
+
+Usage notes:
+- To preserve data across uninstall/reinstall toggle `Keep all Smart Heating data on uninstall` in the integration options before removing the integration.
+- No automatic backups are created by the integration during uninstall — users
+  should export configuration or create snapshots manually if they want to keep data.
+- The uninstall process will DROP the integration's custom database tables
+  (e.g. `smart_heating_history`, `smart_heating_events`, `smart_heating_advanced_metrics`) when deletion is performed.
+
+The removal flow is implemented in `async_remove_entry` and listens for the
+`keep_data_on_uninstall` option to decide whether to perform deletion.
+
 ### Schedule Class (`area_manager.py`)
 
 ```python
