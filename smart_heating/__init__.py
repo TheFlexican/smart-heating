@@ -677,7 +677,7 @@ async def _shutdown_components(hass: HomeAssistant, entry: ConfigEntry) -> None:
         hass: Home Assistant instance
         entry: Config entry
     """
-    from smart_heating.utils.coordinator_helpers import call_maybe_async
+    from .utils.coordinator_helpers import call_maybe_async
 
     # Shutdown safety monitor
     if "safety_monitor" in hass.data[DOMAIN]:
@@ -733,7 +733,7 @@ async def _cleanup_tasks(hass: HomeAssistant) -> None:
     # Shutdown area logger write tasks
     if "area_logger" in hass.data[DOMAIN]:
         try:
-            from smart_heating.utils.coordinator_helpers import call_maybe_async
+            from .utils.coordinator_helpers import call_maybe_async
 
             await call_maybe_async(hass.data[DOMAIN]["area_logger"].async_shutdown)
         except Exception:
