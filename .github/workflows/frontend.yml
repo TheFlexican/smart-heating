@@ -1,0 +1,128 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'smart_heating/frontend/**'
+      - '.github/workflows/frontend.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'smart_heating/frontend/**'
+      - '.github/workflows/frontend.yml'
+  workflow_call:
+
+jobs:
+  frontend-lint:
+    name: Frontend Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'smart_heating/frontend/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd smart_heating/frontend
+          npm ci
+
+      - name: TypeScript type checking
+        run: |
+          cd smart_heating/frontend
+          npm run type-check
+
+      - name: ESLint
+        run: |
+          cd smart_heating/frontend
+          npm run lint
+
+      - name: Prettier format check
+        run: |
+          cd smart_heating/frontend
+          npm run format:check
+
+  frontend-test:
+    name: Frontend Testing
+    runs-on: ubuntu-latest
+    needs: frontend-lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for SonarCloud
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'smart_heating/frontend/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd smart_heating/frontend
+          npm ci
+
+      - name: Run tests with coverage
+        run: |
+          cd smart_heating/frontend
+          npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./smart_heating/frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        # Note: sonar-project.properties is automatically detected and used
+
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    needs: [frontend-lint, frontend-test]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for SonarCloud
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'smart_heating/frontend/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd smart_heating/frontend
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd smart_heating/frontend
+          npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: smart_heating/frontend/dist/
+          retention-days: 7

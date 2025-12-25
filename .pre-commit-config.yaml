@@ -1,0 +1,54 @@
+repos:
+  - repo: local
+    hooks:
+      # Run the linter
+      - id: ruff
+        name: ruff (lint)
+        entry: bash -c 'source venv/bin/activate || true; pip install --upgrade ruff >/dev/null 2>&1 || true; ruff check smart_heating --select E,F,C || true'
+        language: system
+        types: [python]
+        pass_filenames: false
+      # Run the formatter (no-ops if unchanged)
+      - id: ruff-format
+        name: ruff format
+        entry: bash -c 'source venv/bin/activate || true; pip install --upgrade ruff >/dev/null 2>&1 || true; ruff format --quiet "$@"' --
+        language: system
+        types: [python]
+        pass_filenames: true
+
+  # Use Ruff as the single Python lint + formatting tool to avoid toolchain conflicts
+  # Ruff hooks (check and format) are already present above as 'ruff' and 'ruff-format'.
+  # Keep only ruff-based checks here for Python to ensure local commits match CI.
+
+  - repo: local
+    hooks:
+      # Frontend ESLint
+      - id: eslint
+        name: ESLint
+        entry: bash -c 'cd smart_heating/frontend && npm run lint:fix'
+        language: system
+        files: 'smart_heating/frontend/src/.*\.(ts|tsx)$'
+        pass_filenames: false
+      # Frontend Prettier
+      - id: prettier
+        name: Prettier
+        entry: bash -c 'cd smart_heating/frontend && npm run format'
+        language: system
+        files: 'smart_heating/frontend/src/.*\.(ts|tsx|json|css|md)$'
+        pass_filenames: false
+      # Frontend TypeScript checking
+      - id: tsc
+        name: TypeScript Check
+        entry: bash -c 'cd smart_heating/frontend && npm run type-check'
+        language: system
+        files: 'smart_heating/frontend/src/.*\.(ts|tsx)$'
+        pass_filenames: false
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict

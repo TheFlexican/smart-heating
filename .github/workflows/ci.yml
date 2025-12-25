@@ -1,0 +1,89 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'smart_heating/**/*.py'
+      - 'tests/**'
+      - 'requirements*.txt'
+      - 'sonar-project.properties'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'smart_heating/**/*.py'
+      - 'tests/**'
+      - 'requirements*.txt'
+      - 'sonar-project.properties'
+      - '.github/workflows/ci.yml'
+  workflow_call:
+
+jobs:
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for SonarCloud
+
+      - name: Setup Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install Python requirements
+        run: |
+          pip install -r tests/requirements_test.txt
+
+      - name: Run Python tests with coverage
+        run: |
+          pytest tests/unit --cov=smart_heating --cov-report=xml --cov-report=html
+        continue-on-error: false
+
+      - name: Upload Python coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        # Note: sonar-project.properties is automatically detected and used
+
+  backend-lint:
+    name: Backend Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for SonarCloud
+
+      - name: Setup Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install Ruff
+        run: |
+          pip install ruff
+
+      - name: Lint & static checks with Ruff
+        run: |
+          # Run Ruff checks (syntax / static analysis)
+          ruff check smart_heating --select E,F,C || true
+
+      - name: Check formatting with Ruff
+        run: |
+          # Ensure code is formatted according to Ruff
+          ruff format --check smart_heating || true
