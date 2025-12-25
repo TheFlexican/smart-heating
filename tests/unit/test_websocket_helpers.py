@@ -22,15 +22,7 @@ class FakeConnection:
 def test_build_device_info_thermostat_and_sensor():
     hass = SimpleNamespace()
     # mock state lookup
-    state = SimpleNamespace(
-        state="23.5",
-        attributes={
-            "current_temperature": 23.5,
-            "temperature": 21.0,
-            "hvac_action": "heating",
-            "friendly_name": "Thermo",
-        },
-    )
+    state = SimpleNamespace(state="23.5", attributes={"current_temperature": 23.5, "temperature": 21.0, "hvac_action": "heating", "friendly_name": "Thermo"})
     hass.states = SimpleNamespace(get=lambda dev_id: state if dev_id == "thermo_1" else None)
 
     dev_data = {"type": "thermostat"}
@@ -89,26 +81,12 @@ def test_get_all_areas_data_and_find_coordinator_and_forward():
     area = Area("a1")
 
     # coordinator object
-    coordinator = SimpleNamespace(
-        data={"areas": {"a1": {"foo": "bar"}}}, async_add_listener=lambda cb: (lambda: None)
-    )
+    coordinator = SimpleNamespace(data={"areas": {"a1": {"foo": "bar"}}}, async_add_listener=lambda cb: (lambda: None))
 
     hass = SimpleNamespace()
     hass.data = {DOMAIN: {"coord1": coordinator, "history": "x"}}
     # provide minimal state lookup for device info
-    hass.states = SimpleNamespace(
-        get=lambda dev_id: SimpleNamespace(
-            state="19.0",
-            attributes={
-                "current_temperature": 19.0,
-                "temperature": 20.0,
-                "hvac_action": "idle",
-                "friendly_name": "D1",
-            },
-        )
-        if dev_id == "d1"
-        else None
-    )
+    hass.states = SimpleNamespace(get=lambda dev_id: SimpleNamespace(state="19.0", attributes={"current_temperature": 19.0, "temperature": 20.0, "hvac_action": "idle", "friendly_name": "D1"}) if dev_id == "d1" else None)
 
     conn = FakeConnection()
     msg = {"id": 42}
