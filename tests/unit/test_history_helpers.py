@@ -11,7 +11,6 @@ from smart_heating.storage.history import RECORDER_ENGINE_UNAVAILABLE
 @pytest.mark.asyncio
 async def test_async_get_database_stats_disabled_by_default(monkeypatch):
     hass = SimpleNamespace()
-
     # Provide minimal Store replacement to avoid HA internal store access
     class FakeStore:
         def __init__(self, hass, v, key):
@@ -34,7 +33,6 @@ async def test_async_get_database_stats_disabled_by_default(monkeypatch):
 @pytest.mark.asyncio
 async def test_async_get_database_stats_enabled(monkeypatch):
     hass = SimpleNamespace()
-
     class FakeStore:
         def __init__(self, hass, v, key):
             self._data = None
@@ -92,7 +90,6 @@ async def test_async_get_database_stats_enabled(monkeypatch):
 @pytest.mark.asyncio
 async def test_async_get_database_stats_handles_no_engine(monkeypatch):
     hass = SimpleNamespace()
-
     class FakeStore:
         def __init__(self, hass, v, key):
             self._data = None
