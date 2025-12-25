@@ -98,15 +98,26 @@ class SmartHeatingOptionsFlowHandler(config_entries.OptionsFlow):
             FlowResult: Result of the flow step
         """
         if user_input is not None:
-            return self.async_create_entry(title="", data={})
+            # Persist provided options
+            return self.async_create_entry(title="", data=user_input)
 
         # Offer an option to select an OpenTherm Gateway if present in Home Assistant
         gw_entries = self.hass.config_entries.async_entries(domain="opentherm_gw")
+
+        # Provide a single boolean option to preserve data on uninstall. Default: False
+        base_schema = {vol.Optional("keep_data_on_uninstall", default=False): bool}
+
         if gw_entries:
             gateway_ids = [entry.data.get("id") for entry in gw_entries if entry.data.get("id")]
-            schema = vol.Schema({"opentherm_gateway_id": vol.In([""] + gateway_ids)})
+            # Merge gateway selection with keep_data flag
+            schema = vol.Schema(
+                {
+                    **base_schema,
+                    vol.Optional("opentherm_gateway_id", default=""): vol.In([""] + gateway_ids),
+                }
+            )
         else:
-            schema = vol.Schema({})
+            schema = vol.Schema(base_schema)
 
         return self.async_show_form(
             step_id="init",

@@ -486,6 +486,41 @@ class HistoryTracker:
             self._cleanup_unsub = None
         _LOGGER.debug("History tracker unloaded")
 
+    async def async_get_database_stats(self) -> dict[str, Any]:
+        """Get database statistics for history table.
+
+        Returns a dict containing `enabled` flag and either a `message` when
+        database storage is not enabled, or `total_entries` when enabled.
+        """
+        # If no DB table or not using DB backend, return disabled response
+        if self._db_table is None or self._storage_backend != HISTORY_STORAGE_DATABASE:
+            return {"enabled": False, "message": "Database storage not enabled"}
+
+        try:
+            recorder = get_instance(self.hass)
+            if not getattr(recorder, "engine", None):
+                raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
+            if self._db_table is None:
+                raise RuntimeError(DB_TABLE_NOT_INITIALIZED)
+
+            db_table = self._db_table
+            engine = recorder.engine
+
+            def _get_stats():
+                with engine.connect() as conn:
+                    from sqlalchemy import func
+
+                    stmt = select(func.count()).select_from(db_table)
+                    result = conn.execute(stmt)
+                    total = result.scalar()
+                    return {"enabled": True, "total_entries": total}
+
+            return await recorder.async_add_executor_job(_get_stats)
+
+        except Exception as e:
+            _LOGGER.error("Failed to get database stats: %s", e)
+            return {"enabled": False, "message": str(e)}
+
     async def _async_cleanup_old_entries(self) -> None:
         """Remove entries older than retention period."""
         if self._storage_backend == HISTORY_STORAGE_DATABASE and self._db_table is not None:

@@ -59,6 +59,7 @@ from .features.safety_monitor import SafetyMonitor
 from .features.scheduler import ScheduleExecutor
 from .features.vacation_manager import VacationManager
 from .storage.history import HistoryTracker
+from .storage_helpers import clear_all_persistent_data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -676,7 +677,7 @@ async def _shutdown_components(hass: HomeAssistant, entry: ConfigEntry) -> None:
         hass: Home Assistant instance
         entry: Config entry
     """
-    from smart_heating.utils.coordinator_helpers import call_maybe_async
+    from .utils.coordinator_helpers import call_maybe_async
 
     # Shutdown safety monitor
     if "safety_monitor" in hass.data[DOMAIN]:
@@ -732,7 +733,7 @@ async def _cleanup_tasks(hass: HomeAssistant) -> None:
     # Shutdown area logger write tasks
     if "area_logger" in hass.data[DOMAIN]:
         try:
-            from smart_heating.utils.coordinator_helpers import call_maybe_async
+            from .utils.coordinator_helpers import call_maybe_async
 
             await call_maybe_async(hass.data[DOMAIN]["area_logger"].async_shutdown)
         except Exception:
@@ -834,3 +835,38 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.info("Smart Heating integration unloaded")
 
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle removal of a config entry.
+
+    This runs after the config entry has been deleted from Home Assistant and
+    performs persistent cleanup unless the user opted to keep data via the
+    `keep_data_on_uninstall` option.
+    """
+    _LOGGER.debug("Removing Smart Heating config entry %s", entry.entry_id)
+
+    # Respect user option to keep data if explicitly set on the entry
+    keep_data = False
+    try:
+        keep_data = bool(entry.options.get("keep_data_on_uninstall", False))
+    except Exception:
+        keep_data = False
+
+    if keep_data:
+        _LOGGER.info("User opted to keep Smart Heating data on uninstall; skipping deletion")
+        return
+
+    # Proceed to remove persistent data (stores, storage dir, DB tables)
+    try:
+        await clear_all_persistent_data(hass)
+        _LOGGER.info("Smart Heating persistent data removed")
+        # Notify any subscribers that uninstall completed
+        try:
+            hass.bus.fire(
+                "smart_heating_uninstalled", {"entry_id": entry.entry_id, "deleted": True}
+            )
+        except Exception:
+            _LOGGER.debug("Failed to fire uninstall event on hass.bus")
+    except Exception as err:
+        _LOGGER.error("Error removing Smart Heating persistent data: %s", err)
