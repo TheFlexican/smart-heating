@@ -59,6 +59,7 @@ This specialized agent is responsible for TypeScript and React development for t
 - Handle loading and error states
 - Write self-documenting code
 - Add JSDoc comments when helpful
+- **New-code coverage rule:** Any **new or changed lines** introduced by this agent must be covered at **>= 80%** on the diff; the repository enforces this via the `Enforce New-Code Coverage` GitHub Action (uses diff-cover to fail PRs below threshold).
 
 ## Tools & Integration
 

@@ -63,6 +63,7 @@ This specialized agent is responsible for developing Home Assistant custom integ
 - Resource cleanup (listeners, connections)
 - HASS data structure management
 - Translation key definitions
+- **New-code coverage rule:** Any **new or changed lines** introduced by this agent must be covered at **>= 80%** on the diff; the repository enforces this via the `Enforce New-Code Coverage` GitHub Action (uses diff-cover to fail PRs below threshold).
 
 ## Tools & Integration
 

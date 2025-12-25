@@ -52,6 +52,7 @@ This specialized agent is responsible for writing, maintaining, and improving py
 
 ### 4. Quality Assurance
 - Ensure 80% minimum code coverage
+- **New-code coverage rule:** Any **new or changed lines** introduced by this agent must be covered at **>= 80%** on the diff; the repository enforces this via the `Enforce New-Code Coverage` GitHub Action (uses diff-cover to fail PRs below threshold).
 - Write meaningful test names and docstrings
 - Follow Arrange-Act-Assert pattern
 - Test both success and failure scenarios
