@@ -25,6 +25,7 @@ EVENT_TYPES = [
     "schedule",
     "smart_boost",
     "sensor",
+    "preset",
     "mode",
 ]
 

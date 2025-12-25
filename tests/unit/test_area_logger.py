@@ -75,11 +75,13 @@ class TestLogging:
             with caplog.at_level(logging.WARNING):
                 area_logger.log_event(TEST_AREA_ID, "cooling", "Cooling started")
                 area_logger.log_event(TEST_AREA_ID, "climate_control", "Waiting for hysteresis")
+                # Ensure 'preset' is treated as a known event type (no warning)
+                area_logger.log_event(TEST_AREA_ID, "preset", "Preset applied")
 
         # No unknown-type warnings should be emitted
         assert "Unknown event type" not in caplog.text
-        # Both events should have been scheduled
-        assert mock_task.call_count == 2
+        # All events should have been scheduled
+        assert mock_task.call_count == 3
 
     @pytest.mark.asyncio
     async def test_async_write_log(self, area_logger: AreaLogger, hass: HomeAssistant):
@@ -103,6 +105,30 @@ class TestLogging:
         logged_entry = json.loads(content.splitlines()[0])
 
         assert logged_entry["message"] == "Test message"
+
+    @pytest.mark.asyncio
+    async def test_async_write_preset_entry(self, area_logger: AreaLogger, hass: HomeAssistant):
+        """Test async writing of a preset log entry."""
+        entry = {
+            "timestamp": "2024-01-01T12:00:00",
+            "type": "preset",
+            "message": "Preset change",
+            "details": {"old_preset": "A", "new_preset": "B"},
+        }
+
+        with patch.object(area_logger, "_async_rotate_if_needed", new_callable=AsyncMock):
+            await area_logger._async_write_log(TEST_AREA_ID, "preset", entry)
+
+        # Verify file was created and contains the preset entry
+        log_file = area_logger._get_log_file_path(TEST_AREA_ID, "preset")
+        assert log_file.exists()
+
+        content = await asyncio.to_thread(log_file.read_text)
+        logged_entry = json.loads(content.splitlines()[-1])
+
+        assert logged_entry["type"] == "preset"
+        assert logged_entry["message"] == "Preset change"
+        assert logged_entry["details"]["old_preset"] == "A"
 
     @pytest.mark.asyncio
     async def test_async_write_log_error_handling(
