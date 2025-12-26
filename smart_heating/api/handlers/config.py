@@ -14,11 +14,15 @@ _LOGGER = logging.getLogger(__name__)
 
 # Constants
 ERROR_VACATION_MANAGER_NOT_INITIALIZED = "Vacation manager not initialized"
+ERROR_INTERNAL = "Internal server error"
+MISSING_TIME = "Missing required field: time or start_time"
 
 
 async def handle_get_config(  # NOSONAR
     _hass: HomeAssistant, area_manager: AreaManager
 ) -> web.Response:
+    # Minimal await to satisfy async requirement
+    await asyncio.sleep(0)
     """Get system configuration.
 
     Args:
@@ -167,8 +171,8 @@ async def handle_set_opentherm_gateway(
                 "HA ConfigEntry options updated with OpenTherm gateway: %s",
                 gateway_id,
             )
-    except Exception as err:
-        _LOGGER.error("Failed to update HA ConfigEntry options for OpenTherm gateway: %s", err)
+    except Exception:
+        _LOGGER.exception("Failed to update HA ConfigEntry options for OpenTherm gateway")
 
     _LOGGER.info("OpenTherm Gateway configured: gateway_id=%s", gateway_id)
 
@@ -225,7 +229,7 @@ async def handle_set_advanced_control_config(area_manager: AreaManager, data: di
             area_manager.default_heating_curve_coefficient = float(
                 data["default_heating_curve_coefficient"]
             )
-        except Exception:
+        except (TypeError, ValueError):
             return web.json_response({"error": "Invalid coefficient"}, status=400)
         updated = True
 
@@ -278,15 +282,15 @@ async def handle_set_hysteresis_value(
 
         # Update all climate controllers
         for area in area_manager.areas.values():
-            if hasattr(area, "climate_controller") and area.climate_controller:
-                area.climate_controller._hysteresis = hysteresis
+            climate_controller = getattr(area, "climate_controller", None)
+            if climate_controller:
+                climate_controller._hysteresis = hysteresis
 
-            # Request coordinator update
-            if coordinator:
-                from ...utils.coordinator_helpers import call_maybe_async
+        # Request coordinator update
+        if coordinator:
+            from ...utils.coordinator_helpers import call_maybe_async
 
-                await call_maybe_async(coordinator.async_request_refresh)
-
+            await call_maybe_async(coordinator.async_request_refresh)
         _LOGGER.info("✅ Hysteresis updated to %.1f°C", hysteresis)
         return web.json_response({"success": True})
 
@@ -375,7 +379,7 @@ async def handle_get_vacation_mode(hass: HomeAssistant) -> web.Response:
         JSON response with vacation mode data
     """
     await asyncio.sleep(0)
-    vacation_manager = hass.data[DOMAIN].get("vacation_manager")
+    vacation_manager = hass.data.get(DOMAIN, {}).get("vacation_manager")
     if not vacation_manager:
         return web.json_response({"error": ERROR_VACATION_MANAGER_NOT_INITIALIZED}, status=500)
 
@@ -491,7 +495,7 @@ async def handle_set_safety_sensor(
     await area_manager.async_save()
 
     # Reconfigure safety monitor
-    safety_monitor = hass.data[DOMAIN].get("safety_monitor")
+    safety_monitor = hass.data.get(DOMAIN, {}).get("safety_monitor")
     if safety_monitor:
         await safety_monitor.async_reconfigure()
 
@@ -528,14 +532,13 @@ async def handle_remove_safety_sensor(
             if getattr(area_manager, "safety_sensors", None):
                 # We iterate over a copy here because `remove_safety_sensor`
                 # mutates `area_manager.safety_sensors` while iterating.
-                for s in list(
-                    area_manager.safety_sensors
-                ):  # NOSONAR - list() is required to avoid mutation during iteration
+                for s in area_manager.safety_sensors.copy():
                     area_manager.remove_safety_sensor(s["sensor_id"])
+
     await area_manager.async_save()
 
     # Reconfigure safety monitor
-    safety_monitor = hass.data[DOMAIN].get("safety_monitor")
+    safety_monitor = hass.data.get(DOMAIN, {}).get("safety_monitor")
     if safety_monitor:
         await safety_monitor.async_reconfigure()
 
@@ -589,8 +592,8 @@ async def handle_set_hvac_mode(
                         await climate_controller.device_handler._handle_thermostat_turn_off(
                             thermostat_id
                         )
-                    except Exception as err:
-                        _LOGGER.error("Failed to turn off thermostat %s: %s", thermostat_id, err)
+                    except Exception:
+                        _LOGGER.exception("Failed to turn off thermostat %s", thermostat_id)
 
         return web.json_response({"success": True, "hvac_mode": hvac_mode})
     except ValueError as err:
