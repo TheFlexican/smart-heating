@@ -26,6 +26,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getGlobalPresets, setGlobalPresets } from '../api/presets'
 import { GlobalSettingsHeader } from '../components/GlobalSettings/GlobalSettingsHeader'
+import { TabPanel } from '../components/GlobalSettings/TabPanel'
 import { getGlobalPresence, setGlobalPresence } from '../api/sensors'
 import { getHysteresis, setHysteresis } from '../api/logs'
 import {
@@ -52,31 +53,6 @@ import { AdvancedSettings } from '../components/GlobalSettings/AdvancedSettings'
 import { OpenThermSettings } from '../components/GlobalSettings/OpenThermSettings'
 import { DebugSettings } from '../components/GlobalSettings/DebugSettings'
 // additional advanced control apis already imported above
-
-interface TabPanelProps {
-  children?: React.ReactNode
-  index: number
-  value: number
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`settings-tabpanel-${index}`}
-      aria-labelledby={`settings-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ py: 3, px: { xs: 2, sm: 3 }, maxWidth: { xs: 800, lg: 1200 }, mx: 'auto' }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  )
-}
 
 interface GlobalPresetsData {
   away_temp: number
