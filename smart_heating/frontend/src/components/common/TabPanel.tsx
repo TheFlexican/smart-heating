@@ -12,8 +12,8 @@ export const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...o
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`settings-tabpanel-${index}`}
-      aria-labelledby={`settings-tab-${index}`}
+      id={`tabpanel-${index}`}
+      aria-labelledby={`tab-${index}`}
       {...other}
     >
       {value === index && (

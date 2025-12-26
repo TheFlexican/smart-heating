@@ -97,28 +97,7 @@ import SensorConfigDialog from '../components/SensorConfigDialog'
 import TrvConfigDialog from '../components/TrvConfigDialog'
 import DraggableSettings, { SettingSection } from '../components/DraggableSettings'
 import { useWebSocket } from '../hooks/useWebSocket'
-
-interface TabPanelProps {
-  children?: React.ReactNode
-  index: number
-  value: number
-}
-
-function TabPanel(props: Readonly<TabPanelProps>) {
-  const { children, value, index, ...other } = props
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`area-tabpanel-${index}`}
-      aria-labelledby={`area-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: { xs: 2, sm: 3 } }}>{children}</Box>}
-    </div>
-  )
-}
+import { TabPanel } from '../components/common/TabPanel'
 
 const ZoneDetail = () => {
   const { t } = useTranslation()
