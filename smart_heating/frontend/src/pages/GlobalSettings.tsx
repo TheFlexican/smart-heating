@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  IconButton,
   Alert,
   Snackbar,
   CircularProgress,
@@ -11,7 +10,6 @@ import {
   Tab,
   // TextField no longer used in this file
 } from '@mui/material'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import PeopleIcon from '@mui/icons-material/People'
@@ -27,6 +25,7 @@ import BugReportIcon from '@mui/icons-material/BugReport'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getGlobalPresets, setGlobalPresets } from '../api/presets'
+import { GlobalSettingsHeader } from '../components/GlobalSettings/GlobalSettingsHeader'
 import { getGlobalPresence, setGlobalPresence } from '../api/sensors'
 import { getHysteresis, setHysteresis } from '../api/logs'
 import {
@@ -472,22 +471,7 @@ export default function GlobalSettings({
       }}
     >
       {/* Header */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 2,
-          mb: 2,
-          borderRadius: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-        }}
-      >
-        <IconButton data-testid="global-back-button" onClick={() => navigate('/')} edge="start">
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h6">{t('globalSettings.title', 'Global Settings')}</Typography>
-      </Paper>
+      <GlobalSettingsHeader onBack={() => navigate('/')} />
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
         <Tabs
