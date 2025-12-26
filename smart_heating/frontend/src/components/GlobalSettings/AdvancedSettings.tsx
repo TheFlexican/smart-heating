@@ -198,7 +198,7 @@ export const AdvancedSettings: React.FC<{
                 { value: 2, label: '2°C' },
               ]}
               valueLabelDisplay="auto"
-              valueLabelFormat={v => `${(v as number).toFixed(1)}°C`}
+              valueLabelFormat={v => `${v.toFixed(1)}°C`}
               disabled={saving}
               sx={{ maxWidth: 600 }}
             />

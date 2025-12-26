@@ -69,8 +69,8 @@ export const PresetsSettings: React.FC<{
                 <Slider
                   data-testid={`global-preset-${presetKey.replace('_temp', '')}-slider`}
                   value={value}
-                  onChange={(_, newValue) => onChange(presetKey, newValue as number)}
-                  onChangeCommitted={(_e, newValue) => onCommit(presetKey, newValue as number)}
+                  onChange={(_, newValue) => onChange(presetKey, newValue)}
+                  onChangeCommitted={(_e, newValue) => onCommit(presetKey, newValue)}
                   min={5}
                   max={30}
                   step={0.1}

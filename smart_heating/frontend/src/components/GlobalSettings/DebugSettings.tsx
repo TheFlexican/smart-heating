@@ -31,11 +31,7 @@ export const DebugSettings: React.FC<{ wsMetrics?: WebSocketMetrics }> = ({ wsMe
         {t('globalSettings.debug.title', 'WebSocket Connection Health')}
       </Typography>
 
-      {!wsMetrics ? (
-        <Alert severity="info" sx={{ mt: 2 }}>
-          WebSocket metrics not available. Metrics are only available when connected.
-        </Alert>
-      ) : (
+      {wsMetrics ? (
         <Stack spacing={2}>
           <Box>
             <Typography variant="subtitle2" color="text.secondary">
@@ -148,6 +144,10 @@ export const DebugSettings: React.FC<{ wsMetrics?: WebSocketMetrics }> = ({ wsMe
             </Box>
           )}
         </Stack>
+      ) : (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          WebSocket metrics not available. Metrics are only available when connected.
+        </Alert>
       )}
     </Paper>
   )

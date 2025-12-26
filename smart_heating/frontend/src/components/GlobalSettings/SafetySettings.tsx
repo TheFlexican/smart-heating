@@ -13,8 +13,19 @@ import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 import SecurityIcon from '@mui/icons-material/Security'
 import { useTranslation } from 'react-i18next'
 
+type SafetySensorItem = {
+  sensor_id: string
+  attribute?: string
+  enabled?: boolean
+}
+
+type SafetySensorType = {
+  alert_active?: boolean
+  sensors?: SafetySensorItem[]
+}
+
 export const SafetySettings: React.FC<{
-  safetySensor: any
+  safetySensor: SafetySensorType | null
   onRemove: (sensorId: string) => void
   onAddClick: () => void
 }> = ({ safetySensor, onRemove, onAddClick }) => {
@@ -51,7 +62,7 @@ export const SafetySettings: React.FC<{
           </Alert>
 
           <List sx={{ mb: 2 }}>
-            {safetySensor.sensors.map((sensor: any) => (
+            {safetySensor.sensors.map(sensor => (
               <ListItem
                 key={sensor.sensor_id}
                 data-testid="safety-sensor-item"

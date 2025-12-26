@@ -28,14 +28,14 @@ import { getGlobalPresets, setGlobalPresets } from '../api/presets'
 import { GlobalSettingsHeader } from '../components/GlobalSettings/GlobalSettingsHeader'
 import { TabPanel } from '../components/GlobalSettings/TabPanel'
 import { getGlobalPresence, setGlobalPresence } from '../api/sensors'
-import { getHysteresis, setHysteresis } from '../api/logs'
+import { getHysteresis, setHysteresis as setHysteresisApi } from '../api/logs'
 import {
   getSafetySensor,
-  setSafetySensor,
+  setSafetySensor as setSafetySensorApi,
   removeSafetySensor,
   type SafetySensorResponse,
 } from '../api/safety'
-import { setHideDevicesPanel } from '../api/devices'
+import { setHideDevicesPanel as setHideDevicesPanelApi } from '../api/devices'
 import { getConfig, getAdvancedControlConfig, setAdvancedControlConfig } from '../api/config'
 import { setOpenthermGateway, getOpenthermGateways, calibrateOpentherm } from '../api/opentherm'
 import { PresenceSensorConfig, WindowSensorConfig, SafetySensorConfig } from '../types'
@@ -83,22 +83,24 @@ interface WebSocketMetrics {
   }
 }
 
+type GlobalSettingsProps = Readonly<{
+  themeMode: 'light' | 'dark'
+  onThemeChange: (mode: 'light' | 'dark') => void
+  wsMetrics?: WebSocketMetrics
+  initialTab?: number
+}>
+
 export default function GlobalSettings({
   themeMode,
   onThemeChange,
   wsMetrics,
   initialTab = 0,
-}: {
-  themeMode: 'light' | 'dark'
-  onThemeChange: (mode: 'light' | 'dark') => void
-  wsMetrics?: WebSocketMetrics
-  initialTab?: number
-}) {
+}: GlobalSettingsProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState(initialTab)
   const [presets, setPresets] = useState<GlobalPresetsData | null>(null)
-  const [hysteresis, setHysteresisValue] = useState<number>(0.5)
+  const [hysteresis, setHysteresis] = useState<number>(0.5)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -106,16 +108,16 @@ export default function GlobalSettings({
   const [presenceSensors, setPresenceSensors] = useState<PresenceSensorConfig[]>([])
   const [sensorDialogOpen, setSensorDialogOpen] = useState(false)
   const [hysteresisHelpOpen, setHysteresisHelpOpen] = useState(false)
-  const [safetySensor, setSafetySensorState] = useState<SafetySensorResponse | null>(null)
+  const [safetySensor, setSafetySensor] = useState<SafetySensorResponse | null>(null)
   const [safetySensorDialogOpen, setSafetySensorDialogOpen] = useState(false)
-  const [hideDevicesPanel, setHideDevicesPanelState] = useState(false)
+  const [hideDevicesPanel, setHideDevicesPanel] = useState(false)
   // Advanced control state
   const [advancedControlEnabled, setAdvancedControlEnabled] = useState(false)
   const [heatingCurveEnabled, setHeatingCurveEnabled] = useState(false)
   const [pwmEnabled, setPwmEnabled] = useState(false)
   const [pidEnabled, setPidEnabled] = useState(false)
   const [overshootProtectionEnabled, setOvershootProtectionEnabled] = useState(false)
-  const [defaultCoefficient, setDefaultCoefficient] = useState<number>(1.0)
+  const [defaultCoefficient, setDefaultCoefficient] = useState<number>(1)
 
   // OpenTherm Gateway Configuration
   const [openthermGatewayId, setOpenthermGatewayId] = useState<string>('')
@@ -137,11 +139,10 @@ export default function GlobalSettings({
   const loadConfig = async () => {
     try {
       const config = await getConfig()
-      setHideDevicesPanelState(config.hide_devices_panel || false)
+      setHideDevicesPanel(config.hide_devices_panel || false)
 
       // Load OpenTherm configuration
       setOpenthermGatewayId(config.opentherm_gateway_id || '')
-      setHideDevicesPanelState(config.hide_devices_panel || false)
     } catch (err) {
       console.error('Error loading config:', err)
     }
@@ -156,7 +157,7 @@ export default function GlobalSettings({
       setPwmEnabled(!!cfg.pwm_enabled)
       setPidEnabled(!!cfg.pid_enabled)
       setOvershootProtectionEnabled(!!cfg.overshoot_protection_enabled)
-      setDefaultCoefficient(Number(cfg.default_heating_curve_coefficient || 1.0))
+      setDefaultCoefficient(Number(cfg.default_heating_curve_coefficient || 1))
     } catch (err) {
       console.error('Error loading advanced control config', err)
     }
@@ -197,7 +198,7 @@ export default function GlobalSettings({
   const loadHysteresis = async () => {
     try {
       const value = await getHysteresis()
-      setHysteresisValue(value)
+      setHysteresis(value)
     } catch (err) {
       console.error('Error loading hysteresis:', err)
     }
@@ -206,7 +207,7 @@ export default function GlobalSettings({
   const loadSafetySensor = async () => {
     try {
       const data = await getSafetySensor()
-      setSafetySensorState(data)
+      setSafetySensor(data)
     } catch (err) {
       console.error('Error loading safety sensor:', err)
     } finally {
@@ -243,7 +244,7 @@ export default function GlobalSettings({
     value: number | number[],
   ) => {
     const newValue = Array.isArray(value) ? value[0] : value
-    setHysteresisValue(newValue)
+    setHysteresis(newValue)
   }
 
   const handleHysteresisCommit = async (
@@ -254,7 +255,7 @@ export default function GlobalSettings({
     try {
       setSaving(true)
       setSaveSuccess(false)
-      await setHysteresis(newValue)
+      await setHysteresisApi(newValue)
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
     } catch (err) {
@@ -268,21 +269,21 @@ export default function GlobalSettings({
 
   const handleToggleHideDevicesPanel = async (hide: boolean) => {
     try {
-      setHideDevicesPanelState(hide)
-      await setHideDevicesPanel(hide)
+      setHideDevicesPanel(hide)
+      await setHideDevicesPanelApi(hide)
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
       // Reload to apply changes
-      setTimeout(() => window.location.reload(), 500)
+      setTimeout(() => globalThis.location.reload(), 500)
     } catch (err) {
       setError('Failed to save setting')
       console.error('Error saving hide devices panel:', err)
-      setHideDevicesPanelState(!hide)
+      setHideDevicesPanel(!hide)
     }
   }
 
   const handleToggleAdvancedControl = async (field: string, value: boolean | number) => {
-    const payload: any = {}
+    const payload: Record<string, boolean | number> = {}
     payload[field] = value
     try {
       await setAdvancedControlConfig(payload)
@@ -323,7 +324,7 @@ export default function GlobalSettings({
         pwm_enabled: false,
         pid_enabled: false,
         overshoot_protection_enabled: false,
-        default_heating_curve_coefficient: 1.0,
+        default_heating_curve_coefficient: 1,
       })
       // reload values immediately
       await loadAdvancedControlConfig()
@@ -394,7 +395,7 @@ export default function GlobalSettings({
 
   const handleAddSafetySensor = async (config: SafetySensorConfig) => {
     try {
-      await setSafetySensor(config)
+      await setSafetySensorApi(config)
       await loadSafetySensor()
       setSafetySensorDialogOpen(false)
       setSaveSuccess(true)
