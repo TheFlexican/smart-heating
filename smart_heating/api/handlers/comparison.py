@@ -11,6 +11,8 @@ from ...features.comparison_engine import ComparisonEngine
 
 _LOGGER = logging.getLogger(__name__)
 
+ERROR_INTERNAL = "Internal server error"
+
 
 async def handle_get_comparison(
     _hass: HomeAssistant,
@@ -32,7 +34,11 @@ async def handle_get_comparison(
     try:
         # Get query parameters
         comparison_type = request.query.get("type", "week")
-        offset = int(request.query.get("offset", "1"))
+        # Parse offset, return 400 on invalid integer
+        try:
+            offset = int(request.query.get("offset", "1"))
+        except (TypeError, ValueError):
+            return web.json_response({"error": "offset must be an integer"}, status=400)
         area_id = request.query.get("area_id")
 
         if area_id and area_id != "all":
@@ -47,8 +53,8 @@ async def handle_get_comparison(
             return web.json_response({"comparisons": comparisons})
 
     except Exception as e:
-        _LOGGER.error("Error getting comparison: %s", e, exc_info=True)
-        return web.json_response({"error": str(e)}, status=500)
+        _LOGGER.exception("Error getting comparison")
+        return web.json_response({"error": ERROR_INTERNAL, "message": str(e)}, status=500)
 
 
 async def handle_get_custom_comparison(
@@ -93,6 +99,14 @@ async def handle_get_custom_comparison(
         if not all([start_a_dt, end_a_dt, start_b_dt, end_b_dt]):
             return web.json_response({"error": "Invalid date format. Use ISO format."}, status=400)
 
+        # Ensure datetimes are not None (static type checking helper)
+        assert (
+            start_a_dt is not None
+            and end_a_dt is not None
+            and start_b_dt is not None
+            and end_b_dt is not None
+        )
+
         # Get comparison
         comparison = await comparison_engine.compare_custom_periods(
             area_id, start_a_dt, end_a_dt, start_b_dt, end_b_dt
@@ -101,5 +115,5 @@ async def handle_get_custom_comparison(
         return web.json_response({"comparison": comparison})
 
     except Exception as e:
-        _LOGGER.error("Error getting custom comparison: %s", e, exc_info=True)
-        return web.json_response({"error": str(e)}, status=500)
+        _LOGGER.exception("Error getting custom comparison")
+        return web.json_response({"error": ERROR_INTERNAL, "message": str(e)}, status=500)
