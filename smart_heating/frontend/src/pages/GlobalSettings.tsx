@@ -64,6 +64,7 @@ import OpenThermLogger from '../components/OpenThermLogger'
 import { UserManagement } from '../components/UserManagement'
 import DeviceLogsPanel from '../components/DeviceLogsPanel'
 import { PresetsSettings } from '../components/GlobalSettings/PresetsSettings'
+import { SensorsSettings } from '../components/GlobalSettings/SensorsSettings'
 // additional advanced control apis already imported above
 
 interface TabPanelProps {
@@ -601,70 +602,11 @@ export default function GlobalSettings({
 
         {/* Sensors Tab */}
         <TabPanel value={activeTab} index={1}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              {t('globalSettings.sensors.title', 'Global Presence Sensors')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {t(
-                'globalSettings.sensors.description',
-                'Configure presence sensors that can be used across all areas. Areas can choose to use these global sensors or configure their own.',
-              )}
-            </Typography>
-
-            {presenceSensors.length > 0 ? (
-              <List dense>
-                {presenceSensors.map(sensor => (
-                  <ListItem
-                    key={sensor.entity_id}
-                    data-testid="presence-sensor-item"
-                    secondaryAction={
-                      <IconButton
-                        data-testid={`presence-remove-${sensor.entity_id}`}
-                        edge="end"
-                        onClick={() => handleRemovePresenceSensor(sensor.entity_id)}
-                      >
-                        <RemoveCircleOutlineIcon />
-                      </IconButton>
-                    }
-                  >
-                    <ListItemText
-                      primary={sensor.entity_id}
-                      secondary={t(
-                        'globalSettings.sensors.switchText',
-                        "Switches heating to 'away' when nobody is home",
-                      )}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            ) : (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                {t(
-                  'globalSettings.sensors.noSensors',
-                  'No global presence sensors configured. Add sensors that will be available to all areas.',
-                )}
-              </Alert>
-            )}
-
-            <Button
-              variant="outlined"
-              fullWidth
-              data-testid="global-add-presence-sensor"
-              onClick={() => setSensorDialogOpen(true)}
-              sx={{ mt: 2 }}
-            >
-              {t('globalSettings.sensors.addButton', 'Add Presence Sensor')}
-            </Button>
-
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 3, fontStyle: 'italic' }}>
-              💡{' '}
-              {t(
-                'globalSettings.sensors.tip',
-                'Tip: Areas can enable "Use global presence" in their settings to use these sensors instead of configuring their own.',
-              )}
-            </Typography>
-          </Paper>
+          <SensorsSettings
+            presenceSensors={presenceSensors}
+            onRemove={handleRemovePresenceSensor}
+            onAddClick={() => setSensorDialogOpen(true)}
+          />
         </TabPanel>
 
         {/* Vacation Tab */}
