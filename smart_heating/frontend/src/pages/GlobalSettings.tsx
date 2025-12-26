@@ -26,7 +26,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getGlobalPresets, setGlobalPresets } from '../api/presets'
 import { GlobalSettingsHeader } from '../components/GlobalSettings/GlobalSettingsHeader'
-import { TabPanel } from '../components/GlobalSettings/TabPanel'
+import { TabPanel } from '../components/common/TabPanel'
 import { getGlobalPresence, setGlobalPresence } from '../api/sensors'
 import { getHysteresis, setHysteresis as setHysteresisApi } from '../api/logs'
 import {
