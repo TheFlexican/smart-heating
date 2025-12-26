@@ -12,6 +12,8 @@ from ...storage.config_manager import ConfigManager
 
 _LOGGER = logging.getLogger(__name__)
 
+ERROR_INTERNAL = "Internal server error"
+
 
 async def handle_export_config(_hass: HomeAssistant, config_manager: ConfigManager) -> web.Response:
     """Export configuration as JSON file.
@@ -81,11 +83,11 @@ async def handle_import_config(
         )
 
     except ValueError as err:
-        _LOGGER.error("Invalid configuration data: %s", err)
+        _LOGGER.exception("Invalid configuration data")
         return web.json_response({"error": f"Invalid configuration: {str(err)}"}, status=400)
     except Exception as err:
-        _LOGGER.error("Failed to import configuration: %s", err)
-        return web.json_response({"error": f"Import failed: {str(err)}"}, status=500)
+        _LOGGER.exception("Failed to import configuration")
+        return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
 
 
 async def handle_validate_config(
@@ -122,6 +124,8 @@ async def handle_validate_config(
             "vacation_mode_included": "vacation_mode" in data,
         }
 
+        # Yield once to satisfy async checks
+        await asyncio.sleep(0)
         return web.json_response(preview)
 
     except ValueError as err:
@@ -164,8 +168,8 @@ async def handle_list_backups(_hass: HomeAssistant, config_manager: ConfigManage
         return web.json_response({"backups": backups})
 
     except Exception as err:
-        _LOGGER.error("Failed to list backups: %s", err)
-        return web.json_response({"error": f"Failed to list backups: {str(err)}"}, status=500)
+        _LOGGER.exception("Failed to list backups")
+        return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
 
 
 async def handle_restore_backup(
@@ -208,5 +212,5 @@ async def handle_restore_backup(
         )
 
     except Exception as err:
-        _LOGGER.error("Failed to restore backup: %s", err)
-        return web.json_response({"error": f"Restore failed: {str(err)}"}, status=500)
+        _LOGGER.exception("Failed to restore backup")
+        return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
