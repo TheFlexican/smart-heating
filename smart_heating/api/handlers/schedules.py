@@ -14,6 +14,9 @@ from ...utils import get_coordinator, validate_area_id, validate_temperature
 
 _LOGGER = logging.getLogger(__name__)
 
+ERROR_INTERNAL = "Internal server error"
+MISSING_TIME = "Missing required field: time or start_time"
+
 
 async def handle_add_schedule(
     hass: HomeAssistant, area_manager: AreaManager, area_id: str, data: dict
@@ -68,9 +71,7 @@ async def handle_add_schedule(
         # Validate required fields - accept either 'time' or 'start_time'
         time_str = data.get("time") or data.get("start_time")
         if not time_str:
-            return web.json_response(
-                {"error": "Missing required field: time or start_time"}, status=400
-            )
+            return web.json_response({"error": MISSING_TIME}, status=400)
 
         schedule = Schedule(
             schedule_id=schedule_id,
@@ -116,13 +117,19 @@ async def handle_remove_schedule(
         await area_manager.async_save()
 
         # Clear the schedule cache so the scheduler re-evaluates immediately
-        schedule_executor = hass.data[DOMAIN].get("schedule_executor")
+        schedule_executor = hass.data.get(DOMAIN, {}).get("schedule_executor")
         if schedule_executor:
-            schedule_executor.clear_schedule_cache(area_id)
+            try:
+                schedule_executor.clear_schedule_cache(area_id)
+            except Exception:
+                _LOGGER.exception("Failed to clear schedule cache for area %s", area_id)
 
         return web.json_response({"success": True})
     except ValueError as err:
         return web.json_response({"error": str(err)}, status=404)
+    except Exception as err:
+        _LOGGER.exception("Error removing schedule %s from %s", schedule_id, area_id)
+        return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
 
 
 async def handle_update_schedule(
@@ -163,7 +170,8 @@ async def handle_update_schedule(
             existing[k] = v
 
         # If days was provided and is an empty list, treat that as a full deletion request
-        if "days" in data and isinstance(data.get("days"), list) and len(data.get("days")) == 0:
+        days_val = data.get("days")
+        if "days" in data and isinstance(days_val, list) and len(days_val) == 0:
             area.remove_schedule(schedule_id)
             await area_manager.async_save()
             return web.json_response({"success": True, "deleted": True})
@@ -187,6 +195,9 @@ async def handle_update_schedule(
         return web.json_response({"success": True, "schedule": updated.to_dict()})
     except ValueError as err:
         return web.json_response({"error": str(err)}, status=400)
+    except Exception as err:
+        _LOGGER.exception("Error updating schedule %s in %s", schedule_id, area_id)
+        return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
 
 
 async def handle_set_preset_mode(
