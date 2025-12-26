@@ -98,14 +98,12 @@ import TrvConfigDialog from '../components/TrvConfigDialog'
 import DraggableSettings, { SettingSection } from '../components/DraggableSettings'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { TabPanel } from '../components/common/TabPanel'
+import { isEnabledVal, getDisplayTemperature, getPresetTemp } from '../utils/areaHelpers'
 
 const ZoneDetail = () => {
   const { t } = useTranslation()
   const { areaId } = useParams<{ areaId: string }>()
   const navigate = useNavigate()
-  // Helper: accepts boolean or string forms of enabled and returns boolean true only
-  const isEnabledVal = (v: boolean | string | undefined | null) =>
-    v === true || String(v) === 'true'
   const [area, setArea] = useState<Zone | null>(null)
   const [availableDevices, setAvailableDevices] = useState<Device[]>([])
   const [showOnlyHeating, setShowOnlyHeating] = useState(true)
@@ -159,25 +157,6 @@ const ZoneDetail = () => {
     },
   })
 
-  // Helper function to compute the display temperature consistently with ZoneCard
-  const getDisplayTemperature = useCallback((zone: Zone | null | undefined): number => {
-    if (!zone) return 20
-    const enabled = zone.enabled === true || String(zone.enabled) === 'true'
-
-    // If area is disabled or off, always show base target temperature
-    if (!enabled || zone.state === 'off') return zone.target_temperature
-
-    // When not in manual override and an effective target exists, prefer the effective temperature
-    if (!zone.manual_override && zone.effective_target_temperature != null) {
-      if (Math.abs(zone.effective_target_temperature - zone.target_temperature) >= 0.1) {
-        return zone.effective_target_temperature
-      }
-    }
-
-    // Otherwise show the base target temperature
-    return zone.target_temperature
-  }, [])
-
   const loadData = useCallback(async () => {
     if (!areaId) return
 
@@ -223,7 +202,7 @@ const ZoneDetail = () => {
     } finally {
       setLoading(false)
     }
-  }, [areaId, navigate, getDisplayTemperature])
+  }, [areaId, navigate])
 
   const startEditingTrv = (trv: any) => {
     setEditingTrvId(trv.entity_id)
@@ -577,24 +556,6 @@ const ZoneDetail = () => {
     }
   }
 
-  // Helper function to get effective preset temperature (global or custom)
-  const getPresetTemp = (
-    presetKey: string,
-    customTemp: number | undefined,
-    fallback: number,
-  ): string => {
-    if (!area) return `${fallback}°C`
-
-    const useGlobalKey = `use_global_${presetKey}` as keyof Zone
-    const useGlobal = (area[useGlobalKey] as boolean | undefined) ?? true
-
-    if (useGlobal && globalPresets) {
-      const globalKey = `${presetKey}_temp` as keyof GlobalPresets
-      return `${globalPresets[globalKey]}°C (global)`
-    }
-    return `${customTemp ?? fallback}°C (custom)`
-  }
-
   // Generate settings sections for draggable layout
   const getSettingsSections = (): SettingSection[] => {
     if (!area) return []
@@ -638,32 +599,32 @@ const ZoneDetail = () => {
                 <MenuItem value="none">{t('settingsCards.presetNoneManual')}</MenuItem>
                 <MenuItem value="away">
                   {t('settingsCards.presetAwayTemp', {
-                    temp: getPresetTemp('away', area.away_temp, 16),
+                    temp: getPresetTemp(area, globalPresets, 'away', area.away_temp, 16),
                   })}
                 </MenuItem>
                 <MenuItem value="eco">
                   {t('settingsCards.presetEcoTemp', {
-                    temp: getPresetTemp('eco', area.eco_temp, 18),
+                    temp: getPresetTemp(area, globalPresets, 'eco', area.eco_temp, 18),
                   })}
                 </MenuItem>
                 <MenuItem value="comfort">
                   {t('settingsCards.presetComfortTemp', {
-                    temp: getPresetTemp('comfort', area.comfort_temp, 22),
+                    temp: getPresetTemp(area, globalPresets, 'comfort', area.comfort_temp, 22),
                   })}
                 </MenuItem>
                 <MenuItem value="home">
                   {t('settingsCards.presetHomeTemp', {
-                    temp: getPresetTemp('home', area.home_temp, 21),
+                    temp: getPresetTemp(area, globalPresets, 'home', area.home_temp, 21),
                   })}
                 </MenuItem>
                 <MenuItem value="sleep">
                   {t('settingsCards.presetSleepTemp', {
-                    temp: getPresetTemp('sleep', area.sleep_temp, 19),
+                    temp: getPresetTemp(area, globalPresets, 'sleep', area.sleep_temp, 19),
                   })}
                 </MenuItem>
                 <MenuItem value="activity">
                   {t('settingsCards.presetActivityTemp', {
-                    temp: getPresetTemp('activity', area.activity_temp, 23),
+                    temp: getPresetTemp(area, globalPresets, 'activity', area.activity_temp, 23),
                   })}
                 </MenuItem>
                 <MenuItem value="boost">{t('settingsCards.presetBoost')}</MenuItem>
