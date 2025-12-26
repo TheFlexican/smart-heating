@@ -8,21 +8,12 @@ import {
   Snackbar,
   CircularProgress,
   Stack,
-  Button,
   List,
   ListItem,
   ListItemText,
   Tabs,
   Tab,
   // TextField no longer used in this file
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  // FormControlLabel removed - no enable toggle for OpenTherm
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 
@@ -34,7 +25,7 @@ import SecurityIcon from '@mui/icons-material/Security'
 import BackupIcon from '@mui/icons-material/Backup'
 import FireplaceIcon from '@mui/icons-material/Fireplace'
 import ListAltIcon from '@mui/icons-material/ListAlt'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+
 import BugReportIcon from '@mui/icons-material/BugReport'
 
 import { useNavigate } from 'react-router-dom'
@@ -57,7 +48,7 @@ import SafetySensorConfigDialog from '../components/SafetySensorConfigDialog'
 import { VacationModeSettings } from '../components/VacationModeSettings'
 import HysteresisHelpModal from '../components/HysteresisHelpModal'
 import ImportExport from '../components/ImportExport'
-import OpenThermLogger from '../components/OpenThermLogger'
+import { OpenThermSettings } from '../components/GlobalSettings/OpenThermSettings'
 import { UserManagement } from '../components/UserManagement'
 import DeviceLogsPanel from '../components/DeviceLogsPanel'
 import { PresetsSettings } from '../components/GlobalSettings/PresetsSettings'
@@ -673,93 +664,13 @@ export default function GlobalSettings({
 
         {/* OpenTherm Tab */}
         <TabPanel value={activeTab} index={8}>
-          <Accordion defaultExpanded={false}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h6">
-                {t('globalSettings.opentherm.title', 'OpenTherm Gateway Configuration')}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Box
-                sx={{
-                  mb: 3,
-                  p: 2,
-                  bgcolor: 'info.main',
-                  color: 'info.contrastText',
-                  borderRadius: 1,
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  ⚠️ {t('globalSettings.opentherm.importantNote', 'Important: Use Numeric ID Only')}
-                </Typography>
-                <Typography variant="body2">
-                  {t(
-                    'globalSettings.opentherm.description',
-                    'Enter the numeric integration ID (e.g., 128937219831729813), NOT the entity ID (e.g., climate.opentherm_thermostaat).',
-                  )}
-                </Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  {t(
-                    'globalSettings.opentherm.findId',
-                    'Find this ID in: Settings → Devices & Services → OpenTherm Gateway → Click "Configure" → Look for "ID" field (numeric value).',
-                  )}
-                </Typography>
-              </Box>
-
-              <Stack spacing={3}>
-                {openthermGateways.length === 0 && (
-                  <Alert severity="warning">
-                    {t(
-                      'globalSettings.opentherm.noGateways',
-                      'No OpenTherm gateways found. Please add the OpenTherm Gateway integration in Home Assistant and configure its gateway ID.',
-                    )}{' '}
-                    <a href="/config/integrations" target="_blank" rel="noreferrer">
-                      {t('globalSettings.openIntegrations', 'Open Integrations')}
-                    </a>
-                  </Alert>
-                )}
-                <FormControl fullWidth>
-                  <InputLabel id="opentherm-gateway-select-label">
-                    {t('globalSettings.opentherm.gatewayId', 'Gateway Integration ID (ID or slug)')}
-                  </InputLabel>
-                  <Select
-                    labelId="opentherm-gateway-select-label"
-                    value={openthermGatewayId}
-                    label={t(
-                      'globalSettings.opentherm.gatewayId',
-                      'Gateway Integration ID (ID or slug)',
-                    )}
-                    onChange={e => setOpenthermGatewayId(e.target.value)}
-                  >
-                    <MenuItem value="">None (Disabled)</MenuItem>
-                    {openthermGateways.map(g => (
-                      <MenuItem key={g.gateway_id} value={g.gateway_id}>
-                        {g.title}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                {/* Removed manual enable toggle - control is automatic when a gateway id is configured */}
-
-                <Button
-                  data-testid="save-opentherm-config"
-                  variant="contained"
-                  onClick={handleSaveOpenthermConfig}
-                  // Disable when saving or there are no available gateways at all
-                  disabled={openthermSaving || openthermGateways.length === 0}
-                >
-                  {openthermSaving ? (
-                    <CircularProgress size={24} />
-                  ) : (
-                    t('globalSettings.opentherm.save', 'Save Configuration')
-                  )}
-                </Button>
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-
-          <OpenThermLogger />
+          <OpenThermSettings
+            openthermGateways={openthermGateways}
+            openthermGatewayId={openthermGatewayId}
+            setOpenthermGatewayId={setOpenthermGatewayId}
+            openthermSaving={openthermSaving}
+            handleSave={handleSaveOpenthermConfig}
+          />
         </TabPanel>
 
         {/* Debug Tab */}
