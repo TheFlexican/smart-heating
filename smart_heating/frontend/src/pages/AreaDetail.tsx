@@ -12,11 +12,9 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemIcon,
   Chip,
   Slider,
   Switch,
-  Divider,
   Alert,
   TextField,
   Select,
@@ -35,7 +33,6 @@ import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import AcUnitIcon from '@mui/icons-material/AcUnit'
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew'
 import TuneIcon from '@mui/icons-material/Tune'
-import EditIcon from '@mui/icons-material/Edit'
 import NightsStayIcon from '@mui/icons-material/NightsStay'
 import PsychologyIcon from '@mui/icons-material/Psychology'
 import WindowIcon from '@mui/icons-material/Window'
@@ -53,7 +50,6 @@ import {
   Device,
   GlobalPresets,
   HassEntity,
-  TrvRuntimeState,
 } from '../types'
 import {
   getZones,
@@ -91,15 +87,20 @@ import {
 import { getDevices } from '../api/devices'
 import { getGlobalPresets } from '../api/presets'
 import { getEntityState, getWeatherEntities } from '../api/config'
-import ScheduleEditor from '../components/ScheduleEditor'
-import HistoryChart from '../components/HistoryChart'
 import SensorConfigDialog from '../components/SensorConfigDialog'
 import TrvConfigDialog from '../components/TrvConfigDialog'
-import DraggableSettings, { SettingSection } from '../components/DraggableSettings'
+import { SettingSection } from '../components/DraggableSettings'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { TabPanel } from '../components/common/TabPanel'
 import { isEnabledVal, getDisplayTemperature, getPresetTemp } from '../utils/areaHelpers'
 import { AreaDetailHeader } from '../components/AreaDetail/AreaDetailHeader'
+import { AreaOverviewTab } from '../components/AreaDetail/AreaOverviewTab'
+import { AreaDevicesTab } from '../components/AreaDetail/AreaDevicesTab'
+import { AreaScheduleTab } from '../components/AreaDetail/AreaScheduleTab'
+import { AreaHistoryTab } from '../components/AreaDetail/AreaHistoryTab'
+import { AreaLearningTab } from '../components/AreaDetail/AreaLearningTab'
+import { AreaLogsTab } from '../components/AreaDetail/AreaLogsTab'
+import { AreaSettingsTab } from '../components/AreaDetail/AreaSettingsTab'
 
 const ZoneDetail = () => {
   const { t } = useTranslation()
@@ -107,8 +108,6 @@ const ZoneDetail = () => {
   const navigate = useNavigate()
   const [area, setArea] = useState<Zone | null>(null)
   const [availableDevices, setAvailableDevices] = useState<Device[]>([])
-  const [showOnlyHeating, setShowOnlyHeating] = useState(true)
-  const [deviceSearch, setDeviceSearch] = useState('')
   const [entityStates, setEntityStates] = useState<Record<string, any>>({})
   const [globalPresets, setGlobalPresets] = useState<GlobalPresets | null>(null)
   const [loading, setLoading] = useState(true)
@@ -2104,642 +2103,70 @@ const ZoneDetail = () => {
       <Box sx={{ flex: 1, overflow: 'auto' }}>
         {/* Overview Tab */}
         <TabPanel value={tabValue} index={0}>
-          <Box sx={{ maxWidth: { xs: 800, lg: 1200 }, mx: 'auto', px: { xs: 0, sm: 0 } }}>
-            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                <ThermostatIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-                <Typography
-                  variant="h5"
-                  color="text.primary"
-                  sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem' }, fontWeight: 600 }}
-                >
-                  {t('areaDetail.temperatureControl')}
-                </Typography>
-              </Box>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                >
-                  {t('areaDetail.targetTemperature')}
-                </Typography>
-                <Typography
-                  variant="h4"
-                  color="primary"
-                  data-testid="target-temperature-display"
-                  sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}
-                >
-                  {temperature}°C
-                </Typography>
-              </Box>
-              <Slider
-                value={temperature}
-                sx={{
-                  '& .MuiSlider-thumb': {
-                    width: { xs: 24, sm: 20 },
-                    height: { xs: 24, sm: 20 },
-                  },
-                  '& .MuiSlider-track': {
-                    height: { xs: 6, sm: 4 },
-                  },
-                  '& .MuiSlider-rail': {
-                    height: { xs: 6, sm: 4 },
-                  },
-                }}
-                onChange={handleTemperatureChange}
-                onChangeCommitted={handleTemperatureCommit}
-                min={5}
-                max={30}
-                step={0.1}
-                marks={[
-                  { value: 5, label: '5°' },
-                  { value: 15, label: '15°' },
-                  { value: 20, label: '20°' },
-                  { value: 25, label: '25°' },
-                  { value: 30, label: '30°' },
-                ]}
-                valueLabelDisplay="auto"
-                disabled={!enabled || !!(area.preset_mode && area.preset_mode !== 'none')}
-              />
-              {enabled &&
-                area.state !== 'off' &&
-                area.preset_mode &&
-                area.preset_mode !== 'none' && (
-                  <Box mt={1} display="flex" alignItems="center" gap={1}>
-                    <BookmarkIcon fontSize="small" color="secondary" />
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      dangerouslySetInnerHTML={{
-                        __html: t('areaDetail.presetModeActive', {
-                          mode: t(`presets.${area.preset_mode}`).toUpperCase(),
-                        }),
-                      }}
-                    />
-                  </Box>
-                )}
-
-              {area.current_temperature !== undefined && (
-                <>
-                  <Divider sx={{ my: 3 }} />
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body1" color="text.secondary">
-                      {t('areaDetail.currentTemperature')}
-                    </Typography>
-                    <Typography variant="h5" color="text.primary">
-                      {area.current_temperature?.toFixed(1)}°C
-                    </Typography>
-                  </Box>
-
-                  {/* TRV status section */}
-                  <Box sx={{ mt: 3 }}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Typography variant="subtitle1">{t('areaDetail.trvs')}</Typography>
-                      <Button
-                        data-testid="trv-add-button-overview"
-                        variant="outlined"
-                        size="small"
-                        onClick={() => setTrvDialogOpen(true)}
-                      >
-                        Add TRV
-                      </Button>
-                    </Box>
-
-                    {area.trv_entities && area.trv_entities.length > 0 ? (
-                      <Box
-                        sx={{
-                          display: 'grid',
-                          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
-                          gap: 2,
-                          mt: 1,
-                        }}
-                      >
-                        {area.trv_entities.map(trv => {
-                          const runtime = (area.trvs || []).find(
-                            t => t.entity_id === trv.entity_id,
-                          ) as TrvRuntimeState | undefined
-                          const name = trv.name || runtime?.name || trv.entity_id
-                          const open = runtime?.open
-                          const position = runtime?.position
-
-                          const isEditing = editingTrvId === trv.entity_id
-
-                          return (
-                            <Paper
-                              key={trv.entity_id}
-                              sx={{
-                                p: 2,
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                              }}
-                            >
-                              <Box sx={{ flex: 1 }}>
-                                {!isEditing ? (
-                                  <>
-                                    <Typography variant="body1">{name}</Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                      {trv.role || 'both'}
-                                    </Typography>
-                                    <Box sx={{ mt: 1 }}>
-                                      {open !== undefined && (
-                                        <Chip
-                                          label={
-                                            open
-                                              ? t('areaDetail.trvOpen')
-                                              : t('areaDetail.trvClosed')
-                                          }
-                                          color={open ? 'success' : 'default'}
-                                          size="small"
-                                          data-testid={`trv-open-${trv.entity_id}`}
-                                        />
-                                      )}
-                                      <Typography
-                                        variant="caption"
-                                        sx={{ ml: 1 }}
-                                        data-testid={`trv-position-${trv.entity_id}`}
-                                      >
-                                        {position !== undefined && position !== null
-                                          ? `${position}%`
-                                          : '—'}
-                                      </Typography>
-                                    </Box>
-                                  </>
-                                ) : (
-                                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                    <TextField
-                                      size="small"
-                                      value={editingTrvName ?? ''}
-                                      onChange={e => setEditingTrvName(e.target.value)}
-                                      data-testid={`trv-edit-name-${trv.entity_id}`}
-                                    />
-                                    <FormControl size="small">
-                                      <Select
-                                        value={editingTrvRole ?? trv.role ?? 'both'}
-                                        onChange={e => setEditingTrvRole(e.target.value as any)}
-                                        data-testid={`trv-edit-role-${trv.entity_id}`}
-                                      >
-                                        <MenuItem value="position">Position</MenuItem>
-                                        <MenuItem value="open">Open/Closed</MenuItem>
-                                        <MenuItem value="both">Both</MenuItem>
-                                      </Select>
-                                    </FormControl>
-                                  </Box>
-                                )}
-                              </Box>
-
-                              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                {!isEditing ? (
-                                  <>
-                                    <IconButton
-                                      aria-label={`edit-${trv.entity_id}`}
-                                      data-testid={`trv-edit-${trv.entity_id}`}
-                                      size="small"
-                                      onClick={() => startEditingTrv(trv)}
-                                    >
-                                      <EditIcon />
-                                    </IconButton>
-                                    <IconButton
-                                      aria-label={`delete-${trv.entity_id}`}
-                                      data-testid={`trv-delete-${trv.entity_id}`}
-                                      size="small"
-                                      onClick={() => handleDeleteTrv(trv.entity_id)}
-                                    >
-                                      <RemoveCircleOutlineIcon />
-                                    </IconButton>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Button
-                                      size="small"
-                                      variant="contained"
-                                      data-testid={`trv-save-${trv.entity_id}`}
-                                      onClick={() => handleSaveTrv(trv)}
-                                    >
-                                      Save
-                                    </Button>
-                                    <Button
-                                      size="small"
-                                      data-testid={`trv-cancel-edit-${trv.entity_id}`}
-                                      onClick={() => cancelEditingTrv()}
-                                    >
-                                      Cancel
-                                    </Button>
-                                  </>
-                                )}
-                              </Box>
-                            </Paper>
-                          )
-                        })}
-                      </Box>
-                    ) : (
-                      <Alert severity="info">
-                        No TRVs configured for this area. Click Add TRV to add one.
-                      </Alert>
-                    )}
-                  </Box>
-                </>
-              )}
-            </Paper>
-
-            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                <SpeedIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-                <Typography variant="h5" color="text.primary" sx={{ fontWeight: 600 }}>
-                  {t('areaDetail.quickStats')}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-                  gap: 3,
-                }}
-              >
-                <Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {t('areaDetail.devices')}
-                  </Typography>
-                  <Typography variant="h6" color="text.primary">
-                    {t('areaDetail.devicesAssigned', { count: area.devices.length })}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {t('areaDetail.status')}
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    color="text.primary"
-                    sx={{ textTransform: 'capitalize' }}
-                  >
-                    {area.state}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {t('areaDetail.zoneId')}
-                  </Typography>
-                  <Typography variant="h6" color="text.primary" sx={{ fontSize: '1rem' }}>
-                    {area.id}
-                  </Typography>
-                </Box>
-              </Box>
-            </Paper>
-          </Box>
+          <AreaOverviewTab
+            area={area}
+            temperature={temperature}
+            enabled={enabled}
+            editingTrvId={editingTrvId}
+            editingTrvName={editingTrvName}
+            editingTrvRole={editingTrvRole}
+            onTemperatureChange={handleTemperatureChange}
+            onTemperatureCommit={handleTemperatureCommit}
+            onTrvDialogOpen={() => setTrvDialogOpen(true)}
+            onStartEditingTrv={startEditingTrv}
+            onEditingTrvNameChange={setEditingTrvName}
+            onEditingTrvRoleChange={setEditingTrvRole}
+            onSaveTrv={handleSaveTrv}
+            onCancelEditingTrv={cancelEditingTrv}
+            onDeleteTrv={handleDeleteTrv}
+          />
         </TabPanel>
-
         {/* Devices Tab */}
         <TabPanel value={tabValue} index={1}>
-          <Box sx={{ maxWidth: { xs: 800, lg: 1200 }, mx: 'auto' }}>
-            {/* Primary Temperature Sensor Selection */}
-            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <ThermostatIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-                <Typography variant="h5" color="text.primary" sx={{ fontWeight: 600 }}>
-                  {t('areaDetail.primaryTemperatureSensor')}
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {t('areaDetail.primaryTemperatureSensorDescription')}
-              </Typography>
-              <FormControl fullWidth>
-                <InputLabel>{t('areaDetail.temperatureSensor')}</InputLabel>
-                <Select
-                  value={area.primary_temperature_sensor || 'auto'}
-                  label={t('areaDetail.temperatureSensor')}
-                  onChange={async e => {
-                    try {
-                      const value = e.target.value === 'auto' ? null : e.target.value
-                      await setPrimaryTemperatureSensor(area.id, value)
-                      await loadData()
-                    } catch (error) {
-                      console.error('Failed to set primary temperature sensor:', error)
-                      alert('Failed to set primary temperature sensor. Check console for details.')
-                    }
-                  }}
-                >
-                  <MenuItem value="auto">
-                    <em>{t('areaDetail.autoAllSensors')}</em>
-                  </MenuItem>
-                  {area.devices
-                    .filter(d => d.type === 'temperature_sensor' || d.type === 'thermostat')
-                    .map(device => {
-                      const deviceId = device.entity_id || device.id
-                      return (
-                        <MenuItem key={deviceId} value={deviceId}>
-                          {device.name || deviceId} (
-                          {device.type === 'thermostat'
-                            ? t('areaDetail.thermostat')
-                            : t('areaDetail.tempSensor')}
-                          )
-                        </MenuItem>
-                      )
-                    })}
-                </Select>
-              </FormControl>
-            </Paper>
-
-            {/* Assigned Devices */}
-            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <SensorsIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-                <Typography variant="h5" color="text.primary" sx={{ fontWeight: 600 }}>
-                  {t('areaDetail.assignedDevices', { count: area.devices.length })}
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('areaDetail.devicesDescription')}
-              </Typography>
-
-              {area.devices.length === 0 ? (
-                <Alert severity="info">{t('areaDetail.noDevicesAssigned')}</Alert>
-              ) : (
-                <List>
-                  {area.devices.map(device => (
-                    <ListItem
-                      data-testid={`assigned-device-${device.id}`}
-                      key={device.id}
-                      sx={{
-                        border: 1,
-                        borderColor: 'divider',
-                        borderRadius: 1,
-                        mb: 1,
-                      }}
-                      secondaryAction={
-                        <IconButton
-                          edge="end"
-                          aria-label="remove"
-                          data-testid={`remove-device-${(device.entity_id || device.id).toLowerCase().replaceAll(' ', '-')}`}
-                          onClick={async () => {
-                            try {
-                              await removeDeviceFromZone(area.id, device.entity_id || device.id)
-                              await loadData()
-                            } catch (error) {
-                              console.error('Failed to remove device:', error)
-                            }
-                          }}
-                        >
-                          <RemoveCircleOutlineIcon />
-                        </IconButton>
-                      }
-                    >
-                      <ListItemIcon>{getDeviceStatusIcon(device)}</ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <Typography variant="body1" color="text.primary">
-                              {device.name || device.id}
-                            </Typography>
-                            {device.type === 'thermostat' &&
-                              area?.target_temperature !== undefined &&
-                              device.current_temperature !== undefined &&
-                              area.target_temperature > device.current_temperature && (
-                                <Chip
-                                  data-testid={`device-heating-chip-${device.id}`}
-                                  label="heating"
-                                  size="small"
-                                  color="error"
-                                  sx={{ height: 20, fontSize: '0.7rem' }}
-                                />
-                              )}
-                          </Box>
-                        }
-                        secondary={
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              {String(device.type).replaceAll('_', ' ')}
-                            </Typography>
-                            <Typography variant="body2" color="text.primary" sx={{ mt: 0.5 }}>
-                              {getDeviceStatus(device)}
-                            </Typography>
-                            {device.type === 'valve' && area?.heating_type === 'airco' && (
-                              <Typography
-                                data-testid={`device-disabled-airco-${device.id}`}
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{ mt: 0.5 }}
-                              >
-                                {t('areaDetail.disabledForAirco', 'Disabled for Air Conditioner')}
-                              </Typography>
-                            )}
-                          </Box>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              )}
-            </Paper>
-
-            {/* Available Devices */}
-            <Paper sx={{ p: 3 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mb: 2,
-                }}
-              >
-                <Typography variant="h6" color="text.primary">
-                  {t('areaDetail.availableDevices', {
-                    count: availableDevices.filter(device => {
-                      const typeMatch =
-                        !showOnlyHeating ||
-                        ['climate', 'temperature'].includes(device.subtype || '')
-                      if (!deviceSearch) return typeMatch
-                      const searchLower = deviceSearch.toLowerCase()
-                      const nameMatch = (device.name || '').toLowerCase().includes(searchLower)
-                      const entityMatch = (device.entity_id || device.id || '')
-                        .toLowerCase()
-                        .includes(searchLower)
-                      const areaMatch = (device.ha_area_name || '')
-                        .toLowerCase()
-                        .includes(searchLower)
-                      return typeMatch && (nameMatch || entityMatch || areaMatch)
-                    }).length,
-                  })}
-                </Typography>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={showOnlyHeating}
-                      onChange={e => setShowOnlyHeating(e.target.checked)}
-                      color="primary"
-                    />
-                  }
-                  label={t('areaDetail.showOnlyClimate')}
-                />
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('areaDetail.availableDevicesDescription', { area: area.name })}
-              </Typography>
-
-              {/* Search Bar */}
-              <TextField
-                fullWidth
-                size="small"
-                placeholder={t('areaDetail.searchPlaceholder')}
-                value={deviceSearch}
-                onChange={e => setDeviceSearch(e.target.value)}
-                sx={{ mb: 2 }}
-              />
-
-              {availableDevices.filter(device => {
-                const typeMatch =
-                  !showOnlyHeating || ['climate', 'temperature'].includes(device.subtype || '')
-                if (!deviceSearch) return typeMatch
-                const searchLower = deviceSearch.toLowerCase()
-                const nameMatch = (device.name || '').toLowerCase().includes(searchLower)
-                const entityMatch = (device.entity_id || device.id || '')
-                  .toLowerCase()
-                  .includes(searchLower)
-                const areaMatch = (device.ha_area_name || '').toLowerCase().includes(searchLower)
-                return typeMatch && (nameMatch || entityMatch || areaMatch)
-              }).length === 0 ? (
-                <Alert severity="info">
-                  {(() => {
-                    if (deviceSearch)
-                      return t('areaDetail.noDevicesMatch', { search: deviceSearch })
-                    if (showOnlyHeating) return t('areaDetail.noClimateDevices')
-                    return t('areaDetail.noAdditionalDevices')
-                  })()}
-                </Alert>
-              ) : (
-                <List>
-                  {availableDevices
-                    .filter(device => {
-                      const typeMatch =
-                        !showOnlyHeating ||
-                        ['climate', 'temperature'].includes(device.subtype || '')
-                      if (!deviceSearch) return typeMatch
-                      const searchLower = deviceSearch.toLowerCase()
-                      const nameMatch = (device.name || '').toLowerCase().includes(searchLower)
-                      const entityMatch = (device.entity_id || device.id || '')
-                        .toLowerCase()
-                        .includes(searchLower)
-                      const areaMatch = (device.ha_area_name || '')
-                        .toLowerCase()
-                        .includes(searchLower)
-                      return typeMatch && (nameMatch || entityMatch || areaMatch)
-                    })
-                    .map(device => (
-                      <ListItem
-                        data-testid={`available-device-${(device.entity_id || device.id).toLowerCase().replaceAll(' ', '-')}`}
-                        key={device.entity_id || device.id}
-                        sx={{
-                          border: 1,
-                          borderColor: 'divider',
-                          borderRadius: 1,
-                          mb: 1,
-                        }}
-                        secondaryAction={
-                          <Button
-                            data-testid={`add-available-device-${(device.entity_id || device.id).toLowerCase().replaceAll(' ', '-')}`}
-                            variant="contained"
-                            size="small"
-                            disabled={device.type === 'valve' && area?.heating_type === 'airco'}
-                            title={
-                              device.type === 'valve' && area?.heating_type === 'airco'
-                                ? t('areaDetail.disabledForAirco', 'Disabled for Air Conditioner')
-                                : undefined
-                            }
-                            onClick={async () => {
-                              try {
-                                await addDeviceToZone(area.id, {
-                                  device_id: device.entity_id || device.id,
-                                  device_type: device.type,
-                                  mqtt_topic: device.mqtt_topic,
-                                })
-                                await loadData()
-                              } catch (error) {
-                                console.error('Failed to add device:', error)
-                              }
-                            }}
-                          >
-                            Add
-                          </Button>
-                        }
-                      >
-                        <ListItemIcon>
-                          <ThermostatIcon color="action" />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={
-                            <Typography variant="body1" color="text.primary">
-                              {device.name || device.entity_id || device.id}
-                            </Typography>
-                          }
-                          secondary={
-                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
-                              <Chip label={String(device.type).replaceAll('_', ' ')} size="small" />
-                              {device.subtype && (
-                                <Chip
-                                  label={device.subtype}
-                                  size="small"
-                                  color="primary"
-                                  variant="outlined"
-                                />
-                              )}
-                              <Typography variant="caption" color="text.secondary">
-                                {device.entity_id || device.id}
-                              </Typography>
-                            </Box>
-                          }
-                        />
-                      </ListItem>
-                    ))}
-                </List>
-              )}
-            </Paper>
-          </Box>
+          <AreaDevicesTab
+            area={area}
+            availableDevices={availableDevices}
+            onPrimarySensorChange={async sensorId => {
+              await setPrimaryTemperatureSensor(area.id, sensorId)
+              await loadData()
+            }}
+            onRemoveDevice={async deviceId => {
+              await removeDeviceFromZone(area.id, deviceId)
+              await loadData()
+            }}
+            onAddDevice={async device => {
+              await addDeviceToZone(area.id, {
+                device_id: device.entity_id || device.id,
+                device_type: device.type,
+                mqtt_topic: device.mqtt_topic,
+              })
+              await loadData()
+            }}
+            getDeviceStatusIcon={getDeviceStatusIcon}
+            getDeviceStatus={getDeviceStatus}
+          />
         </TabPanel>
 
         {/* Schedule Tab */}
         <TabPanel value={tabValue} index={2}>
-          <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
-            <ScheduleEditor area={area} onUpdate={loadData} />
-          </Box>
+          <AreaScheduleTab area={area} onUpdate={loadData} />
         </TabPanel>
 
         {/* History Tab */}
         <TabPanel value={tabValue} index={3}>
-          <Box sx={{ maxWidth: { xs: 800, lg: 1200 }, mx: 'auto' }}>
-            <Paper sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <HistoryIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-                <Typography variant="h5" color="text.primary" sx={{ fontWeight: 600 }}>
-                  {t('areaDetail.temperatureHistory')}
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('areaDetail.historyDescription')}
-              </Typography>
-
-              {area.id && <HistoryChart areaId={area.id} />}
-            </Paper>
-          </Box>
+          {area.id && <AreaHistoryTab areaId={area.id} />}
         </TabPanel>
 
         {/* Settings Tab */}
         <TabPanel value={tabValue} index={4}>
-          <Box sx={{ maxWidth: 1600, mx: 'auto', px: 2 }}>
-            <DraggableSettings
-              key={`settings-${area.id}-${area.presence_sensors?.length || 0}-${area.window_sensors?.length || 0}`}
-              sections={getSettingsSections()}
-              storageKey={`area-settings-order-${area.id}`}
-              expandedCard={expandedCard}
-              onExpandedChange={setExpandedCard}
-            />
-          </Box>
+          <AreaSettingsTab
+            areaId={area.id}
+            sections={getSettingsSections()}
+            expandedCard={expandedCard}
+            onExpandedChange={setExpandedCard}
+            presenceSensorsCount={area.presence_sensors?.length || 0}
+            windowSensorsCount={area.window_sensors?.length || 0}
+          />
         </TabPanel>
 
         {/* Sensor Configuration Dialog */}
@@ -2778,424 +2205,22 @@ const ZoneDetail = () => {
 
         {/* Learning Tab */}
         <TabPanel value={tabValue} index={5}>
-          <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom color="text.primary">
-                {t('areaDetail.adaptiveLearning')}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('areaDetail.learningDescription')}
-              </Typography>
-
-              {area.smart_boost_enabled ? (
-                <Box sx={{ mt: 3 }}>
-                  <Typography variant="body2" color="success.main" gutterBottom>
-                    ✓ {t('areaDetail.smartNightBoostActive')}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    display="block"
-                    sx={{ mb: 3 }}
-                  >
-                    {t('areaDetail.learningSystemText')}
-                  </Typography>
-
-                  <Box sx={{ p: 2, bgcolor: 'info.light', borderRadius: 1, mb: 3 }}>
-                    <Typography variant="body2" color="info.dark">
-                      <strong>Note:</strong> {t('areaDetail.learningNote')}
-                    </Typography>
-                  </Box>
-
-                  <Typography variant="subtitle2" color="text.primary" gutterBottom sx={{ mt: 3 }}>
-                    {t('areaDetail.configuration')}
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {t('areaDetail.targetWakeupTime')}
-                      </Typography>
-                      <Typography variant="body2" color="text.primary">
-                        <strong>{area.smart_boost_target_time ?? '06:00'}</strong>
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {t('areaDetail.weatherSensor')}
-                      </Typography>
-                      <Typography variant="body2" color="text.primary">
-                        {area.weather_entity_id ? (
-                          <strong>{area.weather_entity_id}</strong>
-                        ) : (
-                          <em>{t('areaDetail.notConfigured')}</em>
-                        )}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {/* Learning Statistics */}
-                  <Typography variant="subtitle2" color="text.primary" gutterBottom sx={{ mt: 3 }}>
-                    Learning Data
-                  </Typography>
-                  {learningStatsLoading ? (
-                    <Box sx={{ textAlign: 'center', py: 2 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Loading statistics...
-                      </Typography>
-                    </Box>
-                  ) : learningStats ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Total Events
-                        </Typography>
-                        <Typography variant="body2" color="text.primary">
-                          <strong>{learningStats.total_events_all_time || 0}</strong>
-                        </Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Data Points (Last 30 Days)
-                        </Typography>
-                        <Typography variant="body2" color="text.primary">
-                          <strong>{learningStats.data_points || 0}</strong>
-                        </Typography>
-                      </Box>
-                      {learningStats.avg_heating_rate > 0 && (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Average Heating Rate
-                          </Typography>
-                          <Typography variant="body2" color="text.primary">
-                            <strong>{learningStats.avg_heating_rate.toFixed(4)}°C/min</strong>
-                          </Typography>
-                        </Box>
-                      )}
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Ready for Predictions
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color={
-                            learningStats.ready_for_predictions ? 'success.main' : 'warning.main'
-                          }
-                        >
-                          <strong>
-                            {learningStats.ready_for_predictions ? 'Yes' : 'No (need 20+ events)'}
-                          </strong>
-                        </Typography>
-                      </Box>
-                      {learningStats.first_event_time && (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="body2" color="text.secondary">
-                            First Event
-                          </Typography>
-                          <Typography variant="body2" color="text.primary">
-                            {new Date(learningStats.first_event_time).toLocaleString()}
-                          </Typography>
-                        </Box>
-                      )}
-                      {learningStats.last_event_time && (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Last Event
-                          </Typography>
-                          <Typography variant="body2" color="text.primary">
-                            {new Date(learningStats.last_event_time).toLocaleString()}
-                          </Typography>
-                        </Box>
-                      )}
-                      {learningStats.recent_events && learningStats.recent_events.length > 0 && (
-                        <Box sx={{ mt: 2 }}>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            display="block"
-                            gutterBottom
-                          >
-                            Recent Events (Last 10):
-                          </Typography>
-                          <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
-                            {learningStats.recent_events.map((event: any, index: number) => (
-                              <Box
-                                key={index}
-                                sx={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  py: 0.5,
-                                  borderBottom: '1px solid',
-                                  borderColor: 'divider',
-                                }}
-                              >
-                                <Typography variant="caption" color="text.secondary">
-                                  {new Date(event.timestamp).toLocaleString()}
-                                </Typography>
-                                <Typography variant="caption" color="text.primary">
-                                  {event.heating_rate.toFixed(4)}°C/min
-                                </Typography>
-                              </Box>
-                            ))}
-                          </Box>
-                        </Box>
-                      )}
-                    </Box>
-                  ) : (
-                    <Box sx={{ textAlign: 'center', py: 2 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No learning data available yet. Start heating cycles to collect data.
-                      </Typography>
-                    </Box>
-                  )}
-
-                  <Typography variant="subtitle2" color="text.primary" gutterBottom sx={{ mt: 3 }}>
-                    {t('areaDetail.learningProcessTitle')}
-                  </Typography>
-                  <Box component="ol" sx={{ pl: 2, mt: 1 }}>
-                    <Typography
-                      component="li"
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 1 }}
-                    >
-                      {t('settingsCards.learningStep1')}
-                    </Typography>
-                    <Typography
-                      component="li"
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 1 }}
-                    >
-                      {t('settingsCards.learningStep2')}
-                    </Typography>
-                    <Typography
-                      component="li"
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 1 }}
-                    >
-                      {t('settingsCards.learningStep3')}
-                    </Typography>
-                    <Typography
-                      component="li"
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 1 }}
-                    >
-                      {t('settingsCards.learningStep4')}
-                    </Typography>
-                    <Typography component="li" variant="body2" color="text.secondary">
-                      {t('settingsCards.learningStep5')}
-                    </Typography>
-                  </Box>
-                </Box>
-              ) : (
-                <Box sx={{ mt: 3, textAlign: 'center', py: 4 }}>
-                  <Typography variant="body1" color="text.secondary" gutterBottom>
-                    {t('settingsCards.smartNightBoostNotEnabled')}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    {t('settingsCards.enableSmartNightBoostInfo')}
-                  </Typography>
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      {t('settingsCards.adaptiveLearningInfo')}
-                    </Typography>
-                  </Box>
-                </Box>
-              )}
-            </Paper>
-          </Box>
+          <AreaLearningTab
+            area={area}
+            learningStats={learningStats}
+            learningStatsLoading={learningStatsLoading}
+          />
         </TabPanel>
 
         {/* Logs Tab */}
         <TabPanel value={tabValue} index={6}>
-          <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
-            <Paper sx={{ p: 3 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mb: 2,
-                }}
-              >
-                <Typography variant="h6" color="text.primary">
-                  {t('areaDetail.heatingStrategyLogs')}
-                </Typography>
-                <Button variant="outlined" size="small" onClick={loadLogs} disabled={logsLoading}>
-                  {logsLoading ? 'Loading...' : t('areaDetail.refresh')}
-                </Button>
-              </Box>
-
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('areaDetail.logsDescription')}
-              </Typography>
-
-              <Box sx={{ mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Chip
-                  label={t('areaDetail.allEvents')}
-                  onClick={() => setLogFilter('all')}
-                  color={logFilter === 'all' ? 'primary' : 'default'}
-                  variant={logFilter === 'all' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-                <Chip
-                  label={t('areaDetail.temperature')}
-                  onClick={() => setLogFilter('temperature')}
-                  color={logFilter === 'temperature' ? 'info' : 'default'}
-                  variant={logFilter === 'temperature' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-                <Chip
-                  label={t('areaDetail.heating')}
-                  onClick={() => setLogFilter('heating')}
-                  color={logFilter === 'heating' ? 'error' : 'default'}
-                  variant={logFilter === 'heating' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-                <Chip
-                  label={t('areaDetail.schedule')}
-                  onClick={() => setLogFilter('schedule')}
-                  color={logFilter === 'schedule' ? 'success' : 'default'}
-                  variant={logFilter === 'schedule' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-                <Chip
-                  label={t('areaDetail.smartBoost')}
-                  onClick={() => setLogFilter('smart_boost')}
-                  color={logFilter === 'smart_boost' ? 'secondary' : 'default'}
-                  variant={logFilter === 'smart_boost' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-                <Chip
-                  label={t('areaDetail.sensors')}
-                  onClick={() => setLogFilter('sensor')}
-                  color={logFilter === 'sensor' ? 'warning' : 'default'}
-                  variant={logFilter === 'sensor' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-                <Chip
-                  label={t('areaDetail.mode')}
-                  onClick={() => setLogFilter('mode')}
-                  color={logFilter === 'mode' ? 'primary' : 'default'}
-                  variant={logFilter === 'mode' ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
-                />
-              </Box>
-
-              {(() => {
-                if (logsLoading) {
-                  return (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                      <CircularProgress />
-                    </Box>
-                  )
-                }
-
-                if (logs.length === 0) {
-                  return (
-                    <Box data-testid="area-logs-empty" sx={{ textAlign: 'center', py: 4 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {t('settingsCards.noLogsYet')}
-                      </Typography>
-                    </Box>
-                  )
-                }
-
-                return (
-                  <List sx={{ bgcolor: 'background.paper' }}>
-                    {logs.map((log, index) => {
-                      const timestamp = new Date(log.timestamp)
-                      const timeStr = timestamp.toLocaleTimeString('nl-NL', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })
-                      const dateStr = timestamp.toLocaleDateString('nl-NL')
-
-                      // Color coding by event type
-                      const getEventColor = (type: string) => {
-                        switch (type) {
-                          case 'heating':
-                            return 'error'
-                          case 'temperature':
-                            return 'info'
-                          case 'schedule':
-                            return 'success'
-                          case 'smart_boost':
-                            return 'secondary'
-                          case 'sensor':
-                            return 'warning'
-                          case 'mode':
-                            return 'primary'
-                          default:
-                            return 'default'
-                        }
-                      }
-
-                      return (
-                        <Box key={`${log.timestamp}-${index}`}>
-                          {index > 0 && <Divider />}
-                          <ListItem alignItems="flex-start" sx={{ py: 2 }}>
-                            <ListItemIcon sx={{ minWidth: 40, mt: 0.5 }}>
-                              <Chip
-                                label={log.type}
-                                color={getEventColor(log.type)}
-                                size="small"
-                                sx={{ fontSize: '0.7rem', height: 20 }}
-                              />
-                            </ListItemIcon>
-                            <ListItemText
-                              primary={
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                  }}
-                                >
-                                  <Typography variant="body2" color="text.primary">
-                                    {log.message}
-                                  </Typography>
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                    sx={{ ml: 2 }}
-                                  >
-                                    {dateStr} {timeStr}
-                                  </Typography>
-                                </Box>
-                              }
-                              secondary={
-                                log.details &&
-                                Object.keys(log.details).length > 0 && (
-                                  <Box
-                                    component="pre"
-                                    sx={{
-                                      mt: 1,
-                                      p: 1,
-                                      bgcolor: 'action.hover',
-                                      borderRadius: 1,
-                                      fontSize: '0.75rem',
-                                      overflow: 'auto',
-                                      fontFamily: 'monospace',
-                                    }}
-                                  >
-                                    {JSON.stringify(log.details, null, 2)}
-                                  </Box>
-                                )
-                              }
-                            />
-                          </ListItem>
-                        </Box>
-                      )
-                    })}
-                  </List>
-                )
-              })()}
-            </Paper>
-          </Box>
+          <AreaLogsTab
+            logs={logs}
+            logsLoading={logsLoading}
+            logFilter={logFilter}
+            onFilterChange={setLogFilter}
+            onRefresh={loadLogs}
+          />
         </TabPanel>
       </Box>
     </Box>
