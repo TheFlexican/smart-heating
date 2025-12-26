@@ -3,32 +3,14 @@ import {
   Box,
   Typography,
   Paper,
-  Slider,
-  IconButton,
   Alert,
   Snackbar,
   CircularProgress,
-  Stack,
-  Button,
-  List,
-  ListItem,
-  ListItemText,
   Tabs,
   Tab,
-  Switch,
   // TextField no longer used in this file
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  // FormControlLabel removed - no enable toggle for OpenTherm
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
 } from '@mui/material'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
+
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import PeopleIcon from '@mui/icons-material/People'
 import BeachAccessIcon from '@mui/icons-material/BeachAccess'
@@ -37,21 +19,23 @@ import SecurityIcon from '@mui/icons-material/Security'
 import BackupIcon from '@mui/icons-material/Backup'
 import FireplaceIcon from '@mui/icons-material/Fireplace'
 import ListAltIcon from '@mui/icons-material/ListAlt'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+
 import BugReportIcon from '@mui/icons-material/BugReport'
 
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getGlobalPresets, setGlobalPresets } from '../api/presets'
+import { GlobalSettingsHeader } from '../components/GlobalSettings/GlobalSettingsHeader'
+import { TabPanel } from '../components/GlobalSettings/TabPanel'
 import { getGlobalPresence, setGlobalPresence } from '../api/sensors'
-import { getHysteresis, setHysteresis } from '../api/logs'
+import { getHysteresis, setHysteresis as setHysteresisApi } from '../api/logs'
 import {
   getSafetySensor,
-  setSafetySensor,
+  setSafetySensor as setSafetySensorApi,
   removeSafetySensor,
   type SafetySensorResponse,
 } from '../api/safety'
-import { setHideDevicesPanel } from '../api/devices'
+import { setHideDevicesPanel as setHideDevicesPanelApi } from '../api/devices'
 import { getConfig, getAdvancedControlConfig, setAdvancedControlConfig } from '../api/config'
 import { setOpenthermGateway, getOpenthermGateways, calibrateOpentherm } from '../api/opentherm'
 import { PresenceSensorConfig, WindowSensorConfig, SafetySensorConfig } from '../types'
@@ -60,35 +44,15 @@ import SafetySensorConfigDialog from '../components/SafetySensorConfigDialog'
 import { VacationModeSettings } from '../components/VacationModeSettings'
 import HysteresisHelpModal from '../components/HysteresisHelpModal'
 import ImportExport from '../components/ImportExport'
-import OpenThermLogger from '../components/OpenThermLogger'
 import { UserManagement } from '../components/UserManagement'
 import DeviceLogsPanel from '../components/DeviceLogsPanel'
+import { PresetsSettings } from '../components/GlobalSettings/PresetsSettings'
+import { SensorsSettings } from '../components/GlobalSettings/SensorsSettings'
+import { SafetySettings } from '../components/GlobalSettings/SafetySettings'
+import { AdvancedSettings } from '../components/GlobalSettings/AdvancedSettings'
+import { OpenThermSettings } from '../components/GlobalSettings/OpenThermSettings'
+import { DebugSettings } from '../components/GlobalSettings/DebugSettings'
 // additional advanced control apis already imported above
-
-interface TabPanelProps {
-  children?: React.ReactNode
-  index: number
-  value: number
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`settings-tabpanel-${index}`}
-      aria-labelledby={`settings-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ py: 3, px: { xs: 2, sm: 3 }, maxWidth: { xs: 800, lg: 1200 }, mx: 'auto' }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  )
-}
 
 interface GlobalPresetsData {
   away_temp: number
@@ -97,24 +61,6 @@ interface GlobalPresetsData {
   home_temp: number
   sleep_temp: number
   activity_temp: number
-}
-
-const presetLabels = {
-  away_temp: 'Away',
-  eco_temp: 'Eco',
-  comfort_temp: 'Comfort',
-  home_temp: 'Home',
-  sleep_temp: 'Sleep',
-  activity_temp: 'Activity',
-}
-
-const presetDescriptions = {
-  away_temp: 'Used when nobody is home',
-  eco_temp: 'Energy-saving temperature',
-  comfort_temp: 'Comfortable temperature for relaxing',
-  home_temp: 'Standard temperature when home',
-  sleep_temp: 'Nighttime sleeping temperature',
-  activity_temp: 'Active daytime temperature',
 }
 
 interface WebSocketMetrics {
@@ -137,22 +83,24 @@ interface WebSocketMetrics {
   }
 }
 
+type GlobalSettingsProps = Readonly<{
+  themeMode: 'light' | 'dark'
+  onThemeChange: (mode: 'light' | 'dark') => void
+  wsMetrics?: WebSocketMetrics
+  initialTab?: number
+}>
+
 export default function GlobalSettings({
   themeMode,
   onThemeChange,
   wsMetrics,
   initialTab = 0,
-}: {
-  themeMode: 'light' | 'dark'
-  onThemeChange: (mode: 'light' | 'dark') => void
-  wsMetrics?: WebSocketMetrics
-  initialTab?: number
-}) {
+}: GlobalSettingsProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState(initialTab)
   const [presets, setPresets] = useState<GlobalPresetsData | null>(null)
-  const [hysteresis, setHysteresisValue] = useState<number>(0.5)
+  const [hysteresis, setHysteresis] = useState<number>(0.5)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -160,16 +108,16 @@ export default function GlobalSettings({
   const [presenceSensors, setPresenceSensors] = useState<PresenceSensorConfig[]>([])
   const [sensorDialogOpen, setSensorDialogOpen] = useState(false)
   const [hysteresisHelpOpen, setHysteresisHelpOpen] = useState(false)
-  const [safetySensor, setSafetySensorState] = useState<SafetySensorResponse | null>(null)
+  const [safetySensor, setSafetySensor] = useState<SafetySensorResponse | null>(null)
   const [safetySensorDialogOpen, setSafetySensorDialogOpen] = useState(false)
-  const [hideDevicesPanel, setHideDevicesPanelState] = useState(false)
+  const [hideDevicesPanel, setHideDevicesPanel] = useState(false)
   // Advanced control state
   const [advancedControlEnabled, setAdvancedControlEnabled] = useState(false)
   const [heatingCurveEnabled, setHeatingCurveEnabled] = useState(false)
   const [pwmEnabled, setPwmEnabled] = useState(false)
   const [pidEnabled, setPidEnabled] = useState(false)
   const [overshootProtectionEnabled, setOvershootProtectionEnabled] = useState(false)
-  const [defaultCoefficient, setDefaultCoefficient] = useState<number>(1.0)
+  const [defaultCoefficient, setDefaultCoefficient] = useState<number>(1)
 
   // OpenTherm Gateway Configuration
   const [openthermGatewayId, setOpenthermGatewayId] = useState<string>('')
@@ -191,11 +139,10 @@ export default function GlobalSettings({
   const loadConfig = async () => {
     try {
       const config = await getConfig()
-      setHideDevicesPanelState(config.hide_devices_panel || false)
+      setHideDevicesPanel(config.hide_devices_panel || false)
 
       // Load OpenTherm configuration
       setOpenthermGatewayId(config.opentherm_gateway_id || '')
-      setHideDevicesPanelState(config.hide_devices_panel || false)
     } catch (err) {
       console.error('Error loading config:', err)
     }
@@ -210,7 +157,7 @@ export default function GlobalSettings({
       setPwmEnabled(!!cfg.pwm_enabled)
       setPidEnabled(!!cfg.pid_enabled)
       setOvershootProtectionEnabled(!!cfg.overshoot_protection_enabled)
-      setDefaultCoefficient(Number(cfg.default_heating_curve_coefficient || 1.0))
+      setDefaultCoefficient(Number(cfg.default_heating_curve_coefficient || 1))
     } catch (err) {
       console.error('Error loading advanced control config', err)
     }
@@ -251,7 +198,7 @@ export default function GlobalSettings({
   const loadHysteresis = async () => {
     try {
       const value = await getHysteresis()
-      setHysteresisValue(value)
+      setHysteresis(value)
     } catch (err) {
       console.error('Error loading hysteresis:', err)
     }
@@ -260,7 +207,7 @@ export default function GlobalSettings({
   const loadSafetySensor = async () => {
     try {
       const data = await getSafetySensor()
-      setSafetySensorState(data)
+      setSafetySensor(data)
     } catch (err) {
       console.error('Error loading safety sensor:', err)
     } finally {
@@ -292,9 +239,12 @@ export default function GlobalSettings({
     }
   }
 
-  const handleHysteresisChange = (_event: Event, value: number | number[]) => {
+  const handleHysteresisChange = (
+    _event: Event | React.SyntheticEvent,
+    value: number | number[],
+  ) => {
     const newValue = Array.isArray(value) ? value[0] : value
-    setHysteresisValue(newValue)
+    setHysteresis(newValue)
   }
 
   const handleHysteresisCommit = async (
@@ -305,7 +255,7 @@ export default function GlobalSettings({
     try {
       setSaving(true)
       setSaveSuccess(false)
-      await setHysteresis(newValue)
+      await setHysteresisApi(newValue)
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
     } catch (err) {
@@ -319,21 +269,21 @@ export default function GlobalSettings({
 
   const handleToggleHideDevicesPanel = async (hide: boolean) => {
     try {
-      setHideDevicesPanelState(hide)
-      await setHideDevicesPanel(hide)
+      setHideDevicesPanel(hide)
+      await setHideDevicesPanelApi(hide)
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
       // Reload to apply changes
-      setTimeout(() => window.location.reload(), 500)
+      setTimeout(() => globalThis.location.reload(), 500)
     } catch (err) {
       setError('Failed to save setting')
       console.error('Error saving hide devices panel:', err)
-      setHideDevicesPanelState(!hide)
+      setHideDevicesPanel(!hide)
     }
   }
 
   const handleToggleAdvancedControl = async (field: string, value: boolean | number) => {
-    const payload: any = {}
+    const payload: Record<string, boolean | number> = {}
     payload[field] = value
     try {
       await setAdvancedControlConfig(payload)
@@ -374,7 +324,7 @@ export default function GlobalSettings({
         pwm_enabled: false,
         pid_enabled: false,
         overshoot_protection_enabled: false,
-        default_heating_curve_coefficient: 1.0,
+        default_heating_curve_coefficient: 1,
       })
       // reload values immediately
       await loadAdvancedControlConfig()
@@ -445,7 +395,7 @@ export default function GlobalSettings({
 
   const handleAddSafetySensor = async (config: SafetySensorConfig) => {
     try {
-      await setSafetySensor(config)
+      await setSafetySensorApi(config)
       await loadSafetySensor()
       setSafetySensorDialogOpen(false)
       setSaveSuccess(true)
@@ -498,22 +448,7 @@ export default function GlobalSettings({
       }}
     >
       {/* Header */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 2,
-          mb: 2,
-          borderRadius: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-        }}
-      >
-        <IconButton data-testid="global-back-button" onClick={() => navigate('/')} edge="start">
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h6">{t('globalSettings.title', 'Global Settings')}</Typography>
-      </Paper>
+      <GlobalSettingsHeader onBack={() => navigate('/')} />
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
         <Tabs
@@ -606,142 +541,23 @@ export default function GlobalSettings({
 
         {/* Temperature Tab */}
         <TabPanel value={activeTab} index={0}>
-          <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <ThermostatIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-              <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                {t('globalSettings.presets.title', 'Preset Temperatures')}
-              </Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {t(
-                'globalSettings.presets.description',
-                'These are the default temperatures for each preset mode. Areas can choose to use these global settings or define their own custom temperatures.',
-              )}
-            </Typography>
-
-            <Stack spacing={3}>
-              {presets &&
-                Object.entries(presetLabels).map(([key, label]) => {
-                  const presetKey = key as keyof GlobalPresetsData
-                  const value = presets[presetKey]
-
-                  return (
-                    <Box key={key}>
-                      <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
-                        {label}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        {presetDescriptions[presetKey]}
-                      </Typography>
-
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1 }}>
-                        <Slider
-                          data-testid={`global-preset-${presetKey.replace('_temp', '')}-slider`}
-                          value={value}
-                          onChange={(_, newValue) =>
-                            handlePresetChange(presetKey, newValue as number)
-                          }
-                          onChangeCommitted={(_e, newValue) =>
-                            handlePresetCommit(presetKey, newValue as number)
-                          }
-                          min={5}
-                          max={30}
-                          step={0.1}
-                          marks={[
-                            { value: 5, label: '5°C' },
-                            { value: 15, label: '15°C' },
-                            { value: 20, label: '20°C' },
-                            { value: 25, label: '25°C' },
-                            { value: 30, label: '30°C' },
-                          ]}
-                          valueLabelDisplay="auto"
-                          valueLabelFormat={v => `${v}°C`}
-                          disabled={saving}
-                          sx={{ maxWidth: 600 }}
-                        />
-                      </Box>
-                    </Box>
-                  )
-                })}
-            </Stack>
-
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 3, fontStyle: 'italic' }}>
-              💡{' '}
-              {t(
-                'globalSettings.presets.tip',
-                'Tip: To customize temperatures for a specific area, go to that area\'s settings and toggle off "Use global preset" for individual preset modes.',
-              )}
-            </Typography>
-          </Paper>
+          {presets ? (
+            <PresetsSettings
+              presets={presets}
+              saving={saving}
+              onChange={handlePresetChange}
+              onCommit={handlePresetCommit}
+            />
+          ) : null}
         </TabPanel>
 
         {/* Sensors Tab */}
         <TabPanel value={activeTab} index={1}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              {t('globalSettings.sensors.title', 'Global Presence Sensors')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {t(
-                'globalSettings.sensors.description',
-                'Configure presence sensors that can be used across all areas. Areas can choose to use these global sensors or configure their own.',
-              )}
-            </Typography>
-
-            {presenceSensors.length > 0 ? (
-              <List dense>
-                {presenceSensors.map(sensor => (
-                  <ListItem
-                    key={sensor.entity_id}
-                    data-testid="presence-sensor-item"
-                    secondaryAction={
-                      <IconButton
-                        data-testid={`presence-remove-${sensor.entity_id}`}
-                        edge="end"
-                        onClick={() => handleRemovePresenceSensor(sensor.entity_id)}
-                      >
-                        <RemoveCircleOutlineIcon />
-                      </IconButton>
-                    }
-                  >
-                    <ListItemText
-                      primary={sensor.entity_id}
-                      secondary={t(
-                        'globalSettings.sensors.switchText',
-                        "Switches heating to 'away' when nobody is home",
-                      )}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            ) : (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                {t(
-                  'globalSettings.sensors.noSensors',
-                  'No global presence sensors configured. Add sensors that will be available to all areas.',
-                )}
-              </Alert>
-            )}
-
-            <Button
-              variant="outlined"
-              fullWidth
-              data-testid="global-add-presence-sensor"
-              onClick={() => setSensorDialogOpen(true)}
-              sx={{ mt: 2 }}
-            >
-              {t('globalSettings.sensors.addButton', 'Add Presence Sensor')}
-            </Button>
-
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 3, fontStyle: 'italic' }}>
-              💡{' '}
-              {t(
-                'globalSettings.sensors.tip',
-                'Tip: Areas can enable "Use global presence" in their settings to use these sensors instead of configuring their own.',
-              )}
-            </Typography>
-          </Paper>
+          <SensorsSettings
+            presenceSensors={presenceSensors}
+            onRemove={handleRemovePresenceSensor}
+            onAddClick={() => setSensorDialogOpen(true)}
+          />
         </TabPanel>
 
         {/* Vacation Tab */}
@@ -756,460 +572,37 @@ export default function GlobalSettings({
 
         {/* Safety Tab */}
         <TabPanel value={activeTab} index={4}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              {t('globalSettings.safety.title', '🚨 Safety Sensors (Smoke/CO Detectors)')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {t(
-                'globalSettings.safety.description',
-                'Configure smoke or carbon monoxide detectors that will automatically shut down all heating when danger is detected. All areas will be disabled immediately to prevent heating during a safety emergency.',
-              )}
-            </Typography>
-
-            {safetySensor?.alert_active && (
-              <Alert severity="error" sx={{ mb: 3 }}>
-                {t(
-                  'globalSettings.safety.alertActive',
-                  '⚠️ SAFETY ALERT ACTIVE! All heating has been shut down. Please resolve the safety issue and manually re-enable areas.',
-                )}
-              </Alert>
-            )}
-
-            {safetySensor?.sensors && safetySensor.sensors.length > 0 ? (
-              <>
-                <Alert severity="success" sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {t('globalSettings.safety.configured', 'Safety Sensors Configured')} (
-                    {safetySensor.sensors.length})
-                  </Typography>
-                </Alert>
-
-                <List sx={{ mb: 2 }}>
-                  {safetySensor.sensors.map(sensor => (
-                    <ListItem
-                      key={sensor.sensor_id}
-                      data-testid="safety-sensor-item"
-                      sx={{
-                        border: 1,
-                        borderColor: 'divider',
-                        borderRadius: 1,
-                        mb: 1,
-                      }}
-                      secondaryAction={
-                        <IconButton
-                          edge="end"
-                          aria-label="delete"
-                          onClick={() => handleRemoveSafetySensor(sensor.sensor_id)}
-                          color="error"
-                        >
-                          <RemoveCircleOutlineIcon />
-                        </IconButton>
-                      }
-                    >
-                      <ListItemText
-                        primary={sensor.sensor_id}
-                        secondary={
-                          <Typography component="span" variant="body2">
-                            {t('globalSettings.safety.attribute', 'Attribute')}: {sensor.attribute}{' '}
-                            | {t('globalSettings.safety.status', 'Status')}:{' '}
-                            {sensor.enabled
-                              ? t('globalSettings.safety.enabled', '✓ Enabled')
-                              : t('globalSettings.safety.disabled', '✗ Disabled')}
-                          </Typography>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  data-testid="global-add-safety-sensor"
-                  onClick={() => setSafetySensorDialogOpen(true)}
-                  startIcon={<SecurityIcon />}
-                  sx={{ mb: 2 }}
-                >
-                  {t('globalSettings.safety.addAnotherButton', 'Add Another Safety Sensor')}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                  {t(
-                    'globalSettings.safety.notConfigured',
-                    'No safety sensors configured. It is highly recommended to configure smoke or CO detectors for emergency heating shutdown.',
-                  )}
-                </Alert>
-
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  data-testid="global-add-safety-sensor"
-                  onClick={() => setSafetySensorDialogOpen(true)}
-                  startIcon={<SecurityIcon />}
-                >
-                  {t('globalSettings.safety.addButton', 'Add Safety Sensor')}
-                </Button>
-              </>
-            )}
-
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 3, fontStyle: 'italic' }}>
-              💡{' '}
-              {t(
-                'globalSettings.safety.tip',
-                'When any safety sensor detects smoke or carbon monoxide, all heating will be immediately stopped and all areas disabled. Areas must be manually re-enabled after the safety issue is resolved.',
-              )}
-            </Typography>
-          </Paper>
+          <SafetySettings
+            safetySensor={safetySensor}
+            onRemove={handleRemoveSafetySensor}
+            onAddClick={() => setSafetySensorDialogOpen(true)}
+          />
         </TabPanel>
 
         {/* Advanced Tab */}
         <TabPanel value={activeTab} index={5}>
-          {/* Theme Settings */}
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              {t('globalSettings.theme.title', 'Theme')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {t(
-                'globalSettings.theme.description',
-                'Choose the color theme for the application interface.',
-              )}
-            </Typography>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography variant="subtitle1">
-                  {t('globalSettings.theme.mode', 'Appearance')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {themeMode === 'dark'
-                    ? t('globalSettings.theme.darkMode', 'Dark mode is active')
-                    : t('globalSettings.theme.lightMode', 'Light mode is active')}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography
-                  variant="body2"
-                  color={themeMode === 'light' ? 'primary' : 'text.secondary'}
-                >
-                  {t('globalSettings.theme.light', 'Light')}
-                </Typography>
-                <Switch
-                  checked={themeMode === 'dark'}
-                  onChange={e => onThemeChange(e.target.checked ? 'dark' : 'light')}
-                  color="primary"
-                />
-                <Typography
-                  variant="body2"
-                  color={themeMode === 'dark' ? 'primary' : 'text.secondary'}
-                >
-                  {t('globalSettings.theme.dark', 'Dark')}
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-
-          {/* Temperature Hysteresis */}
-          <Paper sx={{ p: 3 }}>
-            <Box
-              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}
-            >
-              <Typography variant="h6">
-                {t('globalSettings.hysteresis.title', 'Temperature Hysteresis')}
-              </Typography>
-              <IconButton onClick={() => setHysteresisHelpOpen(true)} color="primary" size="small">
-                <HelpOutlineIcon />
-              </IconButton>
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t(
-                'globalSettings.hysteresis.description',
-                'Controls the temperature buffer to prevent rapid on/off cycling of your heating system.',
-              )}
-            </Typography>
-
-            <Alert severity="info" sx={{ mb: 3 }}>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                <strong>{t('globalSettings.hysteresis.what', 'What is hysteresis?')}</strong>
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                {t(
-                  'globalSettings.hysteresis.explanation',
-                  'Hysteresis prevents your heating system from constantly turning on and off (short cycling), which can damage equipment like boilers, relays, and valves.',
-                )}
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                <strong>{t('globalSettings.hysteresis.howItWorks', 'How it works:')}</strong>{' '}
-                {t(
-                  'globalSettings.hysteresis.example',
-                  'If your target is 19.2°C and hysteresis is 0.5°C, heating starts at 18.7°C and stops at 19.2°C.',
-                )}
-              </Typography>
-              <Typography variant="body2">
-                <strong>
-                  {t('globalSettings.hysteresis.recommendations', 'Recommendations:')}
-                </strong>
-              </Typography>
-              <ul style={{ margin: '4px 0 0 0', paddingLeft: '20px' }}>
-                <li>
-                  {t(
-                    'globalSettings.hysteresis.rec1',
-                    '0.1°C - Minimal delay, more frequent cycling (use only if needed)',
-                  )}
-                </li>
-                <li>
-                  {t(
-                    'globalSettings.hysteresis.rec2',
-                    '0.5°C - Balanced (default, recommended for most systems)',
-                  )}
-                </li>
-                <li>
-                  {t(
-                    'globalSettings.hysteresis.rec3',
-                    '1.0°C - Energy efficient, less wear on equipment',
-                  )}
-                </li>
-              </ul>
-              <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
-                💡{' '}
-                {t(
-                  'globalSettings.hysteresis.tip',
-                  'Tip: For immediate heating, use Boost Mode instead of reducing hysteresis.',
-                )}
-              </Typography>
-            </Alert>
-
-            <Box>
-              <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
-                {t('globalSettings.hysteresis.current', 'Current')}: {hysteresis.toFixed(1)}°C
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {t(
-                  'globalSettings.hysteresis.heatingStarts',
-                  'Heating starts when temperature drops',
-                )}{' '}
-                {hysteresis.toFixed(1)}°C{' '}
-                {t('globalSettings.hysteresis.belowTarget', 'below target')}
-              </Typography>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1 }}>
-                <Slider
-                  data-testid="global-hysteresis-slider"
-                  value={hysteresis}
-                  onChange={handleHysteresisChange}
-                  onChangeCommitted={handleHysteresisCommit}
-                  min={0.1}
-                  max={2}
-                  step={0.1}
-                  marks={[
-                    { value: 0.1, label: '0.1°C' },
-                    { value: 0.5, label: '0.5°C' },
-                    { value: 1, label: '1°C' },
-                    { value: 2, label: '2°C' },
-                  ]}
-                  valueLabelDisplay="auto"
-                  valueLabelFormat={v => `${v.toFixed(1)}°C`}
-                  disabled={saving}
-                  sx={{ maxWidth: 600 }}
-                />
-              </Box>
-            </Box>
-          </Paper>
-
-          {/* UI Settings */}
-          <Paper sx={{ p: 3, mt: 3 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              {t('globalSettings.ui.title', 'User Interface')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {t(
-                'globalSettings.ui.description',
-                'Customize the user interface to your preferences.',
-              )}
-            </Typography>
-
-            <Stack spacing={2}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  p: 2,
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 1,
-                }}
-              >
-                <Box>
-                  <Typography variant="subtitle1">
-                    {t('globalSettings.ui.hideDevicesPanel', 'Hide Available Devices Panel')}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {t(
-                      'globalSettings.ui.hideDevicesPanelDescription',
-                      "Hide the sidebar with available devices when you're done setting up zones.",
-                    )}
-                  </Typography>
-                </Box>
-                <Switch
-                  checked={hideDevicesPanel}
-                  onChange={e => handleToggleHideDevicesPanel(e.target.checked)}
-                  color="primary"
-                />
-              </Box>
-            </Stack>
-          </Paper>
-          {/* Advanced Control Accordion */}
-          <Accordion sx={{ mt: 3 }}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h6">
-                {t('globalSettings.advanced.title', 'Advanced Boiler & Control')}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {t(
-                  'globalSettings.advanced.description',
-                  'Advanced features for optimizing setpoints, boiler cycling and energy efficiency. These are disabled by default. Enable to use advanced control algorithms (heating curves, PWM for on/off boilers, PID auto-gains, and calibration routines).',
-                )}
-              </Typography>
-              <Stack spacing={2}>
-                <Box
-                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <Typography>
-                    {t('globalSettings.advanced.enableAll', 'Enable advanced control')}
-                  </Typography>
-                  <Switch
-                    data-testid="global-advanced-control-switch"
-                    checked={advancedControlEnabled}
-                    onChange={e =>
-                      handleToggleAdvancedControl('advanced_control_enabled', e.target.checked)
-                    }
-                  />
-                </Box>
-                <Box
-                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <Typography>
-                    {t('globalSettings.advanced.heatingCurve', 'Heating curve')}
-                  </Typography>
-                  <Switch
-                    data-testid="global-heating-curve-switch"
-                    checked={heatingCurveEnabled}
-                    onChange={e =>
-                      handleToggleAdvancedControl('heating_curve_enabled', e.target.checked)
-                    }
-                    disabled={!advancedControlEnabled}
-                  />
-                </Box>
-                <Box
-                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <Typography>
-                    {t('globalSettings.advanced.pwm', 'PWM for on/off boilers')}
-                  </Typography>
-                  <Switch
-                    data-testid="global-pwm-switch"
-                    checked={pwmEnabled}
-                    onChange={e => handleToggleAdvancedControl('pwm_enabled', e.target.checked)}
-                    disabled={!advancedControlEnabled}
-                  />
-                </Box>
-                <Box
-                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <Typography>{t('globalSettings.advanced.pid', 'PID Automatic Gains')}</Typography>
-                  <Switch
-                    data-testid="global-pid-switch"
-                    checked={pidEnabled}
-                    onChange={e => handleToggleAdvancedControl('pid_enabled', e.target.checked)}
-                    disabled={!advancedControlEnabled}
-                  />
-                </Box>
-                <Box
-                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <Typography>
-                    {t(
-                      'globalSettings.advanced.overshoot',
-                      'Overshoot Protection (OPV) calibration',
-                    )}
-                  </Typography>
-                  <Switch
-                    data-testid="global-opv-switch"
-                    checked={overshootProtectionEnabled}
-                    onChange={e =>
-                      handleToggleAdvancedControl('overshoot_protection_enabled', e.target.checked)
-                    }
-                    disabled={!advancedControlEnabled}
-                  />
-                </Box>
-                <Box
-                  sx={{ display: 'flex', alignItems: 'center', gap: 2 }}
-                  data-testid="heating-curve-control"
-                >
-                  <Typography>
-                    {t(
-                      'globalSettings.advanced.defaultCoefficient',
-                      'Default heating curve coefficient',
-                    )}
-                  </Typography>
-                  <input
-                    data-testid="global-settings-default-coefficient"
-                    type="number"
-                    value={defaultCoefficient}
-                    onChange={e =>
-                      handleToggleAdvancedControl(
-                        'default_heating_curve_coefficient',
-                        Number(e.target.value),
-                      )
-                    }
-                    step={0.1}
-                    disabled={!advancedControlEnabled}
-                  />
-                  <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                    {t(
-                      'globalSettings.advanced.defaultCoefficientHelper',
-                      'Default coefficient used when Heating Curve is enabled',
-                    )}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
-                  <Button
-                    data-testid="run-opv-calibration"
-                    variant="contained"
-                    onClick={handleRunCalibration}
-                    disabled={!advancedControlEnabled || calibrating}
-                  >
-                    {calibrating ? (
-                      <CircularProgress size={20} />
-                    ) : (
-                      t('globalSettings.advanced.runCalibration', 'Run OPV calibration')
-                    )}
-                  </Button>
-                  <Button
-                    data-testid="reset-advanced-control"
-                    variant="outlined"
-                    onClick={handleResetAdvancedControl}
-                    disabled={saving}
-                  >
-                    {t('globalSettings.advanced.resetDefaults', 'Reset to defaults')}
-                  </Button>
-                  {calibrationResult !== null && (
-                    <Typography variant="body2" sx={{ ml: 2 }}>
-                      {t('globalSettings.advanced.calibrationResult', 'OPV: {{value}} °C', {
-                        value: calibrationResult,
-                      })}
-                    </Typography>
-                  )}
-                </Box>
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
+          <AdvancedSettings
+            themeMode={themeMode}
+            onThemeChange={onThemeChange}
+            hysteresis={hysteresis}
+            saving={saving}
+            onHysteresisChange={handleHysteresisChange}
+            onHysteresisCommit={handleHysteresisCommit}
+            onOpenHysteresisHelp={() => setHysteresisHelpOpen(true)}
+            hideDevicesPanel={hideDevicesPanel}
+            onToggleHideDevicesPanel={handleToggleHideDevicesPanel}
+            advancedControlEnabled={advancedControlEnabled}
+            heatingCurveEnabled={heatingCurveEnabled}
+            pwmEnabled={pwmEnabled}
+            pidEnabled={pidEnabled}
+            overshootProtectionEnabled={overshootProtectionEnabled}
+            defaultCoefficient={defaultCoefficient}
+            onToggleAdvancedControl={handleToggleAdvancedControl}
+            onResetAdvancedControl={handleResetAdvancedControl}
+            onRunCalibration={handleRunCalibration}
+            calibrating={calibrating}
+            calibrationResult={calibrationResult}
+          />
         </TabPanel>
 
         {/* Import/Export Tab */}
@@ -1229,221 +622,18 @@ export default function GlobalSettings({
 
         {/* OpenTherm Tab */}
         <TabPanel value={activeTab} index={8}>
-          <Accordion defaultExpanded={false}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h6">
-                {t('globalSettings.opentherm.title', 'OpenTherm Gateway Configuration')}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Box
-                sx={{
-                  mb: 3,
-                  p: 2,
-                  bgcolor: 'info.main',
-                  color: 'info.contrastText',
-                  borderRadius: 1,
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  ⚠️ {t('globalSettings.opentherm.importantNote', 'Important: Use Numeric ID Only')}
-                </Typography>
-                <Typography variant="body2">
-                  {t(
-                    'globalSettings.opentherm.description',
-                    'Enter the numeric integration ID (e.g., 128937219831729813), NOT the entity ID (e.g., climate.opentherm_thermostaat).',
-                  )}
-                </Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  {t(
-                    'globalSettings.opentherm.findId',
-                    'Find this ID in: Settings → Devices & Services → OpenTherm Gateway → Click "Configure" → Look for "ID" field (numeric value).',
-                  )}
-                </Typography>
-              </Box>
-
-              <Stack spacing={3}>
-                {openthermGateways.length === 0 && (
-                  <Alert severity="warning">
-                    {t(
-                      'globalSettings.opentherm.noGateways',
-                      'No OpenTherm gateways found. Please add the OpenTherm Gateway integration in Home Assistant and configure its gateway ID.',
-                    )}{' '}
-                    <a href="/config/integrations" target="_blank" rel="noreferrer">
-                      {t('globalSettings.openIntegrations', 'Open Integrations')}
-                    </a>
-                  </Alert>
-                )}
-                <FormControl fullWidth>
-                  <InputLabel id="opentherm-gateway-select-label">
-                    {t('globalSettings.opentherm.gatewayId', 'Gateway Integration ID (ID or slug)')}
-                  </InputLabel>
-                  <Select
-                    labelId="opentherm-gateway-select-label"
-                    value={openthermGatewayId}
-                    label={t(
-                      'globalSettings.opentherm.gatewayId',
-                      'Gateway Integration ID (ID or slug)',
-                    )}
-                    onChange={e => setOpenthermGatewayId(e.target.value)}
-                  >
-                    <MenuItem value="">None (Disabled)</MenuItem>
-                    {openthermGateways.map(g => (
-                      <MenuItem key={g.gateway_id} value={g.gateway_id}>
-                        {g.title}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                {/* Removed manual enable toggle - control is automatic when a gateway id is configured */}
-
-                <Button
-                  data-testid="save-opentherm-config"
-                  variant="contained"
-                  onClick={handleSaveOpenthermConfig}
-                  // Disable when saving or there are no available gateways at all
-                  disabled={openthermSaving || openthermGateways.length === 0}
-                >
-                  {openthermSaving ? (
-                    <CircularProgress size={24} />
-                  ) : (
-                    t('globalSettings.opentherm.save', 'Save Configuration')
-                  )}
-                </Button>
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-
-          <OpenThermLogger />
+          <OpenThermSettings
+            openthermGateways={openthermGateways}
+            openthermGatewayId={openthermGatewayId}
+            setOpenthermGatewayId={setOpenthermGatewayId}
+            openthermSaving={openthermSaving}
+            handleSave={handleSaveOpenthermConfig}
+          />
         </TabPanel>
 
         {/* Debug Tab */}
         <TabPanel value={activeTab} index={9}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              WebSocket Connection Health
-            </Typography>
-
-            {!wsMetrics ? (
-              <Alert severity="info" sx={{ mt: 2 }}>
-                WebSocket metrics not available. Metrics are only available when connected.
-              </Alert>
-            ) : (
-              <Stack spacing={2}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Device Information
-                  </Typography>
-                  <List dense>
-                    <ListItem>
-                      <ListItemText primary="Platform" secondary={wsMetrics.deviceInfo.platform} />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText
-                        primary="Browser"
-                        secondary={wsMetrics.deviceInfo.browserName}
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText
-                        primary="Environment"
-                        secondary={`${wsMetrics.deviceInfo.isIframe ? 'Iframe' : 'Standalone'} | iOS: ${wsMetrics.deviceInfo.isiOS ? 'Yes' : 'No'} | Android: ${wsMetrics.deviceInfo.isAndroid ? 'Yes' : 'No'}`}
-                      />
-                    </ListItem>
-                  </List>
-                </Box>
-
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Connection Statistics
-                  </Typography>
-                  <List dense>
-                    <ListItem>
-                      <ListItemText
-                        primary="Total Connection Attempts"
-                        secondary={wsMetrics.totalConnectionAttempts}
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText
-                        primary="Successful Connections"
-                        secondary={`${wsMetrics.successfulConnections} (${wsMetrics.totalConnectionAttempts > 0 ? Math.round((wsMetrics.successfulConnections / wsMetrics.totalConnectionAttempts) * 100) : 0}%)`}
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText
-                        primary="Failed Connections"
-                        secondary={`${wsMetrics.failedConnections} (${wsMetrics.totalConnectionAttempts > 0 ? Math.round((wsMetrics.failedConnections / wsMetrics.totalConnectionAttempts) * 100) : 0}%)`}
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText
-                        primary="Unexpected Disconnects"
-                        secondary={wsMetrics.unexpectedDisconnects}
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText
-                        primary="Average Connection Duration"
-                        secondary={`${(wsMetrics.averageConnectionDuration / 1000).toFixed(1)}s`}
-                      />
-                    </ListItem>
-                  </List>
-                </Box>
-
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Recent Activity
-                  </Typography>
-                  <List dense>
-                    <ListItem>
-                      <ListItemText
-                        primary="Last Connected"
-                        secondary={
-                          wsMetrics.lastConnectedAt
-                            ? new Date(wsMetrics.lastConnectedAt).toLocaleString()
-                            : 'Never'
-                        }
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText
-                        primary="Last Disconnected"
-                        secondary={
-                          wsMetrics.lastDisconnectedAt
-                            ? new Date(wsMetrics.lastDisconnectedAt).toLocaleString()
-                            : 'Never'
-                        }
-                      />
-                    </ListItem>
-                    {wsMetrics.lastFailureReason && (
-                      <ListItem>
-                        <ListItemText
-                          primary="Last Failure Reason"
-                          secondary={wsMetrics.lastFailureReason}
-                          secondaryTypographyProps={{ color: 'error' }}
-                        />
-                      </ListItem>
-                    )}
-                  </List>
-                </Box>
-
-                {wsMetrics.connectionDurations.length > 0 && (
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Recent Connection Durations (last {wsMetrics.connectionDurations.length})
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 1 }}>
-                      {wsMetrics.connectionDurations
-                        .map(duration => `${(duration / 1000).toFixed(1)}s`)
-                        .join(', ')}
-                    </Typography>
-                  </Box>
-                )}
-              </Stack>
-            )}
-          </Paper>
+          <DebugSettings wsMetrics={wsMetrics} />
         </TabPanel>
       </Box>
 
