@@ -2,7 +2,7 @@
 
 import logging
 import asyncio
-
+from typing import Any
 from aiohttp import web
 from homeassistant.core import HomeAssistant
 
@@ -53,9 +53,6 @@ async def handle_get_area_logs(
     except Exception as err:
         _LOGGER.exception("Error getting logs for area %s", area_id)
         return web.json_response({"error": str(err)}, status=500)
-
-
-from typing import Any
 
 
 async def handle_get_area_device_logs(
