@@ -559,3 +559,374 @@ class TestTRVSettings:
         assert area_manager.trv_heating_temp == 25.0
         assert area_manager.trv_idle_temp == 10.0
         assert area_manager.trv_temp_offset == 5.0
+
+
+class TestDeviceEventLogging:
+    """Test device event logging functionality."""
+
+    def test_async_add_device_event(self, area_manager: AreaManager):
+        """Test adding a device event."""
+        from smart_heating.models.device_event import DeviceEvent
+
+        event = DeviceEvent.now(
+            area_id=TEST_AREA_ID,
+            device_id="climate.test",
+            direction="sent",
+            command_type="set_temperature",
+            payload={"temperature": 21.0},
+            status="ok",
+        )
+
+        area_manager.async_add_device_event(TEST_AREA_ID, event)
+
+        # Check event was added
+        assert TEST_AREA_ID in area_manager._device_logs
+        assert len(area_manager._device_logs[TEST_AREA_ID]) == 1
+        assert area_manager._device_logs[TEST_AREA_ID][0] == event
+
+    def test_async_add_device_event_creates_deque(self, area_manager: AreaManager):
+        """Test that adding event creates deque if it doesn't exist."""
+        from smart_heating.models.device_event import DeviceEvent
+
+        event = DeviceEvent.now(
+            area_id="new_area",
+            device_id="climate.test",
+            direction="sent",
+            command_type="test",
+            payload={},
+        )
+
+        area_manager.async_add_device_event("new_area", event)
+
+        assert "new_area" in area_manager._device_logs
+
+    def test_async_add_device_event_with_listener(self, area_manager: AreaManager):
+        """Test that event listeners are notified."""
+        from smart_heating.models.device_event import DeviceEvent
+        from unittest.mock import Mock
+
+        listener = Mock()
+        area_manager.add_device_log_listener(listener)
+
+        event = DeviceEvent.now(
+            area_id=TEST_AREA_ID,
+            device_id="climate.test",
+            direction="sent",
+            command_type="test",
+            payload={},
+        )
+
+        area_manager.async_add_device_event(TEST_AREA_ID, event)
+
+        # Listener should be called with event dict
+        listener.assert_called_once()
+        call_args = listener.call_args[0][0]
+        assert call_args["area_id"] == TEST_AREA_ID
+        assert call_args["device_id"] == "climate.test"
+
+    async def test_async_add_device_event_with_async_listener(
+        self, hass: HomeAssistant, area_manager: AreaManager
+    ):
+        """Test that async event listeners are notified."""
+        from smart_heating.models.device_event import DeviceEvent
+
+        calls = []
+
+        async def async_listener(event_dict):
+            calls.append(event_dict)
+
+        area_manager.add_device_log_listener(async_listener)
+
+        event = DeviceEvent.now(
+            area_id=TEST_AREA_ID,
+            device_id="climate.test",
+            direction="sent",
+            command_type="test",
+            payload={},
+        )
+
+        area_manager.async_add_device_event(TEST_AREA_ID, event)
+        await hass.async_block_till_done()
+
+        # Async listener should be called
+        assert len(calls) == 1
+        assert calls[0]["area_id"] == TEST_AREA_ID
+
+    def test_async_add_device_event_retention(self, area_manager: AreaManager):
+        """Test that old events are purged based on retention."""
+        from smart_heating.models.device_event import DeviceEvent
+        from datetime import datetime, timedelta, timezone
+
+        # Create old event (older than retention period)
+        old_timestamp = (
+            (datetime.now(timezone.utc) - timedelta(minutes=120)).isoformat().replace("+00:00", "Z")
+        )
+        old_event = DeviceEvent(
+            timestamp=old_timestamp,
+            area_id=TEST_AREA_ID,
+            device_id="climate.test",
+            direction="sent",
+            command_type="old_command",
+            payload={},
+        )
+
+        area_manager.async_add_device_event(TEST_AREA_ID, old_event)
+
+        # Create new event
+        new_event = DeviceEvent.now(
+            area_id=TEST_AREA_ID,
+            device_id="climate.test",
+            direction="sent",
+            command_type="new_command",
+            payload={},
+        )
+
+        area_manager.async_add_device_event(TEST_AREA_ID, new_event)
+
+        # Old event should be purged
+        logs = area_manager._device_logs[TEST_AREA_ID]
+        assert len(logs) == 1
+        assert logs[0].command_type == "new_command"
+
+    def test_async_get_device_logs_empty(self, area_manager: AreaManager):
+        """Test getting logs for area with no logs."""
+        logs = area_manager.async_get_device_logs(TEST_AREA_ID)
+        assert logs == []
+
+    def test_async_get_device_logs(self, area_manager: AreaManager):
+        """Test getting device logs."""
+        from smart_heating.models.device_event import DeviceEvent
+
+        event1 = DeviceEvent.now(
+            area_id=TEST_AREA_ID,
+            device_id="climate.test1",
+            direction="sent",
+            command_type="command1",
+            payload={},
+        )
+        event2 = DeviceEvent.now(
+            area_id=TEST_AREA_ID,
+            device_id="climate.test2",
+            direction="received",
+            command_type="command2",
+            payload={},
+        )
+
+        area_manager.async_add_device_event(TEST_AREA_ID, event1)
+        area_manager.async_add_device_event(TEST_AREA_ID, event2)
+
+        logs = area_manager.async_get_device_logs(TEST_AREA_ID)
+
+        assert len(logs) == 2
+
+    def test_async_get_device_logs_filter_by_device(self, area_manager: AreaManager):
+        """Test filtering logs by device ID."""
+        from smart_heating.models.device_event import DeviceEvent
+
+        event1 = DeviceEvent.now(
+            area_id=TEST_AREA_ID,
+            device_id="climate.test1",
+            direction="sent",
+            command_type="command1",
+            payload={},
+        )
+        event2 = DeviceEvent.now(
+            area_id=TEST_AREA_ID,
+            device_id="climate.test2",
+            direction="sent",
+            command_type="command2",
+            payload={},
+        )
+
+        area_manager.async_add_device_event(TEST_AREA_ID, event1)
+        area_manager.async_add_device_event(TEST_AREA_ID, event2)
+
+        logs = area_manager.async_get_device_logs(TEST_AREA_ID, device_id="climate.test1")
+
+        assert len(logs) == 1
+        assert logs[0]["device_id"] == "climate.test1"
+
+    def test_async_get_device_logs_filter_by_direction(self, area_manager: AreaManager):
+        """Test filtering logs by direction."""
+        from smart_heating.models.device_event import DeviceEvent
+
+        event1 = DeviceEvent.now(
+            area_id=TEST_AREA_ID,
+            device_id="climate.test",
+            direction="sent",
+            command_type="command1",
+            payload={},
+        )
+        event2 = DeviceEvent.now(
+            area_id=TEST_AREA_ID,
+            device_id="climate.test",
+            direction="received",
+            command_type="command2",
+            payload={},
+        )
+
+        area_manager.async_add_device_event(TEST_AREA_ID, event1)
+        area_manager.async_add_device_event(TEST_AREA_ID, event2)
+
+        logs = area_manager.async_get_device_logs(TEST_AREA_ID, direction="sent")
+
+        assert len(logs) == 1
+        assert logs[0]["direction"] == "sent"
+
+    def test_async_get_device_logs_filter_by_since(self, area_manager: AreaManager):
+        """Test filtering logs by timestamp."""
+        from smart_heating.models.device_event import DeviceEvent
+        from datetime import datetime, timedelta, timezone
+
+        # Create events with different timestamps
+        old_timestamp = (
+            (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat().replace("+00:00", "Z")
+        )
+        old_event = DeviceEvent(
+            timestamp=old_timestamp,
+            area_id=TEST_AREA_ID,
+            device_id="climate.test",
+            direction="sent",
+            command_type="old_command",
+            payload={},
+        )
+
+        new_event = DeviceEvent.now(
+            area_id=TEST_AREA_ID,
+            device_id="climate.test",
+            direction="sent",
+            command_type="new_command",
+            payload={},
+        )
+
+        area_manager.async_add_device_event(TEST_AREA_ID, old_event)
+        area_manager.async_add_device_event(TEST_AREA_ID, new_event)
+
+        # Filter to only get events from 15 minutes ago
+        since = (
+            (datetime.now(timezone.utc) - timedelta(minutes=15)).isoformat().replace("+00:00", "Z")
+        )
+        logs = area_manager.async_get_device_logs(TEST_AREA_ID, since=since)
+
+        assert len(logs) == 1
+        assert logs[0]["command_type"] == "new_command"
+
+    def test_add_device_log_listener(self, area_manager: AreaManager):
+        """Test adding device log listener."""
+        from unittest.mock import Mock
+
+        listener = Mock()
+        area_manager.add_device_log_listener(listener)
+
+        assert listener in area_manager._device_log_listeners
+
+    def test_add_device_log_listener_idempotent(self, area_manager: AreaManager):
+        """Test adding same listener multiple times is idempotent."""
+        from unittest.mock import Mock
+
+        listener = Mock()
+        area_manager.add_device_log_listener(listener)
+        area_manager.add_device_log_listener(listener)
+
+        # Should only be added once
+        assert area_manager._device_log_listeners.count(listener) == 1
+
+    def test_remove_device_log_listener(self, area_manager: AreaManager):
+        """Test removing device log listener."""
+        from unittest.mock import Mock
+
+        listener = Mock()
+        area_manager.add_device_log_listener(listener)
+        area_manager.remove_device_log_listener(listener)
+
+        assert listener not in area_manager._device_log_listeners
+
+    def test_remove_device_log_listener_silent_if_not_present(self, area_manager: AreaManager):
+        """Test removing listener that doesn't exist is silent."""
+        from unittest.mock import Mock
+
+        listener = Mock()
+        # Should not raise
+        area_manager.remove_device_log_listener(listener)
+
+
+class TestSafetySensorAdditional:
+    """Additional safety sensor tests for edge cases."""
+
+    def test_clear_safety_sensors(self, area_manager: AreaManager):
+        """Test clearing all safety sensors."""
+        area_manager.add_safety_sensor("binary_sensor.smoke", "smoke", True, True)
+        area_manager.add_safety_sensor("binary_sensor.co", "carbon_monoxide", True, True)
+        area_manager._safety_alert_active = True
+
+        area_manager.clear_safety_sensors()
+
+        assert len(area_manager.safety_sensors) == 0
+        assert area_manager._safety_alert_active is False
+
+    def test_check_safety_sensor_status_sensor_not_found(
+        self, hass: HomeAssistant, area_manager: AreaManager
+    ):
+        """Test checking status when sensor entity not found."""
+        area_manager.add_safety_sensor("binary_sensor.missing", "smoke", True, True)
+
+        # Don't set any state - sensor won't be found
+        is_alert, sensor_id = area_manager.check_safety_sensor_status()
+
+        # Should return False when sensor not found
+        assert is_alert is False
+        assert sensor_id is None
+
+
+class TestOpenThermGatewayAutoEnable:
+    """Test auto-enabling features when OpenTherm gateway is set."""
+
+    async def test_set_opentherm_gateway_auto_enables_features(self, area_manager: AreaManager):
+        """Test that setting gateway auto-enables advanced control and heating curve."""
+        # Ensure features are initially disabled
+        area_manager.advanced_control_enabled = False
+        area_manager.heating_curve_enabled = False
+
+        await area_manager.set_opentherm_gateway("gateway1")
+
+        # Should auto-enable features
+        assert area_manager.advanced_control_enabled is True
+        assert area_manager.heating_curve_enabled is True
+
+    async def test_set_opentherm_gateway_already_enabled(self, area_manager: AreaManager):
+        """Test setting gateway when features already enabled."""
+        # Pre-enable features
+        area_manager.advanced_control_enabled = True
+        area_manager.heating_curve_enabled = True
+
+        await area_manager.set_opentherm_gateway("gateway1")
+
+        # Should remain enabled
+        assert area_manager.advanced_control_enabled is True
+        assert area_manager.heating_curve_enabled is True
+
+
+class TestAdvancedControlLoading:
+    """Test loading advanced control settings from storage."""
+
+    async def test_async_load_with_advanced_control_settings(self, area_manager: AreaManager):
+        """Test loading advanced control settings."""
+        storage_data = {
+            "areas": [],
+            "advanced_control_enabled": True,
+            "heating_curve_enabled": True,
+            "pwm_enabled": True,
+            "pid_enabled": True,
+            "overshoot_protection_enabled": True,
+            "default_heating_curve_coefficient": 1.5,
+        }
+
+        with patch.object(area_manager._store, "async_load", return_value=storage_data):
+            await area_manager.async_load()
+
+            assert area_manager.advanced_control_enabled is True
+            assert area_manager.heating_curve_enabled is True
+            assert area_manager.pwm_enabled is True
+            assert area_manager.pid_enabled is True
+            assert area_manager.overshoot_protection_enabled is True
+            assert area_manager.default_heating_curve_coefficient == 1.5
