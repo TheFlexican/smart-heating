@@ -272,6 +272,58 @@ class SmartHeatingAPIView(HomeAssistantView):
 
         return None
 
+    def _get_area_id_from_endpoint(self, endpoint: str) -> str:
+        """Extract area ID from endpoint path.
+
+        Args:
+            endpoint: Endpoint path
+
+        Returns:
+            Area ID extracted from path
+        """
+        return endpoint.split("/")[1]
+
+    async def _route_area_subendpoint(
+        self, endpoint: str, area_id: str, request: web.Request
+    ) -> web.Response:
+        """Route area sub-endpoints to appropriate handlers.
+
+        Args:
+            endpoint: Full endpoint path
+            area_id: Area ID
+            request: Request object
+
+        Returns:
+            JSON response from appropriate handler
+        """
+        if "/history" in endpoint:
+            return await handle_get_history(self.hass, area_id, request)
+
+        if "/learning" in endpoint:
+            return await handle_get_learning_stats(self.hass, area_id)
+
+        if endpoint.endswith("/trv_candidates"):
+            return await handle_get_trv_candidates(self.hass)
+
+        if "/device_logs" in endpoint:
+            return await handle_get_area_device_logs(self.hass, self.area_manager, area_id, request)
+
+        if "/logs" in endpoint:
+            return await handle_get_area_logs(self.hass, area_id, request)
+
+        if "/efficiency" in endpoint:
+            efficiency_calculator = self.hass.data.get(DOMAIN, {}).get("efficiency_calculator")
+            if not efficiency_calculator:
+                return web.json_response(
+                    {"error": ERROR_EFFICIENCY_CALCULATOR_UNAVAILABLE}, status=503
+                )
+            return await handle_get_area_efficiency_history(
+                self.hass, efficiency_calculator, request, area_id
+            )
+
+        # Default: return area details
+        return await handle_get_area(self.hass, self.area_manager, area_id)
+
     async def _handle_area_endpoints_get(
         self, request: web.Request, endpoint: str
     ) -> web.Response | None:
@@ -290,30 +342,8 @@ class SmartHeatingAPIView(HomeAssistantView):
         if not endpoint.startswith(ENDPOINT_PREFIX_AREAS):
             return None
 
-        area_id = endpoint.split("/")[1]
-
-        if "/history" in endpoint:
-            return await handle_get_history(self.hass, area_id, request)
-        elif "/learning" in endpoint:
-            return await handle_get_learning_stats(self.hass, area_id)
-        elif endpoint.endswith("/trv_candidates"):
-            # Return candidate entities (sensors + binary_sensors) for TRV configuration
-            return await handle_get_trv_candidates(self.hass)
-        elif "/device_logs" in endpoint:
-            return await handle_get_area_device_logs(self.hass, self.area_manager, area_id, request)
-        elif "/logs" in endpoint:
-            return await handle_get_area_logs(self.hass, area_id, request)
-        elif "/efficiency" in endpoint:
-            efficiency_calculator = self.hass.data.get(DOMAIN, {}).get("efficiency_calculator")
-            if not efficiency_calculator:
-                return web.json_response(
-                    {"error": ERROR_EFFICIENCY_CALCULATOR_UNAVAILABLE}, status=503
-                )
-            return await handle_get_area_efficiency_history(
-                self.hass, efficiency_calculator, request, area_id
-            )
-        else:
-            return await handle_get_area(self.hass, self.area_manager, area_id)
+        area_id = self._get_area_id_from_endpoint(endpoint)
+        return await self._route_area_subendpoint(endpoint, area_id, request)
 
     async def _handle_config_endpoints_get(
         self, request: web.Request, endpoint: str
@@ -371,6 +401,66 @@ class SmartHeatingAPIView(HomeAssistantView):
 
         return None
 
+    def _build_efficiency_report_response(self, area_metrics: dict) -> dict:
+        """Build efficiency report response data.
+
+        Args:
+            area_metrics: Metrics from efficiency calculator
+
+        Returns:
+            Formatted response dictionary
+        """
+        return {
+            "area_id": area_metrics.get("area_id"),
+            "period": area_metrics.get("period"),
+            "start_date": area_metrics.get("start_time", ""),
+            "end_date": area_metrics.get("end_time", ""),
+            "metrics": {
+                "energy_score": area_metrics.get("energy_score", 0),
+                "heating_time_percentage": area_metrics.get("heating_time_percentage", 0),
+                "heating_cycles": area_metrics.get("heating_cycles", 0),
+                "avg_temp_delta": area_metrics.get("average_temperature_delta", 0),
+            },
+            "recommendations": area_metrics.get("recommendations", []),
+        }
+
+    async def _handle_efficiency_report(
+        self, endpoint: str, request: web.Request, efficiency_calculator
+    ) -> web.Response:
+        """Handle efficiency report endpoint.
+
+        Args:
+            endpoint: Endpoint path
+            request: Request object
+            efficiency_calculator: Efficiency calculator instance
+
+        Returns:
+            JSON response with efficiency report
+        """
+        area_id = endpoint.split("/")[2]
+        period = request.query.get("period", "week")
+        area_metrics = await efficiency_calculator.calculate_area_efficiency(area_id, period)
+        response_data = self._build_efficiency_report_response(area_metrics)
+        return web.json_response(response_data)
+
+    async def _handle_efficiency_history(
+        self, endpoint: str, request: web.Request, efficiency_calculator
+    ) -> web.Response:
+        """Handle efficiency history endpoint.
+
+        Args:
+            endpoint: Endpoint path
+            request: Request object
+            efficiency_calculator: Efficiency calculator instance
+
+        Returns:
+            JSON response with efficiency history
+        """
+        area_id = endpoint.split("/")[2]
+        return await handle_get_area_efficiency_history(
+            self.hass, efficiency_calculator, request, area_id
+        )
+
     async def _handle_efficiency_endpoints_get(
         self, request: web.Request, endpoint: str
     ) -> web.Response | None:
@@ -394,29 +484,12 @@ class SmartHeatingAPIView(HomeAssistantView):
             return await handle_get_efficiency_report(
                 self.hass, self.area_manager, efficiency_calculator, request
             )
-        elif endpoint.startswith("efficiency/report/"):
-            area_id = endpoint.split("/")[2]
-            period = request.query.get("period", "week")
-            area_metrics = await efficiency_calculator.calculate_area_efficiency(area_id, period)
-            response_data = {
-                "area_id": area_metrics.get("area_id"),
-                "period": area_metrics.get("period"),
-                "start_date": area_metrics.get("start_time", ""),
-                "end_date": area_metrics.get("end_time", ""),
-                "metrics": {
-                    "energy_score": area_metrics.get("energy_score", 0),
-                    "heating_time_percentage": area_metrics.get("heating_time_percentage", 0),
-                    "heating_cycles": area_metrics.get("heating_cycles", 0),
-                    "avg_temp_delta": area_metrics.get("average_temperature_delta", 0),
-                },
-                "recommendations": area_metrics.get("recommendations", []),
-            }
-            return web.json_response(response_data)
-        elif endpoint.startswith("efficiency/history/"):
-            area_id = endpoint.split("/")[2]
-            return await handle_get_area_efficiency_history(
-                self.hass, efficiency_calculator, request, area_id
-            )
+
+        if endpoint.startswith("efficiency/report/"):
+            return await self._handle_efficiency_report(endpoint, request, efficiency_calculator)
+
+        if endpoint.startswith("efficiency/history/"):
+            return await self._handle_efficiency_history(endpoint, request, efficiency_calculator)
 
         return None
 
@@ -435,21 +508,51 @@ class SmartHeatingAPIView(HomeAssistantView):
         # Device endpoints
         if endpoint == "devices":
             return await handle_get_devices(self.hass, self.area_manager)
-        elif endpoint == "devices/refresh":
+
+        if endpoint == "devices/refresh":
             return await handle_refresh_devices(self.hass, self.area_manager)
 
         # Sensor endpoints
-        elif endpoint == "entities/binary_sensor":
+        if endpoint == "entities/binary_sensor":
             return await handle_get_binary_sensor_entities(self.hass)
-        elif endpoint == "entities/weather":
+
+        if endpoint == "entities/weather":
             return await handle_get_weather_entities(self.hass)
 
         # Entity state endpoint
-        elif endpoint.startswith("entity_state/"):
+        if endpoint.startswith("entity_state/"):
             entity_id = endpoint.replace("entity_state/", "")
             return await handle_get_entity_state(self.hass, entity_id)
 
         return None
+
+    async def _handle_advanced_metrics(self, request: web.Request) -> web.Response:
+        """Handle advanced metrics endpoint.
+
+        Args:
+            request: Request object
+
+        Returns:
+            JSON response with metrics
+        """
+        advanced_metrics = self.hass.data.get(DOMAIN, {}).get("advanced_metrics_collector")
+        if not advanced_metrics:
+            return web.json_response(
+                {"error": "Advanced metrics collector not available"}, status=503
+            )
+
+        # Parse query params for advanced metrics and validate input
+        minutes, days, err_resp = self._parse_advanced_metrics_query(request)
+        if err_resp:
+            return err_resp
+        area_id = request.query.get("area_id")
+
+        metrics = await advanced_metrics.async_get_metrics(
+            days=days, minutes=minutes, area_id=area_id
+        )
+        return web.json_response(
+            {"success": True, "days": days, "area_id": area_id, "metrics": metrics}
+        )
 
     async def _handle_opentherm_metrics_get(
         self, request: web.Request, endpoint: str
@@ -466,35 +569,21 @@ class SmartHeatingAPIView(HomeAssistantView):
         # OpenTherm endpoints
         if endpoint == "opentherm/logs":
             return await handle_get_opentherm_logs(self.hass, request)
-        elif endpoint == "opentherm/capabilities":
+
+        if endpoint == "opentherm/capabilities":
             return await handle_get_opentherm_capabilities(self.hass)
-        elif endpoint == "opentherm/gateways":
+
+        if endpoint == "opentherm/gateways":
             return await handle_get_opentherm_gateways(self.hass)
-        elif endpoint == "opentherm/calibrate":
+
+        if endpoint == "opentherm/calibrate":
             return await handle_calibrate_opentherm(
                 self.hass, self.area_manager, self._get_coordinator()
             )
 
         # Advanced metrics endpoints
         if endpoint == "metrics/advanced":
-            advanced_metrics = self.hass.data.get(DOMAIN, {}).get("advanced_metrics_collector")
-            if not advanced_metrics:
-                return web.json_response(
-                    {"error": "Advanced metrics collector not available"}, status=503
-                )
-
-            # Parse query params for advanced metrics and validate input
-            minutes, days, err_resp = self._parse_advanced_metrics_query(request)
-            if err_resp:
-                return err_resp
-            area_id = request.query.get("area_id")
-
-            metrics = await advanced_metrics.async_get_metrics(
-                days=days, minutes=minutes, area_id=area_id
-            )
-            return web.json_response(
-                {"success": True, "days": days, "area_id": area_id, "metrics": metrics}
-            )
+            return await self._handle_advanced_metrics(request)
 
         return None
 

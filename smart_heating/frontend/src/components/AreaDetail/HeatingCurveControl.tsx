@@ -82,7 +82,7 @@ export const HeatingCurveControl: React.FC<HeatingCurveControlProps> = ({ area, 
                 useGlobalHeatingCurve,
                 areaHeatingCurveCoefficient ?? undefined,
               )
-              await onUpdate()
+              onUpdate()
             } catch (err) {
               console.error('Failed to save heating curve coefficient', err)
             }

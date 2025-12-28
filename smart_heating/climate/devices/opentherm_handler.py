@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 # Service constant
-_SERVICE_OPENTHERM_SET_SETPOINT = "opentherm_gw.set_control_setpoint"
+SERVICE_OPENTHERM_SET_SETPOINT = "opentherm_gw.set_control_setpoint"
 
 
 class OpenThermHandler(BaseDeviceHandler):
@@ -166,7 +166,7 @@ class OpenThermHandler(BaseDeviceHandler):
                 self._record_device_event(
                     gateway_device_id,
                     "sent",
-                    _SERVICE_OPENTHERM_SET_SETPOINT,
+                    SERVICE_OPENTHERM_SET_SETPOINT,
                     {"domain": "opentherm_gw", "service": "set_control_setpoint", "data": payload},
                 )
             except (
@@ -188,7 +188,7 @@ class OpenThermHandler(BaseDeviceHandler):
                 self._record_device_event(
                     gateway_device_id,
                     "received",
-                    _SERVICE_OPENTHERM_SET_SETPOINT,
+                    SERVICE_OPENTHERM_SET_SETPOINT,
                     {"result": "dispatched"},
                 )
             except (
@@ -347,7 +347,7 @@ class OpenThermHandler(BaseDeviceHandler):
                 self._record_device_event(
                     gateway_device_id,
                     "sent",
-                    _SERVICE_OPENTHERM_SET_SETPOINT,
+                    SERVICE_OPENTHERM_SET_SETPOINT,
                     {"domain": "opentherm_gw", "service": "set_control_setpoint", "data": payload},
                 )
             except (
@@ -371,7 +371,7 @@ class OpenThermHandler(BaseDeviceHandler):
                 self._record_device_event(
                     gateway_device_id,
                     "received",
-                    _SERVICE_OPENTHERM_SET_SETPOINT,
+                    SERVICE_OPENTHERM_SET_SETPOINT,
                     {"result": "dispatched"},
                 )
             except (

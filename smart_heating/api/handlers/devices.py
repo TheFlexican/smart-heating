@@ -236,7 +236,7 @@ async def handle_refresh_devices(hass: HomeAssistant, area_manager: AreaManager)
                 "message": f"Refreshed {updated_count} devices, {added_count} available for assignment",
             }
         )
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError) as err:
+    except (HomeAssistantError, SmartHeatingError, KeyError) as err:
         _LOGGER.exception("Error refreshing devices")
         return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
 

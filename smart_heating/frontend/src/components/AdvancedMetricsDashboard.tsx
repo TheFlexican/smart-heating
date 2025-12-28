@@ -5,7 +5,6 @@ import {
   Paper,
   Typography,
   IconButton,
-  Grid,
   Card,
   CardContent,
   ToggleButtonGroup,
@@ -17,6 +16,7 @@ import {
   Chip,
   Stack,
 } from '@mui/material'
+import Grid from '@mui/material/Grid'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import SpeedIcon from '@mui/icons-material/Speed'

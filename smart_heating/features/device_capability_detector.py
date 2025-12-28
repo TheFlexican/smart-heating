@@ -4,6 +4,7 @@ This module provides capability discovery for heating/cooling devices,
 detecting what features they support and determining optimal control parameters.
 """
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import datetime
@@ -171,6 +172,9 @@ class DeviceCapabilityDetector:
         Raises:
             ValueError: If entity not found
         """
+        # Minimal async operation to satisfy async requirement (awaited by callers)
+        await asyncio.sleep(0)
+
         state = self.hass.states.get(entity_id)
         if not state:
             raise ValueError(f"Entity {entity_id} not found")

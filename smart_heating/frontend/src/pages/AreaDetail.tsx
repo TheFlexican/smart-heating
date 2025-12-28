@@ -149,6 +149,11 @@ const ZoneDetail = () => {
     }
   }, [areaId, navigate])
 
+  // Void-returning wrapper for loadData to avoid promise misuse in callbacks
+  const handleDataUpdate = useCallback(() => {
+    loadData().catch(console.error)
+  }, [loadData])
+
   const startEditingTrv = (trv: any) => {
     setEditingTrvId(trv.entity_id)
     setEditingTrvName(trv.name ?? '')
@@ -211,8 +216,8 @@ const ZoneDetail = () => {
   }, [])
 
   useEffect(() => {
-    loadData()
-    loadHistoryConfig()
+    loadData().catch(console.error)
+    loadHistoryConfig().catch(console.error)
   }, [areaId, loadData, loadHistoryConfig])
 
   const loadEntityStates = async (currentZone: Zone) => {
@@ -490,43 +495,43 @@ const ZoneDetail = () => {
     if (!area) return []
 
     return [
-      PresetModesSection({ area, globalPresets, onUpdate: loadData, t }),
-      PresetConfigSection({ area, globalPresets, onUpdate: loadData, t }),
-      BoostModeSection({ area, onUpdate: loadData, t }),
-      HvacModeSection({ area, onUpdate: loadData }),
-      HeatingTypeSection({ area, onUpdate: loadData, t }),
-      SwitchControlSection({ area, onUpdate: loadData, t }),
+      PresetModesSection({ area, globalPresets, onUpdate: handleDataUpdate, t }),
+      PresetConfigSection({ area, globalPresets, onUpdate: handleDataUpdate, t }),
+      BoostModeSection({ area, onUpdate: handleDataUpdate, t }),
+      HvacModeSection({ area, onUpdate: handleDataUpdate }),
+      HeatingTypeSection({ area, onUpdate: handleDataUpdate, t }),
+      SwitchControlSection({ area, onUpdate: handleDataUpdate, t }),
       WindowSensorsSection({
         area,
-        onUpdate: loadData,
+        onUpdate: handleDataUpdate,
         onOpenAddDialog: () => {
           setSensorDialogType('window')
           setSensorDialogOpen(true)
         },
         t,
       }),
-      PresenceConfigSection({ area, onUpdate: loadData, t }),
+      PresenceConfigSection({ area, onUpdate: handleDataUpdate, t }),
       PresenceSensorsSection({
         area,
         entityStates,
-        onUpdate: loadData,
+        onUpdate: handleDataUpdate,
         onOpenAddDialog: () => {
           setSensorDialogType('presence')
           setSensorDialogOpen(true)
         },
         t,
       }),
-      AutoPresetSection({ area, onUpdate: loadData, t }),
-      NightBoostSection({ area, onUpdate: loadData, t }),
+      AutoPresetSection({ area, onUpdate: handleDataUpdate, t }),
+      NightBoostSection({ area, onUpdate: handleDataUpdate, t }),
       SmartNightBoostSection({
         area,
-        onUpdate: loadData,
+        onUpdate: handleDataUpdate,
         t,
         weatherEntities,
         weatherEntitiesLoading,
         onLoadWeatherEntities: loadWeatherEntities,
       }),
-      HeatingControlSection({ area, onUpdate: loadData, t }),
+      HeatingControlSection({ area, onUpdate: handleDataUpdate, t }),
       HistoryManagementSection({
         historyRetention,
         setHistoryRetention,
@@ -675,7 +680,7 @@ const ZoneDetail = () => {
 
         {/* Schedule Tab */}
         <TabPanel value={tabValue} index={2}>
-          <AreaScheduleTab area={area} onUpdate={loadData} />
+          <AreaScheduleTab area={area} onUpdate={handleDataUpdate} />
         </TabPanel>
 
         {/* History Tab */}

@@ -659,7 +659,6 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         except (
             HomeAssistantError,
             SmartHeatingError,
-            ValidationError,
             AttributeError,
             KeyError,
         ) as err:

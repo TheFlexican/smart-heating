@@ -48,7 +48,7 @@ async def handle_export_config(_hass: HomeAssistant, config_manager: ConfigManag
             },
         )
 
-    except (HomeAssistantError, StorageError, ValidationError, json.JSONDecodeError) as err:
+    except (HomeAssistantError, json.JSONDecodeError) as err:
         _LOGGER.error("Failed to export configuration: %s", err)
         return web.json_response({"error": f"Export failed: {str(err)}"}, status=500)
 
@@ -131,7 +131,7 @@ async def handle_validate_config(
 
     except ValueError as err:
         return web.json_response({"valid": False, "error": str(err)}, status=400)
-    except (HomeAssistantError, StorageError, ValidationError, json.JSONDecodeError) as err:
+    except (HomeAssistantError, json.JSONDecodeError) as err:
         _LOGGER.error("Failed to validate configuration: %s", err)
         return web.json_response(
             {"valid": False, "error": f"Validation failed: {str(err)}"}, status=500
@@ -168,7 +168,7 @@ async def handle_list_backups(_hass: HomeAssistant, config_manager: ConfigManage
 
         return web.json_response({"backups": backups})
 
-    except (HomeAssistantError, StorageError, ValidationError, json.JSONDecodeError) as err:
+    except (HomeAssistantError, json.JSONDecodeError) as err:
         _LOGGER.exception("Failed to list backups")
         return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
 
@@ -212,6 +212,6 @@ async def handle_restore_backup(
             }
         )
 
-    except (HomeAssistantError, StorageError, ValidationError, json.JSONDecodeError) as err:
+    except (HomeAssistantError, json.JSONDecodeError) as err:
         _LOGGER.exception("Failed to restore backup")
         return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)

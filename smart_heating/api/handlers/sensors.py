@@ -14,7 +14,7 @@ from ...utils import get_coordinator
 _LOGGER = logging.getLogger(__name__)
 
 ERROR_INTERNAL = "Internal server error"
-ENTITY_ID_REQUIRED = "entity_id required"
+MSG_ENTITY_ID_REQUIRED = "entity_id required"
 UNEXPECTED_ERROR = "Unexpected error"
 
 
@@ -34,7 +34,7 @@ async def handle_add_window_sensor(
     """
     entity_id = data.get("entity_id")
     if not entity_id:
-        return web.json_response({"error": ENTITY_ID_REQUIRED}, status=400)
+        return web.json_response({"error": MSG_ENTITY_ID_REQUIRED}, status=400)
 
     try:
         area = area_manager.get_area(area_id)
@@ -58,7 +58,7 @@ async def handle_add_window_sensor(
         return web.json_response({"success": True, "entity_id": entity_id})
     except ValueError as err:
         return web.json_response({"error": str(err)}, status=400)
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError):
+    except (HomeAssistantError, SmartHeatingError, KeyError):
         _LOGGER.exception("Unexpected error adding window sensor for area %s", area_id)
         return web.json_response({"error": ERROR_INTERNAL, "message": UNEXPECTED_ERROR}, status=500)
 
@@ -95,7 +95,7 @@ async def handle_remove_window_sensor(
         return web.json_response({"success": True})
     except ValueError as err:
         return web.json_response({"error": str(err)}, status=404)
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError):
+    except (HomeAssistantError, SmartHeatingError, KeyError):
         _LOGGER.exception("Unexpected error removing window sensor for area %s", area_id)
         return web.json_response({"error": ERROR_INTERNAL, "message": UNEXPECTED_ERROR}, status=500)
 
@@ -120,7 +120,7 @@ async def handle_add_presence_sensor(
     """
     entity_id = data.get("entity_id")
     if not entity_id:
-        return web.json_response({"error": ENTITY_ID_REQUIRED}, status=400)
+        return web.json_response({"error": MSG_ENTITY_ID_REQUIRED}, status=400)
 
     try:
         area = area_manager.get_area(area_id)
@@ -140,7 +140,7 @@ async def handle_add_presence_sensor(
         return web.json_response({"success": True, "entity_id": entity_id})
     except ValueError as err:
         return web.json_response({"error": str(err)}, status=400)
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError):
+    except (HomeAssistantError, SmartHeatingError, KeyError):
         _LOGGER.exception("Unexpected error adding presence sensor for area %s", area_id)
         return web.json_response({"error": ERROR_INTERNAL, "message": UNEXPECTED_ERROR}, status=500)
 
@@ -333,7 +333,7 @@ async def handle_add_trv_entity(
     """
     entity_id = data.get("entity_id")
     if not entity_id:
-        return web.json_response({"error": ENTITY_ID_REQUIRED}, status=400)
+        return web.json_response({"error": MSG_ENTITY_ID_REQUIRED}, status=400)
 
     role = data.get("role")
     name = data.get("name")
@@ -356,7 +356,7 @@ async def handle_add_trv_entity(
         return web.json_response({"success": True, "entity_id": entity_id})
     except ValueError as err:
         return web.json_response({"error": str(err)}, status=400)
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError):
+    except (HomeAssistantError, SmartHeatingError, KeyError):
         _LOGGER.exception("Unexpected error adding TRV entity for area %s", area_id)
         return web.json_response({"error": ERROR_INTERNAL, "message": UNEXPECTED_ERROR}, status=500)
 
@@ -393,6 +393,6 @@ async def handle_remove_trv_entity(
         return web.json_response({"success": True})
     except ValueError as err:
         return web.json_response({"error": str(err)}, status=404)
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError):
+    except (HomeAssistantError, SmartHeatingError, KeyError):
         _LOGGER.exception("Unexpected error removing TRV entity for area %s", area_id)
         return web.json_response({"error": ERROR_INTERNAL, "message": UNEXPECTED_ERROR}, status=500)

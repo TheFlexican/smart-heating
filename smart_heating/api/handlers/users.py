@@ -41,7 +41,7 @@ async def handle_get_users(
             }
         )
 
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError, ValueError) as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
         _LOGGER.error("Error getting users: %s", e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)
 
@@ -69,7 +69,7 @@ async def handle_get_user(
 
         return web.json_response({"user": user})
 
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError, ValueError) as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
         _LOGGER.error("Error getting user %s: %s", user_id, e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)
 
@@ -145,7 +145,7 @@ async def handle_create_user(
     except ValueError as e:
         _LOGGER.warning("Invalid user data: %s", e)
         return web.json_response({"error": str(e)}, status=400)
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError, ValueError) as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
         _LOGGER.error("Error creating user: %s", e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)
 
@@ -190,7 +190,7 @@ async def handle_update_user(
     except ValueError as e:
         _LOGGER.warning("Invalid user data: %s", e)
         return web.json_response({"error": str(e)}, status=400)
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError, ValueError) as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
         _LOGGER.error("Error updating user %s: %s", user_id, e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)
 
@@ -223,7 +223,7 @@ async def handle_delete_user(
     except ValueError as e:
         _LOGGER.warning("User not found: %s", e)
         return web.json_response({"error": str(e)}, status=404)
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError, ValueError) as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
         _LOGGER.error("Error deleting user %s: %s", user_id, e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)
 
@@ -254,7 +254,7 @@ async def handle_update_user_settings(
 
         return web.json_response({"settings": settings})
 
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError, ValueError) as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
         _LOGGER.error("Error updating user settings: %s", e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)
 
@@ -277,7 +277,7 @@ async def handle_get_presence_state(
         presence = user_manager.get_presence_state()
         return web.json_response({"presence_state": presence})
 
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError, ValueError) as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
         _LOGGER.error("Error getting presence state: %s", e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)
 
@@ -309,6 +309,6 @@ async def handle_get_active_preferences(
             }
         )
 
-    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError, ValueError) as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
         _LOGGER.error("Error getting active preferences: %s", e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)

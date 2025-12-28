@@ -3,11 +3,11 @@
 # Exclude heavy database-related code from coverage - exercised by integration tests
 # pragma: no cover
 
-import logging
+import asyncio
 import json
+import logging
 from datetime import datetime, timedelta
 from typing import Any
-import asyncio
 
 from homeassistant.components.recorder import get_instance
 from homeassistant.core import HomeAssistant
@@ -24,7 +24,7 @@ from sqlalchemy import (
     delete,
     select,
 )
-from sqlalchemy.exc import SQLAlchemyError, OperationalError, DatabaseError
+from sqlalchemy.exc import SQLAlchemyError
 
 from ..const import (
     DEFAULT_HISTORY_RETENTION_DAYS,
@@ -382,70 +382,22 @@ class HistoryTracker:
     async def _async_load_from_database(self) -> None:
         """Load history from database."""
         try:
-            recorder = get_instance(self.hass)
-            if not getattr(recorder, "engine", None):
-                raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
-            if self._db_table is None:
-                raise RuntimeError(DB_TABLE_NOT_INITIALIZED)
-            assert recorder.engine is not None
-            assert self._db_table is not None
-
-            db_table = self._db_table
+            recorder, db_table = self._validate_database_prerequisites()
             engine = recorder.engine
             assert engine is not None
 
-            def _collect_history_rows(conn, db_table):
-                # Load all rows ordered by timestamp desc and convert to dict
-                stmt = select(db_table).order_by(db_table.c.timestamp.desc())
-                result = conn.execute(stmt)
+            # Load history data from database
+            self._history = await self._load_history_from_db(recorder, engine, db_table)
 
-                history_dict = {}
-                for row in result:
-                    area_id = row.area_id
-                    if area_id not in history_dict:
-                        history_dict[area_id] = []
+            # Normalize state values
+            self._normalize_history_states()
 
-                    # Parse TRV JSON if present
-                    trvs = None
-                    try:
-                        trvs = json.loads(row.trvs) if row.trvs else None
-                    except (json.JSONDecodeError, TypeError, ValueError) as err:
-                        _LOGGER.debug("Failed to parse TRV JSON for row: %s", err)
-                        trvs = None
-
-                    history_dict[area_id].append(
-                        {
-                            "timestamp": row.timestamp.isoformat(),
-                            "current_temperature": row.current_temperature,
-                            "target_temperature": row.target_temperature,
-                            # Normalize state values to lowercase so frontend
-                            # comparisons (e.g., 'heating'/'cooling') work
-                            "state": row.state.lower() if isinstance(row.state, str) else row.state,
-                            "trvs": trvs,
-                        }
-                    )
-
-                return history_dict
-
-            def _load():
-                with engine.connect() as conn:
-                    return _collect_history_rows(conn, db_table)
-
-            self._history = await recorder.async_add_executor_job(_load)
-
-            # Normalize any state values loaded from the database to lowercase
-            for area_id, entries in self._history.items():
-                for entry in entries:
-                    if "state" in entry and isinstance(entry["state"], str):
-                        entry["state"] = entry["state"].lower()
-
-            # Load retention setting from JSON store
-            data = await self._store.async_load()
-            if data and "retention_days" in data:
-                self._retention_days = data["retention_days"]
+            # Load retention settings
+            await self._load_retention_settings()
 
             # Clean up old entries
             await self._async_cleanup_old_entries()
+
             _LOGGER.info(
                 "Loaded history for %d areas (retention: %d days, storage: Database)",
                 len(self._history),
@@ -457,6 +409,129 @@ class HistoryTracker:
             )
             self._storage_backend = HISTORY_STORAGE_JSON
             await self._async_load_from_json()
+
+    def _validate_database_prerequisites(self) -> tuple:
+        """Validate database prerequisites and return recorder and table.
+
+        Returns:
+            Tuple of (recorder, db_table)
+
+        Raises:
+            RuntimeError: If prerequisites are not met
+        """
+        recorder = get_instance(self.hass)
+        if not getattr(recorder, "engine", None):
+            raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
+        if self._db_table is None:
+            raise RuntimeError(DB_TABLE_NOT_INITIALIZED)
+        assert recorder.engine is not None
+        assert self._db_table is not None
+        return recorder, self._db_table
+
+    async def _load_history_from_db(self, recorder, engine, db_table) -> dict:
+        """Load history data from database.
+
+        Args:
+            recorder: Recorder instance
+            engine: Database engine
+            db_table: Database table object
+
+        Returns:
+            Dictionary of history data keyed by area_id
+        """
+
+        def _load():
+            with engine.connect() as conn:
+                return self._collect_history_rows(conn, db_table)
+
+        return await recorder.async_add_executor_job(_load)
+
+    def _collect_history_rows(self, conn, db_table) -> dict:
+        """Collect history rows from database connection.
+
+        Args:
+            conn: Database connection
+            db_table: Database table object
+
+        Returns:
+            Dictionary of history data keyed by area_id
+        """
+        stmt = select(db_table).order_by(db_table.c.timestamp.desc())
+        result = conn.execute(stmt)
+
+        history_dict = {}
+        for row in result:
+            self._add_row_to_history(history_dict, row)
+
+        return history_dict
+
+    def _add_row_to_history(self, history_dict: dict, row) -> None:
+        """Add a database row to the history dictionary.
+
+        Args:
+            history_dict: History dictionary to update
+            row: Database row to add
+        """
+        area_id = row.area_id
+        if area_id not in history_dict:
+            history_dict[area_id] = []
+
+        trvs = self._parse_trv_json(row.trvs)
+        state = self._normalize_state_value(row.state)
+
+        history_dict[area_id].append(
+            {
+                "timestamp": row.timestamp.isoformat(),
+                "current_temperature": row.current_temperature,
+                "target_temperature": row.target_temperature,
+                "state": state,
+                "trvs": trvs,
+            }
+        )
+
+    def _parse_trv_json(self, trvs_json: str) -> Any:
+        """Parse TRV JSON data.
+
+        Args:
+            trvs_json: JSON string to parse
+
+        Returns:
+            Parsed TRV data or None if parsing fails
+        """
+        if not trvs_json:
+            return None
+
+        try:
+            return json.loads(trvs_json)
+        except (json.JSONDecodeError, TypeError, ValueError) as err:
+            _LOGGER.debug("Failed to parse TRV JSON for row: %s", err)
+            return None
+
+    def _normalize_state_value(self, state: Any) -> Any:
+        """Normalize state value to lowercase.
+
+        Args:
+            state: State value to normalize
+
+        Returns:
+            Lowercase state if string, otherwise original value
+        """
+        if isinstance(state, str):
+            return state.lower()
+        return state
+
+    def _normalize_history_states(self) -> None:
+        """Normalize all state values in history to lowercase."""
+        for _area_id, entries in self._history.items():
+            for entry in entries:
+                if "state" in entry and isinstance(entry["state"], str):
+                    entry["state"] = entry["state"].lower()
+
+    async def _load_retention_settings(self) -> None:
+        """Load retention settings from JSON store."""
+        data = await self._store.async_load()
+        if data and "retention_days" in data:
+            self._retention_days = data["retention_days"]
 
     async def async_save(self) -> None:
         """Save history to storage."""

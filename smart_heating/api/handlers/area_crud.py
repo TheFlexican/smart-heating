@@ -26,6 +26,9 @@ async def handle_get_areas(hass: HomeAssistant, area_manager: AreaManager) -> we
     Returns:
         JSON response with HA areas
     """
+    # Minimal async operation to satisfy async requirement (awaited by callers)
+    await asyncio.sleep(0)
+
     area_registry = ar.async_get(hass)
     areas_data = [
         _build_area_data_for_registry(hass, area_manager, area)
