@@ -1,9 +1,8 @@
-import axios from 'axios'
+import { apiClient } from './client'
 import { Device } from '../types'
-const API_BASE = '/api/smart_heating'
 
 export const getDevices = async (): Promise<Device[]> => {
-  const response = await axios.get(`${API_BASE}/devices`)
+  const response = await apiClient.get('/devices')
   return response.data.devices
 }
 
@@ -13,12 +12,12 @@ export const refreshDevices = async (): Promise<{
   available: number
   message: string
 }> => {
-  const response = await axios.get(`${API_BASE}/devices/refresh`)
+  const response = await apiClient.get('/devices/refresh')
   return response.data
 }
 
 export const setHideDevicesPanel = async (hide: boolean): Promise<void> => {
-  await axios.post(`${API_BASE}/hide_devices_panel`, { hide_devices_panel: hide })
+  await apiClient.post('/hide_devices_panel', { hide_devices_panel: hide })
 }
 
 export default {}

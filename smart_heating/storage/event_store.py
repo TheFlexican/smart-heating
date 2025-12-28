@@ -24,12 +24,14 @@ from sqlalchemy import (
     delete,
     select,
 )
+from sqlalchemy.exc import SQLAlchemyError, OperationalError, DatabaseError
 
 from ..const import (
     EVENT_RETENTION_DAYS,
     EVENT_STORAGE_DATABASE,
     EVENT_STORAGE_JSON,
 )
+from ..exceptions import StorageError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -81,10 +83,12 @@ class EventStore:
                         # Initialize DB table synchronously for tests that expect it
                         try:
                             self._init_database_table()
-                        except Exception:
+                        except (SQLAlchemyError, RuntimeError) as err:
+                            _LOGGER.debug("DB table init failed: %s, using JSON storage", err)
                             self._storage_backend = EVENT_STORAGE_JSON
-            except Exception:
+            except (AttributeError, RuntimeError, SQLAlchemyError) as err:
                 # Keep JSON fallback if anything goes wrong during init
+                _LOGGER.debug("DB validation failed during init: %s, using JSON storage", err)
                 self._storage_backend = EVENT_STORAGE_JSON
 
     async def _async_validate_database_support(self) -> None:  # NOSONAR
@@ -136,7 +140,7 @@ class EventStore:
                 self._storage_backend = EVENT_STORAGE_JSON
                 self._db_validated = True
 
-        except Exception as e:  # pylint: disable=broad-except
+        except (AttributeError, RuntimeError, SQLAlchemyError) as e:
             _LOGGER.error(
                 "Error validating database support: %s, falling back to JSON",
                 e,
@@ -160,8 +164,8 @@ class EventStore:
                     # Attempt to enable database storage (helper handles errors)
                     try:
                         await self._attempt_enable_database(recorder)
-                    except Exception:  # pylint: disable=broad-except
-                        _LOGGER.exception("Error during deferred DB validation")
+                    except (AttributeError, RuntimeError, SQLAlchemyError) as err:
+                        _LOGGER.error("Error during deferred DB validation: %s", err, exc_info=True)
                         self._storage_backend = EVENT_STORAGE_JSON
                         self._db_validated = True
                     break
@@ -199,9 +203,9 @@ class EventStore:
                 if total and int(total) > 0:
                     self._storage_backend = EVENT_STORAGE_DATABASE
                     await self._async_load_from_database()
-            except Exception:
+            except (SQLAlchemyError, RuntimeError, ValueError) as err:
                 # Ignore; we'll remain on JSON if loading fails
-                pass
+                _LOGGER.debug("Failed to load from database during enable: %s", err)
 
             self._db_validated = True
             return
@@ -242,8 +246,10 @@ class EventStore:
 
             _LOGGER.info("Database table '%s' ready for event storage", DB_TABLE_NAME)
 
-        except Exception as e:
-            _LOGGER.error("Failed to initialize database table: %s, falling back to JSON", e)
+        except (SQLAlchemyError, RuntimeError, AttributeError) as e:
+            _LOGGER.error(
+                "Failed to initialize database table: %s, falling back to JSON", e, exc_info=True
+            )
             self._storage_backend = EVENT_STORAGE_JSON
             self._db_table = None
             self._db_engine = None
@@ -272,8 +278,9 @@ class EventStore:
                 else:
                     # No DB entries: fall back to JSON storage
                     await self._async_load_from_json()
-            except Exception:
+            except (SQLAlchemyError, RuntimeError, ValueError) as err:
                 # In case of any error querying DB, fall back to JSON
+                _LOGGER.warning("Failed to load from database: %s, using JSON", err)
                 await self._async_load_from_json()
         else:
             await self._async_load_from_json()
@@ -356,8 +363,8 @@ class EventStore:
                 self._retention_days,
             )
 
-        except Exception as e:
-            _LOGGER.error("Failed to load from database: %s", e)
+        except (SQLAlchemyError, RuntimeError, AttributeError, ValueError) as e:
+            _LOGGER.error("Failed to load from database: %s", e, exc_info=True)
             self._events = {}
 
     async def async_record_event(self, area_id: str, event_data: dict[str, Any]) -> None:
@@ -442,8 +449,10 @@ class EventStore:
 
             _LOGGER.debug("Recorded event for %s to database", area_id)
 
-        except Exception as e:
-            _LOGGER.error("Failed to record event to database: %s, falling back to JSON", e)
+        except (SQLAlchemyError, RuntimeError, AttributeError) as e:
+            _LOGGER.error(
+                "Failed to record event to database: %s, falling back to JSON", e, exc_info=True
+            )
             # Fallback to JSON
             await self._async_record_event_json(area_id, event_data)
 
@@ -533,8 +542,8 @@ class EventStore:
 
             return await recorder.async_add_executor_job(_query)
 
-        except Exception as e:
-            _LOGGER.error("Failed to query events from database: %s", e)
+        except (SQLAlchemyError, RuntimeError, AttributeError) as e:
+            _LOGGER.error("Failed to query events from database: %s", e, exc_info=True)
             return []
 
     async def async_get_event_count(self, area_id: str) -> int:
@@ -581,8 +590,8 @@ class EventStore:
 
             return await recorder.async_add_executor_job(_count)
 
-        except Exception as e:
-            _LOGGER.error("Failed to count events from database: %s", e)
+        except (SQLAlchemyError, RuntimeError, AttributeError) as e:
+            _LOGGER.error("Failed to count events from database: %s", e, exc_info=True)
             return 0
 
     async def async_get_database_stats(self) -> dict[str, Any]:
@@ -617,8 +626,8 @@ class EventStore:
 
             return await recorder.async_add_executor_job(_get_stats)
 
-        except Exception as e:
-            _LOGGER.error("Failed to get database stats: %s", e)
+        except (SQLAlchemyError, RuntimeError, AttributeError) as e:
+            _LOGGER.error("Failed to get database stats: %s", e, exc_info=True)
             return {"total_entries": 0}
 
     async def _async_save_to_json(self) -> None:
@@ -630,8 +639,9 @@ class EventStore:
                 "storage_backend": self._storage_backend,
             }
             await self._store.async_save(data)
-        except Exception as e:
-            _LOGGER.error("Failed to save events to JSON: %s", e)
+        except (OSError, ValueError, TypeError) as e:
+            _LOGGER.error("Failed to save events to JSON: %s", e, exc_info=True)
+            raise StorageError(f"Failed to save events to JSON storage: {e}") from e
 
     async def _async_cleanup_old_events(self) -> None:
         """Clean up events older than retention period."""
@@ -699,8 +709,8 @@ class EventStore:
                     if not self._events[area_id]:
                         del self._events[area_id]
 
-        except Exception as e:
-            _LOGGER.error("Failed to cleanup database: %s", e)
+        except (SQLAlchemyError, RuntimeError, AttributeError, ValueError) as e:
+            _LOGGER.error("Failed to cleanup database: %s", e, exc_info=True)
 
     async def _async_periodic_cleanup(self, now: datetime) -> None:
         """Periodic cleanup task.

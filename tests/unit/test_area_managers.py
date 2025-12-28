@@ -185,10 +185,10 @@ class TestAreaPresetManager:
 
         manager.set_boost_mode(duration=30, temp=25.0)
 
-        assert area.boost_mode_active is True
-        assert area.boost_duration == 30
-        assert area.boost_temp == 25.0
-        assert area.boost_end_time is not None
+        assert area.boost_manager.boost_mode_active is True
+        assert area.boost_manager.boost_duration == 30
+        assert area.boost_manager.boost_temp == 25.0
+        assert area.boost_manager.boost_end_time is not None
 
     def test_cancel_boost_mode(self):
         """Test cancelling boost mode."""
@@ -198,8 +198,8 @@ class TestAreaPresetManager:
         manager.set_boost_mode(duration=30, temp=25.0)
         manager.cancel_boost_mode()
 
-        assert area.boost_mode_active is False
-        assert area.boost_end_time is None
+        assert area.boost_manager.boost_mode_active is False
+        assert area.boost_manager.boost_end_time is None
 
     def test_check_boost_expiry_not_expired(self):
         """Test boost mode expiry check when not expired."""
@@ -210,7 +210,7 @@ class TestAreaPresetManager:
         expired = manager.check_boost_expiry()
 
         assert expired is False
-        assert area.boost_mode_active is True
+        assert area.boost_manager.boost_mode_active is True
 
     def test_check_boost_expiry_expired(self):
         """Test boost mode expiry check when expired."""
@@ -219,11 +219,11 @@ class TestAreaPresetManager:
 
         manager.set_boost_mode(duration=30, temp=25.0)
         # Manually set end time to past
-        area.boost_end_time = datetime.now() - timedelta(minutes=1)
+        area.boost_manager.boost_end_time = datetime.now() - timedelta(minutes=1)
         expired = manager.check_boost_expiry()
 
         assert expired is True
-        assert area.boost_mode_active is False
+        assert area.boost_manager.boost_mode_active is False
 
 
 class TestAreaScheduleManager:
@@ -266,46 +266,46 @@ class TestAreaScheduleManager:
     def test_is_in_time_period_simple(self):
         """Test time period check for simple period."""
         area = Area("test", "Test Area")
-        manager = AreaScheduleManager(area)
+        manager = area.boost_manager
 
         # Period: 08:00 - 18:00
         # Current time: 10:00
         current_time = datetime.now().replace(hour=10, minute=0)
-        result = manager.is_in_time_period(current_time, "08:00", "18:00")
+        result = manager._is_in_time_period(current_time, "08:00", "18:00")
 
         assert result is True
 
     def test_is_in_time_period_outside(self):
         """Test time period check outside period."""
         area = Area("test", "Test Area")
-        manager = AreaScheduleManager(area)
+        manager = area.boost_manager
 
         # Period: 08:00 - 18:00
         # Current time: 20:00
         current_time = datetime.now().replace(hour=20, minute=0)
-        result = manager.is_in_time_period(current_time, "08:00", "18:00")
+        result = manager._is_in_time_period(current_time, "08:00", "18:00")
 
         assert result is False
 
     def test_is_in_time_period_crossing_midnight(self):
         """Test time period check crossing midnight."""
         area = Area("test", "Test Area")
-        manager = AreaScheduleManager(area)
+        manager = area.boost_manager
 
         # Period: 22:00 - 06:00 (crosses midnight)
         # Current time: 02:00
         current_time = datetime.now().replace(hour=2, minute=0)
-        result = manager.is_in_time_period(current_time, "22:00", "06:00")
+        result = manager._is_in_time_period(current_time, "22:00", "06:00")
 
         assert result is True
 
     def test_apply_night_boost_active(self):
         """Test applying night boost when active."""
         area = Area("test", "Test Area")
-        area.night_boost_enabled = True
-        area.night_boost_offset = 1.0
-        area.night_boost_start_time = "04:00"
-        area.night_boost_end_time = "07:00"
+        area.boost_manager.night_boost_enabled = True
+        area.boost_manager.night_boost_offset = 1.0
+        area.boost_manager.night_boost_start_time = "04:00"
+        area.boost_manager.night_boost_end_time = "07:00"
         manager = AreaScheduleManager(area)
 
         # Current time: 05:00 (within boost period)
@@ -317,10 +317,10 @@ class TestAreaScheduleManager:
     def test_apply_night_boost_inactive(self):
         """Test applying night boost when inactive."""
         area = Area("test", "Test Area")
-        area.night_boost_enabled = True
-        area.night_boost_offset = 1.0
-        area.night_boost_start_time = "04:00"
-        area.night_boost_end_time = "07:00"
+        area.boost_manager.night_boost_enabled = True
+        area.boost_manager.night_boost_offset = 1.0
+        area.boost_manager.night_boost_start_time = "04:00"
+        area.boost_manager.night_boost_end_time = "07:00"
         manager = AreaScheduleManager(area)
 
         # Current time: 10:00 (outside boost period)
@@ -332,7 +332,7 @@ class TestAreaScheduleManager:
     def test_apply_night_boost_disabled(self):
         """Test applying night boost when disabled."""
         area = Area("test", "Test Area")
-        area.night_boost_enabled = False
+        area.boost_manager.night_boost_enabled = False
         manager = AreaScheduleManager(area)
 
         # Even if in boost period, should not apply

@@ -3,6 +3,7 @@
 import logging
 
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import HomeAssistantError
 
 from ..const import (
     ATTR_FROST_PROTECTION_ENABLED,
@@ -13,6 +14,7 @@ from ..const import (
 )
 from ..core.area_manager import AreaManager
 from ..core.coordinator import SmartHeatingCoordinator
+from ..exceptions import ConfigurationError, StorageError, ValidationError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -172,5 +174,5 @@ async def async_handle_set_history_retention(
         await history_tracker._async_cleanup_old_entries()
 
         _LOGGER.info("History retention set to %d days", days)
-    except Exception as err:
+    except (HomeAssistantError, ConfigurationError, ValidationError, StorageError) as err:
         _LOGGER.error("Failed to set history retention: %s", err)

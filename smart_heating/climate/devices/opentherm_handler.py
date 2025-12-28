@@ -1,8 +1,12 @@
 """OpenTherm gateway handler for boiler control."""
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING
 
+from homeassistant.exceptions import HomeAssistantError
+
+from ...exceptions import DeviceError
 from .base_device_handler import BaseDeviceHandler
 
 if TYPE_CHECKING:
@@ -53,7 +57,13 @@ class OpenThermHandler(BaseDeviceHandler):
             # Log modulation status
             self._log_modulation_status(gateway_id, opentherm_logger)
 
-        except Exception as err:
+        except (
+            HomeAssistantError,
+            DeviceError,
+            asyncio.TimeoutError,
+            AttributeError,
+            KeyError,
+        ) as err:
             _LOGGER.error("Failed to control OpenTherm gateway %s: %s", gateway_id, err)
 
     def _collect_heating_areas(self, opentherm_logger):
@@ -126,7 +136,7 @@ class OpenThermHandler(BaseDeviceHandler):
 
         try:
             boiler_temp = float(boiler_temp)
-        except Exception:
+        except (HomeAssistantError, DeviceError, asyncio.TimeoutError, AttributeError, KeyError):
             return boiler_setpoint
 
         if boiler_temp is None:
@@ -156,7 +166,13 @@ class OpenThermHandler(BaseDeviceHandler):
                     "opentherm_gw.set_control_setpoint",
                     {"domain": "opentherm_gw", "service": "set_control_setpoint", "data": payload},
                 )
-            except Exception:
+            except (
+                HomeAssistantError,
+                DeviceError,
+                asyncio.TimeoutError,
+                AttributeError,
+                KeyError,
+            ):
                 _LOGGER.debug("Failed to record sent opentherm setpoint for %s", gateway_device_id)
 
             await self.hass.services.async_call(
@@ -172,7 +188,13 @@ class OpenThermHandler(BaseDeviceHandler):
                     "opentherm_gw.set_control_setpoint",
                     {"result": "dispatched"},
                 )
-            except Exception:
+            except (
+                HomeAssistantError,
+                DeviceError,
+                asyncio.TimeoutError,
+                AttributeError,
+                KeyError,
+            ):
                 _LOGGER.debug(
                     "Failed to record received opentherm setpoint for %s", gateway_device_id
                 )
@@ -181,7 +203,13 @@ class OpenThermHandler(BaseDeviceHandler):
                 gateway_device_id,
                 temperature,
             )
-        except Exception as err:
+        except (
+            HomeAssistantError,
+            DeviceError,
+            asyncio.TimeoutError,
+            AttributeError,
+            KeyError,
+        ) as err:
             _LOGGER.error(
                 "Failed to set OpenTherm Gateway setpoint (gateway_id=%s): %s",
                 gateway_device_id,
@@ -319,7 +347,13 @@ class OpenThermHandler(BaseDeviceHandler):
                     "opentherm_gw.set_control_setpoint",
                     {"domain": "opentherm_gw", "service": "set_control_setpoint", "data": payload},
                 )
-            except Exception:
+            except (
+                HomeAssistantError,
+                DeviceError,
+                asyncio.TimeoutError,
+                AttributeError,
+                KeyError,
+            ):
                 _LOGGER.debug(
                     "Failed to record sent opentherm setpoint off for %s", gateway_device_id
                 )
@@ -337,7 +371,13 @@ class OpenThermHandler(BaseDeviceHandler):
                     "opentherm_gw.set_control_setpoint",
                     {"result": "dispatched"},
                 )
-            except Exception:
+            except (
+                HomeAssistantError,
+                DeviceError,
+                asyncio.TimeoutError,
+                AttributeError,
+                KeyError,
+            ):
                 _LOGGER.debug(
                     "Failed to record received opentherm setpoint off for %s", gateway_device_id
                 )
@@ -345,7 +385,13 @@ class OpenThermHandler(BaseDeviceHandler):
                 "OpenTherm gateway: Boiler OFF (setpoint=0 via service, gateway_id=%s)",
                 gateway_device_id,
             )
-        except Exception as err:
+        except (
+            HomeAssistantError,
+            DeviceError,
+            asyncio.TimeoutError,
+            AttributeError,
+            KeyError,
+        ) as err:
             _LOGGER.error(
                 "Failed to turn off OpenTherm Gateway (gateway_id=%s): %s",
                 gateway_device_id,

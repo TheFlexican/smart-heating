@@ -1,4 +1,5 @@
 import { Zone } from '../types'
+import { getAuthToken, apiClient } from '../api/client'
 
 export type TransportMode = 'websocket' | 'polling'
 
@@ -66,13 +67,10 @@ export class PollingTransport implements TransportAdapter {
 
   private async poll(): Promise<void> {
     try {
-      const response = await fetch('/api/smart_heating/areas')
+      // Use apiClient which includes auth headers
+      const response = await apiClient.get('/areas')
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const data = await response.json()
+      const data = response.data
 
       // Convert areas object to array if needed
       let areas: Zone[]
@@ -126,7 +124,8 @@ export class WebSocketTransport implements TransportAdapter {
           const message = JSON.parse(event.data)
 
           if (message.type === 'auth_required') {
-            const token = this.getAuthToken()
+            // Use shared getAuthToken from api/client
+            const token = getAuthToken()
             if (!token) {
               reject(new Error('No auth token available'))
               this.ws?.close()
@@ -219,44 +218,6 @@ export class WebSocketTransport implements TransportAdapter {
 
   isConnected(): boolean {
     return this.isAuthenticated && this.ws?.readyState === WebSocket.OPEN
-  }
-
-  private getAuthToken(): string | null {
-    // Try URL parameter
-    try {
-      const params = new URLSearchParams(window.location.search)
-      const urlToken = params.get('hassToken') || params.get('token')
-      if (urlToken) return urlToken
-    } catch {
-      // Ignore URL parsing errors
-    }
-
-    // Try parent window (iframe)
-    try {
-      if (window.parent && window.parent !== window) {
-        const parentConnection = (window.parent as any).hassConnection
-        if (parentConnection?.auth?.data?.access_token) {
-          return parentConnection.auth.data.access_token
-        }
-      }
-    } catch {
-      // Ignore iframe access errors
-    }
-
-    // Try localStorage
-    try {
-      const haTokens = localStorage.getItem('hassTokens')
-      if (haTokens) {
-        const tokens = JSON.parse(haTokens)
-        if (tokens.access_token) {
-          return tokens.access_token
-        }
-      }
-    } catch {
-      // Ignore localStorage access errors
-    }
-
-    return null
   }
 
   private startKeepalive(): void {

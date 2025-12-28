@@ -14,6 +14,11 @@ async def test_api_view_post_many_branches(hass, mock_area_manager):
     hass.data[DOMAIN]["user_manager"] = MagicMock()
     hass.data[DOMAIN]["comparison_engine"] = MagicMock()
 
+    # Create admin user for authentication
+    admin_user = MagicMock()
+    admin_user.is_admin = True
+    admin_user.id = "admin-test-user"
+
     api_view = SmartHeatingAPIView(hass, mock_area_manager)
 
     # Use ExitStack to apply all patches
@@ -103,6 +108,7 @@ async def test_api_view_post_many_branches(hass, mock_area_manager):
 
         for endpoint in endpoints_with_json:
             req = make_mocked_request("POST", f"/api/smart_heating/{endpoint}")
+            req["hass_user"] = admin_user
             req.json = AsyncMock(return_value={})
             resp = await api_view.post(req, endpoint)
             assert resp.status in (200, 400, 404, 500)

@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from homeassistant.core import HomeAssistant, ServiceCall
 from smart_heating.const import DOMAIN
+from smart_heating.exceptions import SmartHeatingError
 from smart_heating.services.safety_handlers import (
     async_handle_remove_safety_sensor,
     async_handle_set_safety_sensor,
@@ -118,7 +119,7 @@ class TestSafetyHandlers:
         call.data = {"sensor_id": "binary_sensor.smoke_detector"}
 
         # Make add_safety_sensor raise exception
-        mock_area_manager.add_safety_sensor.side_effect = Exception("Sensor error")
+        mock_area_manager.add_safety_sensor.side_effect = SmartHeatingError("Sensor error")
 
         # Should not raise, just log error
         await async_handle_set_safety_sensor(call, mock_hass, mock_area_manager, mock_coordinator)
@@ -173,7 +174,7 @@ class TestSafetyHandlers:
         call.data = {"sensor_id": "binary_sensor.smoke_detector"}
 
         # Make remove_safety_sensor raise exception
-        mock_area_manager.remove_safety_sensor.side_effect = Exception("Sensor not found")
+        mock_area_manager.remove_safety_sensor.side_effect = SmartHeatingError("Sensor not found")
 
         # Should not raise, just log error
         await async_handle_remove_safety_sensor(

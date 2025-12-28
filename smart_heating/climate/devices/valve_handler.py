@@ -1,12 +1,15 @@
 """Valve device handler for position and temperature control."""
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 from homeassistant.components.climate.const import DOMAIN as CLIMATE_DOMAIN
 from homeassistant.components.climate.const import SERVICE_SET_TEMPERATURE
 from homeassistant.const import ATTR_TEMPERATURE
+from homeassistant.exceptions import HomeAssistantError
 
+from ...exceptions import DeviceError
 from .base_device_handler import BaseDeviceHandler
 
 if TYPE_CHECKING:
@@ -108,8 +111,15 @@ class ValveHandler(BaseDeviceHandler):
                         valve_id,
                     )
 
-            except Exception as err:
-                _LOGGER.error("Failed to control valve %s: %s", valve_id, err)
+            except (HomeAssistantError, DeviceError) as err:
+                _LOGGER.error(
+                    "Failed to control valve %s: %s",
+                    valve_id,
+                    err,
+                    exc_info=True,
+                )
+            except asyncio.TimeoutError:
+                _LOGGER.error("Timeout controlling valve %s", valve_id, exc_info=True)
 
     async def _control_valve_by_position(
         self, valve_id: str, capabilities: dict, heating: bool
@@ -128,7 +138,7 @@ class ValveHandler(BaseDeviceHandler):
             try:
                 await self._set_valve_climate_position(valve_id, position)
                 _LOGGER.debug("Set valve %s position to %.0f%%", valve_id, position)
-            except Exception:
+            except (HomeAssistantError, DeviceError):
                 _LOGGER.debug(
                     "Valve %s doesn't support set_position, using temperature control",
                     valve_id,
@@ -176,8 +186,8 @@ class ValveHandler(BaseDeviceHandler):
                     "number.set_value",
                     {"domain": "number", "service": "set_value", "data": payload},
                 )
-            except Exception:
-                _LOGGER.debug("Failed to record sent number.set_value for %s", valve_id)
+            except (AttributeError, KeyError, TypeError, ValueError) as err:
+                _LOGGER.debug("Failed to record sent number.set_value for %s: %s", valve_id, err)
 
             await self.hass.services.async_call(
                 "number",
@@ -189,9 +199,11 @@ class ValveHandler(BaseDeviceHandler):
                 self._record_device_event(
                     valve_id, "received", "number.set_value", {"result": "dispatched"}
                 )
-            except Exception:
-                _LOGGER.debug("Failed to record received number.set_value for %s", valve_id)
-        except Exception as err:
+            except (AttributeError, KeyError, TypeError, ValueError) as err:
+                _LOGGER.debug(
+                    "Failed to record received number.set_value for %s: %s", valve_id, err
+                )
+        except (HomeAssistantError, asyncio.TimeoutError) as err:
             try:
                 self._record_device_event(
                     valve_id,
@@ -201,9 +213,14 @@ class ValveHandler(BaseDeviceHandler):
                     status="error",
                     error=str(err),
                 )
-            except Exception:
-                _LOGGER.debug("Failed to record error for number.set_value %s", valve_id)
-            _LOGGER.error("Failed to set valve number position %s: %s", valve_id, err)
+            except (AttributeError, KeyError, TypeError, ValueError) as record_err:
+                _LOGGER.debug(
+                    "Failed to record error for number.set_value %s: %s", valve_id, record_err
+                )
+            _LOGGER.error(
+                "Failed to set valve number position %s: %s", valve_id, err, exc_info=True
+            )
+            raise DeviceError(f"Failed to set valve {valve_id} position: {err}") from err
 
     async def _set_valve_climate_position(self, valve_id: str, position: float) -> None:
         try:
@@ -215,8 +232,10 @@ class ValveHandler(BaseDeviceHandler):
                     "climate.set_position",
                     {"domain": CLIMATE_DOMAIN, "service": "set_position", "data": payload},
                 )
-            except Exception:
-                _LOGGER.debug("Failed to record sent climate.set_position for %s", valve_id)
+            except (AttributeError, KeyError, TypeError, ValueError) as err:
+                _LOGGER.debug(
+                    "Failed to record sent climate.set_position for %s: %s", valve_id, err
+                )
 
             await self.hass.services.async_call(
                 CLIMATE_DOMAIN,
@@ -228,9 +247,11 @@ class ValveHandler(BaseDeviceHandler):
                 self._record_device_event(
                     valve_id, "received", "climate.set_position", {"result": "dispatched"}
                 )
-            except Exception:
-                _LOGGER.debug("Failed to record received climate.set_position for %s", valve_id)
-        except Exception as err:
+            except (AttributeError, KeyError, TypeError, ValueError) as err:
+                _LOGGER.debug(
+                    "Failed to record received climate.set_position for %s: %s", valve_id, err
+                )
+        except (HomeAssistantError, asyncio.TimeoutError) as err:
             try:
                 self._record_device_event(
                     valve_id,
@@ -240,11 +261,15 @@ class ValveHandler(BaseDeviceHandler):
                     status="error",
                     error=str(err),
                 )
-            except Exception:
-                _LOGGER.debug("Failed to record error for climate.set_position %s", valve_id)
-            _LOGGER.error("Failed to set valve climate position %s: %s", valve_id, err)
+            except (AttributeError, KeyError, TypeError, ValueError) as record_err:
+                _LOGGER.debug(
+                    "Failed to record error for climate.set_position %s: %s", valve_id, record_err
+                )
+            _LOGGER.error(
+                "Failed to set valve climate position %s: %s", valve_id, err, exc_info=True
+            )
             # Re-raise so callers (which may attempt fallback) can detect failure
-            raise
+            raise DeviceError(f"Failed to set valve {valve_id} climate position: {err}") from err
 
     async def _set_valve_temperature(self, valve_id: str, temperature: float) -> None:
         try:
@@ -256,8 +281,8 @@ class ValveHandler(BaseDeviceHandler):
                     "climate.set_temperature",
                     {"domain": CLIMATE_DOMAIN, "service": SERVICE_SET_TEMPERATURE, "data": payload},
                 )
-            except Exception:
-                _LOGGER.debug("Failed to record sent set_temperature for %s", valve_id)
+            except (AttributeError, KeyError, TypeError, ValueError) as err:
+                _LOGGER.debug("Failed to record sent set_temperature for %s: %s", valve_id, err)
 
             await self.hass.services.async_call(
                 CLIMATE_DOMAIN,
@@ -269,9 +294,9 @@ class ValveHandler(BaseDeviceHandler):
                 self._record_device_event(
                     valve_id, "received", "climate.set_temperature", {"result": "dispatched"}
                 )
-            except Exception:
-                _LOGGER.debug("Failed to record received set_temperature for %s", valve_id)
-        except Exception as err:
+            except (AttributeError, KeyError, TypeError, ValueError) as err:
+                _LOGGER.debug("Failed to record received set_temperature for %s: %s", valve_id, err)
+        except (HomeAssistantError, asyncio.TimeoutError) as err:
             try:
                 self._record_device_event(
                     valve_id,
@@ -281,9 +306,12 @@ class ValveHandler(BaseDeviceHandler):
                     status="error",
                     error=str(err),
                 )
-            except Exception:
-                _LOGGER.debug("Failed to record error for set_temperature %s", valve_id)
-            _LOGGER.error("Failed to set valve temperature %s: %s", valve_id, err)
+            except (AttributeError, KeyError, TypeError, ValueError) as record_err:
+                _LOGGER.debug(
+                    "Failed to record error for set_temperature %s: %s", valve_id, record_err
+                )
+            _LOGGER.error("Failed to set valve temperature %s: %s", valve_id, err, exc_info=True)
+            raise DeviceError(f"Failed to set valve {valve_id} temperature: {err}") from err
 
     async def async_set_valves_to_off(self, area: "Area", off_temperature: float = 0.0) -> None:
         """Set all valves in an area to an "off" state.
@@ -308,8 +336,12 @@ class ValveHandler(BaseDeviceHandler):
                         # climate with position attribute
                         try:
                             await self._set_valve_climate_position(valve_id, position)
-                        except Exception:
+                        except DeviceError:
                             # Fallback to temperature control
+                            _LOGGER.debug(
+                                "Climate position failed for %s, falling back to temperature control",
+                                valve_id,
+                            )
                             await self._set_valve_temperature(valve_id, off_temperature)
 
                 elif caps.get("supports_temperature"):
@@ -320,5 +352,12 @@ class ValveHandler(BaseDeviceHandler):
                         "Valve %s doesn't support position or temperature control - cannot reliably turn off",
                         valve_id,
                     )
-            except Exception as err:
-                _LOGGER.error("Failed to set valve %s to off: %s", valve_id, err)
+            except (HomeAssistantError, DeviceError) as err:
+                _LOGGER.error(
+                    "Failed to set valve %s to off: %s",
+                    valve_id,
+                    err,
+                    exc_info=True,
+                )
+            except asyncio.TimeoutError:
+                _LOGGER.error("Timeout setting valve %s to off", valve_id, exc_info=True)

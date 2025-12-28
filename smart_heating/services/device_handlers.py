@@ -3,10 +3,12 @@
 import logging
 
 from homeassistant.core import ServiceCall
+from homeassistant.exceptions import HomeAssistantError
 
 from ..const import ATTR_AREA_ID, ATTR_DEVICE_ID, ATTR_DEVICE_TYPE, DOMAIN
 from ..core.area_manager import AreaManager
 from ..core.coordinator import SmartHeatingCoordinator
+from ..exceptions import DeviceError, ValidationError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,7 +40,7 @@ async def async_handle_add_device(
                 try:
                     await capability_detector.discover_and_cache(device_id)
                     _LOGGER.info("Discovered capabilities for device %s", device_id)
-                except Exception as err:
+                except (HomeAssistantError, DeviceError, ValidationError) as err:
                     _LOGGER.warning("Failed to discover capabilities for %s: %s", device_id, err)
 
         await area_manager.async_save()

@@ -12,6 +12,7 @@ import PersonIcon from '@mui/icons-material/Person'
 import { TFunction } from 'i18next'
 import { Zone } from '../../types'
 import { SettingSection } from '../DraggableSettings'
+import { setAutoPreset } from '../../api/areas'
 
 export const AutoPresetSection = ({
   area,
@@ -44,12 +45,8 @@ export const AutoPresetSection = ({
           checked={area.auto_preset_enabled ?? false}
           onChange={async e => {
             try {
-              await fetch(`/api/smart_heating/areas/${area.id}/auto_preset`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  auto_preset_enabled: e.target.checked,
-                }),
+              await setAutoPreset(area.id, {
+                auto_preset_enabled: e.target.checked,
               })
               onUpdate()
             } catch (error) {
@@ -71,12 +68,8 @@ export const AutoPresetSection = ({
                 label={t('settingsCards.presetWhenHome')}
                 onChange={async e => {
                   try {
-                    await fetch(`/api/smart_heating/areas/${area.id}/auto_preset`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        auto_preset_home: e.target.value,
-                      }),
+                    await setAutoPreset(area.id, {
+                      auto_preset_home: e.target.value as string,
                     })
                     onUpdate()
                   } catch (error) {
@@ -96,12 +89,8 @@ export const AutoPresetSection = ({
                 label={t('settingsCards.presetWhenAway')}
                 onChange={async e => {
                   try {
-                    await fetch(`/api/smart_heating/areas/${area.id}/auto_preset`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        auto_preset_away: e.target.value,
-                      }),
+                    await setAutoPreset(area.id, {
+                      auto_preset_away: e.target.value as string,
                     })
                     onUpdate()
                   } catch (error) {
@@ -119,12 +108,6 @@ export const AutoPresetSection = ({
       {!area.auto_preset_enabled && (
         <Alert severity="warning">{t('settingsCards.autoPresetDisabled')}</Alert>
       )}
-      {(!area.presence_sensors || area.presence_sensors.length === 0) &&
-        !area.use_global_presence && (
-          <Alert severity="warning" sx={{ mt: 2 }}>
-            {t('settingsCards.autoPresetNeedsSensors')}
-          </Alert>
-        )}
     </>
   ),
 })

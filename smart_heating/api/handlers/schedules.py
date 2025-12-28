@@ -5,14 +5,19 @@ import uuid
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import area_registry as ar
 
 from ...const import DOMAIN
 from ...core.area_manager import AreaManager
+from ...exceptions import SmartHeatingError
 from ...models import Area, Schedule
 from ...utils import get_coordinator, validate_area_id, validate_temperature
 
 _LOGGER = logging.getLogger(__name__)
+
+ERROR_INTERNAL = "Internal server error"
+MISSING_TIME = "Missing required field: time or start_time"
 
 
 async def handle_add_schedule(
@@ -59,8 +64,7 @@ async def handle_add_schedule(
             if ha_area:
                 # Create internal storage for this HA area
                 area = Area(area_id, ha_area.name)
-                area.area_manager = area_manager
-                area_manager.areas[area_id] = area
+                area_manager.add_area(area)
             else:
                 return web.json_response({"error": f"Area {area_id} not found"}, status=404)
 
@@ -68,9 +72,7 @@ async def handle_add_schedule(
         # Validate required fields - accept either 'time' or 'start_time'
         time_str = data.get("time") or data.get("start_time")
         if not time_str:
-            return web.json_response(
-                {"error": "Missing required field: time or start_time"}, status=400
-            )
+            return web.json_response({"error": MISSING_TIME}, status=400)
 
         schedule = Schedule(
             schedule_id=schedule_id,
@@ -116,13 +118,19 @@ async def handle_remove_schedule(
         await area_manager.async_save()
 
         # Clear the schedule cache so the scheduler re-evaluates immediately
-        schedule_executor = hass.data[DOMAIN].get("schedule_executor")
+        schedule_executor = hass.data.get(DOMAIN, {}).get("schedule_executor")
         if schedule_executor:
-            schedule_executor.clear_schedule_cache(area_id)
+            try:
+                schedule_executor.clear_schedule_cache(area_id)
+            except (HomeAssistantError, ScheduleError, ValidationError, KeyError):
+                _LOGGER.exception("Failed to clear schedule cache for area %s", area_id)
 
         return web.json_response({"success": True})
     except ValueError as err:
         return web.json_response({"error": str(err)}, status=404)
+    except (HomeAssistantError, ScheduleError, ValidationError, KeyError) as err:
+        _LOGGER.exception("Error removing schedule %s from %s", schedule_id, area_id)
+        return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
 
 
 async def handle_update_schedule(
@@ -163,7 +171,8 @@ async def handle_update_schedule(
             existing[k] = v
 
         # If days was provided and is an empty list, treat that as a full deletion request
-        if "days" in data and isinstance(data.get("days"), list) and len(data.get("days")) == 0:
+        days_val = data.get("days")
+        if "days" in data and isinstance(days_val, list) and len(days_val) == 0:
             area.remove_schedule(schedule_id)
             await area_manager.async_save()
             return web.json_response({"success": True, "deleted": True})
@@ -187,6 +196,9 @@ async def handle_update_schedule(
         return web.json_response({"success": True, "schedule": updated.to_dict()})
     except ValueError as err:
         return web.json_response({"error": str(err)}, status=400)
+    except (HomeAssistantError, ScheduleError, ValidationError, KeyError) as err:
+        _LOGGER.exception("Error updating schedule %s in %s", schedule_id, area_id)
+        return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
 
 
 async def handle_set_preset_mode(
@@ -304,7 +316,7 @@ async def handle_set_boost_mode(
                 "success": True,
                 "boost_active": True,
                 "duration": duration,
-                "temperature": area.boost_temp,
+                "temperature": area.boost_manager.boost_temp,
             }
         )
     except ValueError as err:

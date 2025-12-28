@@ -287,7 +287,7 @@ class TestDeviceHandlers:
         """Test refreshing devices with error."""
         with patch(
             "smart_heating.api.handlers.devices._discover_devices",
-            side_effect=Exception("Discovery failed"),
+            side_effect=KeyError("Discovery failed"),
         ):
             response = await handle_refresh_devices(mock_hass, mock_area_manager)
 
@@ -363,9 +363,20 @@ class TestDeviceHandlers:
     async def test_handle_add_device_creates_area(self, mock_hass, mock_area_registry):
         """Test adding device auto-creates area if it exists in HA."""
         area_manager = MagicMock()
-        area_manager.get_area.return_value = None  # Area doesn't exist in storage
         area_manager.areas = {}
         area_manager.async_save = AsyncMock()
+
+        # Mock add_area to add to the areas dict
+        def mock_add_area(area):
+            area_manager.areas[area.area_id] = area
+
+        area_manager.add_area.side_effect = mock_add_area
+
+        # After creating area, make it available via get_area
+        def get_area_side_effect(area_id):
+            return area_manager.areas.get(area_id)
+
+        area_manager.get_area.side_effect = get_area_side_effect
 
         data = {"device_id": "climate.heater", "device_type": "climate"}
 
@@ -377,6 +388,7 @@ class TestDeviceHandlers:
             patch("smart_heating.api.handlers.devices.Area") as mock_area_class,
         ):
             mock_new_area = MagicMock()
+            mock_new_area.area_id = "living_room"
             mock_area_class.return_value = mock_new_area
 
             response = await handle_add_device(mock_hass, area_manager, "living_room", data)
@@ -384,7 +396,7 @@ class TestDeviceHandlers:
             assert response.status == 200
             # Verify area was created
             mock_area_class.assert_called_once_with("living_room", "Living Room")
-            assert "living_room" in area_manager.areas
+            area_manager.add_area.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_handle_add_device_value_error(self, mock_hass, mock_area_manager):

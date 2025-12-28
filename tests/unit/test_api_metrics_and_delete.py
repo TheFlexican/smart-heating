@@ -55,6 +55,12 @@ async def test_metrics_advanced_valid(hass, mock_area_manager):
 @pytest.mark.asyncio
 async def test_delete_vacation_and_safety_sensor(hass, mock_area_manager):
     hass.data.setdefault(DOMAIN, {})
+
+    # Create admin user for authentication
+    admin_user = MagicMock()
+    admin_user.is_admin = True
+    admin_user.id = "admin-test-user"
+
     api_view = SmartHeatingAPIView(hass, mock_area_manager)
 
     # Patch handlers
@@ -70,15 +76,18 @@ async def test_delete_vacation_and_safety_sensor(hass, mock_area_manager):
     ):
         # Delete vacation mode
         req = make_mocked_request("DELETE", "/api/smart_heating/vacation_mode")
+        req["hass_user"] = admin_user
         resp = await api_view.delete(req, "vacation_mode")
         assert resp.status == 200
 
         # Safety sensor missing sensor_id -> 400
         req = make_mocked_request("DELETE", "/api/smart_heating/safety_sensor")
+        req["hass_user"] = admin_user
         resp = await api_view.delete(req, "safety_sensor")
         assert resp.status == 400
 
         # Safety sensor with query param provided
         req = make_mocked_request("DELETE", "/api/smart_heating/safety_sensor?sensor_id=sensor_1")
+        req["hass_user"] = admin_user
         resp = await api_view.delete(req, "safety_sensor")
         assert resp.status == 200

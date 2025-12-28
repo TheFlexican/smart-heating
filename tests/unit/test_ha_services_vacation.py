@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from homeassistant.core import HomeAssistant, ServiceCall
 from smart_heating.const import DOMAIN
+from smart_heating.exceptions import SmartHeatingError
 from smart_heating.services.vacation_handlers import (
     async_handle_disable_vacation_mode,
     async_handle_enable_vacation_mode,
@@ -124,7 +125,7 @@ class TestVacationHandlers:
         }
 
         # Make async_enable raise exception
-        mock_vacation_manager.async_enable.side_effect = Exception("Enable failed")
+        mock_vacation_manager.async_enable.side_effect = SmartHeatingError("Enable failed")
 
         # Should not raise, just log error
         await async_handle_enable_vacation_mode(call, mock_hass, mock_coordinator)
@@ -165,7 +166,7 @@ class TestVacationHandlers:
         call.data = {}
 
         # Make async_disable raise exception
-        mock_vacation_manager.async_disable.side_effect = Exception("Disable failed")
+        mock_vacation_manager.async_disable.side_effect = SmartHeatingError("Disable failed")
 
         # Should not raise, just log error
         await async_handle_disable_vacation_mode(call, mock_hass, mock_coordinator)

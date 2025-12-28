@@ -164,7 +164,7 @@ async def async_handle_force_thermostat_update(
     for thermostat_id in thermostats:
         try:
             await _force_single_thermostat(hass, thermostat_id, area_id, target_temp, hvac_mode)
-        except Exception as err:
+        except (HomeAssistantError, SmartHeatingError, RuntimeError) as err:
             _LOGGER.exception(
                 "Diagnostic: Error while forcing thermostat %s: %s", thermostat_id, err
             )

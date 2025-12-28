@@ -201,7 +201,7 @@ class DeviceControlHandler:
 
     def _parse_hysteresis(self, area):
         """Parse hysteresis value from area (delegated to thermostat handler)."""
-        return self.thermostat_handler._parse_hysteresis(area)
+        return self.thermostat_handler.temperature_setter._parse_hysteresis(area)
 
     async def _handle_thermostat_idle(self, area, thermostat_id: str, target_temp: float):
         """Handle thermostat idle state (delegated to thermostat handler)."""
@@ -224,12 +224,14 @@ class DeviceControlHandler:
         )
 
     async def _async_ensure_climate_power_on(self, climate_entity_id: str):
-        """Ensure climate power is on (delegated to thermostat handler)."""
-        await self.thermostat_handler._async_ensure_climate_power_on(climate_entity_id)
+        """Ensure climate power is on (delegated to thermostat handler's power switch manager)."""
+        await self.thermostat_handler.power_switch_manager.ensure_climate_power_on(
+            climate_entity_id
+        )
 
     async def _async_turn_off_climate_power(self, climate_entity_id: str):
-        """Turn off climate power (delegated to thermostat handler)."""
-        await self.thermostat_handler._async_turn_off_climate_power(climate_entity_id)
+        """Turn off climate power (delegated to thermostat handler's power switch manager)."""
+        await self.thermostat_handler.power_switch_manager.turn_off_climate_power(climate_entity_id)
 
     def _collect_heating_areas(self, opentherm_logger):
         """Collect heating areas (delegated to opentherm handler)."""

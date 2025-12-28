@@ -1,5 +1,6 @@
 """Area-specific logging for Smart Heating development."""
 
+import asyncio
 import json
 import logging
 from datetime import datetime
@@ -7,6 +8,9 @@ from pathlib import Path
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+
+from .exceptions import StorageError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,7 +99,7 @@ class AreaLogger:
             task = self._hass.async_create_task(self._async_write_log(area_id, event_type, entry))
             self._write_tasks.add(task)
             task.add_done_callback(lambda fut: self._write_tasks.discard(fut))
-        except Exception:
+        except (HomeAssistantError, StorageError, OSError, asyncio.TimeoutError):
             # If task scheduling is patched or fails in tests, ignore
             pass
 
@@ -122,7 +126,7 @@ class AreaLogger:
             try:
                 with open(log_file, "a", encoding="utf-8") as f:
                     f.write(json.dumps(entry) + "\n")
-            except Exception as err:
+            except (HomeAssistantError, StorageError, OSError, asyncio.TimeoutError) as err:
                 _LOGGER.error("Failed to write log for area %s: %s", area_id, err)
 
         # Run file I/O in executor to avoid blocking
@@ -155,7 +159,7 @@ class AreaLogger:
 
                     _LOGGER.debug("Rotated log file %s", log_file)
 
-            except Exception as err:
+            except (HomeAssistantError, StorageError, OSError, asyncio.TimeoutError) as err:
                 _LOGGER.error("Failed to rotate log file %s: %s", log_file, err)
 
         # Run rotation in executor to avoid blocking
@@ -219,7 +223,7 @@ class AreaLogger:
                             logs.append(json.loads(line.strip()))
                         except json.JSONDecodeError:
                             continue
-            except Exception as err:
+            except (HomeAssistantError, StorageError, OSError, asyncio.TimeoutError) as err:
                 _LOGGER.error("Failed to read log file %s: %s", log_file, err)
             return logs
 
@@ -232,11 +236,11 @@ class AreaLogger:
             for t in self._write_tasks:
                 try:
                     t.cancel()
-                except Exception:
+                except (HomeAssistantError, StorageError, OSError, asyncio.TimeoutError):
                     pass
             self._write_tasks.clear()
             await self._hass.async_block_till_done()
-        except Exception:
+        except (HomeAssistantError, StorageError, OSError, asyncio.TimeoutError):
             pass
 
     def clear_logs(self, area_id: str, event_type: str | None = None) -> None:

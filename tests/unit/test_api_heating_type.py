@@ -183,7 +183,7 @@ class TestHandleSetHeatingType:
         data = {"heating_type": "floor_heating"}
 
         with patch(
-            "smart_heating.api.handlers.areas.get_coordinator",
+            "smart_heating.api.handlers.area_settings.get_coordinator",
             return_value=mock_coordinator,
         ):
             response = await handle_set_heating_type(

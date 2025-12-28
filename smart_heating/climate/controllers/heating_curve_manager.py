@@ -37,7 +37,9 @@ def compute_area_candidate(
         return None
 
     # Get outside temperature using centralized helper
-    outside_temp = get_outdoor_temperature_from_weather_entity(hass, area.weather_entity_id)
+    outside_temp = get_outdoor_temperature_from_weather_entity(
+        hass, area.boost_manager.weather_entity_id
+    )
 
     # Default candidate: max target + overhead
     candidate = area.target_temperature + overhead

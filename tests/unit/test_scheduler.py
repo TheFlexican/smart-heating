@@ -53,8 +53,8 @@ def mock_area_with_schedule(mock_area_data):
     area.current_temperature = 18.0
     area.manual_override = False
     area.schedules = {}
-    area.smart_boost_enabled = False
-    area.weather_entity_id = None
+    area.boost_manager.smart_boost_enabled = False
+    area.boost_manager.weather_entity_id = None
     return area
 
 
@@ -445,7 +445,7 @@ class TestSmartNightBoost:
         self, scheduler: ScheduleExecutor, mock_area_with_schedule, hass: HomeAssistant
     ):
         """Test getting outdoor temperature from weather entity."""
-        mock_area_with_schedule.weather_entity_id = "weather.home"
+        mock_area_with_schedule.boost_manager.weather_entity_id = "weather.home"
 
         # Mock weather state
         hass.states.async_set("weather.home", "20.5", {"unit_of_measurement": "°C"})
@@ -458,7 +458,7 @@ class TestSmartNightBoost:
         self, scheduler: ScheduleExecutor, mock_area_with_schedule, hass: HomeAssistant
     ):
         """Test converting Fahrenheit to Celsius."""
-        mock_area_with_schedule.weather_entity_id = "weather.home"
+        mock_area_with_schedule.boost_manager.weather_entity_id = "weather.home"
 
         # 68°F = 20°C
         hass.states.async_set("weather.home", "68", {"unit_of_measurement": "°F"})
@@ -471,8 +471,8 @@ class TestSmartNightBoost:
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test smart night boost with no config returns early."""
-        mock_area_with_schedule.smart_boost_enabled = True
-        mock_area_with_schedule.smart_boost_target_time = None
+        mock_area_with_schedule.boost_manager.smart_boost_enabled = True
+        mock_area_with_schedule.boost_manager.smart_boost_target_time = None
         mock_area_with_schedule.schedules = {}
 
         now = datetime(2024, 1, 1, 6, 0)
@@ -515,8 +515,8 @@ class TestSmartNightBoostEdgeCases:
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test smart night boost when area has no current temperature."""
-        mock_area_with_schedule.smart_boost_enabled = True
-        mock_area_with_schedule.smart_boost_target_time = "07:00"
+        mock_area_with_schedule.boost_manager.smart_boost_enabled = True
+        mock_area_with_schedule.boost_manager.smart_boost_target_time = "07:00"
         mock_area_with_schedule.current_temperature = None
         mock_area_with_schedule.schedules = {}
 
@@ -529,8 +529,8 @@ class TestSmartNightBoostEdgeCases:
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test smart night boost when target time has already passed today."""
-        mock_area_with_schedule.smart_boost_enabled = True
-        mock_area_with_schedule.smart_boost_target_time = "07:00"
+        mock_area_with_schedule.boost_manager.smart_boost_enabled = True
+        mock_area_with_schedule.boost_manager.smart_boost_target_time = "07:00"
         mock_area_with_schedule.current_temperature = 18.0
         mock_area_with_schedule.target_temperature = 21.0
         # Add a schedule so smart boost will work (it requires schedules)
@@ -540,15 +540,13 @@ class TestSmartNightBoostEdgeCases:
         mock_schedule.start_time = "07:00"
         mock_schedule.temperature = 21.0
         mock_area_with_schedule.schedules = {"schedule1": mock_schedule}
-        mock_area_with_schedule.weather_entity_id = None
+        mock_area_with_schedule.boost_manager.weather_entity_id = None
         # Add runtime state
-        mock_area_with_schedule.smart_boost_active = False
-        mock_area_with_schedule.smart_boost_original_target = None
+        mock_area_with_schedule.boost_manager.smart_boost_active = False
+        mock_area_with_schedule.boost_manager.smart_boost_original_target = None
         # Mock schedule manager to return None for active schedule (not in active schedule period)
-        mock_area_with_schedule._schedule_manager = MagicMock()
-        mock_area_with_schedule._schedule_manager.get_active_schedule_temperature.return_value = (
-            None
-        )
+        mock_area_with_schedule.schedule_manager = MagicMock()
+        mock_area_with_schedule.schedule_manager.get_active_schedule_temperature.return_value = None
 
         # Current time is after target (8 AM > 7 AM)
         now = datetime(2024, 1, 1, 8, 0)
@@ -563,8 +561,8 @@ class TestSmartNightBoostEdgeCases:
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test smart night boost when learning engine returns None."""
-        mock_area_with_schedule.smart_boost_enabled = True
-        mock_area_with_schedule.smart_boost_target_time = "07:00"
+        mock_area_with_schedule.boost_manager.smart_boost_enabled = True
+        mock_area_with_schedule.boost_manager.smart_boost_target_time = "07:00"
         mock_area_with_schedule.current_temperature = 18.0
         mock_area_with_schedule.target_temperature = 21.0
         # Add a schedule so smart boost will work (it requires schedules)
@@ -574,15 +572,13 @@ class TestSmartNightBoostEdgeCases:
         mock_schedule.start_time = "07:00"
         mock_schedule.temperature = 21.0
         mock_area_with_schedule.schedules = {"schedule1": mock_schedule}
-        mock_area_with_schedule.weather_entity_id = None
+        mock_area_with_schedule.boost_manager.weather_entity_id = None
         # Add runtime state
-        mock_area_with_schedule.smart_boost_active = False
-        mock_area_with_schedule.smart_boost_original_target = None
+        mock_area_with_schedule.boost_manager.smart_boost_active = False
+        mock_area_with_schedule.boost_manager.smart_boost_original_target = None
         # Mock schedule manager to return None for active schedule
-        mock_area_with_schedule._schedule_manager = MagicMock()
-        mock_area_with_schedule._schedule_manager.get_active_schedule_temperature.return_value = (
-            None
-        )
+        mock_area_with_schedule.schedule_manager = MagicMock()
+        mock_area_with_schedule.schedule_manager.get_active_schedule_temperature.return_value = None
 
         # Learning engine returns None (no prediction available)
         scheduler_with_learning.learning_engine.async_predict_heating_time = AsyncMock(
@@ -598,12 +594,12 @@ class TestSmartNightBoostEdgeCases:
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test smart night boost when current time is in optimal heating window."""
-        mock_area_with_schedule.smart_boost_enabled = True
-        mock_area_with_schedule.smart_boost_target_time = "07:00"
+        mock_area_with_schedule.boost_manager.smart_boost_enabled = True
+        mock_area_with_schedule.boost_manager.smart_boost_target_time = "07:00"
         mock_area_with_schedule.current_temperature = 18.0
         mock_area_with_schedule.target_temperature = 21.0
         mock_area_with_schedule.schedules = {}
-        mock_area_with_schedule.weather_entity_id = None
+        mock_area_with_schedule.boost_manager.weather_entity_id = None
 
         # Learning engine predicts 30 minutes heating time
         scheduler_with_learning.learning_engine.async_predict_heating_time = AsyncMock(
@@ -620,12 +616,12 @@ class TestSmartNightBoostEdgeCases:
         self, scheduler_with_learning: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test smart night boost when current time is before optimal heating window."""
-        mock_area_with_schedule.smart_boost_enabled = True
-        mock_area_with_schedule.smart_boost_target_time = "07:00"
+        mock_area_with_schedule.boost_manager.smart_boost_enabled = True
+        mock_area_with_schedule.boost_manager.smart_boost_target_time = "07:00"
         mock_area_with_schedule.current_temperature = 18.0
         mock_area_with_schedule.target_temperature = 21.0
         mock_area_with_schedule.schedules = {}
-        mock_area_with_schedule.weather_entity_id = None
+        mock_area_with_schedule.boost_manager.weather_entity_id = None
 
         # Learning engine predicts 30 minutes heating time
         scheduler_with_learning.learning_engine.async_predict_heating_time = AsyncMock(
@@ -727,7 +723,7 @@ class TestSmartNightBoostEdgeCases:
         self, scheduler: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test getting target time from config returns None when not configured."""
-        mock_area_with_schedule.smart_boost_target_time = None
+        mock_area_with_schedule.boost_manager.smart_boost_target_time = None
 
         now = datetime(2024, 1, 1, 6, 0)
 
@@ -739,7 +735,7 @@ class TestSmartNightBoostEdgeCases:
         self, scheduler: ScheduleExecutor, mock_area_with_schedule
     ):
         """Test getting target time from config returns proper datetime."""
-        mock_area_with_schedule.smart_boost_target_time = "07:30"
+        mock_area_with_schedule.boost_manager.smart_boost_target_time = "07:30"
 
         now = datetime(2024, 1, 1, 6, 0)
 
@@ -757,7 +753,7 @@ class TestGetOutdoorTemperatureEdgeCases:
         self, scheduler: ScheduleExecutor, hass: HomeAssistant, mock_area_with_schedule
     ):
         """Test getting outdoor temp when no weather entity configured."""
-        mock_area_with_schedule.weather_entity_id = None
+        mock_area_with_schedule.boost_manager.weather_entity_id = None
 
         temp = scheduler._get_outdoor_temperature(mock_area_with_schedule)
 
@@ -767,7 +763,7 @@ class TestGetOutdoorTemperatureEdgeCases:
         self, scheduler: ScheduleExecutor, hass: HomeAssistant, mock_area_with_schedule
     ):
         """Test getting outdoor temp when weather entity is unknown."""
-        mock_area_with_schedule.weather_entity_id = "weather.home"
+        mock_area_with_schedule.boost_manager.weather_entity_id = "weather.home"
         hass.states.async_set("weather.home", "unknown", {})
 
         temp = scheduler._get_outdoor_temperature(mock_area_with_schedule)
@@ -778,7 +774,7 @@ class TestGetOutdoorTemperatureEdgeCases:
         self, scheduler: ScheduleExecutor, hass: HomeAssistant, mock_area_with_schedule
     ):
         """Test getting outdoor temp when weather entity is unavailable."""
-        mock_area_with_schedule.weather_entity_id = "weather.home"
+        mock_area_with_schedule.boost_manager.weather_entity_id = "weather.home"
         hass.states.async_set("weather.home", "unavailable", {})
 
         temp = scheduler._get_outdoor_temperature(mock_area_with_schedule)
@@ -789,7 +785,7 @@ class TestGetOutdoorTemperatureEdgeCases:
         self, scheduler: ScheduleExecutor, hass: HomeAssistant, mock_area_with_schedule
     ):
         """Test getting outdoor temp when weather entity has invalid value."""
-        mock_area_with_schedule.weather_entity_id = "weather.home"
+        mock_area_with_schedule.boost_manager.weather_entity_id = "weather.home"
         hass.states.async_set("weather.home", "not_a_number", {})
 
         temp = scheduler._get_outdoor_temperature(mock_area_with_schedule)

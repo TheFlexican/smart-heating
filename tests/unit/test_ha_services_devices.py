@@ -11,6 +11,7 @@ from smart_heating.const import (
     ATTR_DEVICE_ID,
     ATTR_DEVICE_TYPE,
     DEVICE_TYPE_THERMOSTAT,
+    DOMAIN,
 )
 from smart_heating.services.device_handlers import (
     async_handle_add_device,
@@ -33,6 +34,9 @@ def mock_coordinator():
     """Create mock coordinator."""
     coordinator = MagicMock()
     coordinator.async_request_refresh = AsyncMock()
+    # Set up hass with empty DOMAIN data to avoid capability detector issues
+    coordinator.hass = MagicMock()
+    coordinator.hass.data = {DOMAIN: {}}
     return coordinator
 
 

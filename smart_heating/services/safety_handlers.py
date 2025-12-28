@@ -3,10 +3,12 @@
 import logging
 
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import HomeAssistantError
 
 from ..const import DOMAIN
 from ..core.area_manager import AreaManager
 from ..core.coordinator import SmartHeatingCoordinator
+from ..exceptions import SafetySensorError, SmartHeatingError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,7 +48,7 @@ async def async_handle_set_safety_sensor(
             attribute,
             enabled,
         )
-    except Exception as err:
+    except (HomeAssistantError, SafetySensorError, SmartHeatingError) as err:
         _LOGGER.error("Failed to set safety sensor: %s", err)
 
 
@@ -77,5 +79,5 @@ async def async_handle_remove_safety_sensor(
             await safety_monitor.async_reconfigure()
 
         _LOGGER.info("Safety sensor removed: %s", sensor_id)
-    except Exception as err:
+    except (HomeAssistantError, SafetySensorError, SmartHeatingError) as err:
         _LOGGER.error("Failed to remove safety sensor: %s", err)

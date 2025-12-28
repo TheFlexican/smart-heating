@@ -15,7 +15,10 @@ async def test_api_exhaustive_endpoints(hass, mock_area_manager):
     hass.data[DOMAIN]["config_manager"] = MagicMock()
     hass.data[DOMAIN]["user_manager"] = MagicMock()
     hass.data[DOMAIN]["comparison_engine"] = MagicMock()
-    hass.data[DOMAIN]["efficiency_calculator"] = MagicMock()
+    efficiency_calc = MagicMock()
+    efficiency_calc.calculate_area_efficiency = AsyncMock(return_value={"efficiency": 0.85})
+    efficiency_calc.get_area_efficiency_history = AsyncMock(return_value=[])
+    hass.data[DOMAIN]["efficiency_calculator"] = efficiency_calc
 
     api_view = SmartHeatingAPIView(hass, mock_area_manager)
 
@@ -70,16 +73,16 @@ async def test_api_exhaustive_endpoints(hass, mock_area_manager):
         for endpoint, _ in get_endpoints:
             req = make_mocked_request("GET", f"/api/smart_heating/{endpoint}")
             resp = await api_view.get(req, endpoint)
-            assert resp.status in (200, 404, 503, 400, 500)
+            assert resp.status in (200, 401, 403, 404, 503, 400, 500)
 
         for endpoint, _ in post_endpoints:
             req = make_mocked_request("POST", f"/api/smart_heating/{endpoint}")
             req.json = AsyncMock(return_value={})
             resp = await api_view.post(req, endpoint)
-            assert resp.status in (200, 400, 404, 500)
+            assert resp.status in (200, 400, 401, 403, 404, 500)
 
         for endpoint, _ in delete_endpoints:
             req = make_mocked_request("DELETE", f"/api/smart_heating/{endpoint}")
             # Drop query for passing into delete
             resp = await api_view.delete(req, endpoint.split("?")[0])
-            assert resp.status in (200, 400, 404, 500)
+            assert resp.status in (200, 400, 401, 403, 404, 500)

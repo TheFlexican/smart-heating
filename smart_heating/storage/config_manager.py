@@ -288,12 +288,12 @@ class ConfigManager:
         area.enabled = area_data.get("enabled", True)
         area.target_temperature = area_data.get("target_temperature", 20.0)
         area.preset_mode = area_data.get("preset_mode", "home")
-        area.night_boost_enabled = area_data.get("night_boost_enabled", False)
-        area.night_boost_offset = area_data.get("night_boost_offset", 0.5)
-        area.night_boost_start_time = area_data.get("night_boost_start_time")
-        area.night_boost_end_time = area_data.get("night_boost_end_time")
-        area.smart_boost_enabled = area_data.get("smart_boost_enabled", False)
-        area.weather_entity_id = area_data.get("weather_entity_id")
+        area.boost_manager.night_boost_enabled = area_data.get("night_boost_enabled", False)
+        area.boost_manager.night_boost_offset = area_data.get("night_boost_offset", 0.5)
+        area.boost_manager.night_boost_start_time = area_data.get("night_boost_start_time")
+        area.boost_manager.night_boost_end_time = area_data.get("night_boost_end_time")
+        area.boost_manager.smart_boost_enabled = area_data.get("smart_boost_enabled", False)
+        area.boost_manager.weather_entity_id = area_data.get("weather_entity_id")
 
         if "devices" in area_data:
             area.heating_devices = area_data["devices"]

@@ -34,6 +34,7 @@ class TestIntegrationSetup:
             patch("smart_heating.async_register_panel") as mock_register_panel,
             patch("smart_heating.async_setup_services") as mock_setup_services,
             patch("smart_heating.async_track_time_interval"),
+            patch("smart_heating.storage.event_store.EventStore") as mock_event_store_class,
             patch.object(hass.config_entries, "async_forward_entry_setups", new=AsyncMock()),
         ):
             # Configure mocks
@@ -65,6 +66,10 @@ class TestIntegrationSetup:
             mock_coordinator.async_request_refresh = AsyncMock()
             mock_coordinator.async_setup = AsyncMock()
             mock_coordinator_class.return_value = mock_coordinator
+
+            mock_event_store = MagicMock()
+            mock_event_store.async_load = AsyncMock()
+            mock_event_store_class.return_value = mock_event_store
 
             mock_climate = MagicMock()
             mock_climate.async_control_heating = AsyncMock()
@@ -141,6 +146,7 @@ class TestIntegrationSetup:
             patch("smart_heating.async_register_panel"),
             patch("smart_heating.async_setup_services"),
             patch("smart_heating.async_track_time_interval"),
+            patch("smart_heating.storage.event_store.EventStore") as mock_event_store_class,
             patch.object(hass.config_entries, "async_forward_entry_setups", new=AsyncMock()),
         ):
             # Setup all async mocks properly
@@ -171,7 +177,13 @@ class TestIntegrationSetup:
 
             mock_coordinator = MagicMock()
             mock_coordinator.async_setup = AsyncMock()
-            mock_coordinator_class.return_value = mock_coordinator  # Run setup
+            mock_coordinator_class.return_value = mock_coordinator
+
+            mock_event_store = MagicMock()
+            mock_event_store.async_load = AsyncMock()
+            mock_event_store_class.return_value = mock_event_store
+
+            # Run setup
             await async_setup_entry(hass, mock_config_entry)
 
             # Verify OpenTherm gateway was set
@@ -207,6 +219,7 @@ class TestIntegrationSetup:
             patch("smart_heating.setup_websocket"),
             patch("smart_heating.async_register_panel"),
             patch("smart_heating.async_setup_services"),
+            patch("smart_heating.storage.event_store.EventStore") as mock_event_store_class,
             patch.object(hass.config_entries, "async_forward_entry_setups", new=AsyncMock()),
         ):
             # Setup all async mocks properly
@@ -239,7 +252,13 @@ class TestIntegrationSetup:
 
             mock_coordinator = MagicMock()
             mock_coordinator.async_setup = AsyncMock()
-            mock_coordinator_class.return_value = mock_coordinator  # Run setup
+            mock_coordinator_class.return_value = mock_coordinator
+
+            mock_event_store = MagicMock()
+            mock_event_store.async_load = AsyncMock()
+            mock_event_store_class.return_value = mock_event_store
+
+            # Run setup
             await async_setup_entry(hass, mock_config_entry)
 
             # Verify that set_opentherm_gateway was not called to override the numeric ID
@@ -325,6 +344,7 @@ class TestIntegrationData:
             patch("smart_heating.async_register_panel"),
             patch("smart_heating.async_setup_services"),
             patch("smart_heating.async_track_time_interval"),
+            patch("smart_heating.storage.event_store.EventStore") as mock_event_store_class,
             patch.object(hass.config_entries, "async_forward_entry_setups", new=AsyncMock()),
         ):
             # Setup all async mocks properly
@@ -356,6 +376,10 @@ class TestIntegrationData:
             mock_coordinator.async_setup = AsyncMock()
             mock_coordinator_class.return_value = mock_coordinator
 
+            mock_event_store = MagicMock()
+            mock_event_store.async_load = AsyncMock()
+            mock_event_store_class.return_value = mock_event_store
+
             await async_setup_entry(hass, mock_config_entry)
 
             # Verify coordinator is stored with entry_id as key
@@ -380,6 +404,7 @@ class TestIntegrationData:
             patch("smart_heating.async_register_panel"),
             patch("smart_heating.async_setup_services"),
             patch("smart_heating.async_track_time_interval"),
+            patch("smart_heating.storage.event_store.EventStore") as mock_event_store_class,
             patch.object(hass.config_entries, "async_forward_entry_setups", new=AsyncMock()),
         ):
             # Setup all async mocks properly
@@ -416,6 +441,10 @@ class TestIntegrationData:
             mock_coordinator = MagicMock()
             mock_coordinator.async_setup = AsyncMock()
             mock_coordinator_class.return_value = mock_coordinator
+
+            mock_event_store = MagicMock()
+            mock_event_store.async_load = AsyncMock()
+            mock_event_store_class.return_value = mock_event_store
 
             await async_setup_entry(hass, mock_config_entry)
 

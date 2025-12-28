@@ -1,13 +1,19 @@
 """System API handlers for Smart Heating."""
 
+import asyncio
 import logging
+from typing import Any
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from ...core.area_manager import AreaManager
+from ...exceptions import SmartHeatingError
 
 _LOGGER = logging.getLogger(__name__)
+
+ERROR_INTERNAL = "Internal server error"
 
 
 async def handle_get_status(area_manager: AreaManager) -> web.Response:
@@ -27,6 +33,8 @@ async def handle_get_status(area_manager: AreaManager) -> web.Response:
         "total_devices": sum(len(z.devices) for z in areas.values()),
     }
 
+    # Yield once to satisfy async checks without blocking
+    await asyncio.sleep(0)
     return web.json_response(status)
 
 
@@ -45,12 +53,19 @@ async def handle_get_entity_state(hass: HomeAssistant, entity_id: str) -> web.Re
     if not state:
         return web.json_response({"error": f"Entity {entity_id} not found"}, status=404)
 
+    attributes = dict(state.attributes) if getattr(state, "attributes", None) else {}
+    last_changed = getattr(state, "last_changed", None)
+    last_updated = getattr(state, "last_updated", None)
+
+    # Yield once to satisfy async checks without blocking
+    await asyncio.sleep(0)
+
     return web.json_response(
         {
             "state": state.state,
-            "attributes": dict(state.attributes),
-            "last_changed": state.last_changed.isoformat(),
-            "last_updated": state.last_updated.isoformat(),
+            "attributes": attributes,
+            "last_changed": last_changed.isoformat() if last_changed else None,
+            "last_updated": last_updated.isoformat() if last_updated else None,
         }
     )
 
@@ -82,6 +97,7 @@ async def handle_call_service(hass: HomeAssistant, data: dict) -> web.Response:
         return web.json_response(
             {"success": True, "message": f"Service {service_name} called successfully"}
         )
-    except Exception as err:
-        _LOGGER.error("Error calling service %s: %s", service_name, err)
-        return web.json_response({"error": str(err)}, status=500)
+    except (HomeAssistantError, SmartHeatingError, OSError, RuntimeError) as err:
+        _LOGGER.exception("Error calling service %s", service_name)
+        # Keep 'error' containing the original exception message for backwards compatibility
+        return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)

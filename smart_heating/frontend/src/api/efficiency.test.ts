@@ -1,28 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import axios from 'axios'
+import { apiClient } from './client'
 import * as efficiency from './efficiency'
 
-vi.mock('axios')
-const mockedAxios = axios as unknown as jest.Mocked<typeof axios>
+vi.mock('./client')
+const mockedClient = vi.mocked(apiClient)
 
 describe('API - Efficiency', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('efficiency and comparison endpoints', async () => {
-    mockedAxios.get = vi.fn().mockResolvedValue({ data: { report: true } }) as any
+    mockedClient.get.mockResolvedValue({ data: { report: true } } as any)
     await efficiency.getEfficiencyReport('a1')
-    expect(mockedAxios.get).toHaveBeenCalledWith(
-      '/api/smart_heating/efficiency/report/a1?period=week',
-    )
+    expect(mockedClient.get).toHaveBeenCalledWith('/efficiency/report/a1?period=week')
     await efficiency.getAllAreasEfficiency('day')
-    expect(mockedAxios.get).toHaveBeenCalledWith(
-      '/api/smart_heating/efficiency/all_areas?period=day',
-    )
+    expect(mockedClient.get).toHaveBeenCalledWith('/efficiency/all_areas?period=day')
     await efficiency.getComparison('month')
-    expect(mockedAxios.get).toHaveBeenCalledWith('/api/smart_heating/comparison/month')
-    mockedAxios.post = vi.fn().mockResolvedValue({ data: {} }) as any
+    expect(mockedClient.get).toHaveBeenCalledWith('/comparison/month')
+    mockedClient.post.mockResolvedValue({ data: {} } as any)
     await efficiency.getCustomComparison('2020-01-01', '2020-01-02', '2021-01-01', '2021-01-02')
-    expect(mockedAxios.post).toHaveBeenCalledWith('/api/smart_heating/comparison/custom', {
+    expect(mockedClient.post).toHaveBeenCalledWith('/comparison/custom', {
       start_a: '2020-01-01',
       end_a: '2020-01-02',
       start_b: '2021-01-01',

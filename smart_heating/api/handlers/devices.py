@@ -6,18 +6,22 @@ import time
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from ...core.area_manager import AreaManager
+from ...exceptions import SmartHeatingError, ValidationError
 from ...models import Area
 
 _LOGGER = logging.getLogger(__name__)
 
+ERROR_INTERNAL = "Internal server error"
+
 # Device discovery cache
-_devices_cache = None
-_cache_timestamp = None
+_devices_cache: list | None = None
+_cache_timestamp: float | None = None
 
 
 async def handle_get_devices(hass: HomeAssistant, area_manager: AreaManager) -> web.Response:
@@ -35,6 +39,8 @@ async def handle_get_devices(hass: HomeAssistant, area_manager: AreaManager) -> 
     # Return cached devices if available
     if _devices_cache is not None:
         _LOGGER.debug("Returning cached device list (%d devices)", len(_devices_cache))
+        # Minimal await to keep this function visibly async for linters
+        await asyncio.sleep(0)
         return web.json_response({"devices": _devices_cache})
 
     # No cache, perform discovery
@@ -87,12 +93,15 @@ async def _discover_devices(hass: HomeAssistant, area_manager: AreaManager) -> w
     return web.json_response({"devices": devices})
 
 
-def _get_discoverable_entities(entity_reg, hass):
+from typing import Any, Iterable
+
+
+def _get_discoverable_entities(entity_reg: Any, hass: HomeAssistant) -> list:
     """Return a list of entities that we should consider for discovery.
 
     This includes climate and switch entities and sensors with the temperature device class.
     """
-    result = []
+    result: list = []
     for entry in entity_reg.entities.values():
         if entry.domain in ("climate", "switch"):
             result.append(entry)
@@ -201,28 +210,18 @@ async def handle_refresh_devices(hass: HomeAssistant, area_manager: AreaManager)
         # Parse the response to get device list
         import json
 
-        devices_data = json.loads(response.text)
+        text = getattr(response, "text", None)
+        if text is None:
+            # Fall back to body bytes
+            body = getattr(response, "body", None)
+            text = body.decode() if body else "{}"
+
+        devices_data = json.loads(text)
         devices = devices_data.get("devices", [])
 
         # Update assigned devices with latest info
-        updated_count = 0
+        updated_count = _update_assigned_devices(devices, area_manager)
         added_count = len(devices)
-
-        for area in area_manager.get_all_areas().values():
-            for device_id in area.devices.keys():
-                # Find device in discovered list
-                device_info = next((d for d in devices if d["id"] == device_id), None)
-                if device_info:
-                    # Update device type if changed
-                    if area.devices[device_id].get("type") != device_info["type"]:
-                        area.devices[device_id]["type"] = device_info["type"]
-                        updated_count += 1
-                else:
-                    _LOGGER.debug(
-                        "Device %s assigned to area %s no longer exists",
-                        device_id,
-                        area.name,
-                    )
 
         # Save if anything changed
         if updated_count > 0:
@@ -237,10 +236,30 @@ async def handle_refresh_devices(hass: HomeAssistant, area_manager: AreaManager)
                 "message": f"Refreshed {updated_count} devices, {added_count} available for assignment",
             }
         )
+    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError) as err:
+        _LOGGER.exception("Error refreshing devices")
+        return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
 
-    except Exception as err:
-        _LOGGER.error("Error refreshing devices: %s", err)
-        return web.json_response({"error": str(err)}, status=500)
+
+def _update_assigned_devices(devices: list, area_manager: AreaManager) -> int:
+    """Update devices assigned to areas from discovered device list and return the number updated."""
+    updated = 0
+    for area in area_manager.get_all_areas().values():
+        for device_id in area.devices.keys():
+            # Find device in discovered list
+            device_info = next((d for d in devices if d["id"] == device_id), None)
+            if device_info:
+                # Update device type if changed
+                if area.devices[device_id].get("type") != device_info["type"]:
+                    area.devices[device_id]["type"] = device_info["type"]
+                    updated += 1
+            else:
+                _LOGGER.debug(
+                    "Device %s assigned to area %s no longer exists",
+                    device_id,
+                    area.name,
+                )
+    return updated
 
 
 async def handle_add_device(
@@ -273,8 +292,7 @@ async def handle_add_device(
             if ha_area:
                 # Create internal storage for this HA area
                 area = Area(area_id, ha_area.name)
-                area.area_manager = area_manager
-                area_manager.areas[area_id] = area
+                area_manager.add_area(area)
             else:
                 return web.json_response({"error": f"Area {area_id} not found"}, status=404)
 

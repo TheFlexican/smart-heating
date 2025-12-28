@@ -1,36 +1,35 @@
-import axios from 'axios'
-const API_BASE = '/api/smart_heating'
+import { apiClient } from './client'
 
 export const getHistoryConfig = async (): Promise<any> => {
-  const response = await axios.get(`${API_BASE}/history/config`)
+  const response = await apiClient.get('/history/config')
   return response.data
 }
 
 export const setHistoryRetention = async (days: number): Promise<void> => {
-  await axios.post(`${API_BASE}/history/config`, {
+  await apiClient.post('/history/config', {
     retention_days: days,
   })
 }
 
 export const getHistoryStorageInfo = async (): Promise<any> => {
-  const response = await axios.get(`${API_BASE}/history/storage/info`)
+  const response = await apiClient.get('/history/storage/info')
   return response.data
 }
 
 export const migrateHistoryStorage = async (targetBackend: 'json' | 'database'): Promise<any> => {
-  const response = await axios.post(`${API_BASE}/history/storage/migrate`, {
+  const response = await apiClient.post('/history/storage/migrate', {
     target_backend: targetBackend,
   })
   return response.data
 }
 
 export const getDatabaseStats = async (): Promise<any> => {
-  const response = await axios.get(`${API_BASE}/history/storage/database/stats`)
+  const response = await apiClient.get('/history/storage/database/stats')
   return response.data
 }
 
 export const cleanupHistory = async (): Promise<{ success: boolean }> => {
-  const response = await axios.post(`${API_BASE}/history/cleanup`)
+  const response = await apiClient.post('/history/cleanup')
   return response.data
 }
 
@@ -53,7 +52,7 @@ export const getHistory = async (
     params.append('end_time', options.endTime)
   }
 
-  const response = await axios.get(`${API_BASE}/areas/${areaId}/history?${params.toString()}`)
+  const response = await apiClient.get(`/areas/${areaId}/history?${params.toString()}`)
   return response.data
 }
 

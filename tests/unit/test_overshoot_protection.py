@@ -8,6 +8,10 @@ from smart_heating.overshoot_protection import OvershootProtection
 @pytest.mark.asyncio
 async def test_calculate_no_modulation_support(monkeypatch):
     coord = MagicMock()
+    # Mock the async method to raise AttributeError (no modulation support)
+    coord.async_set_control_max_relative_modulation = AsyncMock(
+        side_effect=AttributeError("no modulation support")
+    )
     op = OvershootProtection(coord, "radiator")
     res = await op.calculate()
     assert res is None
@@ -29,7 +33,8 @@ async def test_calculate_with_samples(monkeypatch):
 @pytest.mark.asyncio
 async def test_calculate_handles_exception(monkeypatch):
     coord = MagicMock()
-    coord.async_set_control_max_relative_modulation = AsyncMock(side_effect=Exception("fail"))
+    # Use AttributeError which is in the exception handler
+    coord.async_set_control_max_relative_modulation = AsyncMock(side_effect=AttributeError("fail"))
     op = OvershootProtection(coord, "radiator")
 
     monkeypatch.setattr(asyncio, "sleep", AsyncMock())

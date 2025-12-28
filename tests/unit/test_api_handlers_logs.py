@@ -142,7 +142,7 @@ class TestLogsHandlers:
     async def test_handle_get_area_logs_error(self, mock_hass, mock_area_logger, mock_request):
         """Test getting area logs when error occurs."""
         # Make async_get_logs raise exception
-        mock_area_logger.async_get_logs.side_effect = Exception("Database error")
+        mock_area_logger.async_get_logs.side_effect = KeyError("Database error")
 
         response = await handle_get_area_logs(mock_hass, "living_room", mock_request)
 
@@ -211,7 +211,7 @@ class TestLogsHandlers:
         mock_request.query = {}
 
         manager = MagicMock()
-        manager.async_get_device_logs = MagicMock(side_effect=Exception("boom"))
+        manager.async_get_device_logs = MagicMock(side_effect=KeyError("boom"))
 
         from smart_heating.api.handlers.logs import handle_get_area_device_logs
 

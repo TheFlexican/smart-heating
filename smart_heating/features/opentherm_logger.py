@@ -365,7 +365,7 @@ class OpenThermLogger:
 
             return capabilities
 
-        except Exception as err:
+        except (HomeAssistantError, RuntimeError, KeyError, ValueError) as err:
             _LOGGER.error(
                 "Failed to discover MQTT capabilities for %s: %s",
                 gateway_entity_id,

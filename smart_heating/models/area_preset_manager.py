@@ -1,7 +1,6 @@
 """Preset management functionality for Area model."""
 
 import logging
-from datetime import datetime, timedelta
 
 from ..const import (
     DEFAULT_ACTIVITY_TEMP,
@@ -101,50 +100,33 @@ class AreaPresetManager:
         _LOGGER.info("Area %s preset mode set to %s", self.area.area_id, preset_mode)
 
         # If boost mode was active, cancel it when changing presets
-        if preset_mode != PRESET_BOOST and self.area.boost_mode_active:
+        if preset_mode != PRESET_BOOST and self.area.boost_manager.boost_mode_active:
             self.cancel_boost_mode()
 
     def set_boost_mode(self, duration: int, temp: float | None = None) -> None:
         """Enable boost mode for a specified duration.
 
+        Delegates to the area's boost_manager.
+
         Args:
             duration: Duration in minutes
             temp: Optional boost temperature (defaults to current target + 2.0°C)
         """
-        self.area.boost_mode_active = True
-        self.area.boost_duration = duration
-        self.area.boost_end_time = datetime.now() + timedelta(minutes=duration)
-        self.area.preset_mode = PRESET_BOOST
-
-        if temp is not None:
-            self.area.boost_temp = temp
-
-        _LOGGER.info(
-            "Boost mode activated for area %s: %.1f°C for %d minutes",
-            self.area.area_id,
-            self.area.boost_temp,
-            duration,
-        )
+        self.area.boost_manager.activate_boost(duration, temp)
 
     def cancel_boost_mode(self) -> None:
-        """Cancel boost mode."""
-        if self.area.boost_mode_active:
-            self.area.boost_mode_active = False
-            self.area.boost_end_time = None
-            self.area.preset_mode = PRESET_NONE
-            _LOGGER.info("Boost mode cancelled for area %s", self.area.area_id)
+        """Cancel boost mode.
+
+        Delegates to the area's boost_manager.
+        """
+        self.area.boost_manager.cancel_boost()
 
     def check_boost_expiry(self) -> bool:
         """Check if boost mode has expired.
 
+        Delegates to the area's boost_manager.
+
         Returns:
             True if boost mode expired and was cancelled
         """
-        if not self.area.boost_mode_active or not self.area.boost_end_time:
-            return False
-
-        if datetime.now() >= self.area.boost_end_time:
-            self.cancel_boost_mode()
-            return True
-
-        return False
+        return self.area.boost_manager.check_boost_expiry()

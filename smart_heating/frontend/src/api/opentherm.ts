@@ -1,30 +1,29 @@
-import axios from 'axios'
+import { apiClient } from './client'
 import { getEntityState } from './config'
-const API_BASE = '/api/smart_heating'
 
 export const getOpenThermLogs = async (limit?: number): Promise<any> => {
   const params = limit ? `?limit=${limit}` : ''
-  const response = await axios.get(`${API_BASE}/opentherm/logs${params}`)
+  const response = await apiClient.get(`/opentherm/logs${params}`)
   return response.data
 }
 
 export const getOpenThermCapabilities = async (): Promise<any> => {
-  const response = await axios.get(`${API_BASE}/opentherm/capabilities`)
+  const response = await apiClient.get('/opentherm/capabilities')
   return response.data
 }
 
 export const discoverOpenThermCapabilities = async (): Promise<any> => {
-  const response = await axios.post(`${API_BASE}/opentherm/capabilities/discover`)
+  const response = await apiClient.post('/opentherm/capabilities/discover')
   return response.data
 }
 
 export const clearOpenThermLogs = async (): Promise<any> => {
-  const response = await axios.post(`${API_BASE}/opentherm/logs/clear`)
+  const response = await apiClient.post('/opentherm/logs/clear')
   return response.data
 }
 
 export const setOpenthermGateway = async (gatewayId: string): Promise<void> => {
-  await axios.post(`${API_BASE}/opentherm_gateway`, { gateway_id: gatewayId })
+  await apiClient.post('/opentherm_gateway', { gateway_id: gatewayId })
 }
 
 export const getOpenThermSensorStates = async (): Promise<any> => {
@@ -109,12 +108,12 @@ export const getOpenThermSensorStates = async (): Promise<any> => {
 export const getOpenthermGateways = async (): Promise<
   Array<{ gateway_id: string; title: string }>
 > => {
-  const response = await axios.get(`${API_BASE}/opentherm/gateways`)
+  const response = await apiClient.get('/opentherm/gateways')
   return response.data.gateways
 }
 
 export const calibrateOpentherm = async (): Promise<any> => {
-  const response = await axios.post(`${API_BASE}/opentherm/calibrate`, {})
+  const response = await apiClient.post('/opentherm/calibrate', {})
   return response.data
 }
 

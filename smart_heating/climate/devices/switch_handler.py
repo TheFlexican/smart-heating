@@ -1,10 +1,13 @@
 """Switch device handler for heating/cooling control."""
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING
 
 from homeassistant.const import SERVICE_TURN_OFF, SERVICE_TURN_ON
+from homeassistant.exceptions import HomeAssistantError
 
+from ...exceptions import DeviceError
 from .base_device_handler import BaseDeviceHandler
 
 if TYPE_CHECKING:
@@ -86,8 +89,10 @@ class SwitchHandler(BaseDeviceHandler):
                                         "data": payload,
                                     },
                                 )
-                            except Exception:
-                                _LOGGER.debug("Failed to record sent turn_on for %s", switch_id)
+                            except (AttributeError, KeyError, TypeError, ValueError) as err:
+                                _LOGGER.debug(
+                                    "Failed to record sent turn_on for %s: %s", switch_id, err
+                                )
 
                             await self.hass.services.async_call(
                                 "switch",
@@ -102,10 +107,14 @@ class SwitchHandler(BaseDeviceHandler):
                                     "switch.turn_on",
                                     {"result": "dispatched"},
                                 )
-                            except Exception:
-                                _LOGGER.debug("Failed to record received turn_on for %s", switch_id)
-                    except Exception as err:
-                        _LOGGER.error("Failed to control switch %s: %s", switch_id, err)
+                            except (AttributeError, KeyError, TypeError, ValueError) as err:
+                                _LOGGER.debug(
+                                    "Failed to record received turn_on for %s: %s", switch_id, err
+                                )
+                    except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
+                        _LOGGER.error(
+                            "Failed to control switch %s: %s", switch_id, err, exc_info=True
+                        )
                 else:
                     # When stopping heating we should only keep switches on if the
                     # thermostat still reports it is heating AND the area is still
@@ -138,8 +147,10 @@ class SwitchHandler(BaseDeviceHandler):
                                             "data": payload,
                                         },
                                     )
-                                except Exception:
-                                    _LOGGER.debug("Failed to record sent turn_on for %s", switch_id)
+                                except (AttributeError, KeyError, TypeError, ValueError) as err:
+                                    _LOGGER.debug(
+                                        "Failed to record sent turn_on for %s: %s", switch_id, err
+                                    )
 
                                 await self.hass.services.async_call(
                                     "switch",
@@ -154,12 +165,16 @@ class SwitchHandler(BaseDeviceHandler):
                                         "switch.turn_on",
                                         {"result": "dispatched"},
                                     )
-                                except Exception:
+                                except (AttributeError, KeyError, TypeError, ValueError) as err:
                                     _LOGGER.debug(
-                                        "Failed to record received turn_on for %s", switch_id
+                                        "Failed to record received turn_on for %s: %s",
+                                        switch_id,
+                                        err,
                                     )
-                        except Exception as err:
-                            _LOGGER.error("Failed to control switch %s: %s", switch_id, err)
+                        except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
+                            _LOGGER.error(
+                                "Failed to control switch %s: %s", switch_id, err, exc_info=True
+                            )
                     elif getattr(area, "shutdown_switches_when_idle", True):
                         try:
                             # Only call turn_off if the switch is not already off
@@ -178,9 +193,9 @@ class SwitchHandler(BaseDeviceHandler):
                                             "data": payload,
                                         },
                                     )
-                                except Exception:
+                                except (AttributeError, KeyError, TypeError, ValueError) as err:
                                     _LOGGER.debug(
-                                        "Failed to record sent turn_off for %s", switch_id
+                                        "Failed to record sent turn_off for %s: %s", switch_id, err
                                     )
 
                                 await self.hass.services.async_call(
@@ -196,17 +211,21 @@ class SwitchHandler(BaseDeviceHandler):
                                         "switch.turn_off",
                                         {"result": "dispatched"},
                                     )
-                                except Exception:
+                                except (AttributeError, KeyError, TypeError, ValueError) as err:
                                     _LOGGER.debug(
-                                        "Failed to record received turn_off for %s", switch_id
+                                        "Failed to record received turn_off for %s: %s",
+                                        switch_id,
+                                        err,
                                     )
                                 _LOGGER.debug("Turned off switch %s", switch_id)
-                        except Exception as err:
-                            _LOGGER.error("Failed to control switch %s: %s", switch_id, err)
+                        except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
+                            _LOGGER.error(
+                                "Failed to control switch %s: %s", switch_id, err, exc_info=True
+                            )
                     else:
                         _LOGGER.debug(
                             "Keeping switch %s on (shutdown_switches_when_idle=False)",
                             switch_id,
                         )
-            except Exception as err:
-                _LOGGER.error("Failed to control switch %s: %s", switch_id, err)
+            except (HomeAssistantError, DeviceError, asyncio.TimeoutError, AttributeError) as err:
+                _LOGGER.error("Failed to control switch %s: %s", switch_id, err, exc_info=True)

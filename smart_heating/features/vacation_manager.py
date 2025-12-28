@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_state_change_event
+
+from ..exceptions import SmartHeatingError, ValidationError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,7 +63,13 @@ class VacationManager:
                 self._setup_person_listeners()
 
             _LOGGER.info("Loaded vacation mode data: %s", self._data)
-        except Exception as err:
+        except (
+            HomeAssistantError,
+            SmartHeatingError,
+            ValidationError,
+            json.JSONDecodeError,
+            OSError,
+        ) as err:
             _LOGGER.error("Failed to load vacation mode data: %s", err)
 
     async def async_save(self) -> None:
@@ -76,7 +85,12 @@ class VacationManager:
 
             await self.hass.async_add_executor_job(_write)
             _LOGGER.debug("Saved vacation mode data")
-        except Exception as err:
+        except (
+            HomeAssistantError,
+            SmartHeatingError,
+            ValidationError,
+            OSError,
+        ) as err:
             _LOGGER.error("Failed to save vacation mode data: %s", err)
 
     async def _check_expiration(self) -> None:

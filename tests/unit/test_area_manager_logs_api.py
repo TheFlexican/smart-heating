@@ -90,11 +90,11 @@ def test_add_remove_device_log_listener():
     am.add_device_log_listener(cb)
     # Adding same listener again should not duplicate
     am.add_device_log_listener(cb)
-    assert am._device_log_listeners.count(cb) == 1
+    assert am._device_service._device_log_listeners.count(cb) == 1
 
     # Remove listener
     am.remove_device_log_listener(cb)
-    assert cb not in am._device_log_listeners
+    assert cb not in am._device_service._device_log_listeners
 
     # Removing unknown listener should be silent
     am.remove_device_log_listener(cb)

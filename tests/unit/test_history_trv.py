@@ -2,7 +2,7 @@
 
 import asyncio
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from smart_heating.storage.history import HistoryTracker
 
 
@@ -22,7 +22,10 @@ async def test_async_record_temperature_includes_trvs():
 
     ht = HistoryTracker(hass, storage_backend="json")
 
-    await ht.async_load()
+    mock_recorder = MagicMock()
+    mock_recorder.engine = None  # No DB engine
+    with patch("smart_heating.storage.history.get_instance", return_value=mock_recorder):
+        await ht.async_load()
 
     trvs = [
         {"entity_id": "sensor.trv1", "position": 42.0, "open": None, "running_state": "heating"}

@@ -6,12 +6,18 @@ from typing import Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from ..const import DOMAIN, STATE_INITIALIZED, UPDATE_INTERVAL
+from ..exceptions import SmartHeatingError, ValidationError
 from ..models import Area
 from .area_manager import AreaManager
+from .coordination.debouncer import Debouncer
+from .coordination.manual_override_detector import ManualOverrideDetector
+from .coordination.state_builder import StateBuilder
+from .coordination.temperature_tracker import TemperatureTracker
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,10 +45,14 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         )
         self.area_manager = area_manager
         self._unsub_state_listener = None
-        self._debounce_tasks = {}  # Track debounce tasks per entity
         self._refresh_tasks = set()  # Track outstanding refresh tasks
-        # Default to False; will be enabled during async_setup to handle startup race conditions
-        self._startup_grace_period = False
+
+        # Create coordination components
+        self._state_builder = StateBuilder(hass, self)
+        self._debouncer = Debouncer(delay=MANUAL_TEMP_CHANGE_DEBOUNCE)
+        self._manual_override_detector = ManualOverrideDetector(startup_grace_period_active=True)
+        self._temperature_tracker = TemperatureTracker()
+
         _LOGGER.debug("Smart Heating coordinator initialized")
 
     async def async_setup(self) -> None:
@@ -72,15 +82,11 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         # Do initial update
         await self.async_refresh()
 
-        # Enable startup grace period now that we're performing setup
-        self._startup_grace_period = True
-
         # End startup grace period after 10 seconds
         # This prevents false manual override triggers from stale thermostat states
         async def end_grace_period():
             await asyncio.sleep(10)
-            self._startup_grace_period = False
-            _LOGGER.info("Startup grace period ended - manual override detection now active")
+            self._manual_override_detector.set_startup_grace_period(False)
 
         self._grace_period_task = asyncio.create_task(end_grace_period())
         _LOGGER.debug("Coordinator async_setup completed")
@@ -153,108 +159,41 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             new_temp,
         )
 
-        # Cancel any existing debounce task for this entity
-        if entity_id in self._debounce_tasks:
-            self._debounce_tasks[entity_id].cancel()
+        # Debounce the temperature change
+        async def apply_and_refresh():
+            """Apply temperature change and refresh coordinator."""
+            _LOGGER.debug(
+                "Applying debounced temperature change for %s: %s",
+                entity_id,
+                new_temp,
+            )
 
-        # Create new debounced task
-        async def debounced_temp_update():
-            """Update area after debounce delay."""
-            try:
-                await asyncio.sleep(MANUAL_TEMP_CHANGE_DEBOUNCE)
+            await self._apply_manual_temperature_change(entity_id, new_temp)
 
-                _LOGGER.debug(
-                    "Applying debounced temperature change for %s: %s",
-                    entity_id,
-                    new_temp,
-                )
+            # Force immediate coordinator refresh after debounce (not rate-limited)
+            _LOGGER.debug("Forcing coordinator refresh after debounce")
+            await self.async_refresh()
+            _LOGGER.debug("Coordinator refresh completed")
 
-                await self._apply_manual_temperature_change(entity_id, new_temp)
+        # Use debouncer to handle the temperature change
+        # Create task to await debounce (returns immediately after starting debounce task)
+        import asyncio
 
-                # Force immediate coordinator refresh after debounce (not rate-limited)
-                _LOGGER.debug("Forcing coordinator refresh after debounce")
-                await self.async_refresh()
-                _LOGGER.debug("Coordinator refresh completed")
+        async def start_debounce():
+            await self._debouncer.async_debounce(entity_id, apply_and_refresh)
 
-            except asyncio.CancelledError:
-                _LOGGER.debug("Debounce task cancelled for %s", entity_id)
-                raise
-            except Exception as err:
-                _LOGGER.error("Error in debounced temperature update: %s", err, exc_info=True)
-            finally:
-                # Clean up task reference
-                if entity_id in self._debounce_tasks:
-                    del self._debounce_tasks[entity_id]
-
-        # Store and start the debounce task
-
-        self._debounce_tasks[entity_id] = asyncio.create_task(debounced_temp_update())
+        asyncio.create_task(start_debounce())
 
     async def _apply_manual_temperature_change(self, entity_id: str, new_temp: float) -> None:
-        """Apply manual temperature change to area.
+        """Apply manual temperature change to area - delegates to ManualOverrideDetector.
 
         Args:
             entity_id: Thermostat entity ID
             new_temp: New temperature set by user
         """
-        # Skip manual override detection during startup grace period
-        if self._startup_grace_period:
-            _LOGGER.info(
-                "Temperature change for %s ignored - still in startup grace period",
-                entity_id,
-            )
-            return
-
-        # Skip if temperature is None (some devices report None during state changes)
-        if new_temp is None:
-            _LOGGER.debug(
-                "Temperature change for %s is None - ignoring",
-                entity_id,
-            )
-            return
-
-        # Update area target temperature AND set manual override flag
-        # BUT only if this is truly a manual change (not from a schedule/preset)
-        for area in self.area_manager.get_all_areas().values():
-            if entity_id in area.devices:
-                # Check if the temperature change matches the area's current target
-                # If it does, this is likely from a schedule or preset, not manual
-                expected_temp = area.get_effective_target_temperature()
-
-                # Allow 0.1°C tolerance for floating point comparison
-                if abs(new_temp - expected_temp) < 0.1:
-                    _LOGGER.info(
-                        "Temperature change for %s matches expected %.1f°C - ignoring (not manual)",
-                        area.name,
-                        expected_temp,
-                    )
-                    break
-
-                # IMPORTANT: Ignore temperature changes that are LOWER than current target
-                # These are typically stale state changes from old preset values that arrive
-                # AFTER a schedule has already updated the area target to a higher value.
-                # This prevents false manual override triggers during schedule transitions.
-                if new_temp < expected_temp - 0.1:
-                    _LOGGER.info(
-                        "Temperature change for %s is %.1f°C < expected %.1f°C - likely stale state from old preset, ignoring",
-                        area.name,
-                        new_temp,
-                        expected_temp,
-                    )
-                    break
-
-                # This is a true manual change - enter manual override mode
-                _LOGGER.warning(
-                    "Area %s entering MANUAL OVERRIDE mode - thermostat changed to %.1f°C (expected %.1f°C)",
-                    area.name,
-                    new_temp,
-                    expected_temp,
-                )
-                area.target_temperature = new_temp
-                area.manual_override = True  # Enter manual override mode
-                # Save to storage so it persists across restarts
-                await self.area_manager.async_save()
-                break
+        await self._manual_override_detector.async_detect_and_apply_override(
+            entity_id, new_temp, self.area_manager
+        )
 
     @callback
     def _handle_state_change(self, event: Event) -> None:
@@ -288,9 +227,9 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
                 task = asyncio.create_task(self.async_request_refresh())
                 self._refresh_tasks.add(task)
                 task.add_done_callback(lambda fut: self._refresh_tasks.discard(fut))
-            except Exception:
+            except (RuntimeError, asyncio.CancelledError) as err:
                 # If scheduling fails, ignore
-                pass
+                _LOGGER.debug("Failed to schedule refresh task: %s", err)
 
     async def async_shutdown(self) -> None:
         """Shutdown coordinator and clean up listeners."""
@@ -299,12 +238,12 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             self._unsub_state_listener = None
         # Cancel tasks and clear them using helpers
         self._cancel_task_if_exists("_grace_period_task")
-        self._cancel_task_collection(self._debounce_tasks)
+        self._debouncer.cancel_all()
         self._cancel_task_collection(self._refresh_tasks)
         # Let cancellations settle
         try:
             await self.hass.async_block_till_done()
-        except Exception as err:
+        except (asyncio.CancelledError, RuntimeError) as err:
             # Best-effort wait for cancellations to settle; log and continue on error
             _LOGGER.debug("Error while waiting for tasks to settle: %s", err)
         _LOGGER.debug("Smart Heating coordinator shutdown")
@@ -320,10 +259,10 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             if task:
                 try:
                     task.cancel()
-                except Exception as err:
+                except (asyncio.CancelledError, RuntimeError, AttributeError) as err:
                     _LOGGER.debug("Failed to cancel task %s: %s", task_attr, err)
                 setattr(self, task_attr, None)
-        except Exception as err:
+        except (AttributeError, TypeError) as err:
             _LOGGER.debug("Error inspecting task attribute %s: %s", task_attr, err)
 
     def _cancel_task_collection(self, tasks: dict | set) -> None:
@@ -340,14 +279,14 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             for t in iterable:
                 try:
                     t.cancel()
-                except Exception as err:
+                except (asyncio.CancelledError, RuntimeError, AttributeError) as err:
                     _LOGGER.debug("Failed to cancel tracked task: %s", err)
             # Clear collection safely
             try:
                 tasks.clear()
-            except Exception as err:
+            except (AttributeError, TypeError, RuntimeError) as err:
                 _LOGGER.debug("Failed to clear task collection: %s", err)
-        except Exception as err:
+        except (AttributeError, TypeError, ValueError) as err:
             _LOGGER.debug("Error cancelling task collection: %s", err)
 
     def _get_device_state_data(self, device_id: str, device_info: dict) -> dict:
@@ -459,7 +398,9 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             return None
 
     def _build_area_data(self, area_id: str, area: Area) -> dict:
-        """Build data dictionary for a single area.
+        """Build data dictionary for a single area - delegates to StateBuilder.
+
+        This method was 97 lines - now it's 3 lines!
 
         Args:
             area_id: Area identifier
@@ -468,94 +409,7 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         Returns:
             Area data dictionary
         """
-        # Get device states
-        devices_data = []
-        for device_id, device_info in area.devices.items():
-            device_data = self._get_device_state_data(device_id, device_info)
-            devices_data.append(device_data)
-
-        # Get weather state if configured
-        weather_data = self._get_weather_state_data(area.weather_entity_id)
-
-        _LOGGER.debug(
-            "Building data for area %s: manual_override=%s, target_temp=%s",
-            area_id,
-            getattr(area, "manual_override", False),
-            area.target_temperature,
-        )
-
-        return {
-            "id": area_id,  # Include area ID so frontend can identify and navigate
-            "name": area.name,
-            "enabled": area.enabled,
-            "state": area.state,
-            "target_temperature": area.target_temperature,
-            "effective_target_temperature": area.get_effective_target_temperature(),
-            "current_temperature": area.current_temperature,
-            "device_count": len(area.devices),
-            "devices": devices_data,
-            # Schedules
-            "schedules": [s.to_dict() for s in area.schedules.values()],
-            # Preset mode settings
-            "preset_mode": area.preset_mode,
-            "away_temp": area.away_temp,
-            "eco_temp": area.eco_temp,
-            "comfort_temp": area.comfort_temp,
-            "home_temp": area.home_temp,
-            "sleep_temp": area.sleep_temp,
-            "activity_temp": area.activity_temp,
-            # Global preset flags
-            "use_global_away": area.use_global_away,
-            "use_global_eco": area.use_global_eco,
-            "use_global_comfort": area.use_global_comfort,
-            "use_global_home": area.use_global_home,
-            "use_global_sleep": area.use_global_sleep,
-            "use_global_activity": area.use_global_activity,
-            # Global presence flag
-            "use_global_presence": area.use_global_presence,
-            # Boost mode
-            "boost_mode_active": area.boost_mode_active,
-            "boost_temp": area.boost_temp,
-            "boost_duration": area.boost_duration,
-            # HVAC mode
-            "hvac_mode": area.hvac_mode,
-            # Hysteresis override
-            "hysteresis_override": area.hysteresis_override,
-            # Manual override
-            "manual_override": getattr(area, "manual_override", False),
-            # Hidden state (frontend-only, but persisted in backend)
-            "hidden": getattr(area, "hidden", False),
-            # Switch/pump control
-            "shutdown_switches_when_idle": getattr(area, "shutdown_switches_when_idle", True),
-            # Sensors
-            "window_sensors": area.window_sensors,
-            "presence_sensors": area.presence_sensors,
-            # Night boost
-            "night_boost_enabled": area.night_boost_enabled,
-            "night_boost_offset": area.night_boost_offset,
-            "night_boost_start_time": area.night_boost_start_time,
-            "night_boost_end_time": area.night_boost_end_time,
-            # Smart night boost
-            "smart_boost_enabled": area.smart_boost_enabled,
-            "smart_boost_target_time": area.smart_boost_target_time,
-            "weather_entity_id": area.weather_entity_id,
-            # Primary temperature sensor
-            "primary_temperature_sensor": area.primary_temperature_sensor,
-            # Auto preset mode
-            "auto_preset_enabled": getattr(area, "auto_preset_enabled", False),
-            "auto_preset_home": getattr(area, "auto_preset_home", "home"),
-            "auto_preset_away": getattr(area, "auto_preset_away", "away"),
-            # Heating type configuration
-            "heating_type": getattr(area, "heating_type", "radiator"),
-            "custom_overhead_temp": getattr(area, "custom_overhead_temp", None),
-            # Heating curve coefficient
-            "heating_curve_coefficient": getattr(area, "heating_curve_coefficient", None),
-            # Weather state (for sensor calculations)
-            "weather_state": weather_data,
-            # TRV configuration and runtime states
-            "trv_entities": getattr(area, "trv_entities", []),
-            "trvs": self._get_trv_states_for_area(area),
-        }
+        return self._state_builder.build_area_data(area_id, area)
 
     def _get_trv_states_for_area(self, area: Area) -> list[dict]:
         """Collect TRV states for configured TRV entities in an area.
@@ -564,50 +418,95 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         """
         trv_states: list[dict] = []
         for trv in getattr(area, "trv_entities", []):
-            entity_id = trv.get("entity_id")
-            if not entity_id:
-                continue
-
-            state = self.hass.states.get(entity_id)
-            open_state = None
-            position = None
-            running_state = None
-
-            try:
-                domain = entity_id.split(".")[0]
-                if domain == "binary_sensor":
-                    if state and state.state not in ("unknown", "unavailable"):
-                        open_state = state.state in ("on", "open")
-                else:
-                    if state and state.state not in ("unknown", "unavailable"):
-                        try:
-                            position = float(state.state)
-                        except (ValueError, TypeError):
-                            # Check common attributes for valve position
-                            for attr in ("position", "valve_position", "current_position"):
-                                if attr in state.attributes:
-                                    try:
-                                        position = float(state.attributes.get(attr))
-                                        break
-                                    except (ValueError, TypeError):
-                                        continue
-            except Exception:
-                # Best-effort only; skip problematic entity
-                continue
-
-            # Running state: default to area state (heating/idle/off)
-            running_state = getattr(area, "state", None)
-
-            trv_states.append(
-                {
-                    "entity_id": entity_id,
-                    "open": open_state,
-                    "position": position,
-                    "running_state": running_state,
-                }
-            )
-
+            trv_state = self._parse_trv_state(trv, area)
+            if trv_state:
+                trv_states.append(trv_state)
         return trv_states
+
+    def _parse_trv_state(self, trv: dict, area: Area) -> dict | None:
+        """Parse TRV state from entity.
+
+        Args:
+            trv: TRV configuration dict
+            area: Area instance
+
+        Returns:
+            TRV state dict or None if invalid
+        """
+        entity_id = trv.get("entity_id")
+        if not entity_id:
+            return None
+
+        state = self.hass.states.get(entity_id)
+        open_state, position = self._extract_trv_values(entity_id, state)
+
+        return {
+            "entity_id": entity_id,
+            "open": open_state,
+            "position": position,
+            "running_state": getattr(area, "state", None),
+        }
+
+    def _extract_trv_values(self, entity_id: str, state) -> tuple[bool | None, float | None]:
+        """Extract open state and position from TRV entity.
+
+        Args:
+            entity_id: Entity ID
+            state: Home Assistant state object
+
+        Returns:
+            Tuple of (open_state, position)
+        """
+        try:
+            domain = entity_id.split(".")[0]
+            if domain == "binary_sensor":
+                return self._extract_binary_sensor_state(state), None
+            return None, self._extract_position(state)
+        except (AttributeError, KeyError, ValueError, TypeError) as err:
+            # Best-effort only; skip problematic entity
+            _LOGGER.debug("Failed to extract window/door state for %s: %s", entity_id, err)
+            return None, None
+
+    def _extract_binary_sensor_state(self, state) -> bool | None:
+        """Extract binary sensor state.
+
+        Args:
+            state: Home Assistant state object
+
+        Returns:
+            True if on/open, False if off/closed, None if unavailable
+        """
+        if state and state.state not in ("unknown", "unavailable"):
+            return state.state in ("on", "open")
+        return None
+
+    def _extract_position(self, state) -> float | None:
+        """Extract valve position from state.
+
+        Args:
+            state: Home Assistant state object
+
+        Returns:
+            Position as float or None
+        """
+        if not state or state.state in ("unknown", "unavailable"):
+            return None
+
+        # Try state value first
+        try:
+            return float(state.state)
+        except (ValueError, TypeError):
+            pass
+
+        # Check common attributes for valve position
+        for attr in ("position", "valve_position", "current_position"):
+            if attr in state.attributes:
+                try:
+                    return float(state.attributes.get(attr))
+                except (ValueError, TypeError):
+                    continue
+
+        return None
 
     def _get_opentherm_gateway_state(self, gateway_id: str) -> dict | None:
         """Get OpenTherm gateway state data.
@@ -756,6 +655,12 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Smart Heating data updated successfully: %d areas", len(areas))
             return data
 
-        except Exception as err:
-            _LOGGER.error("Error updating Smart Heating data: %s", err)
+        except (
+            HomeAssistantError,
+            SmartHeatingError,
+            ValidationError,
+            AttributeError,
+            KeyError,
+        ) as err:
+            _LOGGER.error("Error updating Smart Heating data: %s", err, exc_info=True)
             raise UpdateFailed(f"Error communicating with API: {err}") from err

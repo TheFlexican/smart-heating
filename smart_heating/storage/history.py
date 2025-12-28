@@ -24,6 +24,7 @@ from sqlalchemy import (
     delete,
     select,
 )
+from sqlalchemy.exc import SQLAlchemyError, OperationalError, DatabaseError
 
 from ..const import (
     DEFAULT_HISTORY_RETENTION_DAYS,
@@ -31,6 +32,7 @@ from ..const import (
     HISTORY_STORAGE_JSON,
     MAX_HISTORY_RETENTION_DAYS,
 )
+from ..exceptions import StorageError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -82,10 +84,12 @@ class HistoryTracker:
                         # Initialize DB table synchronously for tests that expect it
                         try:
                             self._init_database_table()
-                        except Exception:
+                        except (SQLAlchemyError, RuntimeError) as err:
+                            _LOGGER.debug("DB table init failed: %s, using JSON storage", err)
                             self._storage_backend = HISTORY_STORAGE_JSON
-            except Exception:
+            except (AttributeError, RuntimeError, SQLAlchemyError) as err:
                 # Keep JSON fallback if anything goes wrong during init
+                _LOGGER.debug("DB validation failed during init: %s, using JSON storage", err)
                 self._storage_backend = HISTORY_STORAGE_JSON
 
     async def _async_validate_database_support(self) -> None:  # NOSONAR
@@ -136,7 +140,7 @@ class HistoryTracker:
                 self._storage_backend = HISTORY_STORAGE_JSON
                 self._db_validated = True
 
-        except Exception as e:  # pylint: disable=broad-except
+        except (AttributeError, RuntimeError, SQLAlchemyError) as e:
             _LOGGER.error(
                 "Error validating database support: %s, falling back to JSON",
                 e,
@@ -159,8 +163,8 @@ class HistoryTracker:
                 if recorder:
                     try:
                         await self._attempt_enable_database(recorder)
-                    except Exception:  # pylint: disable=broad-except
-                        _LOGGER.exception("Error during deferred DB validation")
+                    except (AttributeError, RuntimeError, SQLAlchemyError) as err:
+                        _LOGGER.error("Error during deferred DB validation: %s", err, exc_info=True)
                         self._storage_backend = HISTORY_STORAGE_JSON
                         self._db_validated = True
                     break
@@ -195,9 +199,9 @@ class HistoryTracker:
                 if total and int(total) > 0:
                     self._storage_backend = HISTORY_STORAGE_DATABASE
                     await self._async_load_from_database()
-            except Exception:
+            except (SQLAlchemyError, RuntimeError, ValueError) as err:
                 # Ignore; we'll remain on JSON if loading fails
-                pass
+                _LOGGER.debug("Failed to load from database during enable: %s", err)
 
             self._db_validated = True
             return
@@ -234,15 +238,18 @@ class HistoryTracker:
             # Ensure 'trvs' column exists (migrated to helper)
             try:
                 self._ensure_trvs_column()
-            except Exception:
+            except (SQLAlchemyError, RuntimeError) as err:
                 _LOGGER.debug(
-                    "Could not verify/add 'trvs' column; continuing with best-effort setup"
+                    "Could not verify/add 'trvs' column: %s; continuing with best-effort setup",
+                    err,
                 )
 
             _LOGGER.info("Database table '%s' ready for history storage", DB_TABLE_NAME)
 
-        except Exception as e:
-            _LOGGER.error("Failed to initialize database table: %s, falling back to JSON", e)
+        except (SQLAlchemyError, RuntimeError, AttributeError) as e:
+            _LOGGER.error(
+                "Failed to initialize database table: %s, falling back to JSON", e, exc_info=True
+            )
             self._storage_backend = HISTORY_STORAGE_JSON
             self._db_table = None
             self._db_engine = None
@@ -284,8 +291,8 @@ class HistoryTracker:
                         # Some DBs require an explicit commit
                         try:
                             conn.commit()
-                        except Exception:
-                            pass
+                        except (SQLAlchemyError, AttributeError) as err:
+                            _LOGGER.debug("Commit after ALTER TABLE not needed/failed: %s", err)
 
                 # Run migration synchronously (this is called from init time)
                 self._db_engine.begin()
@@ -335,9 +342,10 @@ class HistoryTracker:
                 else:
                     # No DB entries: fall back to JSON storage
                     await self._async_load_from_json()
-            except Exception:
+            except (SQLAlchemyError, RuntimeError, ValueError) as err:
                 # In case of any error querying DB, fall back to JSON to avoid
                 # leaving the integration without history at startup
+                _LOGGER.warning("Failed to load from database: %s, using JSON", err)
                 await self._async_load_from_json()
         else:
             await self._async_load_from_json()
@@ -401,7 +409,8 @@ class HistoryTracker:
                     trvs = None
                     try:
                         trvs = json.loads(row.trvs) if row.trvs else None
-                    except Exception:
+                    except (json.JSONDecodeError, TypeError, ValueError) as err:
+                        _LOGGER.debug("Failed to parse TRV JSON for row: %s", err)
                         trvs = None
 
                     history_dict[area_id].append(
@@ -442,8 +451,10 @@ class HistoryTracker:
                 len(self._history),
                 self._retention_days,
             )
-        except Exception as e:
-            _LOGGER.error("Failed to load from database: %s, falling back to JSON", e)
+        except (SQLAlchemyError, RuntimeError, AttributeError, ValueError) as e:
+            _LOGGER.error(
+                "Failed to load from database: %s, falling back to JSON", e, exc_info=True
+            )
             self._storage_backend = HISTORY_STORAGE_JSON
             await self._async_load_from_json()
 
@@ -517,8 +528,8 @@ class HistoryTracker:
 
             return await recorder.async_add_executor_job(_get_stats)
 
-        except Exception as e:
-            _LOGGER.error("Failed to get database stats: %s", e)
+        except (SQLAlchemyError, RuntimeError, AttributeError) as e:
+            _LOGGER.error("Failed to get database stats: %s", e, exc_info=True)
             return {"enabled": False, "message": str(e)}
 
     async def _async_cleanup_old_entries(self) -> None:
@@ -593,8 +604,8 @@ class HistoryTracker:
                 # Reload in-memory cache
                 await self._async_load_from_database()
 
-        except Exception as e:
-            _LOGGER.error("Failed to cleanup database: %s", e)
+        except (SQLAlchemyError, RuntimeError, AttributeError) as e:
+            _LOGGER.error("Failed to cleanup database: %s", e, exc_info=True)
 
     async def _async_periodic_cleanup(self, now=None) -> None:
         """Periodic cleanup task."""
@@ -690,8 +701,9 @@ class HistoryTracker:
 
             await recorder.async_add_executor_job(_insert)
 
-        except Exception as e:
-            _LOGGER.error("Failed to save entry to database: %s", e)
+        except (SQLAlchemyError, RuntimeError, AttributeError) as e:
+            _LOGGER.error("Failed to save entry to database: %s", e, exc_info=True)
+            raise StorageError(f"Failed to save history entry to database: {e}") from e
 
     def get_history(
         self,
@@ -856,8 +868,8 @@ class HistoryTracker:
                 "target_backend": target_backend,
             }
 
-        except Exception as e:
-            _LOGGER.error("Migration failed: %s", e)
+        except (SQLAlchemyError, RuntimeError, ValueError, StorageError) as e:
+            _LOGGER.error("Migration failed: %s", e, exc_info=True)
             return {
                 "success": False,
                 "message": f"Migration failed: {str(e)}",

@@ -2,6 +2,7 @@ import { Alert, Box, FormControlLabel, Slider, Switch, Typography } from '@mui/m
 import TuneIcon from '@mui/icons-material/Tune'
 import { Zone } from '../../types'
 import { SettingSection } from '../DraggableSettings'
+import { setAreaHysteresis } from '../../api/areas'
 
 export interface HeatingControlSectionProps {
   area: Zone
@@ -47,20 +48,11 @@ export const HeatingControlSection = ({
                   const useGlobal = e.target.checked
 
                   try {
-                    const response = await fetch(`/api/smart_heating/areas/${area.id}/hysteresis`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        use_global: useGlobal,
-                        hysteresis: useGlobal ? null : 0.5,
-                      }),
+                    await setAreaHysteresis(area.id, {
+                      use_global: useGlobal,
+                      hysteresis: useGlobal ? null : 0.5,
                     })
-                    if (!response.ok) {
-                      const errorText = await response.text()
-                      console.error('Failed to update hysteresis setting:', errorText)
-                    } else {
-                      onUpdate()
-                    }
+                    onUpdate()
                   } catch (error) {
                     console.error('Failed to update hysteresis setting:', error)
                   }
@@ -85,23 +77,11 @@ export const HeatingControlSection = ({
                   value={area.hysteresis_override || 0.5}
                   onChange={async (_e, value) => {
                     try {
-                      const response = await fetch(
-                        `/api/smart_heating/areas/${area.id}/hysteresis`,
-                        {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            use_global: false,
-                            hysteresis: value,
-                          }),
-                        },
-                      )
-                      if (!response.ok) {
-                        const errorText = await response.text()
-                        console.error('Failed to update hysteresis:', errorText)
-                      } else {
-                        onUpdate()
-                      }
+                      await setAreaHysteresis(area.id, {
+                        use_global: false,
+                        hysteresis: value as number,
+                      })
+                      onUpdate()
                     } catch (error) {
                       console.error('Failed to update hysteresis:', error)
                     }

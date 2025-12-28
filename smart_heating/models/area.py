@@ -33,6 +33,7 @@ from ..const import (
     STATE_IDLE,
     STATE_OFF,
 )
+from .area_boost_manager import AreaBoostManager
 from .area_device_manager import AreaDeviceManager
 from .area_preset_manager import AreaPresetManager
 from .area_schedule_manager import AreaScheduleManager
@@ -73,21 +74,6 @@ class Area:
         self.hidden: bool = False  # Whether area is hidden from main view
         self.area_manager: "AreaManager | None" = None  # Reference to parent AreaManager
 
-        # Night boost settings
-        self.night_boost_enabled: bool = False  # Disabled by default to avoid surprises
-        self.night_boost_offset: float = 0.5  # Add 0.5°C during night hours
-        self.night_boost_start_time: str = DEFAULT_NIGHT_BOOST_START_TIME
-        self.night_boost_end_time: str = DEFAULT_NIGHT_BOOST_END_TIME
-
-        # Smart boost settings (AI-powered predictive heating)
-        self.smart_boost_enabled: bool = False
-        self.smart_boost_target_time: str = "06:00"  # Time when room should be at target temp
-        self.weather_entity_id: str | None = None  # Outdoor temperature sensor
-
-        # Smart boost runtime state (not persisted)
-        self.smart_boost_active: bool = False  # Currently in smart boost heating period
-        self.smart_boost_original_target: float | None = None  # Original target before smart boost
-
         # Heating state tracking (runtime only, not persisted)
         # True = heating active, False = idle, None = initial/unknown
         self._last_heating_state: bool | None = None
@@ -108,12 +94,6 @@ class Area:
         self.use_global_home: bool = True
         self.use_global_sleep: bool = True
         self.use_global_activity: bool = True
-
-        # Boost mode settings
-        self.boost_mode_active: bool = False
-        self.boost_duration: int = 60  # minutes
-        self.boost_temp: float = 25.0
-        self.boost_end_time: datetime | None = None
 
         # HVAC mode (heat/cool/auto)
         self.hvac_mode: str = HVAC_MODE_HEAT
@@ -160,14 +140,11 @@ class Area:
         self.heating_curve_coefficient: float | None = None
 
         # Initialize manager instances for composition
-        self._device_manager = AreaDeviceManager(self)
-        self._sensor_manager = AreaSensorManager(self)
-        self._preset_manager = AreaPresetManager(self)
-        self._schedule_manager = AreaScheduleManager(self)
-
-        # TRV entity configuration for this area
-        # Each entry is a dict: {"entity_id": str, "role": "position"|"open"|"both"|None, "name": Optional[str]}
-        self.trv_entities: list[dict[str, Any]] = []
+        self.device_manager = AreaDeviceManager(self)
+        self.sensor_manager = AreaSensorManager(self)
+        self.preset_manager = AreaPresetManager(self)
+        self.schedule_manager = AreaScheduleManager(self)
+        self.boost_manager = AreaBoostManager(self)
 
         # TRV entity configuration for this area
         # Each entry is a dict: {"entity_id": str, "role": "position"|"open"|"both"|None, "name": Optional[str]}
@@ -182,7 +159,7 @@ class Area:
             device_type: Type of device (thermostat, temperature_sensor, etc.)
             mqtt_topic: MQTT topic for the device (optional)
         """
-        return self._device_manager.add_device(device_id, device_type, mqtt_topic)
+        return self.device_manager.add_device(device_id, device_type, mqtt_topic)
 
     def remove_device(self, device_id: str) -> None:
         """Remove a device from the area.
@@ -190,7 +167,7 @@ class Area:
         Args:
             device_id: Unique identifier for the device
         """
-        return self._device_manager.remove_device(device_id)
+        return self.device_manager.remove_device(device_id)
 
     def get_temperature_sensors(self) -> list[str]:
         """Get all temperature sensor device IDs in the area.
@@ -198,7 +175,7 @@ class Area:
         Returns:
             List of temperature sensor device IDs
         """
-        return self._device_manager.get_temperature_sensors()
+        return self.device_manager.get_temperature_sensors()
 
     def get_thermostats(self) -> list[str]:
         """Get all thermostat device IDs in the area.
@@ -206,7 +183,7 @@ class Area:
         Returns:
             List of thermostat device IDs
         """
-        return self._device_manager.get_thermostats()
+        return self.device_manager.get_thermostats()
 
     def get_opentherm_gateways(self) -> list[str]:
         """Get all OpenTherm gateway device IDs in the area.
@@ -214,7 +191,7 @@ class Area:
         Returns:
             List of OpenTherm gateway device IDs
         """
-        return self._device_manager.get_opentherm_gateways()
+        return self.device_manager.get_opentherm_gateways()
 
     def get_switches(self) -> list[str]:
         """Get all switch device IDs in the area (pumps, relays, etc.).
@@ -222,7 +199,7 @@ class Area:
         Returns:
             List of switch device IDs
         """
-        return self._device_manager.get_switches()
+        return self.device_manager.get_switches()
 
     def get_valves(self) -> list[str]:
         """Get all valve device IDs in the area (TRVs, motorized valves).
@@ -230,7 +207,7 @@ class Area:
         Returns:
             List of valve device IDs
         """
-        return self._device_manager.get_valves()
+        return self.device_manager.get_valves()
 
     # Sensor management methods - delegate to AreaSensorManager
     def add_window_sensor(
@@ -246,7 +223,7 @@ class Area:
             action_when_open: Action to take when window opens (turn_off, reduce_temperature, none)
             temp_drop: Temperature drop when open (only for reduce_temperature action)
         """
-        return self._sensor_manager.add_window_sensor(entity_id, action_when_open, temp_drop)
+        return self.sensor_manager.add_window_sensor(entity_id, action_when_open, temp_drop)
 
     def remove_window_sensor(self, entity_id: str) -> None:
         """Remove a window/door sensor from the area.
@@ -254,7 +231,7 @@ class Area:
         Args:
             entity_id: Entity ID of the window/door sensor
         """
-        return self._sensor_manager.remove_window_sensor(entity_id)
+        return self.sensor_manager.remove_window_sensor(entity_id)
 
     def add_presence_sensor(
         self,
@@ -269,7 +246,7 @@ class Area:
         Args:
             entity_id: Entity ID of the presence sensor (person.* or binary_sensor.*)
         """
-        return self._sensor_manager.add_presence_sensor(entity_id)
+        return self.sensor_manager.add_presence_sensor(entity_id)
 
     def remove_presence_sensor(self, entity_id: str) -> None:
         """Remove a presence/motion sensor from the area.
@@ -277,7 +254,7 @@ class Area:
         Args:
             entity_id: Entity ID of the presence sensor
         """
-        return self._sensor_manager.remove_presence_sensor(entity_id)
+        return self.sensor_manager.remove_presence_sensor(entity_id)
 
     def add_trv_entity(
         self, entity_id: str, role: str | None = None, name: str | None = None
@@ -313,7 +290,7 @@ class Area:
         Returns:
             Temperature for current preset mode
         """
-        return self._preset_manager.get_preset_temperature()
+        return self.preset_manager.get_preset_temperature()
 
     def set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode for the area.
@@ -321,7 +298,7 @@ class Area:
         Args:
             preset_mode: Preset mode (away, eco, comfort, etc.)
         """
-        return self._preset_manager.set_preset_mode(preset_mode)
+        return self.preset_manager.set_preset_mode(preset_mode)
 
     def set_boost_mode(self, duration: int, temp: float | None = None) -> None:
         """Activate boost mode for a specified duration.
@@ -330,11 +307,11 @@ class Area:
             duration: Duration in minutes
             temp: Optional boost temperature (defaults to self.boost_temp)
         """
-        return self._preset_manager.set_boost_mode(duration, temp)
+        return self.boost_manager.activate_boost(duration, temp)
 
     def cancel_boost_mode(self) -> None:
         """Cancel active boost mode."""
-        return self._preset_manager.cancel_boost_mode()
+        return self.boost_manager.cancel_boost()
 
     def check_boost_expiry(self) -> bool:
         """Check if boost mode has expired and cancel if needed.
@@ -342,7 +319,7 @@ class Area:
         Returns:
             True if boost was cancelled, False otherwise
         """
-        return self._preset_manager.check_boost_expiry()
+        return self.boost_manager.check_boost_expiry()
 
     # Schedule management methods - delegate to AreaScheduleManager
     def add_schedule(self, schedule: Schedule) -> None:
@@ -351,7 +328,7 @@ class Area:
         Args:
             schedule: Schedule instance
         """
-        return self._schedule_manager.add_schedule(schedule)
+        return self.schedule_manager.add_schedule(schedule)
 
     def remove_schedule(self, schedule_id: str) -> None:
         """Remove a schedule from the area.
@@ -359,7 +336,7 @@ class Area:
         Args:
             schedule_id: Schedule identifier
         """
-        return self._schedule_manager.remove_schedule(schedule_id)
+        return self.schedule_manager.remove_schedule(schedule_id)
 
     def get_active_schedule_temperature(self, current_time: datetime | None = None) -> float | None:
         """Get the temperature from the currently active schedule.
@@ -370,7 +347,7 @@ class Area:
         Returns:
             Temperature from active schedule or None
         """
-        return self._schedule_manager.get_active_schedule_temperature(current_time)
+        return self.schedule_manager.get_active_schedule_temperature(current_time)
 
     def get_effective_target_temperature(self, current_time: datetime | None = None) -> float:
         """Get the effective target temperature considering all factors.
@@ -390,7 +367,7 @@ class Area:
         Returns:
             Effective target temperature
         """
-        return self._schedule_manager.get_effective_target_temperature(current_time)
+        return self.schedule_manager.get_effective_target_temperature(current_time)
 
     @property
     def current_temperature(self) -> float | None:
@@ -460,13 +437,6 @@ class Area:
             "shutdown_switches_when_idle": self.shutdown_switches_when_idle,
             ATTR_DEVICES: self.devices,
             "schedules": [s.to_dict() for s in self.schedules.values()],
-            "night_boost_enabled": self.night_boost_enabled,
-            "night_boost_offset": self.night_boost_offset,
-            "night_boost_start_time": self.night_boost_start_time,
-            "night_boost_end_time": self.night_boost_end_time,
-            "smart_boost_enabled": self.smart_boost_enabled,
-            "smart_boost_target_time": self.smart_boost_target_time,
-            "weather_entity_id": self.weather_entity_id,
             # Preset modes
             "preset_mode": self.preset_mode,
             "away_temp": self.away_temp,
@@ -482,11 +452,8 @@ class Area:
             "use_global_home": self.use_global_home,
             "use_global_sleep": self.use_global_sleep,
             "use_global_activity": self.use_global_activity,
-            # Boost mode
-            "boost_mode_active": self.boost_mode_active,
-            "boost_duration": self.boost_duration,
-            "boost_temp": self.boost_temp,
-            "boost_end_time": (self.boost_end_time.isoformat() if self.boost_end_time else None),
+            # Boost mode - delegate to boost_manager
+            **self.boost_manager.to_dict(),
             # HVAC mode
             "hvac_mode": self.hvac_mode,
             # Window sensors (new structure)
@@ -533,16 +500,8 @@ class Area:
         # from persisted format and is no longer read. Use explicit `shutdown_switches_when_idle`.
         area.shutdown_switches_when_idle = data.get("shutdown_switches_when_idle", True)
 
-        # Night boost settings
-        area.night_boost_enabled = data.get("night_boost_enabled", True)
-        area.night_boost_offset = data.get("night_boost_offset", 0.5)
-        area.night_boost_start_time = data.get(
-            "night_boost_start_time", DEFAULT_NIGHT_BOOST_START_TIME
-        )
-        area.night_boost_end_time = data.get("night_boost_end_time", DEFAULT_NIGHT_BOOST_END_TIME)
-        area.smart_boost_enabled = data.get("smart_boost_enabled", False)
-        area.smart_boost_target_time = data.get("smart_boost_target_time", "06:00")
-        area.weather_entity_id = data.get("weather_entity_id")
+        # Boost settings - delegate to boost_manager
+        area.boost_manager = AreaBoostManager.from_dict(data, area)
 
         # Preset modes
         area.preset_mode = data.get("preset_mode", PRESET_NONE)
@@ -559,18 +518,6 @@ class Area:
         area.use_global_home = data.get("use_global_home", True)
         area.use_global_sleep = data.get("use_global_sleep", True)
         area.use_global_activity = data.get("use_global_activity", True)
-
-        # Boost mode
-        area.boost_mode_active = data.get("boost_mode_active", False)
-        area.boost_duration = data.get("boost_duration", 60)
-        area.boost_temp = data.get("boost_temp", 25.0)
-        boost_end_time_str = data.get("boost_end_time")
-        if boost_end_time_str:
-            from datetime import datetime
-
-            area.boost_end_time = datetime.fromisoformat(boost_end_time_str)
-        else:
-            area.boost_end_time = None
 
         # HVAC mode
         area.hvac_mode = data.get("hvac_mode", HVAC_MODE_HEAT)

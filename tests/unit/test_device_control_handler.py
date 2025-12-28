@@ -21,6 +21,8 @@ def make_area():
     area.get_valves.return_value = []
     area.area_id = "a1"
     area.heating_curve_coefficient = None
+    area.boost_manager = MagicMock()
+    area.boost_manager.weather_entity_id = None
     return area
 
 
@@ -108,7 +110,7 @@ async def test_handle_thermostat_idle_sets_to_current_or_target():
     # thermostat id
     tid = "climate.t1"
     # last set temp None
-    handler.thermostat_handler._last_set_temperatures = {}
+    handler.thermostat_handler.temperature_setter._last_set_temperatures.clear()
     await handler._handle_thermostat_idle(area, tid, 21.0)
     # Since current >= (target - hyst) desired_setpoint should be current temp (22.0)
     assert handler.thermostat_handler._last_set_temperatures[tid] == 22.0
@@ -129,16 +131,16 @@ async def test_handle_thermostat_turn_off_behavior():
     state = MagicMock()
     state.attributes = {"supported_features": 128}
     hass.states.get = MagicMock(return_value=state)
-    # Mock the thermostat_handler's method since we delegate to it
-    handler.thermostat_handler._async_turn_off_climate_power = AsyncMock()
+    # Mock the power_switch_manager's method since we delegate to it
+    handler.thermostat_handler.power_switch_manager.turn_off_climate_power = AsyncMock()
     await handler._handle_thermostat_turn_off("climate.t1")
     hass.services.async_call.assert_awaited()
-    handler.thermostat_handler._async_turn_off_climate_power.assert_awaited()
+    handler.thermostat_handler.power_switch_manager.turn_off_climate_power.assert_awaited()
 
     # Thermostat does not support turn_off -> set min (frost_protection_temp)
     state.attributes = {"supported_features": 0}
     hass.states.get = MagicMock(return_value=state)
-    handler.thermostat_handler._last_set_temperatures = {}
+    handler.thermostat_handler.temperature_setter._last_set_temperatures.clear()
     hass.services.async_call.reset_mock()
     await handler._handle_thermostat_turn_off("climate.t1")
     hass.services.async_call.assert_awaited()
@@ -150,7 +152,7 @@ def test_compute_area_candidate_with_heating_curve_and_pid():
     # Create area
     area = make_area()
     area.target_temperature = 21.0
-    area.weather_entity_id = "weather.home"
+    area.boost_manager.weather_entity_id = "weather.home"
     area.get_thermostats.return_value = []
     area.heating_curve_coefficient = None
     area.heating_type = "radiator"
@@ -256,7 +258,7 @@ async def test_handle_thermostat_heating_and_idle_and_turn_off():
     area = MagicMock()
     area.hysteresis_override = 0.5
     area.current_temperature = 22.0
-    handler.thermostat_handler._last_set_temperatures = {}
+    handler.thermostat_handler.temperature_setter._last_set_temperatures.clear()
     hass.services.async_call = AsyncMock()
     await handler._handle_thermostat_idle(area, "climate.t1", 22.0)
     assert "climate.t1" in handler.thermostat_handler._last_set_temperatures
@@ -314,11 +316,15 @@ def test_compute_candidate_and_enforce_minimum(monkeypatch):
     assert handler._compute_area_candidate("nope", 2.0, False, False, False) is None
 
     # patch internal steps to control return values
+    class BoostManager:
+        def __init__(self):
+            self.weather_entity_id = "weather.home"
+
     class Area:
         def __init__(self):
             self.target_temperature = 20.0
             self.current_temperature = 19.0
-            self.weather_entity_id = "weather.home"
+            self.boost_manager = BoostManager()
             self.heating_type = "radiator"
             self.heating_curve_coefficient = None
 

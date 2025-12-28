@@ -105,7 +105,13 @@ class EfficiencyCalculator:
                 ),
             }
 
-        except Exception as e:
+        except (
+            HomeAssistantError,
+            SmartHeatingError,
+            KeyError,
+            ValueError,
+            ZeroDivisionError,
+        ) as e:
             _LOGGER.error("Error calculating efficiency for %s: %s", area_id, e)
             return self._empty_metrics(area_id, period, start, end)
 

@@ -15,6 +15,10 @@ import logging
 from statistics import mean
 from typing import Optional
 
+from homeassistant.exceptions import HomeAssistantError
+
+from .exceptions import SmartHeatingError
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -37,7 +41,7 @@ class OvershootProtection:
         # Try set 0 modulation and wait for a stable flow temperature
         try:
             await self._coordinator.async_set_control_max_relative_modulation(0)
-        except Exception as e:
+        except (HomeAssistantError, SmartHeatingError, AttributeError) as e:
             _LOGGER.warning(f"Failed to set 0% modulation: {e}")
             return None
 

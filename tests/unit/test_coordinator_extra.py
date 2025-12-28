@@ -10,8 +10,8 @@ async def test_startup_grace_period_prevents_manual_override(
     hass: HomeAssistant, mock_config_entry, mock_area_manager
 ):
     coordinator = SmartHeatingCoordinator(hass, mock_config_entry, mock_area_manager)
-    # Enable startup grace period
-    coordinator._startup_grace_period = True
+    # Grace period is enabled by default in __init__
+    assert coordinator._manual_override_detector._startup_grace_period is True
 
     mock_area = MagicMock()
     mock_area.name = "Test"
@@ -32,7 +32,7 @@ async def test_startup_grace_period_prevents_manual_override(
     assert mock_area.manual_override is False
 
     # Disable grace and apply again - should set manual override
-    coordinator._startup_grace_period = False
+    coordinator._manual_override_detector.set_startup_grace_period(False)
     await coordinator._apply_manual_temperature_change("climate.test", 23.0)
 
     assert mock_area.target_temperature == pytest.approx(23.0)

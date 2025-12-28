@@ -56,7 +56,7 @@ class HeatingCycleHandler:
 
         # Check for expired boost modes
         for area in self.area_manager.get_all_areas().values():
-            if area.boost_mode_active:
+            if area.boost_manager.boost_mode_active:
                 area.check_boost_expiry()
 
         # Increment counter for history recording (every 10 cycles = 5 minutes)

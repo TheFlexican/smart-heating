@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from smart_heating.const import HISTORY_STORAGE_DATABASE
+from smart_heating.exceptions import StorageError
 from smart_heating.storage.history import HistoryTracker
 
 
@@ -30,6 +31,7 @@ async def test_async_load_from_database(monkeypatch):
 
     # Prepare fake recorder with executor job returning a dict
     fake_recorder = MagicMock()
+    fake_recorder.engine = MagicMock()
 
     def fake_load():
         # simulate DB rows transformed into dict
@@ -45,7 +47,8 @@ async def test_async_load_from_database(monkeypatch):
             ]
         }
 
-    fake_recorder.async_add_executor_job = AsyncMock(return_value=fake_load())
+    # First call returns dict (load), second call returns int (cleanup count)
+    fake_recorder.async_add_executor_job = AsyncMock(side_effect=[fake_load(), 0])
     monkeypatch.setattr("smart_heating.storage.history.get_instance", lambda hass: fake_recorder)
 
     # Set db_table to non-None to force database load path
@@ -107,11 +110,14 @@ async def test_async_save_to_database_entry_error(monkeypatch):
 
     # Simulate recorder raising on async_add_executor_job
     class BadRecorder:
+        engine = MagicMock()
+
         async def async_add_executor_job(self, fn):
             raise RuntimeError("DB failure")
 
     monkeypatch.setattr("smart_heating.storage.history.get_instance", lambda hass: BadRecorder())
     tracker._db_table = MagicMock()
 
-    # Should not raise
-    await tracker._async_save_to_database_entry("area1", datetime.now(), 20.0, 21.0, "heating")
+    # Should raise StorageError for database failures
+    with pytest.raises(StorageError, match="Failed to save history entry"):
+        await tracker._async_save_to_database_entry("area1", datetime.now(), 20.0, 21.0, "heating")

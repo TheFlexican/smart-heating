@@ -2,16 +2,27 @@
 
 import logging
 
+import asyncio
 import aiofiles
 from aiohttp import web
-from homeassistant.components.http import HomeAssistantView
+from homeassistant.helpers.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from ..const import DOMAIN
+from .auth import require_admin, get_user_from_request
+
+# Standardized error messages
+ERROR_INTERNAL = "Internal server error"
+ERROR_CONFIG_MANAGER_UNAVAILABLE = "Config manager not available"
+ERROR_USER_MANAGER_UNAVAILABLE = "User manager not available"
+ERROR_COMPARISON_ENGINE_UNAVAILABLE = "Comparison engine not available"
+ERROR_EFFICIENCY_CALCULATOR_UNAVAILABLE = "Efficiency calculator not available"
+AREA_SCHEDULES_SEGMENT = "/schedules/"
 from ..core.area_manager import AreaManager
 from ..core.coordinator import SmartHeatingCoordinator
 from ..features.comparison_engine import ComparisonEngine
-from .handlers import (  # Schedules; Sensors; Logs; Areas; Config; Devices; History; System
+from .handlers import (
     handle_add_device,
     handle_add_presence_sensor,
     handle_add_schedule,
@@ -30,6 +41,7 @@ from .handlers import (  # Schedules; Sensors; Logs; Areas; Config; Devices; His
     handle_get_area,
     handle_get_area_efficiency_history,
     handle_get_area_logs,
+    handle_get_area_device_logs,
     handle_get_areas,
     handle_get_binary_sensor_entities,
     handle_get_trv_candidates,
@@ -117,7 +129,7 @@ class SmartHeatingAPIView(HomeAssistantView):
 
     url = "/api/smart_heating/{endpoint:.*}"
     name = "api:smart_heating"
-    requires_auth = False
+    requires_auth = True
 
     def __init__(self, hass: HomeAssistant, area_manager: AreaManager) -> None:
         """Initialize the API view.
@@ -135,6 +147,129 @@ class SmartHeatingAPIView(HomeAssistantView):
         for v in domain_data.values():
             if isinstance(v, SmartHeatingCoordinator):
                 return v
+        return None
+
+    def _get_domain_component(self, key: str, error_msg: str):
+        """Return a component from hass.data[DOMAIN] or a 503 response when missing.
+
+        Returns a tuple of (component, None) when present or (None, web.Response) when not.
+        """
+        comp = self.hass.data.get(DOMAIN, {}).get(key)
+        if not comp:
+            return None, web.json_response({"error": error_msg}, status=503)
+        return comp, None
+
+    def _parse_advanced_metrics_query(
+        self, request: web.Request
+    ) -> tuple[int | None, int | None, web.Response | None]:
+        """Parse advanced metrics query params and return (minutes, days, error_response).
+
+        Returns an error Response when parameters are invalid, otherwise returns (minutes, days, None).
+        """
+        minutes_q = request.query.get("minutes")
+        days_q = request.query.get("days")
+
+        minutes = None
+        days = None
+
+        if minutes_q is not None:
+            try:
+                minutes = int(minutes_q)
+            except ValueError:
+                return (
+                    None,
+                    None,
+                    web.json_response({"error": "minutes must be an integer"}, status=400),
+                )
+            if minutes not in [1, 2, 3, 5]:
+                return (
+                    None,
+                    None,
+                    web.json_response({"error": "minutes must be 1, 2, 3, or 5"}, status=400),
+                )
+
+        if minutes is None:
+            try:
+                days = int(days_q or "7")
+            except ValueError:
+                return (
+                    None,
+                    None,
+                    web.json_response({"error": "days must be an integer"}, status=400),
+                )
+            if days not in [1, 3, 7, 30]:
+                return (
+                    None,
+                    None,
+                    web.json_response({"error": "days must be 1, 3, 7, or 30"}, status=400),
+                )
+
+        return minutes, days, None
+
+    async def _handle_special_imports(self, endpoint: str, data: dict) -> web.Response | None:
+        """Handle import and backup related special endpoints."""
+        if endpoint == "import":
+            config_manager, resp = self._get_domain_component(
+                "config_manager", ERROR_CONFIG_MANAGER_UNAVAILABLE
+            )
+            if resp:
+                return resp
+            assert config_manager is not None
+            return await handle_import_config(self.hass, config_manager, data)
+
+        if endpoint == "validate":
+            config_manager, resp = self._get_domain_component(
+                "config_manager", ERROR_CONFIG_MANAGER_UNAVAILABLE
+            )
+            if resp:
+                return resp
+            assert config_manager is not None
+            return await handle_validate_config(self.hass, config_manager, data)
+
+        if endpoint.startswith("backups/") and endpoint.endswith("/restore"):
+            backup_filename = endpoint.split("/")[1]
+            config_manager, resp = self._get_domain_component(
+                "config_manager", ERROR_CONFIG_MANAGER_UNAVAILABLE
+            )
+            if resp:
+                return resp
+            assert config_manager is not None
+            return await handle_restore_backup(self.hass, config_manager, backup_filename)
+
+        return None
+
+    async def _handle_user_endpoints(
+        self, request: web.Request, endpoint: str
+    ) -> web.Response | None:
+        """Handle user-related special endpoints."""
+        if endpoint == "users":
+            user_manager, resp = self._get_domain_component(
+                "user_manager", ERROR_USER_MANAGER_UNAVAILABLE
+            )
+            if resp:
+                return resp
+            assert user_manager is not None
+            return await handle_create_user(self.hass, user_manager, request)
+
+        if endpoint.startswith(_USERS_PATH) and not endpoint.endswith("/settings"):
+            user_id = endpoint.split("/")[1]
+            user_manager, resp = self._get_domain_component(
+                "user_manager", ERROR_USER_MANAGER_UNAVAILABLE
+            )
+            if resp:
+                return resp
+            assert user_manager is not None
+            return await handle_update_user(self.hass, user_manager, request, user_id)
+
+        if endpoint == f"{_USERS_PATH}settings":
+            user_manager, resp = self._get_domain_component(
+                "user_manager", ERROR_USER_MANAGER_UNAVAILABLE
+            )
+            if resp:
+                return resp
+            assert user_manager is not None
+            return await handle_update_user_settings(self.hass, user_manager, request)
+
         return None
 
     async def _handle_area_endpoints_get(
@@ -169,7 +304,11 @@ class SmartHeatingAPIView(HomeAssistantView):
         elif "/logs" in endpoint:
             return await handle_get_area_logs(self.hass, area_id, request)
         elif "/efficiency" in endpoint:
-            efficiency_calculator = self.hass.data[DOMAIN]["efficiency_calculator"]
+            efficiency_calculator = self.hass.data.get(DOMAIN, {}).get("efficiency_calculator")
+            if not efficiency_calculator:
+                return web.json_response(
+                    {"error": ERROR_EFFICIENCY_CALCULATOR_UNAVAILABLE}, status=503
+                )
             return await handle_get_area_efficiency_history(
                 self.hass, efficiency_calculator, request, area_id
             )
@@ -344,26 +483,11 @@ class SmartHeatingAPIView(HomeAssistantView):
                     {"error": "Advanced metrics collector not available"}, status=503
                 )
 
-            # Support either minutes (preferred for device logs) or legacy days param
-            minutes_q = request.query.get("minutes")
-            days_q = request.query.get("days")
+            # Parse query params for advanced metrics and validate input
+            minutes, days, err_resp = self._parse_advanced_metrics_query(request)
+            if err_resp:
+                return err_resp
             area_id = request.query.get("area_id")
-
-            minutes = None
-            days = None
-            if minutes_q is not None:
-                try:
-                    minutes = int(minutes_q)
-                except ValueError:
-                    return web.json_response({"error": "minutes must be an integer"}, status=400)
-                if minutes not in [1, 2, 3, 5]:
-                    return web.json_response({"error": "minutes must be 1, 2, 3, or 5"}, status=400)
-
-            if minutes is None:
-                # fallback to days for backward compatibility
-                days = int(days_q or "7")
-                if days not in [1, 3, 7, 30]:
-                    return web.json_response({"error": "days must be 1, 3, 7, or 30"}, status=400)
 
             metrics = await advanced_metrics.async_get_metrics(
                 days=days, minutes=minutes, area_id=area_id
@@ -480,9 +604,9 @@ class SmartHeatingAPIView(HomeAssistantView):
 
             else:
                 return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)
-        except Exception as err:
-            _LOGGER.error("Error handling GET %s: %s", endpoint, err)
-            return web.json_response({"error": str(err)}, status=500)
+        except (HomeAssistantError, RuntimeError, OSError) as err:
+            _LOGGER.exception("Error handling GET %s", endpoint)
+            return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 
     async def patch(self, request: web.Request, endpoint: str) -> web.Response:
         """Handle PATCH requests used to update resources.
@@ -494,9 +618,14 @@ class SmartHeatingAPIView(HomeAssistantView):
         Returns:
             JSON response
         """
+        # PATCH operations require admin permission
+        user = get_user_from_request(request)
+        if error := require_admin(user):
+            return error
+
         try:
             # Area schedule update
-            if endpoint.startswith(ENDPOINT_PREFIX_AREAS) and "/schedules/" in endpoint:
+            if endpoint.startswith(ENDPOINT_PREFIX_AREAS) and AREA_SCHEDULES_SEGMENT in endpoint:
                 parts = endpoint.split("/")
                 area_id = parts[1]
                 schedule_id = parts[3]
@@ -506,9 +635,9 @@ class SmartHeatingAPIView(HomeAssistantView):
                 )
 
             return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)
-        except Exception as err:
-            _LOGGER.error("Error handling PATCH %s: %s", endpoint, err)
-            return web.json_response({"error": str(err)}, status=500)
+        except (HomeAssistantError, RuntimeError, OSError) as err:
+            _LOGGER.exception("Error handling PATCH %s", endpoint)
+            return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 
     async def _handle_area_action_post(self, endpoint: str, action: str) -> web.Response | None:
         """Handle area action endpoints (no body required).
@@ -535,6 +664,45 @@ class SmartHeatingAPIView(HomeAssistantView):
             handler = handlers.get(action)
             if handler:
                 return await handler(self.hass, self.area_manager, area_id)
+        return None
+
+    async def _handle_delete_area_subresource(
+        self, endpoint: str, request: web.Request
+    ) -> web.Response | None:
+        """Handle deleting area sub-resources (devices, schedules, window/presence sensors, trv)."""
+        if not endpoint.startswith(ENDPOINT_PREFIX_AREAS):
+            return None
+
+        if "/devices/" in endpoint:
+            parts = endpoint.split("/")
+            area_id = parts[1]
+            device_id = parts[3]
+            return await handle_remove_device(self.area_manager, area_id, device_id)
+        if AREA_SCHEDULES_SEGMENT in endpoint:
+            parts = endpoint.split("/")
+            area_id = parts[1]
+            schedule_id = parts[3]
+            return await handle_remove_schedule(self.hass, self.area_manager, area_id, schedule_id)
+        if "/window_sensors/" in endpoint:
+            parts = endpoint.split("/")
+            area_id = parts[1]
+            entity_id = "/".join(parts[3:])  # Reconstruct entity_id
+            return await handle_remove_window_sensor(
+                self.hass, self.area_manager, area_id, entity_id
+            )
+        if "/presence_sensors/" in endpoint:
+            parts = endpoint.split("/")
+            area_id = parts[1]
+            entity_id = "/".join(parts[3:])  # Reconstruct entity_id
+            return await handle_remove_presence_sensor(
+                self.hass, self.area_manager, area_id, entity_id
+            )
+        if "/trv/" in endpoint:
+            parts = endpoint.split("/")
+            area_id = parts[1]
+            entity_id = "/".join(parts[3:])
+            return await handle_remove_trv_entity(self.hass, self.area_manager, area_id, entity_id)
+
         return None
 
     async def _handle_area_data_post(self, endpoint: str, data: dict) -> web.Response | None:
@@ -643,7 +811,9 @@ class SmartHeatingAPIView(HomeAssistantView):
             )
         elif endpoint == "opentherm_gateway":
             entry_ids = [entry.entry_id for entry in self.hass.config_entries.async_entries(DOMAIN)]
-            coordinator = self.hass.data[DOMAIN][entry_ids[0]] if entry_ids else None
+            coordinator = None
+            if entry_ids:
+                coordinator = self.hass.data.get(DOMAIN, {}).get(entry_ids[0])
             return await handle_set_opentherm_gateway(self.area_manager, coordinator, data)
 
         return None
@@ -662,34 +832,24 @@ class SmartHeatingAPIView(HomeAssistantView):
             Response if handled, None otherwise
         """
         # Import/Export endpoints
-        if endpoint == "import":
-            config_manager = self.hass.data[DOMAIN]["config_manager"]
-            return await handle_import_config(self.hass, config_manager, data)
-        elif endpoint == "validate":
-            config_manager = self.hass.data[DOMAIN]["config_manager"]
-            return await handle_validate_config(self.hass, config_manager, data)
-        elif endpoint.startswith("backups/") and endpoint.endswith("/restore"):
-            backup_filename = endpoint.split("/")[1]
-            config_manager = self.hass.data[DOMAIN]["config_manager"]
-            return await handle_restore_backup(self.hass, config_manager, backup_filename)
+        resp = await self._handle_special_imports(endpoint, data)
+        if resp:
+            return resp
 
         # User endpoints
-        elif endpoint == "users":
-            user_manager = self.hass.data[DOMAIN]["user_manager"]
-            return await handle_create_user(self.hass, user_manager, request)
-        elif endpoint.startswith(_USERS_PATH) and not endpoint.endswith("/settings"):
-            user_id = endpoint.split("/")[1]
-            user_manager = self.hass.data[DOMAIN]["user_manager"]
-            return await handle_update_user(self.hass, user_manager, request, user_id)
-        elif endpoint == f"{_USERS_PATH}settings":
-            user_manager = self.hass.data[DOMAIN]["user_manager"]
-            return await handle_update_user_settings(self.hass, user_manager, request)
+        resp = await self._handle_user_endpoints(request, endpoint)
+        if resp:
+            return resp
 
         # Comparison endpoints
-        elif endpoint == "comparison/custom":
-            comparison_engine = self.hass.data[DOMAIN]["comparison_engine"]
+        if endpoint == "comparison/custom":
+            comparison_engine, resp = self._get_domain_component(
+                "comparison_engine", ERROR_COMPARISON_ENGINE_UNAVAILABLE
+            )
+            if resp:
+                return resp
+            assert comparison_engine is not None
             return await handle_get_custom_comparison(self.hass, comparison_engine, request)
-
         # OpenTherm endpoints
         elif endpoint == "opentherm/capabilities/discover":
             return await handle_discover_opentherm_capabilities(self.hass, self.area_manager)
@@ -708,6 +868,11 @@ class SmartHeatingAPIView(HomeAssistantView):
         Returns:
             JSON response
         """
+        # POST operations require admin permission
+        user = get_user_from_request(request)
+        if error := require_admin(user):
+            return error
+
         try:
             _LOGGER.debug("POST request to endpoint: %s", endpoint)
 
@@ -737,9 +902,9 @@ class SmartHeatingAPIView(HomeAssistantView):
                 return response
 
             return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)
-        except Exception as err:
-            _LOGGER.error("Error handling POST %s: %s", endpoint, err)
-            return web.json_response({"error": str(err)}, status=500)
+        except (HomeAssistantError, RuntimeError, OSError) as err:
+            _LOGGER.exception("Error handling POST %s", endpoint)
+            return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 
     async def delete(self, request: web.Request, endpoint: str) -> web.Response:
         """Handle DELETE requests.
@@ -751,10 +916,16 @@ class SmartHeatingAPIView(HomeAssistantView):
         Returns:
             JSON response
         """
+        # DELETE operations require admin permission
+        user = get_user_from_request(request)
+        if error := require_admin(user):
+            return error
+
         try:
             if endpoint == "vacation_mode":
                 return await handle_disable_vacation_mode(self.hass)
-            elif endpoint == "safety_sensor":
+
+            if endpoint == "safety_sensor":
                 # Get sensor_id from query parameter
                 sensor_id = request.query.get("sensor_id")
                 if not sensor_id:
@@ -762,49 +933,27 @@ class SmartHeatingAPIView(HomeAssistantView):
                         {"error": "sensor_id query parameter is required"}, status=400
                     )
                 return await handle_remove_safety_sensor(self.hass, self.area_manager, sensor_id)
-            elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and "/devices/" in endpoint:
-                parts = endpoint.split("/")
-                area_id = parts[1]
-                device_id = parts[3]
-                return await handle_remove_device(self.area_manager, area_id, device_id)
-            elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and "/schedules/" in endpoint:
-                parts = endpoint.split("/")
-                area_id = parts[1]
-                schedule_id = parts[3]
-                return await handle_remove_schedule(
-                    self.hass, self.area_manager, area_id, schedule_id
-                )
-            elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and "/window_sensors/" in endpoint:
-                parts = endpoint.split("/")
-                area_id = parts[1]
-                entity_id = "/".join(parts[3:])  # Reconstruct entity_id
-                return await handle_remove_window_sensor(
-                    self.hass, self.area_manager, area_id, entity_id
-                )
-            elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and "/presence_sensors/" in endpoint:
-                parts = endpoint.split("/")
-                area_id = parts[1]
-                entity_id = "/".join(parts[3:])  # Reconstruct entity_id
-                return await handle_remove_presence_sensor(
-                    self.hass, self.area_manager, area_id, entity_id
-                )
-            elif endpoint.startswith(ENDPOINT_PREFIX_AREAS) and "/trv/" in endpoint:
-                parts = endpoint.split("/")
-                area_id = parts[1]
-                entity_id = "/".join(parts[3:])
-                return await handle_remove_trv_entity(
-                    self.hass, self.area_manager, area_id, entity_id
-                )
+
+            # Area subresources
+            resp = await self._handle_delete_area_subresource(endpoint, request)
+            if resp:
+                return resp
+
             # User endpoints
-            elif endpoint.startswith(_USERS_PATH):
+            if endpoint.startswith(_USERS_PATH):
                 user_id = endpoint.split("/")[1]
-                user_manager = self.hass.data[DOMAIN]["user_manager"]
+                user_manager, resp = self._get_domain_component(
+                    "user_manager", ERROR_USER_MANAGER_UNAVAILABLE
+                )
+                if resp:
+                    return resp
+                assert user_manager is not None
                 return await handle_delete_user(self.hass, user_manager, request, user_id)
-            else:
-                return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)
-        except Exception as err:
-            _LOGGER.error("Error handling DELETE %s: %s", endpoint, err)
-            return web.json_response({"error": str(err)}, status=500)
+
+            return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)
+        except (HomeAssistantError, RuntimeError, OSError) as err:
+            _LOGGER.exception("Error handling DELETE %s", endpoint)
+            return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 
 
 class SmartHeatingUIView(HomeAssistantView):
@@ -924,4 +1073,6 @@ async def setup_api(hass: HomeAssistant, area_manager: AreaManager) -> None:
     static_view = SmartHeatingStaticView(hass)
     hass.http.register_view(static_view)
 
+    # Yield once to satisfy async usage without blocking
+    await asyncio.sleep(0)
     _LOGGER.info("Smart Heating API, UI, and static files registered")

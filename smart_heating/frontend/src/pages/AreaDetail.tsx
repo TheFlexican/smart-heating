@@ -26,6 +26,7 @@ import {
   setPrimaryTemperatureSensor,
   addDeviceToZone,
   removeDeviceFromZone,
+  getLearningStatsDetailed,
 } from '../api/areas'
 import { addTrvEntity, addWindowSensor, addPresenceSensor, removeTrvEntity } from '../api/sensors'
 import { getAreaLogs, AreaLogEntry } from '../api/logs'
@@ -333,11 +334,8 @@ const ZoneDetail = () => {
 
     try {
       setLearningStatsLoading(true)
-      const response = await fetch(`/api/smart_heating/areas/${areaId}/learning/stats`)
-      if (response.ok) {
-        const data = await response.json()
-        setLearningStats(data.stats)
-      }
+      const stats = await getLearningStatsDetailed(areaId)
+      setLearningStats(stats)
     } catch (error) {
       console.error('Failed to load learning stats:', error)
     } finally {

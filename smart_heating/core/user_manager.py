@@ -56,7 +56,7 @@ class UserManager:
             # Start tracking person entities
             await self._setup_person_listeners()
 
-        except Exception as e:
+        except (HomeAssistantError, ValidationError, StorageError) as e:
             _LOGGER.error("Failed to load user profiles: %s", e)
 
     async def async_save(self) -> None:
@@ -73,7 +73,7 @@ class UserManager:
             await self.hass.async_add_executor_job(_write)
             _LOGGER.debug("Saved user profiles to %s", self._storage_file)
 
-        except Exception as e:
+        except (HomeAssistantError, ValidationError, StorageError) as e:
             _LOGGER.error("Failed to save user profiles: %s", e)
 
     async def _setup_person_listeners(self) -> None:

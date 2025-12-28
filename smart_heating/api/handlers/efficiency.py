@@ -5,8 +5,10 @@ from typing import Any, Tuple
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from ...core.area_manager import AreaManager
+from ...exceptions import SmartHeatingError
 from ...features.efficiency_calculator import EfficiencyCalculator
 
 _LOGGER = logging.getLogger(__name__)
@@ -154,7 +156,7 @@ async def handle_get_efficiency_report(
             payload = await _handle_all_areas_report(area_manager, efficiency_calculator, period)
             return web.json_response(payload)
 
-    except Exception as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
         _LOGGER.error("Error getting efficiency report: %s", e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)
 
@@ -211,6 +213,6 @@ async def handle_get_area_efficiency_history(
 
         return web.json_response({"history": history_data})
 
-    except Exception as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
         _LOGGER.error("Error getting efficiency history for %s: %s", area_id, e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)

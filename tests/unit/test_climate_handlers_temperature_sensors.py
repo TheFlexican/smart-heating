@@ -29,7 +29,8 @@ def mock_area():
     area.area_id = "test_area"
     area.get_temperature_sensors = MagicMock(return_value=[])
     area.get_thermostats = MagicMock(return_value=[])
-    area.weather_entity_id = None
+    area.boost_manager = MagicMock()
+    area.boost_manager.weather_entity_id = None
     area.primary_temperature_sensor = None
     return area
 
@@ -444,7 +445,7 @@ class TestAsyncGetOutdoorTemperature:
     @pytest.mark.asyncio
     async def test_no_weather_entity(self, temp_handler, mock_area):
         """Test when area has no weather entity configured."""
-        mock_area.weather_entity_id = None
+        mock_area.boost_manager.weather_entity_id = None
 
         result = await temp_handler.async_get_outdoor_temperature(mock_area)
 
@@ -453,7 +454,7 @@ class TestAsyncGetOutdoorTemperature:
     @pytest.mark.asyncio
     async def test_valid_celsius_temperature(self, temp_handler, mock_hass, mock_area):
         """Test getting valid outdoor temperature in Celsius."""
-        mock_area.weather_entity_id = "weather.home"
+        mock_area.boost_manager.weather_entity_id = "weather.home"
 
         state = MagicMock()
         state.state = "sunny"
@@ -467,7 +468,7 @@ class TestAsyncGetOutdoorTemperature:
     @pytest.mark.asyncio
     async def test_valid_fahrenheit_temperature(self, temp_handler, mock_hass, mock_area):
         """Test getting valid outdoor temperature in Fahrenheit."""
-        mock_area.weather_entity_id = "weather.home"
+        mock_area.boost_manager.weather_entity_id = "weather.home"
 
         state = MagicMock()
         state.state = "sunny"
@@ -482,7 +483,7 @@ class TestAsyncGetOutdoorTemperature:
     @pytest.mark.asyncio
     async def test_weather_unavailable(self, temp_handler, mock_hass, mock_area):
         """Test when weather entity is unavailable."""
-        mock_area.weather_entity_id = "weather.home"
+        mock_area.boost_manager.weather_entity_id = "weather.home"
 
         state = MagicMock()
         state.state = "unavailable"
@@ -496,7 +497,7 @@ class TestAsyncGetOutdoorTemperature:
     @pytest.mark.asyncio
     async def test_weather_not_found(self, temp_handler, mock_hass, mock_area):
         """Test when weather entity doesn't exist."""
-        mock_area.weather_entity_id = "weather.missing"
+        mock_area.boost_manager.weather_entity_id = "weather.missing"
         mock_hass.states.get.return_value = None
 
         result = await temp_handler.async_get_outdoor_temperature(mock_area)
@@ -506,7 +507,7 @@ class TestAsyncGetOutdoorTemperature:
     @pytest.mark.asyncio
     async def test_invalid_temperature_value(self, temp_handler, mock_hass, mock_area):
         """Test when weather entity has invalid temperature."""
-        mock_area.weather_entity_id = "weather.home"
+        mock_area.boost_manager.weather_entity_id = "weather.home"
 
         state = MagicMock()
         state.state = "not_a_number"
