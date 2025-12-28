@@ -65,6 +65,11 @@ jobs:
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@master
+        with:
+          args: >
+            -Dsonar.verbose=true
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.projectBaseDir=${{ github.workspace }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
