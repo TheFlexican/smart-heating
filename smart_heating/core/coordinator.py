@@ -182,7 +182,8 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
         async def start_debounce():
             await self._debouncer.async_debounce(entity_id, apply_and_refresh)
 
-        asyncio.create_task(start_debounce())
+        task = asyncio.create_task(start_debounce())
+        task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
 
     async def _apply_manual_temperature_change(self, entity_id: str, new_temp: float) -> None:
         """Apply manual temperature change to area - delegates to ManualOverrideDetector.

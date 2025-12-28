@@ -22,6 +22,9 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Constant for unknown area name
+_UNKNOWN_AREA_NAME = "<unknown>"
+
 
 class ThermostatHandler(BaseDeviceHandler):
     """Handle thermostat device operations as a coordinator.
@@ -108,7 +111,7 @@ class ThermostatHandler(BaseDeviceHandler):
 
         _LOGGER.debug(
             "async_control_thermostats called: area=%s, heating=%s, target_temp=%s, thermostats=%s",
-            getattr(area, "name", "<unknown>"),
+            getattr(area, "name", _UNKNOWN_AREA_NAME),
             heating,
             target_temp,
             thermostats,
@@ -118,7 +121,7 @@ class ThermostatHandler(BaseDeviceHandler):
             try:
                 _LOGGER.info(
                     "Area %s: Processing thermostat %s (heating=%s target_temp=%s hvac_mode=%s)",
-                    getattr(area, "name", "<unknown>"),
+                    getattr(area, "name", _UNKNOWN_AREA_NAME),
                     thermostat_id,
                     heating,
                     target_temp,
@@ -134,7 +137,7 @@ class ThermostatHandler(BaseDeviceHandler):
                     else:
                         _LOGGER.debug(
                             "Skipping idle hysteresis for AC area %s (hvac_mode=%s)",
-                            getattr(area, "name", "<unknown>"),
+                            getattr(area, "name", _UNKNOWN_AREA_NAME),
                             area_hvac,
                         )
                 else:

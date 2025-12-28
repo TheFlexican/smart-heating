@@ -74,7 +74,7 @@ export const PresetConfigSection = ({
                         e.stopPropagation()
                         try {
                           await setAreaPresetConfig(area.id, { [useGlobalKey]: e.target.checked })
-                          await onUpdate()
+                          onUpdate()
                         } catch (error) {
                           console.error('Failed to update preset config:', error)
                           alert(`Failed to update preset: ${error}`)
@@ -121,7 +121,7 @@ export const PresetConfigSection = ({
                           await setAreaPresetConfig(area.id, {
                             [`${preset.key}_temp`]: newValue as number,
                           })
-                          await onUpdate()
+                          onUpdate()
                         } catch (error) {
                           console.error('Failed to update custom temperature:', error)
                           alert(`Failed to update temperature: ${error}`)
