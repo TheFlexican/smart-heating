@@ -1,12 +1,15 @@
 """Logging API handlers for Smart Heating."""
 
-import logging
 import asyncio
+import logging
 from typing import Any
+
 from aiohttp import web
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from ...const import DOMAIN
+from ...exceptions import SmartHeatingError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,7 +53,7 @@ async def handle_get_area_logs(
 
         return web.json_response({"logs": logs})
 
-    except Exception as err:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as err:
         _LOGGER.exception("Error getting logs for area %s", area_id)
         return web.json_response({"error": str(err)}, status=500)
 
@@ -88,12 +91,12 @@ async def handle_get_area_device_logs(
                 logs = await result
             else:
                 logs = result
-        except Exception as err:
+        except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as err:
             _LOGGER.exception("Error fetching device logs for area %s", area_id)
             return web.json_response({"error": str(err)}, status=500)
 
         return web.json_response({"logs": logs})
 
-    except Exception as err:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as err:
         _LOGGER.error("Error getting device logs for area %s: %s", area_id, err)
         return web.json_response({"error": str(err)}, status=500)

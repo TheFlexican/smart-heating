@@ -43,13 +43,13 @@ def mock_area(mock_schedule):
     area = MagicMock()
     area.schedules = {"schedule_1": mock_schedule}
     area.add_schedule = MagicMock()
-    area.night_boost_enabled = False
-    area.night_boost_offset = 0.5
-    area.night_boost_start_time = "22:00"
-    area.night_boost_end_time = "06:00"
-    area.smart_boost_enabled = False
-    area.smart_boost_target_time = "06:00"
-    area.weather_entity_id = None
+    area.boost_manager.night_boost_enabled = False
+    area.boost_manager.night_boost_offset = 0.5
+    area.boost_manager.night_boost_start_time = "22:00"
+    area.boost_manager.night_boost_end_time = "06:00"
+    area.boost_manager.smart_boost_enabled = False
+    area.boost_manager.smart_boost_target_time = "06:00"
+    area.boost_manager.weather_entity_id = None
     return area
 
 
@@ -297,13 +297,13 @@ class TestScheduleHandlers:
         await async_handle_set_night_boost(call, mock_area_manager, mock_coordinator)
 
         # Verify all settings were updated
-        assert mock_area.night_boost_enabled is True
-        assert mock_area.night_boost_offset == 1.0
-        assert mock_area.night_boost_start_time == "23:00"
-        assert mock_area.night_boost_end_time == "07:00"
-        assert mock_area.smart_boost_enabled is True
-        assert mock_area.smart_boost_target_time == "07:00"
-        assert mock_area.weather_entity_id == "weather.home"
+        assert mock_area.boost_manager.night_boost_enabled is True
+        assert mock_area.boost_manager.night_boost_offset == 1.0
+        assert mock_area.boost_manager.night_boost_start_time == "23:00"
+        assert mock_area.boost_manager.night_boost_end_time == "07:00"
+        assert mock_area.boost_manager.smart_boost_enabled is True
+        assert mock_area.boost_manager.smart_boost_target_time == "07:00"
+        assert mock_area.boost_manager.weather_entity_id == "weather.home"
         # Verify data was saved
         mock_area_manager.async_save.assert_called_once()
         # Verify coordinator refresh
@@ -321,15 +321,15 @@ class TestScheduleHandlers:
             "night_boost_offset": 1.5,
         }
 
-        original_start = mock_area.night_boost_start_time
+        original_start = mock_area.boost_manager.night_boost_start_time
 
         await async_handle_set_night_boost(call, mock_area_manager, mock_coordinator)
 
         # Verify only specified settings were updated
-        assert mock_area.night_boost_enabled is True
-        assert mock_area.night_boost_offset == 1.5
+        assert mock_area.boost_manager.night_boost_enabled is True
+        assert mock_area.boost_manager.night_boost_offset == 1.5
         # Verify unspecified settings were not changed
-        assert mock_area.night_boost_start_time == original_start
+        assert mock_area.boost_manager.night_boost_start_time == original_start
 
     @pytest.mark.asyncio
     async def test_async_handle_set_night_boost_area_not_found(

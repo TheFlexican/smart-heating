@@ -74,10 +74,11 @@ def test_get_target_time_and_temp_from_schedule():
 def test_get_target_time_from_config_returns_none_and_value():
     hass = make_hass()
     se = ScheduleExecutor(hass, MagicMock())
-    area = SimpleNamespace(area_id="a1", smart_boost_target_time=None)
+    boost_manager = SimpleNamespace(smart_boost_target_time=None)
+    area = SimpleNamespace(area_id="a1", boost_manager=boost_manager)
     now = datetime(2025, 12, 12, 0, 0)
     assert se._get_target_time_from_config(area, now) is None
-    area.smart_boost_target_time = "06:30"
+    area.boost_manager.smart_boost_target_time = "06:30"
     t = se._get_target_time_from_config(area, now)
     assert t.hour == 6 and t.minute == 30
 
@@ -85,10 +86,11 @@ def test_get_target_time_from_config_returns_none_and_value():
 def test_get_outdoor_temperature_various_units():
     hass = make_hass()
     se = ScheduleExecutor(hass, MagicMock())
-    area = SimpleNamespace(area_id="a1", weather_entity_id=None)
+    boost_manager = SimpleNamespace(weather_entity_id=None)
+    area = SimpleNamespace(area_id="a1", boost_manager=boost_manager)
     assert se._get_outdoor_temperature(area) is None
 
-    area.weather_entity_id = "weather.home"
+    area.boost_manager.weather_entity_id = "weather.home"
     state = MagicMock()
     state.state = "12.5"
     state.attributes = {"unit_of_measurement": "°C"}

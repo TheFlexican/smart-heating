@@ -61,7 +61,7 @@ def mock_area():
     area.target_temperature = 21.0
     area.current_temperature = 19.0
     area.preset_mode = "home"
-    area.boost_mode_active = False
+    area.boost_manager.boost_mode_active = False
     area.hysteresis_override = None
     area.window_sensors = []
     area.presence_sensors = []
@@ -73,7 +73,7 @@ def mock_area():
     area.presence_detected = False
     area.state = "idle"
     area.shutdown_switches_when_idle = True
-    area.weather_entity_id = None
+    area.boost_manager.weather_entity_id = None
     area.devices = {}
     area.get_thermostats = MagicMock(return_value=[])
     area.get_switches = MagicMock(return_value=[])
@@ -616,7 +616,7 @@ class TestDeviceControl:
         state.attributes = {"temperature": 15.0, "unit_of_measurement": "°C"}
         mock_hass.states.get.return_value = state
 
-        mock_area.weather_entity_id = "weather.home"
+        mock_area.boost_manager.weather_entity_id = "weather.home"
 
         temp = await controller._async_get_outdoor_temperature(mock_area)
         assert temp == 15.0
@@ -624,7 +624,7 @@ class TestDeviceControl:
     @pytest.mark.asyncio
     async def test_async_get_outdoor_temperature_no_entity(self, controller, mock_area):
         """Test getting outdoor temperature when no entity configured."""
-        mock_area.weather_entity_id = None
+        mock_area.boost_manager.weather_entity_id = None
 
         temp = await controller._async_get_outdoor_temperature(mock_area)
         assert temp is None
@@ -648,7 +648,7 @@ class TestDeviceControl:
         radiator_area.current_temperature = 18.0
         radiator_area.target_temperature = 21.0
         radiator_area.custom_overhead_temp = None  # Use default 20°C for radiator
-        radiator_area.weather_entity_id = None  # No weather entity
+        radiator_area.boost_manager.weather_entity_id = None  # No weather entity
         # Ensure area manager can find the area
         mock_area_manager.get_area.return_value = radiator_area
 

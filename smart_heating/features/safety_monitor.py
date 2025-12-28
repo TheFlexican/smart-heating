@@ -43,7 +43,7 @@ class SafetyMonitor:
         try:
             if hasattr(self.hass, "data"):
                 self.hass.data.setdefault(DOMAIN, {})["safety_monitor"] = self
-        except Exception:
+        except (HomeAssistantError, SafetySensorError, SmartHeatingError, AttributeError, KeyError):
             pass
 
     async def _setup_state_listener(self) -> None:
@@ -121,10 +121,16 @@ class SafetyMonitor:
                 # Add to set and ensure it's removed when done
                 self._safety_check_tasks.add(task)
                 task.add_done_callback(lambda fut: self._safety_check_tasks.discard(fut))
-            except Exception:
+            except (
+                HomeAssistantError,
+                SafetySensorError,
+                SmartHeatingError,
+                AttributeError,
+                KeyError,
+            ):
                 # If task tracking fails, ignore and continue
                 pass
-        except Exception:
+        except (HomeAssistantError, SafetySensorError, SmartHeatingError, AttributeError, KeyError):
             # If scheduling fails (e.g., hass.async_create_task is patched), ignore
             pass
 
@@ -230,19 +236,31 @@ class SafetyMonitor:
             for t in self._safety_check_tasks:
                 try:
                     t.cancel()
-                except Exception:
+                except (
+                    HomeAssistantError,
+                    SafetySensorError,
+                    SmartHeatingError,
+                    AttributeError,
+                    KeyError,
+                ):
                     pass
             self._safety_check_tasks.clear()
-        except Exception:
+        except (HomeAssistantError, SafetySensorError, SmartHeatingError, AttributeError, KeyError):
             pass
         # We cannot await from sync shutdown; just schedule a loop run to allow cancellations
         try:
             try:
                 self.hass.async_create_task(self.hass.async_block_till_done())
-            except Exception:
+            except (
+                HomeAssistantError,
+                SafetySensorError,
+                SmartHeatingError,
+                AttributeError,
+                KeyError,
+            ):
                 # If hass.async_create_task is patched in tests, ignore
                 pass
-        except Exception:
+        except (HomeAssistantError, SafetySensorError, SmartHeatingError, AttributeError, KeyError):
             pass
         _LOGGER.debug("SafetyMonitor shutdown")
 

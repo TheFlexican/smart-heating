@@ -5,10 +5,12 @@ import uuid
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import area_registry as ar
 
 from ...const import DOMAIN
 from ...core.area_manager import AreaManager
+from ...exceptions import SmartHeatingError
 from ...models import Area, Schedule
 from ...utils import get_coordinator, validate_area_id, validate_temperature
 
@@ -62,8 +64,7 @@ async def handle_add_schedule(
             if ha_area:
                 # Create internal storage for this HA area
                 area = Area(area_id, ha_area.name)
-                area.area_manager = area_manager
-                area_manager.areas[area_id] = area
+                area_manager.add_area(area)
             else:
                 return web.json_response({"error": f"Area {area_id} not found"}, status=404)
 
@@ -121,13 +122,13 @@ async def handle_remove_schedule(
         if schedule_executor:
             try:
                 schedule_executor.clear_schedule_cache(area_id)
-            except Exception:
+            except (HomeAssistantError, ScheduleError, ValidationError, KeyError):
                 _LOGGER.exception("Failed to clear schedule cache for area %s", area_id)
 
         return web.json_response({"success": True})
     except ValueError as err:
         return web.json_response({"error": str(err)}, status=404)
-    except Exception as err:
+    except (HomeAssistantError, ScheduleError, ValidationError, KeyError) as err:
         _LOGGER.exception("Error removing schedule %s from %s", schedule_id, area_id)
         return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
 
@@ -195,7 +196,7 @@ async def handle_update_schedule(
         return web.json_response({"success": True, "schedule": updated.to_dict()})
     except ValueError as err:
         return web.json_response({"error": str(err)}, status=400)
-    except Exception as err:
+    except (HomeAssistantError, ScheduleError, ValidationError, KeyError) as err:
         _LOGGER.exception("Error updating schedule %s in %s", schedule_id, area_id)
         return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
 
@@ -315,7 +316,7 @@ async def handle_set_boost_mode(
                 "success": True,
                 "boost_active": True,
                 "duration": duration,
-                "temperature": area.boost_temp,
+                "temperature": area.boost_manager.boost_temp,
             }
         )
     except ValueError as err:

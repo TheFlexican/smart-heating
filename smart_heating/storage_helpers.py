@@ -18,6 +18,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from homeassistant.components.recorder import get_instance as get_recorder_instance
+
+from .exceptions import StorageError
 from sqlalchemy import text
 import re
 
@@ -66,7 +68,7 @@ async def _async_remove_store_keys(hass: HomeAssistant, keys: Iterable[str]) -> 
             store = Store(hass, STORAGE_VERSION, key)
             await store.async_remove()
             _LOGGER.info("Removed store key: %s", key)
-        except Exception as err:
+        except (StorageError, OSError, RuntimeError) as err:
             _LOGGER.debug("Failed to remove store key %s: %s", key, err)
 
 
@@ -77,7 +79,7 @@ def _remove_path(path: str) -> None:
         _LOGGER.info("Removed storage directory: %s", path)
     except FileNotFoundError:
         _LOGGER.debug("Storage directory not found: %s", path)
-    except Exception as err:
+    except (StorageError, OSError, RuntimeError) as err:
         _LOGGER.warning("Failed to remove storage directory %s: %s", path, err)
 
 
@@ -124,7 +126,7 @@ async def _async_drop_recorder_tables(hass: HomeAssistant, table_names: Iterable
                         sql = text(f"DROP TABLE IF EXISTS {tbl}")
                         conn.execute(sql)
                         _LOGGER.info("Dropped table (if existed): %s", tbl)
-                    except Exception as err:
+                    except (StorageError, OSError, RuntimeError) as err:
                         _LOGGER.warning("Failed to drop table %s: %s", tbl, err)
 
         # Use recorder's executor when available to comply with HA recorder warnings
@@ -145,5 +147,5 @@ async def _async_drop_recorder_tables(hass: HomeAssistant, table_names: Iterable
             )
             await hass.async_add_executor_job(_drop)
 
-    except Exception as err:
+    except (StorageError, OSError, RuntimeError) as err:
         _LOGGER.warning("Error while attempting to drop recorder tables: %s", err)

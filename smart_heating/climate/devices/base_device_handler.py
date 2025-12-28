@@ -4,8 +4,10 @@ import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from ...const import TEMP_COMPARISON_TOLERANCE
+from ...exceptions import DeviceError
 from ...models import DeviceEvent
 
 if TYPE_CHECKING:
@@ -145,7 +147,7 @@ class BaseDeviceHandler:
                 # If area_id cannot be resolved, try to find by device mapping
                 try:
                     area_id = self.area_manager.find_area_by_device(device_id)
-                except Exception:
+                except (HomeAssistantError, DeviceError, AttributeError):
                     area_id = ""
 
             from ...models import DeviceEvent
@@ -162,9 +164,9 @@ class BaseDeviceHandler:
 
             try:
                 self.area_manager.async_add_device_event(area_id or "", evt)
-            except Exception:
+            except (HomeAssistantError, DeviceError, AttributeError):
                 # Best-effort: ignore logging failures
                 _LOGGER.debug("Failed to append device event for %s", device_id)
-        except Exception:
+        except (HomeAssistantError, DeviceError, AttributeError):
             # Never raise from logging helper
             _LOGGER.debug("_record_device_event failed for %s", device_id)

@@ -156,3 +156,146 @@ def validate_entity_id(entity_id: str) -> tuple[bool, Optional[str]]:
         return False, "entity_id must be in format domain.object_id"
 
     return True, None
+
+
+def validate_float_range(
+    value: Any, min_value: Optional[float] = None, max_value: Optional[float] = None
+) -> tuple[bool, Optional[str]]:
+    """Safely convert value to float and validate range.
+
+    Args:
+        value: Value to validate and convert
+        min_value: Minimum allowed value (optional)
+        max_value: Maximum allowed value (optional)
+
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    if value is None:
+        return False, "Value is required"
+
+    try:
+        float_value = float(value)
+    except (ValueError, TypeError):
+        return False, "Value must be a number"
+
+    if min_value is not None and float_value < min_value:
+        return False, f"Value must be at least {min_value}"
+
+    if max_value is not None and float_value > max_value:
+        return False, f"Value must be at most {max_value}"
+
+    return True, None
+
+
+def validate_integer_range(
+    value: Any, min_value: Optional[int] = None, max_value: Optional[int] = None
+) -> tuple[bool, Optional[str]]:
+    """Safely convert value to integer and validate range.
+
+    Args:
+        value: Value to validate and convert
+        min_value: Minimum allowed value (optional)
+        max_value: Maximum allowed value (optional)
+
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    if value is None:
+        return False, "Value is required"
+
+    try:
+        int_value = int(value)
+    except (ValueError, TypeError):
+        return False, "Value must be an integer"
+
+    if min_value is not None and int_value < min_value:
+        return False, f"Value must be at least {min_value}"
+
+    if max_value is not None and int_value > max_value:
+        return False, f"Value must be at most {max_value}"
+
+    return True, None
+
+
+def validate_heating_type(heating_type: Any) -> tuple[bool, Optional[str]]:
+    """Validate heating type enum.
+
+    Args:
+        heating_type: Heating type to validate
+
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    if not heating_type:
+        return False, "heating_type is required"
+
+    if not isinstance(heating_type, str):
+        return False, "heating_type must be a string"
+
+    valid_types = ["radiator", "floor_heating", "airco"]
+    if heating_type not in valid_types:
+        return False, f"heating_type must be one of: {', '.join(valid_types)}"
+
+    return True, None
+
+
+def validate_hvac_mode(hvac_mode: Any) -> tuple[bool, Optional[str]]:
+    """Validate HVAC mode enum.
+
+    Args:
+        hvac_mode: HVAC mode to validate
+
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    if not hvac_mode:
+        return False, "hvac_mode is required"
+
+    if not isinstance(hvac_mode, str):
+        return False, "hvac_mode must be a string"
+
+    valid_modes = ["off", "heat", "cool", "auto"]
+    if hvac_mode not in valid_modes:
+        return False, f"hvac_mode must be one of: {', '.join(valid_modes)}"
+
+    return True, None
+
+
+def sanitize_string_input(value: Any, max_length: int = 255) -> tuple[bool, Optional[str]]:
+    """Sanitize string input to prevent injection attacks.
+
+    Args:
+        value: String value to sanitize
+        max_length: Maximum allowed length (default: 255)
+
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    if value is None:
+        return False, "Value is required"
+
+    if not isinstance(value, str):
+        return False, "Value must be a string"
+
+    if len(value) > max_length:
+        return False, f"Value must be at most {max_length} characters"
+
+    # Check for common injection patterns
+    suspicious_patterns = [
+        "<script",
+        "javascript:",
+        "onerror=",
+        "onload=",
+        "eval(",
+        "expression(",
+        "../",
+        "..\\",
+    ]
+
+    value_lower = value.lower()
+    for pattern in suspicious_patterns:
+        if pattern in value_lower:
+            return False, f"Value contains suspicious pattern: {pattern}"
+
+    return True, None

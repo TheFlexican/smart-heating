@@ -54,6 +54,20 @@ def test_build_device_info_thermostat_and_sensor():
 
 
 def test_get_all_areas_data_and_find_coordinator_and_forward():
+    # Create a fake boost manager with minimal attributes
+    class BoostManager:
+        def __init__(self):
+            self.night_boost_enabled = False
+            self.night_boost_offset = None
+            self.night_boost_start_time = None
+            self.night_boost_end_time = None
+            self.smart_boost_enabled = False
+            self.smart_boost_target_time = None
+            self.weather_entity_id = None
+            self.boost_mode_active = False
+            self.boost_temp = None
+            self.boost_duration = None
+
     # Create a fake area with minimal attributes
     class Area:
         def __init__(self, area_id):
@@ -65,13 +79,7 @@ def test_get_all_areas_data_and_find_coordinator_and_forward():
             self.current_temperature = 19.0
             self.devices = {"d1": {"type": "thermostat"}}
             self.schedules = {}
-            self.night_boost_enabled = False
-            self.night_boost_offset = None
-            self.night_boost_start_time = None
-            self.night_boost_end_time = None
-            self.smart_boost_enabled = False
-            self.smart_boost_target_time = None
-            self.weather_entity_id = None
+            self.boost_manager = BoostManager()
             self.preset_mode = None
             self.away_temp = None
             self.eco_temp = None
@@ -79,9 +87,6 @@ def test_get_all_areas_data_and_find_coordinator_and_forward():
             self.home_temp = None
             self.sleep_temp = None
             self.activity_temp = None
-            self.boost_mode_active = False
-            self.boost_temp = None
-            self.boost_duration = None
             self.hvac_mode = None
             self.window_sensors = []
             self.presence_sensors = []

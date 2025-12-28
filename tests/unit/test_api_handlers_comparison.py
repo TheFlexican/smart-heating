@@ -47,7 +47,8 @@ async def test_handle_get_comparison_exception():
     hass = MagicMock()
     area_manager = MagicMock()
     comparison_engine = MagicMock()
-    comparison_engine.compare_periods = AsyncMock(side_effect=RuntimeError("boom"))
+    # Use KeyError since handler catches specific exception types
+    comparison_engine.compare_periods = AsyncMock(side_effect=KeyError("boom"))
 
     req = make_mocked_request(
         "GET", "/api/smart_heating/comparison?type=week&offset=2&area_id=area1"

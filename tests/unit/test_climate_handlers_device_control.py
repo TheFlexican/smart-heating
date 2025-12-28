@@ -388,9 +388,11 @@ class TestAsyncControlThermostats:
         mock_area.get_thermostats.return_value = ["climate.old_thermo"]
 
         # Make turn_off fail
+        import asyncio
+
         def async_call_side_effect(domain, service, *args, **kwargs):
             if service == "turn_off":
-                raise RuntimeError("Service not supported")
+                raise asyncio.TimeoutError("Service not supported")
 
         device_handler.hass.services.async_call.side_effect = async_call_side_effect
 
@@ -418,9 +420,11 @@ class TestAsyncControlThermostats:
         mock_area_manager.frost_protection_temp = 7.5
 
         # Make turn_off fail
+        import asyncio
+
         async def async_call_side_effect(domain, service, *args, **kwargs):
             if service == "turn_off":
-                raise Exception("Service not supported")
+                raise asyncio.TimeoutError("Service not supported")
 
         device_handler.hass.services.async_call.side_effect = async_call_side_effect
 
@@ -435,7 +439,11 @@ class TestAsyncControlThermostats:
         """Test error handling for failed thermostat control."""
         mock_area.get_thermostats.return_value = ["climate.broken"]
 
-        device_handler.hass.services.async_call.side_effect = Exception("Connection error")
+        import asyncio
+
+        device_handler.hass.services.async_call.side_effect = asyncio.TimeoutError(
+            "Connection error"
+        )
 
         # Should not raise exception
         await device_handler.async_control_thermostats(mock_area, True, 21.0)
@@ -584,7 +592,11 @@ class TestAsyncControlSwitches:
         """Test error handling for failed switch control."""
         mock_area.get_switches.return_value = ["switch.broken"]
 
-        device_handler.hass.services.async_call.side_effect = Exception("Connection error")
+        import asyncio
+
+        device_handler.hass.services.async_call.side_effect = asyncio.TimeoutError(
+            "Connection error"
+        )
 
         # Should not raise exception
         await device_handler.async_control_switches(mock_area, True)
@@ -677,9 +689,11 @@ class TestAsyncControlValves:
         mock_hass.states.get.return_value = state
 
         # Make set_position fail
+        import asyncio
+
         async def async_call_side_effect(domain, service, *args, **kwargs):
             if service == "set_position":
-                raise Exception("Service not supported")
+                raise asyncio.TimeoutError("Service not supported")
 
         device_handler.hass.services.async_call.side_effect = async_call_side_effect
 
@@ -765,7 +779,11 @@ class TestAsyncControlValves:
         state.attributes = {"min": 0, "max": 100}
         mock_hass.states.get.return_value = state
 
-        device_handler.hass.services.async_call.side_effect = Exception("Connection error")
+        import asyncio
+
+        device_handler.hass.services.async_call.side_effect = asyncio.TimeoutError(
+            "Connection error"
+        )
 
         # Should not raise exception
         await device_handler.async_control_valves(mock_area, True, 21.0)
@@ -907,7 +925,11 @@ class TestAsyncControlOpenthermGateway:
         mock_area_manager.opentherm_gateway_id = "gateway1"
         mock_area_manager.opentherm_gateway_id = "broken_gateway"
 
-        device_handler.hass.services.async_call.side_effect = Exception("Connection error")
+        import asyncio
+
+        device_handler.hass.services.async_call.side_effect = asyncio.TimeoutError(
+            "Connection error"
+        )
 
         # Should not raise exception
         await device_handler.async_control_opentherm_gateway(True, 22.0)

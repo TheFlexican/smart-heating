@@ -180,9 +180,9 @@ async def test_record_event_database_fallbacks_to_json_on_db_error(monkeypatch):
     fake_recorder = MagicMock()
 
     async def failing_executor(job):
-        raise Exception("db error")
+        raise RuntimeError("db error")
 
-    fake_recorder.async_add_executor_job = AsyncMock(side_effect=Exception("db error"))
+    fake_recorder.async_add_executor_job = AsyncMock(side_effect=RuntimeError("db error"))
     monkeypatch.setattr(
         "smart_heating.storage.event_store.get_instance", lambda hass: fake_recorder
     )

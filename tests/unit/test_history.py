@@ -61,7 +61,12 @@ class TestHistoryTrackerLoad:
         """Test loading when no data in storage."""
         mock_store.async_load.return_value = None
 
-        with patch("smart_heating.storage.history.async_track_time_interval") as mock_track:
+        mock_recorder = MagicMock()
+        mock_recorder.engine = None  # No DB engine
+        with (
+            patch("smart_heating.storage.history.async_track_time_interval") as mock_track,
+            patch("smart_heating.storage.history.get_instance", return_value=mock_recorder),
+        ):
             await history_tracker.async_load()
 
             # Should have empty history
@@ -93,7 +98,12 @@ class TestHistoryTrackerLoad:
         }
         mock_store.async_load.return_value = mock_data
 
-        with patch("smart_heating.storage.history.async_track_time_interval"):
+        mock_recorder = MagicMock()
+        mock_recorder.engine = None  # No DB engine
+        with (
+            patch("smart_heating.storage.history.async_track_time_interval"),
+            patch("smart_heating.storage.history.get_instance", return_value=mock_recorder),
+        ):
             await history_tracker.async_load()
 
             # Should load history and retention

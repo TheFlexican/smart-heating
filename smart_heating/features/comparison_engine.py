@@ -310,7 +310,7 @@ class ComparisonEngine:
             try:
                 comparison = await self.compare_periods(area_id, comparison_type, offset)
                 results.append(comparison)
-            except Exception as e:
+            except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
                 _LOGGER.error("Error comparing area %s: %s", area_id, e, exc_info=True)
                 continue
 

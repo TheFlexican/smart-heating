@@ -29,7 +29,7 @@ def mock_area():
     area.set_boost_mode = MagicMock()
     area.cancel_boost_mode = MagicMock()
     area.hvac_mode = "heat"
-    area.boost_temp = 22.0
+    area.boost_manager.boost_temp = 22.0
     return area
 
 

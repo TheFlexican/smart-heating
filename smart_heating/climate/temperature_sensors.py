@@ -220,7 +220,9 @@ class TemperatureSensorHandler:
         Returns:
             Outdoor temperature in Celsius or None if not available
         """
-        return get_outdoor_temperature_from_weather_entity(self.hass, area.weather_entity_id)
+        return get_outdoor_temperature_from_weather_entity(
+            self.hass, area.boost_manager.weather_entity_id
+        )
 
     def update_all_area_temperatures(self, area_manager: "AreaManager") -> None:
         """Update current temperatures for all areas from sensors.

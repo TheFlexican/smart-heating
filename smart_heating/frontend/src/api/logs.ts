@@ -1,5 +1,4 @@
-import axios from 'axios'
-const API_BASE = '/api/smart_heating'
+import { apiClient } from './client'
 
 export interface AreaLogEntry {
   timestamp: string
@@ -23,17 +22,17 @@ export const getAreaLogs = async (
     params.append('type', options.type)
   }
 
-  const response = await axios.get(`${API_BASE}/areas/${areaId}/logs?${params.toString()}`)
+  const response = await apiClient.get(`/areas/${areaId}/logs?${params.toString()}`)
   return response.data.logs
 }
 
 export const getHysteresis = async (): Promise<number> => {
-  const response = await axios.get(`${API_BASE}/hysteresis`)
+  const response = await apiClient.get('/hysteresis')
   return response.data.hysteresis
 }
 
 export const setHysteresis = async (hysteresis: number): Promise<void> => {
-  await axios.post(`${API_BASE}/hysteresis`, { hysteresis })
+  await apiClient.post('/hysteresis', { hysteresis })
 }
 
 export default {}

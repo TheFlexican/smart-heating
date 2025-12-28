@@ -5,10 +5,12 @@ from datetime import datetime, time, timedelta
 from typing import Optional
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from ..core.area_manager import AreaManager
+from ..exceptions import ScheduleError, SmartHeatingError
 from ..models import Area, Schedule
 
 _LOGGER = logging.getLogger(__name__)
@@ -126,7 +128,7 @@ class ScheduleExecutor:
             return
 
         # Handle smart night boost prediction
-        if area.smart_boost_enabled and self.learning_engine:
+        if area.boost_manager.smart_boost_enabled and self.learning_engine:
             await self._handle_smart_boost(area, now)
 
         if not area.schedules:
@@ -418,16 +420,16 @@ class ScheduleExecutor:
         Returns:
             Target datetime or None if not configured
         """
-        if not area.smart_boost_target_time:
+        if not area.boost_manager.smart_boost_target_time:
             return None
 
-        target_hour, target_min = map(int, area.smart_boost_target_time.split(":"))
+        target_hour, target_min = map(int, area.boost_manager.smart_boost_target_time.split(":"))
         target_time = now.replace(hour=target_hour, minute=target_min, second=0, microsecond=0)
 
         _LOGGER.debug(
             "Smart night boost for %s: Using configured target time %s",
             area.area_id,
-            area.smart_boost_target_time,
+            area.boost_manager.smart_boost_target_time,
         )
 
         return target_time
@@ -441,10 +443,10 @@ class ScheduleExecutor:
         Returns:
             Temperature in Celsius or None
         """
-        if not area.weather_entity_id:
+        if not area.boost_manager.weather_entity_id:
             return None
 
-        state = self.hass.states.get(area.weather_entity_id)
+        state = self.hass.states.get(area.boost_manager.weather_entity_id)
         if not state or state.state in ("unknown", "unavailable"):
             return None
 
@@ -471,7 +473,7 @@ class ScheduleExecutor:
             True if smart boost is maintaining temperature during active schedule
         """
         # Check if there's an active schedule right now
-        active_schedule_temp = area._schedule_manager.get_active_schedule_temperature(now)
+        active_schedule_temp = area.schedule_manager.get_active_schedule_temperature(now)
         if active_schedule_temp is None:
             return False
 
@@ -534,11 +536,11 @@ class ScheduleExecutor:
         if not area.schedules or len(area.schedules) == 0:
             _LOGGER.debug("Smart boost disabled for %s: No schedules configured", area.area_id)
             # Deactivate smart boost if it was active
-            if area.smart_boost_active:
-                if area.smart_boost_original_target is not None:
-                    area.target_temperature = area.smart_boost_original_target
-                area.smart_boost_active = False
-                area.smart_boost_original_target = None
+            if area.boost_manager.smart_boost_active:
+                if area.boost_manager.smart_boost_original_target is not None:
+                    area.target_temperature = area.boost_manager.smart_boost_original_target
+                area.boost_manager.smart_boost_active = False
+                area.boost_manager.smart_boost_original_target = None
                 if hasattr(self, "area_logger") and self.area_logger:
                     self.area_logger.log_event(
                         area.area_id,
@@ -619,10 +621,10 @@ class ScheduleExecutor:
         # Check if we should start heating now
         if now >= optimal_start_time and now < target_time:
             # Activate smart boost: temporarily raise target temperature
-            if not area.smart_boost_active:
+            if not area.boost_manager.smart_boost_active:
                 # Store original target temperature
-                area.smart_boost_original_target = area.target_temperature
-                area.smart_boost_active = True
+                area.boost_manager.smart_boost_original_target = area.target_temperature
+                area.boost_manager.smart_boost_active = True
 
             # Set target temperature to desired temp to trigger heating
             area.target_temperature = target_temp
@@ -649,13 +651,13 @@ class ScheduleExecutor:
 
             # Save area state
             await self.area_manager.async_save()
-        elif now >= target_time and area.smart_boost_active:
+        elif now >= target_time and area.boost_manager.smart_boost_active:
             # Target time reached - deactivate smart boost and restore original target
-            if area.smart_boost_original_target is not None:
-                area.target_temperature = area.smart_boost_original_target
+            if area.boost_manager.smart_boost_original_target is not None:
+                area.target_temperature = area.boost_manager.smart_boost_original_target
 
-            area.smart_boost_active = False
-            area.smart_boost_original_target = None
+            area.boost_manager.smart_boost_active = False
+            area.boost_manager.smart_boost_original_target = None
 
             _LOGGER.info(
                 "Smart boost for area %s: Deactivated - target time reached",
@@ -826,7 +828,7 @@ class ScheduleExecutor:
                     climate_entity_id,
                     preset_temp,
                 )
-            except Exception as err:
+            except (HomeAssistantError, ScheduleError, SmartHeatingError) as err:
                 _LOGGER.debug(
                     "Climate entity %s not found or error updating: %s (will be handled by climate controller)",
                     climate_entity_id,
@@ -898,7 +900,7 @@ class ScheduleExecutor:
                 climate_entity_id,
                 target_temp,
             )
-        except Exception as err:
+        except (HomeAssistantError, ScheduleError, SmartHeatingError) as err:
             _LOGGER.warning(
                 "Failed to set temperature via climate service for %s: %s",
                 climate_entity_id,

@@ -6,8 +6,19 @@ from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
 
+from .exceptions import (
+    AreaNotFoundError,
+    ConfigurationError,
+    DeviceError,
+    SafetySensorError,
+    ScheduleError,
+    SmartHeatingError,
+    StorageError,
+    ValidationError,
+)
 from .api.server import setup_api
 from .api.websocket import setup_websocket
 from .area_logger import AreaLogger
@@ -208,11 +219,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     try:
                         await device_capability_detector.discover_and_cache(device_id)
                         _LOGGER.debug("Discovered capabilities for %s", device_id)
-                    except Exception as err:
+                    except (HomeAssistantError, DeviceError, AttributeError) as err:
                         _LOGGER.debug("Could not discover capabilities for %s: %s", device_id, err)
             _LOGGER.info("Device capability discovery complete")
-        except Exception as err:
-            _LOGGER.error("Error during device discovery: %s", err)
+        except (HomeAssistantError, SmartHeatingError, RuntimeError) as err:
+            _LOGGER.error("Error during device discovery: %s", err, exc_info=True)
 
     hass.data[DOMAIN]["discover_devices_task"] = hass.async_create_task(discover_existing_devices())
 
@@ -232,7 +243,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         """Wrapper for periodic climate control."""
         try:
             await climate_controller.async_control_heating()
-        except Exception as err:
+        except (HomeAssistantError, SmartHeatingError, asyncio.TimeoutError) as err:
             _LOGGER.error("Error in climate control: %s", err, exc_info=True)
 
     # Start the periodic control
@@ -276,8 +287,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 await opentherm_logger.async_discover_mqtt_capabilities(
                     area_manager.opentherm_gateway_id
                 )
-            except Exception as err:
-                _LOGGER.error("Failed to discover OpenTherm capabilities: %s", err)
+            except (HomeAssistantError, RuntimeError, ValueError) as err:
+                _LOGGER.error("Failed to discover OpenTherm capabilities: %s", err, exc_info=True)
 
         # Keep the discover task reference for cleanup
         hass.data[DOMAIN]["discover_capabilities_task"] = hass.async_create_task(
@@ -722,13 +733,13 @@ async def _cleanup_tasks(hass: HomeAssistant) -> None:
             t = hass.data[DOMAIN].get(task_key)
             if t and hasattr(t, "cancel"):
                 t.cancel()
-        except Exception:
-            pass
+        except (AttributeError, KeyError, RuntimeError) as err:
+            _LOGGER.debug("Error cancelling task %s: %s", task_key, err)
 
     try:
         await hass.async_block_till_done()
-    except Exception:
-        pass
+    except (asyncio.CancelledError, RuntimeError) as err:
+        _LOGGER.debug("Error waiting for tasks: %s", err)
 
     # Shutdown area logger write tasks
     if "area_logger" in hass.data[DOMAIN]:
@@ -736,8 +747,8 @@ async def _cleanup_tasks(hass: HomeAssistant) -> None:
             from .utils.coordinator_helpers import call_maybe_async
 
             await call_maybe_async(hass.data[DOMAIN]["area_logger"].async_shutdown)
-        except Exception:
-            pass
+        except (AttributeError, RuntimeError, asyncio.CancelledError) as err:
+            _LOGGER.debug("Error shutting down area logger: %s", err)
 
 
 def _remove_sidebar_panel(hass: HomeAssistant) -> None:
@@ -751,7 +762,7 @@ def _remove_sidebar_panel(hass: HomeAssistant) -> None:
 
         async_remove_panel(hass, "smart_heating")
         _LOGGER.debug("Smart Heating panel removed from sidebar")
-    except Exception as err:
+    except (ImportError, AttributeError, KeyError) as err:
         _LOGGER.warning("Failed to remove panel: %s", err)
 
 
@@ -850,7 +861,8 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     keep_data = False
     try:
         keep_data = bool(entry.options.get("keep_data_on_uninstall", False))
-    except Exception:
+    except (AttributeError, KeyError, TypeError, ValueError) as err:
+        _LOGGER.debug("Could not read keep_data_on_uninstall option: %s", err)
         keep_data = False
 
     if keep_data:
@@ -866,7 +878,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
             hass.bus.fire(
                 "smart_heating_uninstalled", {"entry_id": entry.entry_id, "deleted": True}
             )
-        except Exception:
-            _LOGGER.debug("Failed to fire uninstall event on hass.bus")
-    except Exception as err:
-        _LOGGER.error("Error removing Smart Heating persistent data: %s", err)
+        except (AttributeError, RuntimeError) as err:
+            _LOGGER.debug("Failed to fire uninstall event on hass.bus: %s", err)
+    except (StorageError, OSError, RuntimeError) as err:
+        _LOGGER.error("Error removing Smart Heating persistent data: %s", err, exc_info=True)

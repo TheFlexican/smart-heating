@@ -18,6 +18,11 @@ async def test_api_view_post_more_endpoints(hass, mock_area_manager):
     hass.data[DOMAIN]["user_manager"] = MagicMock()
     hass.data[DOMAIN]["comparison_engine"] = MagicMock()
 
+    # Create admin user for authentication
+    admin_user = MagicMock()
+    admin_user.is_admin = True
+    admin_user.id = "admin-test-user"
+
     api_view = SmartHeatingAPIView(hass, mock_area_manager)
 
     with (
@@ -65,24 +70,28 @@ async def test_api_view_post_more_endpoints(hass, mock_area_manager):
     ):
         # set temperature
         req = make_mocked_request("POST", "/api/smart_heating/areas/area1/temperature")
+        req["hass_user"] = admin_user
         req.json = AsyncMock(return_value={"temperature": 23.0})
         resp = await api_view.post(req, "areas/area1/temperature")
         assert resp.status == 200
 
         # set preset mode
         req = make_mocked_request("POST", "/api/smart_heating/areas/area1/preset_mode")
+        req["hass_user"] = admin_user
         req.json = AsyncMock(return_value={"preset_mode": "sleep"})
         resp = await api_view.post(req, "areas/area1/preset_mode")
         assert resp.status == 200
 
         # set heating curve
         req = make_mocked_request("POST", "/api/smart_heating/areas/area1/heating_curve")
+        req["hass_user"] = admin_user
         req.json = AsyncMock(return_value={"coefficient": 1.1})
         resp = await api_view.post(req, "areas/area1/heating_curve")
         assert resp.status == 200
 
         # set hysteresis
         req = make_mocked_request("POST", "/api/smart_heating/hysteresis")
+        req["hass_user"] = admin_user
         req.json = AsyncMock(return_value={"value": 0.5})
         hass.data[DOMAIN]["coordinator"] = MagicMock()  # some identifier
         resp = await api_view.post(req, "hysteresis")

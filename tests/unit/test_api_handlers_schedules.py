@@ -37,7 +37,7 @@ def mock_area_manager():
     mock_area.target_temperature = 21.0
     mock_area.manual_override = False
     mock_area.get_effective_target_temperature.return_value = 21.0
-    mock_area.boost_temp = 25.0
+    mock_area.boost_manager.boost_temp = 25.0
 
     manager.get_area.return_value = mock_area
     manager.areas = {"living_room": mock_area}
@@ -183,9 +183,20 @@ class TestScheduleHandlers:
     async def test_handle_add_schedule_creates_area(self, mock_hass, mock_area_registry):
         """Test adding schedule auto-creates area if needed."""
         area_manager = MagicMock()
-        area_manager.get_area.return_value = None  # Area doesn't exist
         area_manager.areas = {}
         area_manager.async_save = AsyncMock()
+
+        # Mock add_area to add to the areas dict
+        def mock_add_area(area):
+            area_manager.areas[area.area_id] = area
+
+        area_manager.add_area.side_effect = mock_add_area
+
+        # After creating area, make it available via get_area
+        def get_area_side_effect(area_id):
+            return area_manager.areas.get(area_id)
+
+        area_manager.get_area.side_effect = get_area_side_effect
 
         data = {"temperature": 22.0, "time": "08:00"}
 
@@ -206,24 +217,18 @@ class TestScheduleHandlers:
             patch("smart_heating.api.handlers.schedules.Schedule") as mock_schedule_class,
         ):
             mock_new_area = MagicMock()
+            mock_new_area.area_id = "living_room"  # Set area_id for the mock
+            mock_new_area.add_schedule = MagicMock()  # Add add_schedule method
             mock_area_class.return_value = mock_new_area
 
             mock_schedule = MagicMock()
             mock_schedule.to_dict.return_value = {}
             mock_schedule_class.return_value = mock_schedule
 
-            # After creating area, make it available
-            def side_effect(area_id):
-                if area_id in area_manager.areas:
-                    return area_manager.areas[area_id]
-                return None
-
-            area_manager.get_area.side_effect = side_effect
-
             response = await handle_add_schedule(mock_hass, area_manager, "living_room", data)
 
             assert response.status == 200
-            assert "living_room" in area_manager.areas
+            area_manager.add_area.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_handle_add_schedule_area_not_in_ha(self, mock_hass):

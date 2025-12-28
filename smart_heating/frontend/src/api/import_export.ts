@@ -1,30 +1,29 @@
-import axios from 'axios'
-const API_BASE = '/api/smart_heating'
+import { apiClient } from './client'
 
 export const exportConfig = async (): Promise<Blob> => {
-  const response = await axios.get(`${API_BASE}/export`, {
+  const response = await apiClient.get('/export', {
     responseType: 'blob',
   })
   return response.data
 }
 
 export const importConfig = async (configData: any): Promise<any> => {
-  const response = await axios.post(`${API_BASE}/import`, configData)
+  const response = await apiClient.post('/import', configData)
   return response.data
 }
 
 export const validateConfig = async (configData: any): Promise<any> => {
-  const response = await axios.post(`${API_BASE}/validate`, configData)
+  const response = await apiClient.post('/validate', configData)
   return response.data
 }
 
 export const listBackups = async (): Promise<any> => {
-  const response = await axios.get(`${API_BASE}/backups`)
+  const response = await apiClient.get('/backups')
   return response.data
 }
 
 export const restoreBackup = async (filename: string): Promise<any> => {
-  const response = await axios.post(`${API_BASE}/backups/${filename}/restore`)
+  const response = await apiClient.post(`/backups/${filename}/restore`)
   return response.data
 }
 

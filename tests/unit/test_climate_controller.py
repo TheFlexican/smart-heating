@@ -73,7 +73,7 @@ async def test_async_control_heating_heating_path(mock_hass, mock_area_manager):
     area.target_temperature = 21.0
     area.hvac_mode = "heat"
     area.hysteresis_override = None
-    area.boost_mode_active = False
+    area.boost_manager.boost_mode_active = False
     area.preset_mode = "comfort"
     area.manual_override = False
     area.get_effective_target_temperature = MagicMock(return_value=21.0)
@@ -160,8 +160,9 @@ def mock_area():
     area.target_temperature = 20.0
     area.current_temperature = 18.0
     area.state = "heating"
-    area.boost_mode_active = False
-    area.boost_temp = 22.0
+    area.boost_manager = MagicMock()
+    area.boost_manager.boost_mode_active = False
+    area.boost_manager.boost_temp = 22.0
     area.preset_mode = "none"
     area.hvac_mode = "heat"
     area.hysteresis_override = None
@@ -628,7 +629,7 @@ class TestOutdoorTemperature:
     @pytest.mark.asyncio
     async def test_get_outdoor_temperature_no_entity(self, climate_controller, mock_area):
         """Test getting outdoor temperature when no weather entity configured."""
-        mock_area.weather_entity_id = None
+        mock_area.boost_manager.weather_entity_id = None
 
         temp = await climate_controller._async_get_outdoor_temperature(mock_area)
 
@@ -637,7 +638,7 @@ class TestOutdoorTemperature:
     @pytest.mark.asyncio
     async def test_get_outdoor_temperature_celsius(self, climate_controller, mock_area, mock_hass):
         """Test getting outdoor temperature in Celsius."""
-        mock_area.weather_entity_id = "weather.home"
+        mock_area.boost_manager.weather_entity_id = "weather.home"
 
         mock_state = MagicMock()
         mock_state.state = "sunny"
@@ -653,7 +654,7 @@ class TestOutdoorTemperature:
         self, climate_controller, mock_area, mock_hass
     ):
         """Test getting outdoor temperature in Fahrenheit."""
-        mock_area.weather_entity_id = "weather.home"
+        mock_area.boost_manager.weather_entity_id = "weather.home"
 
         mock_state = MagicMock()
         mock_state.state = "sunny"
@@ -669,7 +670,7 @@ class TestOutdoorTemperature:
         self, climate_controller, mock_area, mock_hass
     ):
         """Test getting outdoor temperature when unavailable."""
-        mock_area.weather_entity_id = "weather.home"
+        mock_area.boost_manager.weather_entity_id = "weather.home"
 
         mock_state = MagicMock()
         mock_state.state = "unavailable"
@@ -712,7 +713,7 @@ class TestOpenThermControl:
         radiator_area.current_temperature = 18.0
         radiator_area.target_temperature = 45.0
         radiator_area.custom_overhead_temp = None  # Use default 20°C for radiator
-        radiator_area.weather_entity_id = None  # No weather entity
+        radiator_area.boost_manager.weather_entity_id = None  # No weather entity
         # Ensure area manager can find the area
         mock_area_manager.get_area.return_value = radiator_area
 
@@ -959,9 +960,11 @@ class TestThermostatControl:
         mock_area_manager.frost_protection_temp = 5.0
 
         # Make turn_off service raise exception
+        import asyncio
+
         async def async_call_side_effect(domain, service, data, blocking):
             if service == "turn_off":
-                raise Exception("Service not supported")
+                raise asyncio.TimeoutError("Service not supported")
 
         mock_hass.services.async_call = AsyncMock(side_effect=async_call_side_effect)
 
@@ -1287,10 +1290,10 @@ class TestHvacModeOff:
         mock_area.hvac_mode = "heat"
         mock_area.current_temperature = 18.0  # Below target
         mock_area.target_temperature = 20.0
-        mock_area.boost_mode_active = False
+        mock_area.boost_manager.boost_mode_active = False
         mock_area.preset_mode = "none"
         mock_area.hysteresis_override = None
-        mock_area.weather_entity_id = None
+        mock_area.boost_manager.weather_entity_id = None
         mock_area.get_thermostats = MagicMock(return_value=["climate.thermostat1"])
         mock_area.get_switches = MagicMock(return_value=[])
         mock_area.get_valves = MagicMock(return_value=[])

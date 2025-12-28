@@ -81,7 +81,10 @@ def mock_area():
     area = MagicMock(spec=Area)
     area.get_temperature_sensors = MagicMock(return_value=[])
     area.get_thermostats = MagicMock(return_value=[])
-    area.boost_mode_active = False
+    # Set up boost_manager before accessing its attributes
+    area.boost_manager = MagicMock()
+    area.boost_manager.boost_mode_active = False
+    area.boost_manager.weather_entity_id = None
     area.check_boost_expiry = MagicMock()
     area.current_temperature = 20.0
     area.target_temperature = 21.0
@@ -242,7 +245,7 @@ class TestAsyncPrepareHeatingCycle:
         self, heating_cycle_handler, mock_temp_handler, mock_sensor_handler, mock_area
     ):
         """Test that boost mode expiry is checked."""
-        mock_area.boost_mode_active = True
+        mock_area.boost_manager.boost_mode_active = True
         mock_area.get_temperature_sensors.return_value = []
         mock_area.get_thermostats.return_value = []
 

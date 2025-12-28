@@ -5,9 +5,11 @@ import logging
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from ...const import DOMAIN
 from ...core.area_manager import AreaManager
+from ...exceptions import SmartHeatingError
 from ...utils import get_coordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -171,7 +173,7 @@ async def handle_set_opentherm_gateway(
                 "HA ConfigEntry options updated with OpenTherm gateway: %s",
                 gateway_id,
             )
-    except Exception:
+    except (HomeAssistantError, ConfigurationError, ValidationError):
         _LOGGER.exception("Failed to update HA ConfigEntry options for OpenTherm gateway")
 
     _LOGGER.info("OpenTherm Gateway configured: gateway_id=%s", gateway_id)
@@ -592,7 +594,7 @@ async def handle_set_hvac_mode(
                         await climate_controller.device_handler._handle_thermostat_turn_off(
                             thermostat_id
                         )
-                    except Exception:
+                    except (HomeAssistantError, ConfigurationError, ValidationError):
                         _LOGGER.exception("Failed to turn off thermostat %s", thermostat_id)
 
         return web.json_response({"success": True, "hvac_mode": hvac_mode})

@@ -375,3 +375,102 @@ def mock_hass() -> MagicMock:
     hass.config = MagicMock()
     hass.config.components = set()
     return hass
+
+
+# Additional fixtures for improved device handler testing
+
+
+@pytest.fixture
+def mock_device_registry() -> MagicMock:
+    """Return a mocked device registry."""
+    registry = MagicMock()
+    registry.async_get_device = MagicMock(return_value=None)
+    registry.async_get_or_create = MagicMock(return_value=MagicMock())
+    return registry
+
+
+@pytest.fixture
+def mock_entity_registry() -> MagicMock:
+    """Return a mocked entity registry."""
+    registry = MagicMock()
+    registry.async_get = MagicMock(return_value=None)
+    registry.async_get_entity_id = MagicMock(return_value="climate.test_device")
+    return registry
+
+
+@pytest.fixture
+def device_unavailable_state() -> MagicMock:
+    """Simulate a device in unavailable state."""
+    state = MagicMock()
+    state.state = "unavailable"
+    state.attributes = {}
+    return state
+
+
+@pytest.fixture
+def device_error_state() -> MagicMock:
+    """Simulate a device in error state."""
+    state = MagicMock()
+    state.state = "unknown"
+    state.attributes = {"error": "communication_failed"}
+    return state
+
+
+@pytest.fixture
+def mock_service_call() -> MagicMock:
+    """Return a mock for hass.services.async_call."""
+    return AsyncMock(return_value=None)
+
+
+# Storage and event fixtures
+
+
+@pytest.fixture
+def sample_device_event() -> dict[str, Any]:
+    """Return sample device event data."""
+    return {
+        "event_id": "evt_123",
+        "entity_id": "climate.living_room",
+        "event_type": "state_change",
+        "timestamp": "2025-12-27T10:00:00Z",
+        "old_state": "heat",
+        "new_state": "idle",
+        "area_id": "living_room",
+    }
+
+
+@pytest.fixture
+def sample_temperature_event() -> dict[str, Any]:
+    """Return sample temperature change event."""
+    return {
+        "event_id": "evt_456",
+        "entity_id": "sensor.living_room_temp",
+        "event_type": "temperature_change",
+        "timestamp": "2025-12-27T10:00:00Z",
+        "old_value": 20.0,
+        "new_value": 20.5,
+        "area_id": "living_room",
+    }
+
+
+@pytest.fixture
+def mock_database_error():
+    """Fixture to simulate database connection errors."""
+
+    class DatabaseError(Exception):
+        """Mock database error."""
+
+        pass
+
+    return DatabaseError("Database connection failed")
+
+
+@pytest.fixture
+def mock_retry_decorator():
+    """Mock retry decorator for testing error recovery."""
+
+    def decorator(func):
+        """Passthrough decorator for testing."""
+        return func
+
+    return decorator

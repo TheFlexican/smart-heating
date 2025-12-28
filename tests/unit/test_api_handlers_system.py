@@ -150,7 +150,7 @@ class TestSystemHandlers:
     @pytest.mark.asyncio
     async def test_handle_call_service_error(self, mock_hass):
         """Test calling service when error occurs."""
-        mock_hass.services.async_call = AsyncMock(side_effect=Exception("Service error"))
+        mock_hass.services.async_call = AsyncMock(side_effect=RuntimeError("Service error"))
 
         data = {"service": "set_temperature"}
 

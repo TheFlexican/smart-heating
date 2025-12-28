@@ -72,13 +72,13 @@ def websocket_subscribe_updates(
         """Unsubscribe from updates."""
         try:
             unsub()
-        except Exception as err:
+        except (HomeAssistantError, SmartHeatingError, json.JSONDecodeError) as err:
             if isinstance(err, (KeyboardInterrupt, SystemExit)):
                 raise
             _LOGGER.debug("Failed to unsubscribe from coordinator updates: %s", err, exc_info=True)
         try:
             bus_unsub()
-        except Exception as err:
+        except (HomeAssistantError, SmartHeatingError, json.JSONDecodeError) as err:
             if isinstance(err, (KeyboardInterrupt, SystemExit)):
                 raise
             _LOGGER.debug("Failed to unsubscribe from bus events: %s", err, exc_info=True)
@@ -169,7 +169,7 @@ def websocket_subscribe_device_logs(
     def unsub_callback() -> None:
         try:
             area_manager.remove_device_log_listener(forward_event)
-        except Exception as err:
+        except (HomeAssistantError, SmartHeatingError, json.JSONDecodeError) as err:
             if isinstance(err, (KeyboardInterrupt, SystemExit)):
                 raise
             _LOGGER.debug("Failed to remove device log listener: %s", err, exc_info=True)
@@ -274,14 +274,14 @@ def _build_area_summary(area: Any, devices_data: list[dict[str, Any]]) -> dict[s
         "devices": devices_data,
         "schedules": [s.to_dict() for s in area.schedules.values()],
         # Night boost
-        "night_boost_enabled": area.night_boost_enabled,
-        "night_boost_offset": area.night_boost_offset,
-        "night_boost_start_time": area.night_boost_start_time,
-        "night_boost_end_time": area.night_boost_end_time,
+        "night_boost_enabled": area.boost_manager.night_boost_enabled,
+        "night_boost_offset": area.boost_manager.night_boost_offset,
+        "night_boost_start_time": area.boost_manager.night_boost_start_time,
+        "night_boost_end_time": area.boost_manager.night_boost_end_time,
         # Smart night boost
-        "smart_boost_enabled": area.smart_boost_enabled,
-        "smart_boost_target_time": area.smart_boost_target_time,
-        "weather_entity_id": area.weather_entity_id,
+        "smart_boost_enabled": area.boost_manager.smart_boost_enabled,
+        "smart_boost_target_time": area.boost_manager.smart_boost_target_time,
+        "weather_entity_id": area.boost_manager.weather_entity_id,
         # Preset modes
         "preset_mode": area.preset_mode,
         "away_temp": area.away_temp,
@@ -291,9 +291,9 @@ def _build_area_summary(area: Any, devices_data: list[dict[str, Any]]) -> dict[s
         "sleep_temp": area.sleep_temp,
         "activity_temp": area.activity_temp,
         # Boost mode
-        "boost_mode_active": area.boost_mode_active,
-        "boost_temp": area.boost_temp,
-        "boost_duration": area.boost_duration,
+        "boost_mode_active": area.boost_manager.boost_mode_active,
+        "boost_temp": area.boost_manager.boost_temp,
+        "boost_duration": area.boost_manager.boost_duration,
         # HVAC mode
         "hvac_mode": area.hvac_mode,
         # Sensors

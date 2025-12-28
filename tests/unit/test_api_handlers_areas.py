@@ -92,19 +92,19 @@ class TestAreaHandlers:
         """Test getting all areas."""
         with (
             patch(
-                "smart_heating.api.handlers.areas.ar.async_get",
+                "smart_heating.api.handlers.area_crud.ar.async_get",
                 return_value=mock_area_registry,
             ),
             patch(
-                "smart_heating.api.handlers.areas.get_coordinator_devices",
+                "smart_heating.api.handlers.area_crud.get_coordinator_devices",
                 return_value={},
             ),
             patch(
-                "smart_heating.api.handlers.areas.build_device_info",
+                "smart_heating.api.handlers.area_crud.build_device_info",
                 return_value={"id": "climate.heater"},
             ),
             patch(
-                "smart_heating.api.handlers.areas.build_area_response",
+                "smart_heating.api.handlers.area_crud.build_area_response",
                 return_value={
                     "id": "living_room",
                     "name": "Living Room",
@@ -129,7 +129,7 @@ class TestAreaHandlers:
         area_manager.get_area.return_value = None  # No stored data
 
         with patch(
-            "smart_heating.api.handlers.areas.ar.async_get",
+            "smart_heating.api.handlers.area_crud.ar.async_get",
             return_value=mock_area_registry,
         ):
             response = await handle_get_areas(mock_hass, area_manager)
@@ -147,11 +147,11 @@ class TestAreaHandlers:
         """Test getting a specific area."""
         with (
             patch(
-                "smart_heating.api.handlers.areas.build_device_info",
+                "smart_heating.api.handlers.area_crud.build_device_info",
                 return_value={"id": "climate.heater"},
             ),
             patch(
-                "smart_heating.api.handlers.areas.build_area_response",
+                "smart_heating.api.handlers.area_crud.build_area_response",
                 return_value={"id": "living_room", "name": "Living Room"},
             ),
         ):
@@ -410,9 +410,20 @@ class TestAreaHandlers:
     async def test_handle_hide_area_new(self, mock_hass, mock_area_registry):
         """Test hiding a new area (creates it first)."""
         area_manager = MagicMock()
-        area_manager.get_area.return_value = None  # Area doesn't exist
         area_manager.areas = {}
         area_manager.async_save = AsyncMock()
+
+        # Mock add_area to add to the areas dict
+        def mock_add_area(area):
+            area_manager.areas[area.area_id] = area
+
+        area_manager.add_area.side_effect = mock_add_area
+
+        # After creating area, make it available via get_area
+        def get_area_side_effect(area_id):
+            return area_manager.areas.get(area_id)
+
+        area_manager.get_area.side_effect = get_area_side_effect
 
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
@@ -421,19 +432,20 @@ class TestAreaHandlers:
 
         with (
             patch(
-                "smart_heating.api.handlers.areas.ar.async_get",
+                "smart_heating.api.handlers.area_settings.ar.async_get",
                 return_value=mock_area_registry,
             ),
-            patch("smart_heating.api.handlers.areas.Area") as mock_area_class,
+            patch("smart_heating.api.handlers.area_settings.Area") as mock_area_class,
         ):
             mock_new_area = MagicMock()
+            mock_new_area.area_id = "living_room"
             mock_area_class.return_value = mock_new_area
 
             response = await handle_hide_area(mock_hass, area_manager, "living_room")
 
             assert response.status == 200
             assert mock_new_area.hidden
-            assert "living_room" in area_manager.areas
+            area_manager.add_area.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_handle_hide_area_not_in_ha(self, mock_hass):
@@ -444,7 +456,7 @@ class TestAreaHandlers:
         registry = MagicMock()
         registry.async_get_area.return_value = None  # Not in HA
 
-        with patch("smart_heating.api.handlers.areas.ar.async_get", return_value=registry):
+        with patch("smart_heating.api.handlers.area_settings.ar.async_get", return_value=registry):
             response = await handle_hide_area(mock_hass, area_manager, "nonexistent")
 
             assert response.status == 404
@@ -474,9 +486,20 @@ class TestAreaHandlers:
     async def test_handle_unhide_area_new(self, mock_hass, mock_area_registry):
         """Test unhiding a new area (creates it first)."""
         area_manager = MagicMock()
-        area_manager.get_area.return_value = None
         area_manager.areas = {}
         area_manager.async_save = AsyncMock()
+
+        # Mock add_area to add to the areas dict
+        def mock_add_area(area):
+            area_manager.areas[area.area_id] = area
+
+        area_manager.add_area.side_effect = mock_add_area
+
+        # After creating area, make it available via get_area
+        def get_area_side_effect(area_id):
+            return area_manager.areas.get(area_id)
+
+        area_manager.get_area.side_effect = get_area_side_effect
 
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
@@ -485,18 +508,20 @@ class TestAreaHandlers:
 
         with (
             patch(
-                "smart_heating.api.handlers.areas.ar.async_get",
+                "smart_heating.api.handlers.area_settings.ar.async_get",
                 return_value=mock_area_registry,
             ),
-            patch("smart_heating.api.handlers.areas.Area") as mock_area_class,
+            patch("smart_heating.api.handlers.area_settings.Area") as mock_area_class,
         ):
             mock_new_area = MagicMock()
+            mock_new_area.area_id = "living_room"
             mock_area_class.return_value = mock_new_area
 
             response = await handle_unhide_area(mock_hass, area_manager, "living_room")
 
             assert response.status == 200
             assert not mock_new_area.hidden
+            area_manager.add_area.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_handle_set_switch_shutdown_success(self, mock_hass, mock_area_manager):

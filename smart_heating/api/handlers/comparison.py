@@ -4,9 +4,11 @@ import logging
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
 from ...core.area_manager import AreaManager
+from ...exceptions import SmartHeatingError
 from ...features.comparison_engine import ComparisonEngine
 
 _LOGGER = logging.getLogger(__name__)
@@ -52,7 +54,7 @@ async def handle_get_comparison(
             )
             return web.json_response({"comparisons": comparisons})
 
-    except Exception as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
         _LOGGER.exception("Error getting comparison")
         return web.json_response({"error": ERROR_INTERNAL, "message": str(e)}, status=500)
 
@@ -114,6 +116,6 @@ async def handle_get_custom_comparison(
 
         return web.json_response({"comparison": comparison})
 
-    except Exception as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
         _LOGGER.exception("Error getting custom comparison")
         return web.json_response({"error": ERROR_INTERNAL, "message": str(e)}, status=500)

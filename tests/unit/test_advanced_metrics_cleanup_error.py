@@ -1,6 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from smart_heating.exceptions import StorageError
 from smart_heating.features.advanced_metrics_collector import AdvancedMetricsCollector
 
 
@@ -44,5 +45,6 @@ async def test_async_insert_metrics_error(monkeypatch):
         lambda hass: BadRecorder(),
     )
 
-    # Should not raise an exception
-    await collector._async_insert_metrics({"boiler_flow_temp": 30.0}, {"a": {}})
+    # Should raise StorageError for database insert failures
+    with pytest.raises(StorageError, match="Failed to insert metrics"):
+        await collector._async_insert_metrics({"boiler_flow_temp": 30.0}, {"a": {}})

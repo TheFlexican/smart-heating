@@ -30,13 +30,13 @@ def test_device_event_retention_purges_old_events():
     am = AreaManager(hass)
 
     # Use small retention window for test
-    am._device_event_retention_minutes = 1
+    am._device_service._device_event_retention_minutes = 1
 
     # Add event that's 120 minutes old -> should be purged
     old_ev = make_event_with_offset(120)
     am.async_add_device_event("a1", old_ev)
 
-    logs = am._device_logs.get("a1")
+    logs = am._device_service._device_logs.get("a1")
     # The old event should have been removed by the purge logic
     assert logs is not None
     assert len(logs) == 0
@@ -46,12 +46,12 @@ def test_device_event_recent_is_kept():
     hass = MagicMock()
     am = AreaManager(hass)
 
-    am._device_event_retention_minutes = 60
+    am._device_service._device_event_retention_minutes = 60
 
     recent_ev = make_event_with_offset(0)
     am.async_add_device_event("a1", recent_ev)
 
-    logs = am._device_logs.get("a1")
+    logs = am._device_service._device_logs.get("a1")
     assert logs is not None
     assert len(logs) == 1
     assert logs[0].timestamp == recent_ev.timestamp

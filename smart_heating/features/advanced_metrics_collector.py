@@ -10,6 +10,7 @@ from typing import Any, Optional
 
 from homeassistant.components.recorder import get_instance
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
 from sqlalchemy import (
     Boolean,
@@ -23,6 +24,9 @@ from sqlalchemy import (
     delete,
     select,
 )
+from sqlalchemy.exc import SQLAlchemyError
+
+from ..exceptions import StorageError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -92,7 +96,7 @@ class AdvancedMetricsCollector:
             _LOGGER.info("Advanced metrics collector initialized (5-minute interval)")
             return True
 
-        except Exception as err:  # pylint: disable=broad-except
+        except (SQLAlchemyError, RuntimeError, AttributeError) as err:
             _LOGGER.error("❌ Failed to setup advanced metrics collector: %s", err, exc_info=True)
             return False
 
@@ -145,7 +149,7 @@ class AdvancedMetricsCollector:
             _LOGGER.info("Advanced metrics table '%s' ready", METRICS_TABLE_NAME)
             return True
 
-        except Exception as err:  # pylint: disable=broad-except
+        except (SQLAlchemyError, RuntimeError, AttributeError) as err:
             _LOGGER.error("Failed to initialize metrics database: %s", err, exc_info=True)
             return False
 
@@ -183,7 +187,7 @@ class AdvancedMetricsCollector:
             await self._async_insert_metrics(opentherm_metrics, area_metrics)
             _LOGGER.info("Advanced metrics successfully inserted into database")
 
-        except Exception as err:  # pylint: disable=broad-except
+        except (SQLAlchemyError, HomeAssistantError, RuntimeError, AttributeError, KeyError) as err:
             _LOGGER.error("❌ Error collecting metrics: %s", err, exc_info=True)
 
     async def _async_get_opentherm_metrics(self) -> dict[str, Any]:  # NOSONAR
@@ -241,7 +245,7 @@ class AdvancedMetricsCollector:
                     metrics["flame_on"] = state.state == "on"
                     break
 
-        except Exception as err:  # pylint: disable=broad-except
+        except (AttributeError, KeyError, ValueError, TypeError) as err:
             _LOGGER.debug("Error getting OpenTherm metrics: %s", err)
 
         return metrics
@@ -278,17 +282,22 @@ class AdvancedMetricsCollector:
                             for tid in area.get_thermostats():
                                 try:
                                     st = device_handler.get_thermostat_failure_state(tid)
-                                except Exception:
+                                except (AttributeError, KeyError, RuntimeError) as err:
+                                    _LOGGER.debug(
+                                        "Could not get failure state for %s: %s", tid, err
+                                    )
                                     st = None
                                 if st:
                                     failures[tid] = st
                             if failures:
                                 area_metrics[area_id]["thermostat_failures"] = failures
-                except Exception:
+                except (AttributeError, KeyError, RuntimeError) as err:
                     # Non-critical; log debug and continue
-                    _LOGGER.debug("Error collecting thermostat failure state for area %s", area_id)
+                    _LOGGER.debug(
+                        "Error collecting thermostat failure state for area %s: %s", area_id, err
+                    )
 
-        except Exception as err:  # pylint: disable=broad-except
+        except (AttributeError, KeyError, ValueError, TypeError) as err:
             _LOGGER.debug("Error getting area metrics: %s", err)
 
         return area_metrics
@@ -322,8 +331,9 @@ class AdvancedMetricsCollector:
             recorder = get_instance(self.hass)
             await recorder.async_add_executor_job(self._insert_metrics_sync, insert_data)
 
-        except Exception as err:  # pylint: disable=broad-except
+        except (SQLAlchemyError, RuntimeError, AttributeError, TypeError) as err:
             _LOGGER.error("Error inserting metrics: %s", err, exc_info=True)
+            raise StorageError(f"Failed to insert metrics: {err}") from err
 
     def _insert_metrics_sync(self, insert_data: dict[str, Any]) -> None:
         """Synchronously insert metrics (runs in executor).
@@ -354,7 +364,7 @@ class AdvancedMetricsCollector:
             if deleted > 0:
                 _LOGGER.info("Cleaned up %d old advanced metrics records", deleted)
 
-        except Exception as err:  # pylint: disable=broad-except
+        except (SQLAlchemyError, RuntimeError, AttributeError) as err:
             _LOGGER.error("Error cleaning up old metrics: %s", err, exc_info=True)
 
     def _cleanup_old_metrics_sync(self, cutoff_date: datetime) -> int:
@@ -402,7 +412,7 @@ class AdvancedMetricsCollector:
 
             return results
 
-        except Exception as err:  # pylint: disable=broad-except
+        except (SQLAlchemyError, RuntimeError, AttributeError, ValueError) as err:
             _LOGGER.error("Error retrieving metrics: %s", err, exc_info=True)
             return []
 

@@ -35,7 +35,7 @@ def climate_entity(hass: HomeAssistant, mock_coordinator, mock_config_entry) -> 
     mock_area.state = "heat"
     mock_area.preset_mode = PRESET_COMFORT
     mock_area.hvac_mode = "heat"
-    mock_area.boost_mode_active = False
+    mock_area.boost_manager.boost_mode_active = False
 
     return AreaClimate(mock_coordinator, mock_config_entry, mock_area)
 

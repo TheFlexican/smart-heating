@@ -6,11 +6,13 @@ import time
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from ...core.area_manager import AreaManager
+from ...exceptions import SmartHeatingError, ValidationError
 from ...models import Area
 
 _LOGGER = logging.getLogger(__name__)
@@ -234,7 +236,7 @@ async def handle_refresh_devices(hass: HomeAssistant, area_manager: AreaManager)
                 "message": f"Refreshed {updated_count} devices, {added_count} available for assignment",
             }
         )
-    except Exception as err:
+    except (HomeAssistantError, SmartHeatingError, ValidationError, KeyError) as err:
         _LOGGER.exception("Error refreshing devices")
         return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
 
@@ -290,8 +292,7 @@ async def handle_add_device(
             if ha_area:
                 # Create internal storage for this HA area
                 area = Area(area_id, ha_area.name)
-                area.area_manager = area_manager
-                area_manager.areas[area_id] = area
+                area_manager.add_area(area)
             else:
                 return web.json_response({"error": f"Area {area_id} not found"}, status=404)
 

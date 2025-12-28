@@ -77,7 +77,8 @@ async def test_async_get_outdoor_temperature():
     hass = make_hass()
     handler = TemperatureSensorHandler(hass)
     area = MagicMock()
-    area.weather_entity_id = "weather.home"
+    area.boost_manager = MagicMock()
+    area.boost_manager.weather_entity_id = "weather.home"
     state = MagicMock()
     state.state = "sunny"
     state.attributes = {"temperature": 12.5, "unit_of_measurement": "°C"}

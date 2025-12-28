@@ -212,7 +212,7 @@ async def test_handle_get_efficiency_report_error_handling(
     mock_hass, mock_area_manager, mock_efficiency_calculator
 ):
     """Test error handling in efficiency report."""
-    mock_efficiency_calculator.calculate_all_areas_efficiency.side_effect = Exception("Test error")
+    mock_efficiency_calculator.calculate_all_areas_efficiency.side_effect = KeyError("Test error")
 
     request = make_mocked_request(
         "GET",

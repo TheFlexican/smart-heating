@@ -3,9 +3,11 @@
 import logging
 
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import HomeAssistantError
 
 from ..const import DOMAIN
 from ..core.coordinator import SmartHeatingCoordinator
+from ..exceptions import SmartHeatingError, ValidationError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,7 +51,7 @@ async def async_handle_enable_vacation_mode(
             end_date,
             preset_mode,
         )
-    except Exception as err:
+    except (HomeAssistantError, SmartHeatingError, ValidationError) as err:
         _LOGGER.error("Failed to enable vacation mode: %s", err)
 
 
@@ -71,5 +73,5 @@ async def async_handle_disable_vacation_mode(
 
         await vacation_manager.async_disable()
         _LOGGER.info("Vacation mode disabled")
-    except Exception as err:
+    except (HomeAssistantError, SmartHeatingError, ValidationError) as err:
         _LOGGER.error("Failed to disable vacation mode: %s", err)

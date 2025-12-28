@@ -1,9 +1,8 @@
-import axios from 'axios'
+import { apiClient } from './client'
 import { VacationMode } from '../types'
-const API_BASE = '/api/smart_heating'
 
 export const getVacationMode = async (): Promise<VacationMode> => {
-  const response = await axios.get(`${API_BASE}/vacation_mode`)
+  const response = await apiClient.get('/vacation_mode')
   return response.data
 }
 
@@ -16,12 +15,12 @@ export const enableVacationMode = async (config: {
   auto_disable?: boolean
   person_entities?: string[]
 }): Promise<VacationMode> => {
-  const response = await axios.post(`${API_BASE}/vacation_mode`, config)
+  const response = await apiClient.post('/vacation_mode', config)
   return response.data
 }
 
 export const disableVacationMode = async (): Promise<VacationMode> => {
-  const response = await axios.delete(`${API_BASE}/vacation_mode`)
+  const response = await apiClient.delete('/vacation_mode')
   return response.data
 }
 

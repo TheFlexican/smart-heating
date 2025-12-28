@@ -78,7 +78,7 @@ async def async_handle_set_boost_mode(
             "Activated boost mode for area %s: %d minutes at %.1f°C",
             area_id,
             duration,
-            area.boost_temp,
+            area.boost_manager.boost_temp,
         )
     except ValueError as err:
         _LOGGER.error("Failed to set boost mode: %s", err)

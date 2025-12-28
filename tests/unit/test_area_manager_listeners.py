@@ -38,7 +38,7 @@ async def test_listener_with_coroutine_scheduled():
     async def listener(event_dict):
         event_run.set()
 
-    am._device_log_listeners.append(listener)
+    am._device_service._device_log_listeners.append(listener)
 
     am.async_add_device_event("a1", ev)
 

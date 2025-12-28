@@ -114,9 +114,9 @@ class TestCoordinatorDataUpdate:
         mock_area.use_global_sleep = True
         mock_area.use_global_activity = True
         mock_area.use_global_presence = True
-        mock_area.boost_mode_active = False
-        mock_area.boost_temp = 23.0
-        mock_area.boost_duration = 60
+        mock_area.boost_manager.boost_mode_active = False
+        mock_area.boost_manager.boost_temp = 23.0
+        mock_area.boost_manager.boost_duration = 60
         mock_area.hvac_mode = "heat"
         mock_area.hysteresis_override = None
         mock_area.manual_override = False
@@ -124,13 +124,13 @@ class TestCoordinatorDataUpdate:
         mock_area.shutdown_switches_when_idle = True
         mock_area.window_sensors = []
         mock_area.presence_sensors = []
-        mock_area.night_boost_enabled = True
-        mock_area.night_boost_offset = 0.5
-        mock_area.night_boost_start_time = "22:00"
-        mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_boost_enabled = False
-        mock_area.smart_boost_target_time = "06:00"
-        mock_area.weather_entity_id = None
+        mock_area.boost_manager.night_boost_enabled = True
+        mock_area.boost_manager.night_boost_offset = 0.5
+        mock_area.boost_manager.night_boost_start_time = "22:00"
+        mock_area.boost_manager.night_boost_end_time = "06:00"
+        mock_area.boost_manager.smart_boost_enabled = False
+        mock_area.boost_manager.smart_boost_target_time = "06:00"
+        mock_area.boost_manager.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 21.0
 
         coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
@@ -181,9 +181,9 @@ class TestCoordinatorDataUpdate:
         mock_area.use_global_sleep = True
         mock_area.use_global_activity = True
         mock_area.use_global_presence = True
-        mock_area.boost_mode_active = False
-        mock_area.boost_temp = 23.0
-        mock_area.boost_duration = 60
+        mock_area.boost_manager.boost_mode_active = False
+        mock_area.boost_manager.boost_temp = 23.0
+        mock_area.boost_manager.boost_duration = 60
         mock_area.hvac_mode = "heat"
         mock_area.hysteresis_override = None
         mock_area.manual_override = False
@@ -191,13 +191,13 @@ class TestCoordinatorDataUpdate:
         mock_area.shutdown_switches_when_idle = True
         mock_area.window_sensors = []
         mock_area.presence_sensors = []
-        mock_area.night_boost_enabled = True
-        mock_area.night_boost_offset = 0.5
-        mock_area.night_boost_start_time = "22:00"
-        mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_boost_enabled = False
-        mock_area.smart_boost_target_time = "06:00"
-        mock_area.weather_entity_id = None
+        mock_area.boost_manager.night_boost_enabled = True
+        mock_area.boost_manager.night_boost_offset = 0.5
+        mock_area.boost_manager.night_boost_start_time = "22:00"
+        mock_area.boost_manager.night_boost_end_time = "06:00"
+        mock_area.boost_manager.smart_boost_enabled = False
+        mock_area.boost_manager.smart_boost_target_time = "06:00"
+        mock_area.boost_manager.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 21.0
 
         coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
@@ -228,7 +228,8 @@ class TestCoordinatorDataUpdate:
 
     async def test_async_update_data_error(self, coordinator: SmartHeatingCoordinator):
         """Test data update with error."""
-        coordinator.area_manager.get_all_areas.side_effect = Exception("Test error")
+        # Use KeyError since the coordinator catches specific exceptions
+        coordinator.area_manager.get_all_areas.side_effect = KeyError("Test error")
 
         with pytest.raises(UpdateFailed, match="Test error"):
             await coordinator._async_update_data()
@@ -395,6 +396,8 @@ class TestStateChangeHandling:
         self, coordinator: SmartHeatingCoordinator
     ):
         """Test that target temperature changes are debounced."""
+        import asyncio
+
         mock_old_state = MagicMock()
         mock_old_state.state = "heat"
         mock_old_state.attributes = {
@@ -418,21 +421,12 @@ class TestStateChangeHandling:
             "new_state": mock_new_state,
         }
 
-        import asyncio as _asyncio
-
-        orig = _asyncio.create_task
-        with patch("smart_heating.core.coordinator.asyncio.create_task") as mock_create_task:
-            mock_create_task.side_effect = lambda coro, orig=orig: orig(coro)
+        with patch.object(coordinator, "_apply_manual_temperature_change"):
             coordinator._handle_state_change(event)
-            # Should create debounce task, not trigger immediate refresh
-            assert mock_create_task.called
-            assert any(
-                hasattr(c.args[0], "cr_code")
-                and c.args[0].cr_code.co_name == "debounced_temp_update"
-                for c in mock_create_task.call_args_list
-            )
-            # Task should be stored in debounce_tasks
-            assert "climate.test" in coordinator._debounce_tasks
+            # Wait for async task to start
+            await asyncio.sleep(0.01)
+            # Should create debounce task via the debouncer
+            assert coordinator._debouncer.has_pending("climate.test")
 
 
 class TestCoordinatorDeviceUpdates:
@@ -466,9 +460,9 @@ class TestCoordinatorDeviceUpdates:
         mock_area.use_global_sleep = True
         mock_area.use_global_activity = True
         mock_area.use_global_presence = True
-        mock_area.boost_mode_active = False
-        mock_area.boost_temp = 23.0
-        mock_area.boost_duration = 60
+        mock_area.boost_manager.boost_mode_active = False
+        mock_area.boost_manager.boost_temp = 23.0
+        mock_area.boost_manager.boost_duration = 60
         mock_area.hvac_mode = "heat"
         mock_area.hysteresis_override = None
         mock_area.manual_override = False
@@ -476,13 +470,13 @@ class TestCoordinatorDeviceUpdates:
         mock_area.shutdown_switches_when_idle = True
         mock_area.window_sensors = []
         mock_area.presence_sensors = []
-        mock_area.night_boost_enabled = True
-        mock_area.night_boost_offset = 0.5
-        mock_area.night_boost_start_time = "22:00"
-        mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_boost_enabled = False
-        mock_area.smart_boost_target_time = "06:00"
-        mock_area.weather_entity_id = None
+        mock_area.boost_manager.night_boost_enabled = True
+        mock_area.boost_manager.night_boost_offset = 0.5
+        mock_area.boost_manager.night_boost_start_time = "22:00"
+        mock_area.boost_manager.night_boost_end_time = "06:00"
+        mock_area.boost_manager.smart_boost_enabled = False
+        mock_area.boost_manager.smart_boost_target_time = "06:00"
+        mock_area.boost_manager.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 21.0
 
         coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
@@ -537,9 +531,9 @@ class TestCoordinatorDeviceUpdates:
         mock_area.use_global_sleep = True
         mock_area.use_global_activity = True
         mock_area.use_global_presence = True
-        mock_area.boost_mode_active = False
-        mock_area.boost_temp = 23.0
-        mock_area.boost_duration = 60
+        mock_area.boost_manager.boost_mode_active = False
+        mock_area.boost_manager.boost_temp = 23.0
+        mock_area.boost_manager.boost_duration = 60
         mock_area.hvac_mode = "heat"
         mock_area.hysteresis_override = None
         mock_area.manual_override = False
@@ -547,13 +541,13 @@ class TestCoordinatorDeviceUpdates:
         mock_area.shutdown_switches_when_idle = True
         mock_area.window_sensors = []
         mock_area.presence_sensors = []
-        mock_area.night_boost_enabled = True
-        mock_area.night_boost_offset = 0.5
-        mock_area.night_boost_start_time = "22:00"
-        mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_boost_enabled = False
-        mock_area.smart_boost_target_time = "06:00"
-        mock_area.weather_entity_id = None
+        mock_area.boost_manager.night_boost_enabled = True
+        mock_area.boost_manager.night_boost_offset = 0.5
+        mock_area.boost_manager.night_boost_start_time = "22:00"
+        mock_area.boost_manager.night_boost_end_time = "06:00"
+        mock_area.boost_manager.smart_boost_enabled = False
+        mock_area.boost_manager.smart_boost_target_time = "06:00"
+        mock_area.boost_manager.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 21.0
 
         coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
@@ -597,9 +591,9 @@ class TestCoordinatorAreaUpdates:
         mock_area.use_global_sleep = True
         mock_area.use_global_activity = True
         mock_area.use_global_presence = True
-        mock_area.boost_mode_active = False
-        mock_area.boost_temp = 23.0
-        mock_area.boost_duration = 60
+        mock_area.boost_manager.boost_mode_active = False
+        mock_area.boost_manager.boost_temp = 23.0
+        mock_area.boost_manager.boost_duration = 60
         mock_area.hvac_mode = "heat"
         mock_area.hysteresis_override = None
         mock_area.manual_override = False
@@ -607,13 +601,13 @@ class TestCoordinatorAreaUpdates:
         mock_area.shutdown_switches_when_idle = True
         mock_area.window_sensors = []
         mock_area.presence_sensors = []
-        mock_area.night_boost_enabled = True
-        mock_area.night_boost_offset = 0.5
-        mock_area.night_boost_start_time = "22:00"
-        mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_boost_enabled = False
-        mock_area.smart_boost_target_time = "06:00"
-        mock_area.weather_entity_id = None
+        mock_area.boost_manager.night_boost_enabled = True
+        mock_area.boost_manager.night_boost_offset = 0.5
+        mock_area.boost_manager.night_boost_start_time = "22:00"
+        mock_area.boost_manager.night_boost_end_time = "06:00"
+        mock_area.boost_manager.smart_boost_enabled = False
+        mock_area.boost_manager.smart_boost_target_time = "06:00"
+        mock_area.boost_manager.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 21.0
 
         coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
@@ -647,9 +641,9 @@ class TestCoordinatorAreaUpdates:
         mock_area.use_global_sleep = True
         mock_area.use_global_activity = True
         mock_area.use_global_presence = True
-        mock_area.boost_mode_active = False
-        mock_area.boost_temp = 23.0
-        mock_area.boost_duration = 60
+        mock_area.boost_manager.boost_mode_active = False
+        mock_area.boost_manager.boost_temp = 23.0
+        mock_area.boost_manager.boost_duration = 60
         mock_area.hvac_mode = "heat"
         mock_area.hysteresis_override = None
         mock_area.manual_override = False
@@ -657,13 +651,13 @@ class TestCoordinatorAreaUpdates:
         mock_area.shutdown_switches_when_idle = True
         mock_area.window_sensors = []
         mock_area.presence_sensors = []
-        mock_area.night_boost_enabled = True
-        mock_area.night_boost_offset = 0.5
-        mock_area.night_boost_start_time = "22:00"
-        mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_boost_enabled = False
-        mock_area.smart_boost_target_time = "06:00"
-        mock_area.weather_entity_id = None
+        mock_area.boost_manager.night_boost_enabled = True
+        mock_area.boost_manager.night_boost_offset = 0.5
+        mock_area.boost_manager.night_boost_start_time = "22:00"
+        mock_area.boost_manager.night_boost_end_time = "06:00"
+        mock_area.boost_manager.smart_boost_enabled = False
+        mock_area.boost_manager.smart_boost_target_time = "06:00"
+        mock_area.boost_manager.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 22.0
 
         coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
@@ -697,9 +691,9 @@ class TestCoordinatorAreaUpdates:
         mock_area.use_global_sleep = True
         mock_area.use_global_activity = True
         mock_area.use_global_presence = True
-        mock_area.boost_mode_active = False
-        mock_area.boost_temp = 23.0
-        mock_area.boost_duration = 60
+        mock_area.boost_manager.boost_mode_active = False
+        mock_area.boost_manager.boost_temp = 23.0
+        mock_area.boost_manager.boost_duration = 60
         mock_area.hvac_mode = "heat"
         mock_area.hysteresis_override = None
         mock_area.manual_override = False
@@ -707,13 +701,13 @@ class TestCoordinatorAreaUpdates:
         mock_area.shutdown_switches_when_idle = True
         mock_area.window_sensors = []
         mock_area.presence_sensors = []
-        mock_area.night_boost_enabled = True
-        mock_area.night_boost_offset = 0.5
-        mock_area.night_boost_start_time = "22:00"
-        mock_area.night_boost_end_time = "06:00"
-        mock_area.smart_boost_enabled = False
-        mock_area.smart_boost_target_time = "06:00"
-        mock_area.weather_entity_id = None
+        mock_area.boost_manager.night_boost_enabled = True
+        mock_area.boost_manager.night_boost_offset = 0.5
+        mock_area.boost_manager.night_boost_start_time = "22:00"
+        mock_area.boost_manager.night_boost_end_time = "06:00"
+        mock_area.boost_manager.smart_boost_enabled = False
+        mock_area.boost_manager.smart_boost_target_time = "06:00"
+        mock_area.boost_manager.weather_entity_id = None
         mock_area.get_effective_target_temperature.return_value = 21.0
 
         coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
@@ -730,14 +724,19 @@ class TestDebounceTemperatureChange:
         self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
     ):
         """Test temperature change creates debounce task."""
+        import asyncio
+
         old_state = State("climate.test", "heat", {"temperature": 20.0})
         new_state = State("climate.test", "heat", {"temperature": 21.0})
 
         with patch.object(coordinator, "_apply_manual_temperature_change"):
             coordinator._handle_temperature_change("climate.test", old_state, new_state)
 
-            # Should create debounce task
-            assert "climate.test" in coordinator._debounce_tasks
+            # Wait for async task to start
+            await asyncio.sleep(0.01)
+
+            # Should create debounce task in the debouncer
+            assert coordinator._debouncer.has_pending("climate.test")
 
     async def test_apply_manual_temperature_change_matches_expected(
         self, coordinator: SmartHeatingCoordinator
@@ -762,6 +761,9 @@ class TestDebounceTemperatureChange:
         self, coordinator: SmartHeatingCoordinator
     ):
         """Test manual temperature change when it differs from expected."""
+        # Disable grace period to allow manual override detection
+        coordinator._manual_override_detector.set_startup_grace_period(False)
+
         mock_area = MagicMock()
         mock_area.name = "Living Room"
         mock_area.devices = {"climate.test": {}}
@@ -1087,3 +1089,641 @@ class TestCoordinatorAreaOperations:
 
         with pytest.raises(ValueError, match="Area not found"):
             await coordinator.async_disable_area(area_id)
+
+    @pytest.mark.asyncio
+    async def test_async_enable_area_no_climate_controller(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test enabling area when climate controller is not available."""
+        area_id = "living_room"
+
+        mock_area = MagicMock()
+        mock_area.current_temperature = 18.0
+        mock_area.get_effective_target_temperature.return_value = 20.0
+        coordinator.area_manager.get_area.return_value = mock_area
+        coordinator.area_manager.enable_area = MagicMock()
+        coordinator.area_manager.async_save = AsyncMock()
+
+        # No climate controller in hass.data
+        hass.data = {DOMAIN: {}}
+        coordinator.async_request_refresh = AsyncMock()
+
+        await coordinator.async_enable_area(area_id)
+
+        # Should still enable area and save, just skip device control
+        coordinator.area_manager.enable_area.assert_called_once_with(area_id)
+        coordinator.area_manager.async_save.assert_called_once()
+        coordinator.async_request_refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_async_disable_area_no_climate_controller(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test disabling area when climate controller is not available."""
+        area_id = "living_room"
+
+        mock_area = MagicMock()
+        coordinator.area_manager.get_area.return_value = mock_area
+        coordinator.area_manager.disable_area = MagicMock()
+        coordinator.area_manager.async_save = AsyncMock()
+
+        # No climate controller in hass.data
+        hass.data = {DOMAIN: {}}
+        coordinator.async_request_refresh = AsyncMock()
+
+        await coordinator.async_disable_area(area_id)
+
+        # Should still disable area and save, just skip device control
+        coordinator.area_manager.disable_area.assert_called_once_with(area_id)
+        coordinator.area_manager.async_save.assert_called_once()
+        coordinator.async_request_refresh.assert_called_once()
+
+
+class TestGracePeriod:
+    """Test startup grace period functionality."""
+
+    @pytest.mark.asyncio
+    async def test_grace_period_activation(self, coordinator: SmartHeatingCoordinator):
+        """Test that grace period is activated during setup."""
+        coordinator.area_manager.get_all_areas.return_value = {}
+
+        # Grace period is activated in __init__ now
+        assert coordinator._manual_override_detector._startup_grace_period is True
+
+        with patch("smart_heating.core.coordinator.async_track_state_change_event"):
+            await coordinator.async_setup()
+
+        # Grace period should still be active (deactivated after 10 seconds)
+        assert coordinator._manual_override_detector._startup_grace_period is True
+
+    @pytest.mark.asyncio
+    async def test_apply_manual_temp_change_during_grace_period(
+        self, coordinator: SmartHeatingCoordinator
+    ):
+        """Test that manual temp changes are ignored during grace period."""
+        coordinator._startup_grace_period = True
+
+        mock_area = MagicMock()
+        mock_area.name = "Living Room"
+        mock_area.devices = {"climate.test": {}}
+        mock_area.manual_override = False
+        coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
+
+        await coordinator._apply_manual_temperature_change("climate.test", 23.0)
+
+        # Should not set manual override during grace period
+        assert mock_area.manual_override is False
+
+    @pytest.mark.asyncio
+    async def test_apply_manual_temp_change_none_temperature(
+        self, coordinator: SmartHeatingCoordinator
+    ):
+        """Test that None temperature is ignored."""
+        coordinator._startup_grace_period = False
+
+        mock_area = MagicMock()
+        mock_area.name = "Living Room"
+        mock_area.devices = {"climate.test": {}}
+        mock_area.manual_override = False
+        coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
+
+        await coordinator._apply_manual_temperature_change("climate.test", None)
+
+        # Should not set manual override for None temperature
+        assert mock_area.manual_override is False
+
+    @pytest.mark.asyncio
+    async def test_apply_manual_temp_change_lower_than_expected(
+        self, coordinator: SmartHeatingCoordinator
+    ):
+        """Test that lower temperature (stale state) is ignored."""
+        coordinator._startup_grace_period = False
+
+        mock_area = MagicMock()
+        mock_area.name = "Living Room"
+        mock_area.devices = {"climate.test": {}}
+        mock_area.get_effective_target_temperature.return_value = 21.0
+        mock_area.manual_override = False
+        coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
+
+        # Temperature is lower than expected (stale state from old preset)
+        await coordinator._apply_manual_temperature_change("climate.test", 18.0)
+
+        # Should not set manual override for stale lower temperature
+        assert mock_area.manual_override is False
+
+
+class TestTaskCancellation:
+    """Test task cancellation helper methods."""
+
+    @pytest.mark.asyncio
+    async def test_cancel_task_if_exists_with_task(self, coordinator: SmartHeatingCoordinator):
+        """Test cancelling an existing task."""
+        import asyncio
+
+        # Create a dummy task
+        async def dummy():
+            await asyncio.sleep(10)
+
+        task = asyncio.create_task(dummy())
+        coordinator._test_task = task
+
+        coordinator._cancel_task_if_exists("_test_task")
+
+        # Wait for cancellation to complete
+        await asyncio.sleep(0.01)
+
+        # Task should be cancelled and attribute set to None
+        assert task.cancelled() or task.done()
+        assert coordinator._test_task is None
+
+    @pytest.mark.asyncio
+    async def test_cancel_task_if_exists_no_task(self, coordinator: SmartHeatingCoordinator):
+        """Test cancelling when task doesn't exist."""
+        # Should not raise any errors
+        coordinator._cancel_task_if_exists("_nonexistent_task")
+
+    @pytest.mark.asyncio
+    async def test_cancel_task_collection_dict(self, coordinator: SmartHeatingCoordinator):
+        """Test cancelling task collection (dict)."""
+        import asyncio
+
+        async def dummy():
+            await asyncio.sleep(10)
+
+        tasks = {
+            "task1": asyncio.create_task(dummy()),
+            "task2": asyncio.create_task(dummy()),
+        }
+
+        coordinator._cancel_task_collection(tasks)
+
+        # All tasks should be cancelled and dict cleared
+        assert len(tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_cancel_task_collection_set(self, coordinator: SmartHeatingCoordinator):
+        """Test cancelling task collection (set)."""
+        import asyncio
+
+        async def dummy():
+            await asyncio.sleep(10)
+
+        tasks = {
+            asyncio.create_task(dummy()),
+            asyncio.create_task(dummy()),
+        }
+
+        coordinator._cancel_task_collection(tasks)
+
+        # All tasks should be cancelled and set cleared
+        assert len(tasks) == 0
+
+
+class TestDebounceTaskCancellation:
+    """Test debounce task cancellation."""
+
+    @pytest.mark.skip(
+        reason="Debouncer task management is fully tested in test_debouncer.py. "
+        "This test checks implementation details no longer directly accessible after refactoring."
+    )
+    @pytest.mark.asyncio
+    async def test_multiple_temperature_changes_cancel_previous(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test that multiple rapid temperature changes are debounced.
+
+        Note: This functionality is now tested in tests/unit/core/coordination/test_debouncer.py
+        which has 12 comprehensive tests including cancellation behavior.
+        """
+        pass
+
+
+class TestWeatherStateData:
+    """Test weather state data functionality."""
+
+    def test_get_weather_state_data_valid(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting valid weather state."""
+        weather_entity = "weather.home"
+
+        hass.states.async_set(
+            weather_entity,
+            "10.5",
+            {
+                "temperature": 10.5,
+                "humidity": 75,
+                "wind_speed": 15,
+            },
+        )
+
+        result = coordinator._get_weather_state_data(weather_entity)
+
+        assert result is not None
+        assert result["entity_id"] == weather_entity
+        assert result["temperature"] == 10.5
+        assert "attributes" in result
+        assert result["attributes"]["humidity"] == 75
+
+    def test_get_weather_state_data_unavailable(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting weather state when unavailable."""
+        weather_entity = "weather.home"
+
+        hass.states.async_set(weather_entity, "unavailable", {})
+
+        result = coordinator._get_weather_state_data(weather_entity)
+
+        assert result is None
+
+    def test_get_weather_state_data_unknown(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting weather state when unknown."""
+        weather_entity = "weather.home"
+
+        hass.states.async_set(weather_entity, "unknown", {})
+
+        result = coordinator._get_weather_state_data(weather_entity)
+
+        assert result is None
+
+    def test_get_weather_state_data_no_entity(self, coordinator: SmartHeatingCoordinator):
+        """Test getting weather state when entity ID is None."""
+        result = coordinator._get_weather_state_data(None)
+
+        assert result is None
+
+    def test_get_weather_state_data_invalid_value(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting weather state with invalid temperature value."""
+        weather_entity = "weather.home"
+
+        hass.states.async_set(weather_entity, "invalid_temp", {})
+
+        result = coordinator._get_weather_state_data(weather_entity)
+
+        assert result is None
+
+
+class TestOpenThermGateway:
+    """Test OpenTherm gateway state data."""
+
+    def test_get_opentherm_gateway_state_valid(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting valid OpenTherm gateway state."""
+        gateway_id = "climate.opentherm_gateway"
+
+        hass.states.async_set(
+            gateway_id,
+            "heat",
+            {
+                "relative_mod_level": 75.5,
+                "flame_on": True,
+            },
+        )
+
+        result = coordinator._get_opentherm_gateway_state(gateway_id)
+
+        assert result is not None
+        assert result["entity_id"] == gateway_id
+        assert result["state"] == "heat"
+        assert result["modulation_level"] == 75.5
+        assert "attributes" in result
+
+    def test_get_opentherm_gateway_state_modulation_level_attr(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting OpenTherm gateway with alternative modulation attribute."""
+        gateway_id = "climate.opentherm_gateway"
+
+        hass.states.async_set(
+            gateway_id,
+            "heat",
+            {
+                "modulation_level": 50.0,  # Alternative attribute name
+            },
+        )
+
+        result = coordinator._get_opentherm_gateway_state(gateway_id)
+
+        assert result is not None
+        assert result["modulation_level"] == 50.0
+
+    def test_get_opentherm_gateway_state_no_modulation(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting OpenTherm gateway without modulation level."""
+        gateway_id = "climate.opentherm_gateway"
+
+        hass.states.async_set(gateway_id, "heat", {})
+
+        result = coordinator._get_opentherm_gateway_state(gateway_id)
+
+        assert result is not None
+        assert result["modulation_level"] is None
+
+    def test_get_opentherm_gateway_state_invalid_modulation(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting OpenTherm gateway with invalid modulation value."""
+        gateway_id = "climate.opentherm_gateway"
+
+        hass.states.async_set(
+            gateway_id,
+            "heat",
+            {
+                "relative_mod_level": "invalid",
+            },
+        )
+
+        result = coordinator._get_opentherm_gateway_state(gateway_id)
+
+        assert result is not None
+        assert result["modulation_level"] is None
+
+    def test_get_opentherm_gateway_state_no_entity(self, coordinator: SmartHeatingCoordinator):
+        """Test getting OpenTherm gateway when entity ID is None."""
+        result = coordinator._get_opentherm_gateway_state(None)
+
+        assert result is None
+
+    def test_get_opentherm_gateway_state_missing_entity(self, coordinator: SmartHeatingCoordinator):
+        """Test getting OpenTherm gateway when entity doesn't exist."""
+        result = coordinator._get_opentherm_gateway_state("climate.nonexistent")
+
+        assert result is None
+
+
+class TestTRVStates:
+    """Test TRV state collection."""
+
+    def test_get_trv_states_for_area_binary_sensor(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting TRV states with binary sensor."""
+        mock_area = MagicMock()
+        mock_area.trv_entities = [{"entity_id": "binary_sensor.trv1"}]
+
+        hass.states.async_set("binary_sensor.trv1", "on", {})
+
+        result = coordinator._get_trv_states_for_area(mock_area)
+
+        assert len(result) == 1
+        assert result[0]["entity_id"] == "binary_sensor.trv1"
+        assert result[0]["open"] is True
+        assert result[0]["position"] is None
+
+    def test_get_trv_states_for_area_binary_sensor_off(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting TRV states with binary sensor off."""
+        mock_area = MagicMock()
+        mock_area.trv_entities = [{"entity_id": "binary_sensor.trv1"}]
+
+        hass.states.async_set("binary_sensor.trv1", "off", {})
+
+        result = coordinator._get_trv_states_for_area(mock_area)
+
+        assert len(result) == 1
+        assert result[0]["open"] is False
+
+    def test_get_trv_states_for_area_sensor_with_position(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting TRV states with position sensor."""
+        mock_area = MagicMock()
+        mock_area.trv_entities = [{"entity_id": "sensor.trv1"}]
+        mock_area.state = "heating"
+
+        hass.states.async_set("sensor.trv1", "50.0", {})
+
+        result = coordinator._get_trv_states_for_area(mock_area)
+
+        assert len(result) == 1
+        assert result[0]["entity_id"] == "sensor.trv1"
+        assert result[0]["position"] == 50.0
+        assert result[0]["running_state"] == "heating"
+
+    def test_get_trv_states_for_area_with_position_attribute(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting TRV states with position in attributes."""
+        mock_area = MagicMock()
+        mock_area.trv_entities = [{"entity_id": "sensor.trv1"}]
+
+        # State value can't be converted to float, so it will check attributes
+        hass.states.async_set(
+            "sensor.trv1",
+            "heating",
+            {
+                "position": 75.0,
+            },
+        )
+
+        result = coordinator._get_trv_states_for_area(mock_area)
+
+        assert len(result) == 1
+        assert result[0]["position"] == 75.0
+
+    def test_get_trv_states_for_area_with_valve_position_attribute(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting TRV states with valve_position in attributes."""
+        mock_area = MagicMock()
+        mock_area.trv_entities = [{"entity_id": "sensor.trv1"}]
+
+        # State value can't be converted to float, so it will check attributes
+        hass.states.async_set(
+            "sensor.trv1",
+            "heating",
+            {
+                "valve_position": 60.0,
+            },
+        )
+
+        result = coordinator._get_trv_states_for_area(mock_area)
+
+        assert len(result) == 1
+        assert result[0]["position"] == 60.0
+
+    def test_get_trv_states_for_area_unavailable(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting TRV states when unavailable."""
+        mock_area = MagicMock()
+        mock_area.trv_entities = [{"entity_id": "sensor.trv1"}]
+
+        hass.states.async_set("sensor.trv1", "unavailable", {})
+
+        result = coordinator._get_trv_states_for_area(mock_area)
+
+        assert len(result) == 1
+        assert result[0]["position"] is None
+        assert result[0]["open"] is None
+
+    def test_get_trv_states_for_area_no_entity_id(self, coordinator: SmartHeatingCoordinator):
+        """Test getting TRV states with missing entity_id."""
+        mock_area = MagicMock()
+        mock_area.trv_entities = [{"entity_id": None}]
+
+        result = coordinator._get_trv_states_for_area(mock_area)
+
+        # Should skip entries without entity_id
+        assert len(result) == 0
+
+    def test_get_trv_states_for_area_no_trv_entities(self, coordinator: SmartHeatingCoordinator):
+        """Test getting TRV states when area has no trv_entities attribute."""
+        mock_area = MagicMock()
+        # Don't set trv_entities attribute - use getattr default
+
+        result = coordinator._get_trv_states_for_area(mock_area)
+
+        assert len(result) == 0
+
+    def test_get_trv_states_for_area_multiple_trvs(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test getting TRV states with multiple TRVs."""
+        mock_area = MagicMock()
+        mock_area.trv_entities = [
+            {"entity_id": "binary_sensor.trv1"},
+            {"entity_id": "sensor.trv2"},
+        ]
+
+        hass.states.async_set("binary_sensor.trv1", "on", {})
+        hass.states.async_set("sensor.trv2", "75.0", {})
+
+        result = coordinator._get_trv_states_for_area(mock_area)
+
+        assert len(result) == 2
+        assert result[0]["entity_id"] == "binary_sensor.trv1"
+        assert result[0]["open"] is True
+        assert result[1]["entity_id"] == "sensor.trv2"
+        assert result[1]["position"] == 75.0
+
+
+class TestBuildAreaDataWithWeatherAndTRV:
+    """Test _build_area_data with weather and TRV functionality."""
+
+    @pytest.mark.asyncio
+    async def test_build_area_data_with_weather(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test building area data with weather entity."""
+        mock_area = MagicMock()
+        mock_area.name = "Living Room"
+        mock_area.enabled = True
+        mock_area.state = "heat"
+        mock_area.target_temperature = 21.0
+        mock_area.current_temperature = 20.0
+        mock_area.devices = {}
+        mock_area.schedules = {}
+        mock_area.preset_mode = "comfort"
+        mock_area.away_temp = 16.0
+        mock_area.eco_temp = 18.0
+        mock_area.comfort_temp = 21.0
+        mock_area.home_temp = 20.0
+        mock_area.sleep_temp = 17.0
+        mock_area.activity_temp = 22.0
+        mock_area.use_global_away = True
+        mock_area.use_global_eco = True
+        mock_area.use_global_comfort = True
+        mock_area.use_global_home = True
+        mock_area.use_global_sleep = True
+        mock_area.use_global_activity = True
+        mock_area.use_global_presence = True
+        mock_area.boost_manager.boost_mode_active = False
+        mock_area.boost_manager.boost_temp = 23.0
+        mock_area.boost_manager.boost_duration = 60
+        mock_area.hvac_mode = "heat"
+        mock_area.hysteresis_override = None
+        mock_area.manual_override = False
+        mock_area.hidden = False
+        mock_area.shutdown_switches_when_idle = True
+        mock_area.window_sensors = []
+        mock_area.presence_sensors = []
+        mock_area.boost_manager.night_boost_enabled = True
+        mock_area.boost_manager.night_boost_offset = 0.5
+        mock_area.boost_manager.night_boost_start_time = "22:00"
+        mock_area.boost_manager.night_boost_end_time = "06:00"
+        mock_area.boost_manager.smart_boost_enabled = False
+        mock_area.boost_manager.smart_boost_target_time = "06:00"
+        mock_area.boost_manager.weather_entity_id = "weather.home"
+        mock_area.get_effective_target_temperature.return_value = 21.0
+
+        # Set weather state
+        hass.states.async_set("weather.home", "15.0", {"temperature": 15.0, "humidity": 70})
+
+        coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
+
+        data = await coordinator._async_update_data()
+
+        area_data = data["areas"][TEST_AREA_ID]
+        assert "weather_state" in area_data
+        assert area_data["weather_state"] is not None
+        assert area_data["weather_state"]["temperature"] == 15.0
+
+    @pytest.mark.asyncio
+    async def test_build_area_data_with_trvs(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test building area data with TRV entities."""
+        mock_area = MagicMock()
+        mock_area.name = "Living Room"
+        mock_area.enabled = True
+        mock_area.state = "heat"
+        mock_area.target_temperature = 21.0
+        mock_area.current_temperature = 20.0
+        mock_area.devices = {}
+        mock_area.schedules = {}
+        mock_area.preset_mode = "comfort"
+        mock_area.away_temp = 16.0
+        mock_area.eco_temp = 18.0
+        mock_area.comfort_temp = 21.0
+        mock_area.home_temp = 20.0
+        mock_area.sleep_temp = 17.0
+        mock_area.activity_temp = 22.0
+        mock_area.use_global_away = True
+        mock_area.use_global_eco = True
+        mock_area.use_global_comfort = True
+        mock_area.use_global_home = True
+        mock_area.use_global_sleep = True
+        mock_area.use_global_activity = True
+        mock_area.use_global_presence = True
+        mock_area.boost_manager.boost_mode_active = False
+        mock_area.boost_manager.boost_temp = 23.0
+        mock_area.boost_manager.boost_duration = 60
+        mock_area.hvac_mode = "heat"
+        mock_area.hysteresis_override = None
+        mock_area.manual_override = False
+        mock_area.hidden = False
+        mock_area.shutdown_switches_when_idle = True
+        mock_area.window_sensors = []
+        mock_area.presence_sensors = []
+        mock_area.boost_manager.night_boost_enabled = True
+        mock_area.boost_manager.night_boost_offset = 0.5
+        mock_area.boost_manager.night_boost_start_time = "22:00"
+        mock_area.boost_manager.night_boost_end_time = "06:00"
+        mock_area.boost_manager.smart_boost_enabled = False
+        mock_area.boost_manager.smart_boost_target_time = "06:00"
+        mock_area.boost_manager.weather_entity_id = None
+        mock_area.trv_entities = [{"entity_id": "binary_sensor.trv1"}]
+        mock_area.get_effective_target_temperature.return_value = 21.0
+
+        # Set TRV state
+        hass.states.async_set("binary_sensor.trv1", "on", {})
+
+        coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
+
+        data = await coordinator._async_update_data()
+
+        area_data = data["areas"][TEST_AREA_ID]
+        assert "trvs" in area_data
+        assert len(area_data["trvs"]) == 1
+        assert area_data["trvs"][0]["entity_id"] == "binary_sensor.trv1"
+        assert area_data["trvs"][0]["open"] is True

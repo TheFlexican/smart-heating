@@ -7,8 +7,10 @@ import aiofiles
 from aiohttp import web
 from homeassistant.helpers.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from ..const import DOMAIN
+from .auth import require_admin, get_user_from_request
 
 # Standardized error messages
 ERROR_INTERNAL = "Internal server error"
@@ -127,7 +129,7 @@ class SmartHeatingAPIView(HomeAssistantView):
 
     url = "/api/smart_heating/{endpoint:.*}"
     name = "api:smart_heating"
-    requires_auth = False
+    requires_auth = True
 
     def __init__(self, hass: HomeAssistant, area_manager: AreaManager) -> None:
         """Initialize the API view.
@@ -602,7 +604,7 @@ class SmartHeatingAPIView(HomeAssistantView):
 
             else:
                 return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)
-        except Exception as err:
+        except (HomeAssistantError, RuntimeError, OSError) as err:
             _LOGGER.exception("Error handling GET %s", endpoint)
             return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 
@@ -616,6 +618,11 @@ class SmartHeatingAPIView(HomeAssistantView):
         Returns:
             JSON response
         """
+        # PATCH operations require admin permission
+        user = get_user_from_request(request)
+        if error := require_admin(user):
+            return error
+
         try:
             # Area schedule update
             if endpoint.startswith(ENDPOINT_PREFIX_AREAS) and AREA_SCHEDULES_SEGMENT in endpoint:
@@ -628,7 +635,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                 )
 
             return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)
-        except Exception as err:
+        except (HomeAssistantError, RuntimeError, OSError) as err:
             _LOGGER.exception("Error handling PATCH %s", endpoint)
             return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 
@@ -861,6 +868,11 @@ class SmartHeatingAPIView(HomeAssistantView):
         Returns:
             JSON response
         """
+        # POST operations require admin permission
+        user = get_user_from_request(request)
+        if error := require_admin(user):
+            return error
+
         try:
             _LOGGER.debug("POST request to endpoint: %s", endpoint)
 
@@ -890,7 +902,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                 return response
 
             return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)
-        except Exception as err:
+        except (HomeAssistantError, RuntimeError, OSError) as err:
             _LOGGER.exception("Error handling POST %s", endpoint)
             return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 
@@ -904,6 +916,11 @@ class SmartHeatingAPIView(HomeAssistantView):
         Returns:
             JSON response
         """
+        # DELETE operations require admin permission
+        user = get_user_from_request(request)
+        if error := require_admin(user):
+            return error
+
         try:
             if endpoint == "vacation_mode":
                 return await handle_disable_vacation_mode(self.hass)
@@ -934,7 +951,7 @@ class SmartHeatingAPIView(HomeAssistantView):
                 return await handle_delete_user(self.hass, user_manager, request, user_id)
 
             return web.json_response({"error": ERROR_UNKNOWN_ENDPOINT}, status=404)
-        except Exception as err:
+        except (HomeAssistantError, RuntimeError, OSError) as err:
             _LOGGER.exception("Error handling DELETE %s", endpoint)
             return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 

@@ -13,6 +13,7 @@ from smart_heating.const import (
     ATTR_HYSTERESIS,
     DOMAIN,
 )
+from smart_heating.exceptions import StorageError
 from smart_heating.services.config_handlers import (
     async_handle_set_frost_protection,
     async_handle_set_history_retention,
@@ -295,7 +296,7 @@ class TestConfigHandlers:
         call.data = {ATTR_HISTORY_RETENTION_DAYS: 30}
 
         # Make set_retention_days raise exception
-        mock_history_tracker.set_retention_days.side_effect = Exception("Invalid retention")
+        mock_history_tracker.set_retention_days.side_effect = StorageError("Invalid retention")
 
         # Should not raise, just log error
         await async_handle_set_history_retention(call, mock_hass, mock_coordinator)

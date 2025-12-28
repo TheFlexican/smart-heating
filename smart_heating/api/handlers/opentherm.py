@@ -5,8 +5,10 @@ import logging
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from ...const import DOMAIN
+from ...exceptions import SmartHeatingError
 from ...overshoot_protection import OvershootProtection
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,7 +39,7 @@ async def handle_get_opentherm_logs(hass: HomeAssistant, request) -> web.Respons
 
         return web.json_response({"logs": logs, "count": len(logs)})
 
-    except Exception as err:
+    except (HomeAssistantError, ValidationError, KeyError, ValueError) as err:
         _LOGGER.error("Error getting OpenTherm logs: %s", err)
         return web.json_response({"error": str(err)}, status=500)
 
@@ -63,7 +65,7 @@ async def handle_get_opentherm_capabilities(
 
         return web.json_response(capabilities)
 
-    except Exception as err:
+    except (HomeAssistantError, ValidationError, KeyError, ValueError) as err:
         _LOGGER.error("Error getting OpenTherm capabilities: %s", err)
         return web.json_response({"error": str(err)}, status=500)
 
@@ -91,7 +93,7 @@ async def handle_get_opentherm_gateways(hass: HomeAssistant) -> web.Response:  #
             )
             gateways.append({"gateway_id": gw_id, "title": entry.title})
         return web.json_response({"gateways": gateways})
-    except Exception as err:
+    except (HomeAssistantError, ValidationError, KeyError, ValueError) as err:
         _LOGGER.error("Error listing OpenTherm gateways: %s", err)
         return web.json_response({"error": str(err)}, status=500)
 
@@ -119,7 +121,7 @@ async def handle_discover_opentherm_capabilities(hass: HomeAssistant, area_manag
 
         return web.json_response(capabilities)
 
-    except Exception as err:
+    except (HomeAssistantError, ValidationError, KeyError, ValueError) as err:
         _LOGGER.error("Error discovering OpenTherm capabilities: %s", err)
         return web.json_response({"error": str(err)}, status=500)
 
@@ -143,7 +145,7 @@ async def handle_clear_opentherm_logs(hass: HomeAssistant) -> web.Response:  # N
 
         return web.json_response({"success": True, "message": "Logs cleared"})
 
-    except Exception as err:
+    except (HomeAssistantError, ValidationError, KeyError, ValueError) as err:
         _LOGGER.error("Error clearing OpenTherm logs: %s", err)
         return web.json_response({"error": str(err)}, status=500)
 
@@ -178,6 +180,6 @@ async def handle_calibrate_opentherm(
         await area_manager.async_save()
 
         return web.json_response({"opv": value})
-    except Exception as err:
+    except (HomeAssistantError, ValidationError, KeyError, ValueError) as err:
         _LOGGER.error("Error during OPV calibration: %s", err)
         return web.json_response({"error": str(err)}, status=500)

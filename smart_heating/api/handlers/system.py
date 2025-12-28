@@ -6,8 +6,10 @@ from typing import Any
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from ...core.area_manager import AreaManager
+from ...exceptions import SmartHeatingError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,7 +97,7 @@ async def handle_call_service(hass: HomeAssistant, data: dict) -> web.Response:
         return web.json_response(
             {"success": True, "message": f"Service {service_name} called successfully"}
         )
-    except Exception as err:
+    except (HomeAssistantError, SmartHeatingError, OSError, RuntimeError) as err:
         _LOGGER.exception("Error calling service %s", service_name)
         # Keep 'error' containing the original exception message for backwards compatibility
         return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)

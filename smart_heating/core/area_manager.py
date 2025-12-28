@@ -1,227 +1,115 @@
-"""Zone Manager for Smart Heating integration."""
+"""Area Manager facade for Smart Heating integration."""
 
 import logging
-import asyncio
-from typing import Any, Dict, Deque, List
-from collections import deque
-from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.storage import Store
 
-from ..models import DeviceEvent
-
-from ..const import (
-    DEFAULT_ACTIVITY_TEMP,
-    DEFAULT_AWAY_TEMP,
-    DEFAULT_COMFORT_TEMP,
-    DEFAULT_ECO_TEMP,
-    DEFAULT_FROST_PROTECTION_TEMP,
-    DEFAULT_HOME_TEMP,
-    DEFAULT_SLEEP_TEMP,
-    DEFAULT_TRV_HEATING_TEMP,
-    DEFAULT_TRV_IDLE_TEMP,
-    DEFAULT_TRV_TEMP_OFFSET,
-    STORAGE_KEY,
-    STORAGE_VERSION,
+from ..models import Area, DeviceEvent, Schedule
+from .services import (
+    AreaService,
+    ConfigService,
+    DeviceService,
+    PersistenceService,
+    PresetService,
+    SafetyService,
+    ScheduleService,
 )
-from ..models import Area, Schedule
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class AreaManager:
-    """Manage heating areas."""
+    """Facade for managing heating areas and global configuration."""
 
     def __init__(self, hass: HomeAssistant) -> None:
-        """Initialize the area manager.
+        """Initialize the area manager facade.
 
         Args:
             hass: Home Assistant instance
         """
         self.hass = hass
-        self.areas: dict[str, Area] = {}
-        self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
-
-        # Global OpenTherm gateway configuration
-        self.opentherm_gateway_id: str | None = None  # Gateway device ID for service calls
-
-        # Global TRV configuration
-        self.trv_heating_temp: float = DEFAULT_TRV_HEATING_TEMP
-        self.trv_idle_temp: float = DEFAULT_TRV_IDLE_TEMP
-        self.trv_temp_offset: float = DEFAULT_TRV_TEMP_OFFSET
-
-        # Global Frost Protection
-        self.frost_protection_enabled: bool = False
-        self.frost_protection_temp: float = DEFAULT_FROST_PROTECTION_TEMP
-
-        # Global Hysteresis
-        self.hysteresis: float = 0.5
-
-        # UI Settings
-        self.hide_devices_panel: bool = False
-
-        # Advanced control features (disabled by default)
-        self.advanced_control_enabled: bool = False
-        self.heating_curve_enabled: bool = False
-        self.pwm_enabled: bool = False
-        self.pid_enabled: bool = False
-        self.overshoot_protection_enabled: bool = False
-        # Default heating curve coefficient (can be overridden per area)
-        self.default_heating_curve_coefficient: float = 1.0
-
-        # Global Preset Temperatures
-        self.global_away_temp: float = DEFAULT_AWAY_TEMP
-        self.global_eco_temp: float = DEFAULT_ECO_TEMP
-        self.global_comfort_temp: float = DEFAULT_COMFORT_TEMP
-        self.global_home_temp: float = DEFAULT_HOME_TEMP
-        self.global_sleep_temp: float = DEFAULT_SLEEP_TEMP
-        self.global_activity_temp: float = DEFAULT_ACTIVITY_TEMP
-
-        # Optional consumption/power defaults used for derived sensors
-        self.default_min_consumption: float = 0.0  # m³/h
-        self.default_max_consumption: float = 0.0  # m³/h
-        self.default_boiler_capacity: float = 0.0  # kW (if known)
-        # Default overshoot protection value (OPV) in °C
-        self.default_opv: float | None = None
-
-        # Global Presence Sensors
-        self.global_presence_sensors: list[dict] = []
-
-        # Safety Sensors (smoke/CO detectors) - Multi-sensor support
-        self.safety_sensors: list[dict] = []  # List of safety sensor configurations
-        self.safety_sensor_id: str | None = None
-        self.safety_sensor_attribute: str = "smoke"  # or "carbon_monoxide", "gas"
-        self.safety_sensor_alert_value: str | bool = True  # Value that indicates danger
-        self.safety_sensor_enabled: bool = True  # Enabled by default
-        self._safety_alert_active: bool = False  # Current alert state
-        self._safety_state_unsub = None  # State listener unsubscribe callback
+        self._area_service = AreaService(hass)
+        self._config_service = ConfigService(hass)
+        self._device_service = DeviceService(hass)
+        self._persistence_service = PersistenceService(hass)
+        self._preset_service = PresetService(hass)
+        self._safety_service = SafetyService(hass)
+        self._schedule_service = ScheduleService(hass)
 
         _LOGGER.debug("AreaManager initialized")
 
-        # Device event logging (in-memory per-area circular buffer)
-        # Use modest defaults to avoid unbounded memory growth
-        self._device_log_capacity: int = 500
-        self._device_logs: dict[str, Deque[DeviceEvent]] = {}
-        self._device_event_retention_minutes: int = 60  # minutes
-        self._device_log_listeners: list = []
+    # ===== Area CRUD operations (delegate to AreaService) =====
 
-    async def async_load(self) -> None:
-        """Load areas from storage."""
-        _LOGGER.debug("Loading areas from storage")
-        data = await self._store.async_load()
-
-        if data is not None:
-            # Load global configuration
-            self.opentherm_gateway_id = data.get("opentherm_gateway_id")
-            self.trv_heating_temp = data.get("trv_heating_temp", DEFAULT_TRV_HEATING_TEMP)
-            self.trv_idle_temp = data.get("trv_idle_temp", DEFAULT_TRV_IDLE_TEMP)
-            self.trv_temp_offset = data.get("trv_temp_offset", DEFAULT_TRV_TEMP_OFFSET)
-            self.frost_protection_enabled = data.get("frost_protection_enabled", False)
-            self.frost_protection_temp = data.get(
-                "frost_protection_temp", DEFAULT_FROST_PROTECTION_TEMP
-            )
-            self.hysteresis = data.get("hysteresis", 0.5)
-            self.hide_devices_panel = data.get("hide_devices_panel", False)
-            self.advanced_control_enabled = data.get("advanced_control_enabled", False)
-            self.heating_curve_enabled = data.get("heating_curve_enabled", False)
-            self.pwm_enabled = data.get("pwm_enabled", False)
-            self.pid_enabled = data.get("pid_enabled", False)
-            self.overshoot_protection_enabled = data.get("overshoot_protection_enabled", False)
-            self.default_heating_curve_coefficient = data.get(
-                "default_heating_curve_coefficient", 1.0
-            )
-
-            # Load global preset temperatures
-            self.global_away_temp = data.get("global_away_temp", DEFAULT_AWAY_TEMP)
-            self.global_eco_temp = data.get("global_eco_temp", DEFAULT_ECO_TEMP)
-            self.global_comfort_temp = data.get("global_comfort_temp", DEFAULT_COMFORT_TEMP)
-            self.global_home_temp = data.get("global_home_temp", DEFAULT_HOME_TEMP)
-            self.global_sleep_temp = data.get("global_sleep_temp", DEFAULT_SLEEP_TEMP)
-            self.global_activity_temp = data.get("global_activity_temp", DEFAULT_ACTIVITY_TEMP)
-            self.default_min_consumption = data.get("default_min_consumption", 0.0)
-            self.default_max_consumption = data.get("default_max_consumption", 0.0)
-            self.default_boiler_capacity = data.get("default_boiler_capacity", 0.0)
-            self.default_opv = data.get("default_opv")
-
-            # Load global presence sensors
-            self.global_presence_sensors = data.get("global_presence_sensors", [])
-
-            # Load safety sensor configuration
-            if "safety_sensors" in data:
-                self.safety_sensors = data.get("safety_sensors", [])
-            elif data.get("safety_sensor_id"):
-                # Migrate old single sensor format to new list format
-                _LOGGER.info("Migrating old safety sensor format to new multi-sensor format")
-                self.safety_sensors = [
-                    {
-                        "sensor_id": data.get("safety_sensor_id"),
-                        "attribute": data.get("safety_sensor_attribute", "smoke"),
-                        "alert_value": data.get("safety_sensor_alert_value", True),
-                        "enabled": data.get("safety_sensor_enabled", True),
-                    }
-                ]
-            else:
-                self.safety_sensors = []
-            self._safety_alert_active = data.get("safety_alert_active", False)
-
-            # Load areas
-            if "areas" in data:
-                for area_data in data["areas"]:
-                    area = Area.from_dict(area_data)
-                    area.area_manager = self  # Store reference to area_manager
-                    self.areas[area.area_id] = area
-                _LOGGER.info("Loaded %d areas from storage", len(self.areas))
-        else:
-            _LOGGER.debug("No areas found in storage")
-
-    async def async_save(self) -> None:
-        """Save areas to storage."""
-        _LOGGER.debug("Saving areas to storage")
-        data = {
-            "opentherm_gateway_id": self.opentherm_gateway_id,
-            # opentherm_enabled removed: whether control is active is determined by gateway existence
-            "trv_heating_temp": self.trv_heating_temp,
-            "trv_idle_temp": self.trv_idle_temp,
-            "trv_temp_offset": self.trv_temp_offset,
-            "frost_protection_enabled": self.frost_protection_enabled,
-            "frost_protection_temp": self.frost_protection_temp,
-            "hysteresis": self.hysteresis,
-            "hide_devices_panel": self.hide_devices_panel,
-            "global_away_temp": self.global_away_temp,
-            "global_eco_temp": self.global_eco_temp,
-            "global_comfort_temp": self.global_comfort_temp,
-            "global_home_temp": self.global_home_temp,
-            "global_sleep_temp": self.global_sleep_temp,
-            "global_activity_temp": self.global_activity_temp,
-            "global_presence_sensors": self.global_presence_sensors,
-            "safety_sensors": self.safety_sensors,
-            "safety_alert_active": self._safety_alert_active,
-            "advanced_control_enabled": self.advanced_control_enabled,
-            "heating_curve_enabled": self.heating_curve_enabled,
-            "pwm_enabled": self.pwm_enabled,
-            "pid_enabled": self.pid_enabled,
-            "overshoot_protection_enabled": self.overshoot_protection_enabled,
-            "default_heating_curve_coefficient": self.default_heating_curve_coefficient,
-            "areas": [area.to_dict() for area in self.areas.values()],
-            "default_min_consumption": self.default_min_consumption,
-            "default_max_consumption": self.default_max_consumption,
-            "default_boiler_capacity": self.default_boiler_capacity,
-            "default_opv": self.default_opv,
-        }
-        await self._store.async_save(data)
-        _LOGGER.info("Saved %d areas and global config to storage", len(self.areas))
-
-    def get_area(self, area_id: str) -> Area | None:
-        """Get a area by ID.
-
-        Args:
-            area_id: Zone identifier
+    @property
+    def areas(self) -> dict[str, Area]:
+        """Get all areas.
 
         Returns:
-            Zone or None if not found
+            Dictionary of area_id -> Area
         """
-        return self.areas.get(area_id)
+        return self._area_service._areas
+
+    def create_area(
+        self,
+        area_id: str,
+        name: str,
+        target_temperature: float = 20.0,
+        enabled: bool = True,
+        **kwargs: Any,
+    ) -> Area:
+        """Create a new area.
+
+        Args:
+            area_id: Unique identifier for the area
+            name: Display name for the area
+            target_temperature: Initial target temperature
+            enabled: Whether area is enabled
+            **kwargs: Additional area parameters
+
+        Returns:
+            Created Area instance
+
+        Raises:
+            ValueError: If area_id already exists
+        """
+        area = self._area_service.create_area(area_id, name, target_temperature, enabled, **kwargs)
+        area.area_manager = self
+        return area
+
+    def add_area(self, area: Area) -> None:
+        """Add an existing area.
+
+        Args:
+            area: Area instance to add
+
+        Raises:
+            ValueError: If area_id already exists
+        """
+        self._area_service.add_area(area)
+        area.area_manager = self
+
+    def delete_area(self, area_id: str) -> bool:
+        """Delete an area.
+
+        Args:
+            area_id: Area identifier
+
+        Returns:
+            True if deleted, False if not found
+        """
+        return self._area_service.delete_area(area_id)
+
+    def get_area(self, area_id: str) -> Area | None:
+        """Get an area by ID.
+
+        Args:
+            area_id: Area identifier
+
+        Returns:
+            Area or None if not found
+        """
+        return self._area_service.get_area(area_id)
 
     def get_all_areas(self) -> dict[str, Area]:
         """Get all areas.
@@ -229,7 +117,55 @@ class AreaManager:
         Returns:
             Dictionary of all areas
         """
-        return self.areas
+        return self._area_service.get_all_areas()
+
+    def update_area_temperature(self, area_id: str, temperature: float) -> None:
+        """Update the current temperature of an area.
+
+        Args:
+            area_id: Area identifier
+            temperature: New temperature value
+
+        Raises:
+            ValueError: If area does not exist
+        """
+        self._area_service.update_area_temperature(area_id, temperature)
+
+    def set_area_target_temperature(self, area_id: str, temperature: float) -> None:
+        """Set the target temperature of an area.
+
+        Args:
+            area_id: Area identifier
+            temperature: Target temperature
+
+        Raises:
+            ValueError: If area does not exist
+        """
+        self._area_service.set_area_target_temperature(area_id, temperature)
+
+    def enable_area(self, area_id: str) -> None:
+        """Enable an area.
+
+        Args:
+            area_id: Area identifier
+
+        Raises:
+            ValueError: If area does not exist
+        """
+        self._area_service.enable_area(area_id)
+
+    def disable_area(self, area_id: str) -> None:
+        """Disable an area.
+
+        Args:
+            area_id: Area identifier
+
+        Raises:
+            ValueError: If area does not exist
+        """
+        self._area_service.disable_area(area_id)
+
+    # ===== Device operations (delegate to DeviceService) =====
 
     def add_device_to_area(
         self,
@@ -238,10 +174,10 @@ class AreaManager:
         device_type: str,
         mqtt_topic: str | None = None,
     ) -> None:
-        """Add a device to a area.
+        """Add a device to an area.
 
         Args:
-            area_id: Zone identifier
+            area_id: Area identifier
             device_id: Device identifier
             device_type: Type of device
             mqtt_topic: MQTT topic for the device
@@ -252,14 +188,13 @@ class AreaManager:
         area = self.get_area(area_id)
         if area is None:
             raise ValueError(f"Area {area_id} does not exist")
-
-        area.add_device(device_id, device_type, mqtt_topic)
+        self._device_service.add_device_to_area(area, device_id, device_type, mqtt_topic)
 
     def remove_device_from_area(self, area_id: str, device_id: str) -> None:
-        """Remove a device from a area.
+        """Remove a device from an area.
 
         Args:
-            area_id: Zone identifier
+            area_id: Area identifier
             device_id: Device identifier
 
         Raises:
@@ -268,81 +203,54 @@ class AreaManager:
         area = self.get_area(area_id)
         if area is None:
             raise ValueError(f"Area {area_id} does not exist")
+        self._device_service.remove_device_from_area(area, device_id)
 
-        area.remove_device(device_id)
-
-    def update_area_temperature(self, area_id: str, temperature: float) -> None:
-        """Update the current temperature of a area.
-
-        Args:
-            area_id: Zone identifier
-            temperature: New temperature value
-
-        Raises:
-            ValueError: If area does not exist
-        """
-        area = self.get_area(area_id)
-        if area is None:
-            raise ValueError(f"Area {area_id} does not exist")
-
-        area.current_temperature = temperature
-        _LOGGER.debug("Updated area %s temperature to %.1f°C", area_id, temperature)
-
-    def set_area_target_temperature(self, area_id: str, temperature: float) -> None:
-        """Set the target temperature of a area.
+    def async_add_device_event(self, area_id: str, event: DeviceEvent) -> None:
+        """Add a device event to the logs.
 
         Args:
-            area_id: Zone identifier
-            temperature: Target temperature
-
-        Raises:
-            ValueError: If area does not exist
+            area_id: Area identifier
+            event: Device event to log
         """
-        area = self.get_area(area_id)
-        if area is None:
-            raise ValueError(f"Area {area_id} does not exist")
+        self._device_service.async_add_device_event(area_id, event)
 
-        old_temp = area.target_temperature
-        area.target_temperature = temperature
-        _LOGGER.info(
-            "TARGET TEMP CHANGE for %s: %.1f°C → %.1f°C (preset: %s)",
-            area_id,
-            old_temp,
-            temperature,
-            area.preset_mode,
-        )
-
-    def enable_area(self, area_id: str) -> None:
-        """Enable a area.
+    def async_get_device_logs(
+        self,
+        area_id: str,
+        device_id: str | None = None,
+        direction: str | None = None,
+        since: str | None = None,
+    ) -> list[dict]:
+        """Retrieve device logs with optional filtering.
 
         Args:
-            area_id: Zone identifier
+            area_id: Area identifier
+            device_id: Optional device ID filter
+            direction: Optional direction filter
+            since: Optional ISO timestamp filter
 
-        Raises:
-            ValueError: If area does not exist
+        Returns:
+            List of device event dicts
         """
-        area = self.get_area(area_id)
-        if area is None:
-            raise ValueError(f"Area {area_id} does not exist")
+        return self._device_service.async_get_device_logs(area_id, device_id, direction, since)
 
-        area.enabled = True
-        _LOGGER.info("Enabled area %s", area_id)
-
-    def disable_area(self, area_id: str) -> None:
-        """Disable a area.
+    def add_device_log_listener(self, cb) -> None:
+        """Register a callback to receive device events.
 
         Args:
-            area_id: Zone identifier
-
-        Raises:
-            ValueError: If area does not exist
+            cb: Callback function
         """
-        area = self.get_area(area_id)
-        if area is None:
-            raise ValueError(f"Area {area_id} does not exist")
+        self._device_service.add_device_log_listener(cb)
 
-        area.enabled = False
-        _LOGGER.info("Disabled area %s", area_id)
+    def remove_device_log_listener(self, cb) -> None:
+        """Remove a previously registered listener.
+
+        Args:
+            cb: Callback function
+        """
+        self._device_service.remove_device_log_listener(cb)
+
+    # ===== Schedule operations (delegate to ScheduleService) =====
 
     def add_schedule_to_area(
         self,
@@ -370,11 +278,9 @@ class AreaManager:
         area = self.get_area(area_id)
         if area is None:
             raise ValueError(f"Area {area_id} does not exist")
-
-        schedule = Schedule(schedule_id, time, temperature, days)
-        area.add_schedule(schedule)
-        _LOGGER.info("Added schedule %s to area %s", schedule_id, area_id)
-        return schedule
+        return self._schedule_service.add_schedule_to_area(
+            area, schedule_id, time, temperature, days
+        )
 
     def remove_schedule_from_area(self, area_id: str, schedule_id: str) -> None:
         """Remove a schedule from an area.
@@ -389,31 +295,9 @@ class AreaManager:
         area = self.get_area(area_id)
         if area is None:
             raise ValueError(f"Area {area_id} does not exist")
+        self._schedule_service.remove_schedule_from_area(area, schedule_id)
 
-        area.remove_schedule(schedule_id)
-        _LOGGER.info("Removed schedule %s from area %s", schedule_id, area_id)
-
-    async def set_opentherm_gateway(self, gateway_id: str | None) -> None:
-        """Set the global OpenTherm gateway device ID.
-
-        Args:
-            gateway_id: Device ID of the OpenTherm gateway (from integration configuration ID field)
-        """
-        self.opentherm_gateway_id = gateway_id
-
-        # Auto-enable heating curve when OpenTherm gateway is configured
-        # This provides SAT-like optimal heating out of the box
-        if gateway_id:
-            if not self.advanced_control_enabled:
-                self.advanced_control_enabled = True
-                _LOGGER.info("Auto-enabled advanced control (OpenTherm gateway configured)")
-            if not self.heating_curve_enabled:
-                self.heating_curve_enabled = True
-                _LOGGER.info("Auto-enabled heating curve for optimal energy efficiency")
-
-        # When a gateway id is configured, the integration will control it automatically.
-        _LOGGER.info("OpenTherm gateway set to %s", gateway_id)
-        await self.async_save()
+    # ===== Safety operations (delegate to SafetyService) =====
 
     def add_safety_sensor(
         self,
@@ -422,58 +306,23 @@ class AreaManager:
         alert_value: str | bool = True,
         enabled: bool = True,
     ) -> None:
-        """Add a safety sensor (smoke/CO detector).
+        """Add a safety sensor.
 
         Args:
             sensor_id: Entity ID of the safety sensor
-            attribute: Attribute to monitor (e.g., "smoke", "carbon_monoxide", "gas", "state")
-            alert_value: Value that indicates danger (True, "on", "alarm", etc.)
-            enabled: Whether safety monitoring is enabled for this sensor
+            attribute: Attribute to monitor
+            alert_value: Value that indicates danger
+            enabled: Whether monitoring is enabled
         """
-        # Check if sensor already exists
-        for sensor in self.safety_sensors:
-            if sensor["sensor_id"] == sensor_id:
-                # Update existing sensor
-                sensor["attribute"] = attribute
-                sensor["alert_value"] = alert_value
-                sensor["enabled"] = enabled
-                _LOGGER.info(
-                    "Safety sensor updated: %s (attribute: %s, alert_value: %s, enabled: %s)",
-                    sensor_id,
-                    attribute,
-                    alert_value,
-                    enabled,
-                )
-                return
-
-        # Add new sensor
-        self.safety_sensors.append(
-            {
-                "sensor_id": sensor_id,
-                "attribute": attribute,
-                "alert_value": alert_value,
-                "enabled": enabled,
-            }
-        )
-        _LOGGER.info(
-            "Safety sensor added: %s (attribute: %s, alert_value: %s, enabled: %s)",
-            sensor_id,
-            attribute,
-            alert_value,
-            enabled,
-        )
+        self._safety_service.add_safety_sensor(sensor_id, attribute, alert_value, enabled)
 
     def remove_safety_sensor(self, sensor_id: str) -> None:
-        """Remove a safety sensor by ID.
+        """Remove a safety sensor.
 
         Args:
-            sensor_id: Entity ID of the safety sensor to remove
+            sensor_id: Entity ID of the safety sensor
         """
-        self.safety_sensors = [s for s in self.safety_sensors if s["sensor_id"] != sensor_id]
-        # Clear alert if no sensors remain
-        if not self.safety_sensors:
-            self._safety_alert_active = False
-        _LOGGER.info("Safety sensor removed: %s", sensor_id)
+        self._safety_service.remove_safety_sensor(sensor_id)
 
     def get_safety_sensors(self) -> list[dict[str, Any]]:
         """Get all configured safety sensors.
@@ -481,66 +330,27 @@ class AreaManager:
         Returns:
             List of safety sensor configurations
         """
-        return self.safety_sensors.copy()
+        return self._safety_service.get_safety_sensors()
 
     def clear_safety_sensors(self) -> None:
         """Clear all configured safety sensors."""
-        self.safety_sensors = []
-        self._safety_alert_active = False
-        _LOGGER.info("Cleared all safety sensors")
+        self._safety_service.clear_safety_sensors()
 
     def check_safety_sensor_status(self) -> tuple[bool, str | None]:
         """Check if any safety sensor is in alert state.
 
         Returns:
-            Tuple of (is_alert, sensor_id) - True if any sensor is alerting, with the sensor ID
+            Tuple of (is_alert, sensor_id)
         """
-        if not self.safety_sensors:
-            return False, None
-
-        for sensor in self.safety_sensors:
-            if not sensor.get("enabled", True):
-                continue
-
-            sensor_id = sensor["sensor_id"]
-            attribute = sensor.get("attribute", "smoke")
-            alert_value = sensor.get("alert_value", True)
-
-            state = self.hass.states.get(sensor_id)
-            if not state:
-                _LOGGER.debug("Safety sensor %s not found", sensor_id)
-                continue
-
-            # Check the specified attribute or state
-            if attribute == "state":
-                # Check state directly
-                current_value = state.state
-            else:
-                # Check attribute
-                current_value = state.attributes.get(attribute)
-
-            # Compare with alert value
-            is_alert = current_value == alert_value
-
-            if is_alert:
-                _LOGGER.warning(
-                    "\ud83d\udea8 Safety sensor %s is in alert state! %s = %s",
-                    sensor_id,
-                    attribute,
-                    current_value,
-                )
-                return True, sensor_id
-
-        # No sensors in alert state
-        return False, None
+        return self._safety_service.check_safety_sensor_status()
 
     def is_safety_alert_active(self) -> bool:
         """Check if safety alert is currently active.
 
         Returns:
-            True if in emergency shutdown mode due to safety alert
+            True if in emergency shutdown mode
         """
-        return self._safety_alert_active
+        return self._safety_service.is_safety_alert_active()
 
     def set_safety_alert_active(self, active: bool) -> None:
         """Set the safety alert state.
@@ -548,133 +358,321 @@ class AreaManager:
         Args:
             active: Whether safety alert is active
         """
-        if self._safety_alert_active != active:
-            self._safety_alert_active = active
-            _LOGGER.info("Safety alert state changed to: %s", active)
+        self._safety_service.set_safety_alert_active(active)
+
+    # ===== Global configuration properties (delegate to ConfigService) =====
+
+    @property
+    def opentherm_gateway_id(self) -> str | None:
+        """Get OpenTherm gateway ID."""
+        return self._config_service.opentherm_gateway_id
+
+    @opentherm_gateway_id.setter
+    def opentherm_gateway_id(self, value: str | None) -> None:
+        """Set OpenTherm gateway ID."""
+        self._config_service.opentherm_gateway_id = value
+
+    @property
+    def trv_heating_temp(self) -> float:
+        """Get TRV heating temperature."""
+        return self._config_service.trv_heating_temp
+
+    @trv_heating_temp.setter
+    def trv_heating_temp(self, value: float) -> None:
+        """Set TRV heating temperature."""
+        self._config_service.trv_heating_temp = value
+
+    @property
+    def trv_idle_temp(self) -> float:
+        """Get TRV idle temperature."""
+        return self._config_service.trv_idle_temp
+
+    @trv_idle_temp.setter
+    def trv_idle_temp(self, value: float) -> None:
+        """Set TRV idle temperature."""
+        self._config_service.trv_idle_temp = value
+
+    @property
+    def trv_temp_offset(self) -> float:
+        """Get TRV temperature offset."""
+        return self._config_service.trv_temp_offset
+
+    @trv_temp_offset.setter
+    def trv_temp_offset(self, value: float) -> None:
+        """Set TRV temperature offset."""
+        self._config_service.trv_temp_offset = value
+
+    @property
+    def frost_protection_enabled(self) -> bool:
+        """Get frost protection enabled state."""
+        return self._config_service.frost_protection_enabled
+
+    @frost_protection_enabled.setter
+    def frost_protection_enabled(self, value: bool) -> None:
+        """Set frost protection enabled state."""
+        self._config_service.frost_protection_enabled = value
+
+    @property
+    def frost_protection_temp(self) -> float:
+        """Get frost protection temperature."""
+        return self._config_service.frost_protection_temp
+
+    @frost_protection_temp.setter
+    def frost_protection_temp(self, value: float) -> None:
+        """Set frost protection temperature."""
+        self._config_service.frost_protection_temp = value
+
+    @property
+    def hysteresis(self) -> float:
+        """Get hysteresis value."""
+        return self._config_service.hysteresis
+
+    @hysteresis.setter
+    def hysteresis(self, value: float) -> None:
+        """Set hysteresis value."""
+        self._config_service.hysteresis = value
+
+    @property
+    def hide_devices_panel(self) -> bool:
+        """Get hide devices panel setting."""
+        return self._config_service.hide_devices_panel
+
+    @hide_devices_panel.setter
+    def hide_devices_panel(self, value: bool) -> None:
+        """Set hide devices panel setting."""
+        self._config_service.hide_devices_panel = value
+
+    @property
+    def advanced_control_enabled(self) -> bool:
+        """Get advanced control enabled state."""
+        return self._config_service.advanced_control_enabled
+
+    @advanced_control_enabled.setter
+    def advanced_control_enabled(self, value: bool) -> None:
+        """Set advanced control enabled state."""
+        self._config_service.advanced_control_enabled = value
+
+    @property
+    def heating_curve_enabled(self) -> bool:
+        """Get heating curve enabled state."""
+        return self._config_service.heating_curve_enabled
+
+    @heating_curve_enabled.setter
+    def heating_curve_enabled(self, value: bool) -> None:
+        """Set heating curve enabled state."""
+        self._config_service.heating_curve_enabled = value
+
+    @property
+    def pwm_enabled(self) -> bool:
+        """Get PWM enabled state."""
+        return self._config_service.pwm_enabled
+
+    @pwm_enabled.setter
+    def pwm_enabled(self, value: bool) -> None:
+        """Set PWM enabled state."""
+        self._config_service.pwm_enabled = value
+
+    @property
+    def pid_enabled(self) -> bool:
+        """Get PID enabled state."""
+        return self._config_service.pid_enabled
+
+    @pid_enabled.setter
+    def pid_enabled(self, value: bool) -> None:
+        """Set PID enabled state."""
+        self._config_service.pid_enabled = value
+
+    @property
+    def overshoot_protection_enabled(self) -> bool:
+        """Get overshoot protection enabled state."""
+        return self._config_service.overshoot_protection_enabled
+
+    @overshoot_protection_enabled.setter
+    def overshoot_protection_enabled(self, value: bool) -> None:
+        """Set overshoot protection enabled state."""
+        self._config_service.overshoot_protection_enabled = value
+
+    @property
+    def default_heating_curve_coefficient(self) -> float:
+        """Get default heating curve coefficient."""
+        return self._config_service.default_heating_curve_coefficient
+
+    @default_heating_curve_coefficient.setter
+    def default_heating_curve_coefficient(self, value: float) -> None:
+        """Set default heating curve coefficient."""
+        self._config_service.default_heating_curve_coefficient = value
+
+    @property
+    def default_min_consumption(self) -> float:
+        """Get default minimum consumption."""
+        return self._config_service.default_min_consumption
+
+    @default_min_consumption.setter
+    def default_min_consumption(self, value: float) -> None:
+        """Set default minimum consumption."""
+        self._config_service.default_min_consumption = value
+
+    @property
+    def default_max_consumption(self) -> float:
+        """Get default maximum consumption."""
+        return self._config_service.default_max_consumption
+
+    @default_max_consumption.setter
+    def default_max_consumption(self, value: float) -> None:
+        """Set default maximum consumption."""
+        self._config_service.default_max_consumption = value
+
+    @property
+    def default_boiler_capacity(self) -> float:
+        """Get default boiler capacity."""
+        return self._config_service.default_boiler_capacity
+
+    @default_boiler_capacity.setter
+    def default_boiler_capacity(self, value: float) -> None:
+        """Set default boiler capacity."""
+        self._config_service.default_boiler_capacity = value
+
+    @property
+    def default_opv(self) -> float | None:
+        """Get default overshoot protection value."""
+        return self._config_service.default_opv
+
+    @default_opv.setter
+    def default_opv(self, value: float | None) -> None:
+        """Set default overshoot protection value."""
+        self._config_service.default_opv = value
+
+    @property
+    def global_presence_sensors(self) -> list[dict]:
+        """Get global presence sensors."""
+        return self._config_service.global_presence_sensors
+
+    @global_presence_sensors.setter
+    def global_presence_sensors(self, value: list[dict]) -> None:
+        """Set global presence sensors."""
+        self._config_service.global_presence_sensors = value
+
+    # ===== Preset temperature properties (delegate to PresetService) =====
+
+    @property
+    def global_away_temp(self) -> float:
+        """Get global away temperature."""
+        return self._preset_service.global_away_temp
+
+    @global_away_temp.setter
+    def global_away_temp(self, value: float) -> None:
+        """Set global away temperature."""
+        self._preset_service.global_away_temp = value
+
+    @property
+    def global_eco_temp(self) -> float:
+        """Get global eco temperature."""
+        return self._preset_service.global_eco_temp
+
+    @global_eco_temp.setter
+    def global_eco_temp(self, value: float) -> None:
+        """Set global eco temperature."""
+        self._preset_service.global_eco_temp = value
+
+    @property
+    def global_comfort_temp(self) -> float:
+        """Get global comfort temperature."""
+        return self._preset_service.global_comfort_temp
+
+    @global_comfort_temp.setter
+    def global_comfort_temp(self, value: float) -> None:
+        """Set global comfort temperature."""
+        self._preset_service.global_comfort_temp = value
+
+    @property
+    def global_home_temp(self) -> float:
+        """Get global home temperature."""
+        return self._preset_service.global_home_temp
+
+    @global_home_temp.setter
+    def global_home_temp(self, value: float) -> None:
+        """Set global home temperature."""
+        self._preset_service.global_home_temp = value
+
+    @property
+    def global_sleep_temp(self) -> float:
+        """Get global sleep temperature."""
+        return self._preset_service.global_sleep_temp
+
+    @global_sleep_temp.setter
+    def global_sleep_temp(self, value: float) -> None:
+        """Set global sleep temperature."""
+        self._preset_service.global_sleep_temp = value
+
+    @property
+    def global_activity_temp(self) -> float:
+        """Get global activity temperature."""
+        return self._preset_service.global_activity_temp
+
+    @global_activity_temp.setter
+    def global_activity_temp(self, value: float) -> None:
+        """Set global activity temperature."""
+        self._preset_service.global_activity_temp = value
+
+    # ===== Configuration methods =====
+
+    async def set_opentherm_gateway(self, gateway_id: str | None) -> None:
+        """Set the global OpenTherm gateway device ID.
+
+        Args:
+            gateway_id: Device ID of the OpenTherm gateway
+        """
+        await self._config_service.set_opentherm_gateway(gateway_id)
+        await self.async_save()
 
     def set_trv_temperatures(
         self, heating_temp: float, idle_temp: float, temp_offset: float | None = None
     ) -> None:
-        """Set global TRV temperature limits for areas without position control.
+        """Set global TRV temperature limits.
 
         Args:
-            heating_temp: Temperature to set when heating (default 25°C)
-            idle_temp: Temperature to set when idle (default 10°C)
-            temp_offset: Temperature offset above target for temp-controlled valves (default 10°C)
+            heating_temp: Temperature to set when heating
+            idle_temp: Temperature to set when idle
+            temp_offset: Temperature offset above target
         """
-        self.trv_heating_temp = heating_temp
-        self.trv_idle_temp = idle_temp
-        if temp_offset is not None:
-            self.trv_temp_offset = temp_offset
-            _LOGGER.info(
-                "TRV temperatures set: heating=%.1f°C, idle=%.1f°C, offset=%.1f°C",
-                heating_temp,
-                idle_temp,
-                temp_offset,
-            )
+        self._config_service.set_trv_temperatures(heating_temp, idle_temp, temp_offset)
+
+    # ===== Persistence operations (delegate to PersistenceService) =====
+
+    async def async_load(self) -> None:
+        """Load areas and configuration from storage."""
+        _LOGGER.debug("Loading areas from storage")
+        data = await self._persistence_service.async_load()
+
+        if data is not None:
+            # Load global configuration
+            global_config = self._persistence_service.load_global_config(data)
+            self._config_service.load_config(global_config)
+
+            # Load preset temperatures
+            self._preset_service.load_presets(data)
+
+            # Load safety sensor configuration
+            self._safety_service.load_safety_config(data)
+
+            # Load areas
+            if "areas" in data:
+                self._area_service.load_areas(data["areas"])
+                # Set area_manager reference for all loaded areas
+                for area in self._area_service.get_all_areas().values():
+                    area.area_manager = self
+                _LOGGER.info("Loaded %d areas from storage", len(self.areas))
         else:
-            _LOGGER.info(
-                "TRV temperatures set: heating=%.1f°C, idle=%.1f°C",
-                heating_temp,
-                idle_temp,
-            )
+            _LOGGER.debug("No areas found in storage")
 
-    # Device event logging helpers ------------------------------------
-    def async_add_device_event(self, area_id: str, event: DeviceEvent) -> None:
-        """Add a device event to the per-area logs and notify listeners.
-
-        Note: Named "async_" to indicate it may schedule coroutines; it is a
-        synchronous helper so tests can call it without awaiting.
-        """
-        # Ensure deque exists
-        if area_id not in self._device_logs:
-            self._device_logs[area_id] = deque(maxlen=self._device_log_capacity)
-
-        # Append new event to the left so newest events are first
-        self._device_logs[area_id].appendleft(event)
-
-        # Purge old events by retention
-        cutoff = datetime.now(timezone.utc) - timedelta(
-            minutes=self._device_event_retention_minutes
+    async def async_save(self) -> None:
+        """Save areas and configuration to storage."""
+        _LOGGER.debug("Saving areas to storage")
+        data = self._persistence_service.build_save_data(
+            self._config_service.to_dict(),
+            self._area_service.to_dict(),
+            self._safety_service.to_dict(),
+            self._preset_service.to_dict(),
         )
-        # Remove from right while events are older than cutoff
-        while self._device_logs[area_id]:
-            try:
-                ts = self._device_logs[area_id][-1].timestamp
-                ts_dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-            except Exception:
-                # If parsing fails, keep the event (tests expect malformed timestamps to be included)
-                break
-
-            if ts_dt < cutoff:
-                self._device_logs[area_id].pop()
-            else:
-                break
-
-        # Notify listeners
-        event_dict = event.to_dict() if hasattr(event, "to_dict") else event
-        for listener in list(self._device_log_listeners):
-            try:
-                if asyncio.iscoroutinefunction(listener):
-                    try:
-                        self.hass.async_create_task(listener(event_dict))
-                    except Exception:
-                        asyncio.create_task(listener(event_dict))
-                else:
-                    listener(event_dict)
-            except Exception:
-                _LOGGER.exception("Device log listener failed")
-
-    def async_get_device_logs(
-        self,
-        area_id: str,
-        device_id: str | None = None,
-        direction: str | None = None,
-        since: str | None = None,
-    ) -> list[dict]:
-        """Retrieve device logs with optional filtering.
-
-        Returns newest-first list of dicts.
-        """
-        if area_id not in self._device_logs:
-            return []
-
-        events = list(self._device_logs[area_id])
-
-        # Filter by device_id and direction
-        if device_id is not None:
-            events = [e for e in events if getattr(e, "device_id", None) == device_id]
-        if direction is not None:
-            events = [e for e in events if getattr(e, "direction", None) == direction]
-
-        # Filter by since (ISO timestamp string)
-        if since is not None:
-            try:
-                since_dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
-            except Exception:
-                since_dt = None
-
-            def since_filter(e):
-                try:
-                    ts = datetime.fromisoformat(e.timestamp.replace("Z", "+00:00"))
-                    return ts >= since_dt if since_dt is not None else True
-                except Exception:
-                    # If parsing fails for the event, include it
-                    return True
-
-            events = [e for e in events if since_filter(e)]
-
-        # Convert to dicts and return
-        return [e.to_dict() if hasattr(e, "to_dict") else e for e in events]
-
-    def add_device_log_listener(self, cb) -> None:
-        """Register a callback to receive device events. Idempotent."""
-        if cb not in self._device_log_listeners:
-            self._device_log_listeners.append(cb)
-
-    def remove_device_log_listener(self, cb) -> None:
-        """Remove a previously registered listener. Silent if not present."""
-        try:
-            self._device_log_listeners.remove(cb)
-        except ValueError:
-            pass
+        await self._persistence_service.async_save(data)
+        _LOGGER.info("Saved %d areas and global config to storage", len(self.areas))

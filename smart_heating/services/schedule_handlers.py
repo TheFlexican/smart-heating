@@ -226,27 +226,27 @@ async def async_handle_set_night_boost(
 
         # Manual night boost settings
         if enabled is not None:
-            area.night_boost_enabled = enabled
+            area.boost_manager.night_boost_enabled = enabled
         if offset is not None:
-            area.night_boost_offset = offset
+            area.boost_manager.night_boost_offset = offset
         if start_time is not None:
-            area.night_boost_start_time = start_time
+            area.boost_manager.night_boost_start_time = start_time
         if end_time is not None:
-            area.night_boost_end_time = end_time
+            area.boost_manager.night_boost_end_time = end_time
 
         # Smart night boost settings
         if smart_enabled is not None:
-            area.smart_boost_enabled = smart_enabled
+            area.boost_manager.smart_boost_enabled = smart_enabled
         if smart_target_time is not None:
-            area.smart_boost_target_time = smart_target_time
+            area.boost_manager.smart_boost_target_time = smart_target_time
         if weather_entity_id is not None:
             _LOGGER.info(
                 "Setting weather_entity_id for area %s: %s → %s",
                 area_id,
-                area.weather_entity_id,
+                area.boost_manager.weather_entity_id,
                 weather_entity_id,
             )
-            area.weather_entity_id = weather_entity_id
+            area.boost_manager.weather_entity_id = weather_entity_id
 
         await area_manager.async_save()
         await coordinator.async_request_refresh()
@@ -305,5 +305,5 @@ async def async_handle_copy_schedule(
         await area_manager.async_save()
         await coordinator.async_request_refresh()
         _LOGGER.info("Copied schedule from area %s to area %s", source_area_id, target_area_id)
-    except Exception as err:
+    except (HomeAssistantError, ScheduleError, ValidationError) as err:
         _LOGGER.error("Failed to copy schedule: %s", err)
