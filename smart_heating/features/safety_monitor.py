@@ -43,7 +43,7 @@ class SafetyMonitor:
         try:
             if hasattr(self.hass, "data"):
                 self.hass.data.setdefault(DOMAIN, {})["safety_monitor"] = self
-        except (HomeAssistantError, SafetySensorError, SmartHeatingError, AttributeError, KeyError):
+        except (HomeAssistantError, SmartHeatingError, AttributeError, KeyError):
             pass
 
     async def _setup_state_listener(self) -> None:
@@ -123,14 +123,13 @@ class SafetyMonitor:
                 task.add_done_callback(lambda fut: self._safety_check_tasks.discard(fut))
             except (
                 HomeAssistantError,
-                SafetySensorError,
                 SmartHeatingError,
                 AttributeError,
                 KeyError,
             ):
                 # If task tracking fails, ignore and continue
                 pass
-        except (HomeAssistantError, SafetySensorError, SmartHeatingError, AttributeError, KeyError):
+        except (HomeAssistantError, SmartHeatingError, AttributeError, KeyError):
             # If scheduling fails (e.g., hass.async_create_task is patched), ignore
             pass
 
@@ -245,7 +244,7 @@ class SafetyMonitor:
                 ):
                     pass
             self._safety_check_tasks.clear()
-        except (HomeAssistantError, SafetySensorError, SmartHeatingError, AttributeError, KeyError):
+        except (HomeAssistantError, SmartHeatingError, AttributeError, KeyError):
             pass
         # We cannot await from sync shutdown; just schedule a loop run to allow cancellations
         try:
@@ -253,14 +252,13 @@ class SafetyMonitor:
                 self.hass.async_create_task(self.hass.async_block_till_done())
             except (
                 HomeAssistantError,
-                SafetySensorError,
                 SmartHeatingError,
                 AttributeError,
                 KeyError,
             ):
                 # If hass.async_create_task is patched in tests, ignore
                 pass
-        except (HomeAssistantError, SafetySensorError, SmartHeatingError, AttributeError, KeyError):
+        except (HomeAssistantError, SmartHeatingError, AttributeError, KeyError):
             pass
         _LOGGER.debug("SafetyMonitor shutdown")
 

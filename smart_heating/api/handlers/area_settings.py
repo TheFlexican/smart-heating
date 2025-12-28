@@ -287,9 +287,6 @@ async def handle_hide_area(
     except (
         HomeAssistantError,
         SmartHeatingError,
-        ValidationError,
-        StorageError,
-        AreaNotFoundError,
         KeyError,
         ValueError,
         AttributeError,
@@ -328,9 +325,6 @@ async def handle_unhide_area(
     except (
         HomeAssistantError,
         SmartHeatingError,
-        ValidationError,
-        StorageError,
-        AreaNotFoundError,
         KeyError,
         ValueError,
         AttributeError,

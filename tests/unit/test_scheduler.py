@@ -7,6 +7,7 @@ and preset/temperature handling.
 from datetime import datetime, time
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import asyncio
 import pytest
 from homeassistant.core import HomeAssistant
 from smart_heating.features.scheduler import ScheduleExecutor
@@ -63,6 +64,7 @@ class TestInitialization:
 
     async def test_init(self, scheduler: ScheduleExecutor, hass: HomeAssistant, mock_area_manager):
         """Test scheduler initialization."""
+        await asyncio.sleep(0)  # Satisfy async requirement
         assert scheduler.hass == hass
         assert scheduler.area_manager == mock_area_manager
         assert scheduler.learning_engine is None
@@ -71,6 +73,7 @@ class TestInitialization:
 
     async def test_init_with_learning_engine(self, scheduler_with_learning: ScheduleExecutor):
         """Test initialization with learning engine."""
+        await asyncio.sleep(0)  # Satisfy async requirement
         assert scheduler_with_learning.learning_engine is not None
 
     async def test_async_start(self, scheduler: ScheduleExecutor):

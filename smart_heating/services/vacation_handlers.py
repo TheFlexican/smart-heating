@@ -51,7 +51,7 @@ async def async_handle_enable_vacation_mode(
             end_date,
             preset_mode,
         )
-    except (HomeAssistantError, SmartHeatingError, ValidationError) as err:
+    except (HomeAssistantError, SmartHeatingError) as err:
         _LOGGER.error("Failed to enable vacation mode: %s", err)
 
 
@@ -73,5 +73,5 @@ async def async_handle_disable_vacation_mode(
 
         await vacation_manager.async_disable()
         _LOGGER.info("Vacation mode disabled")
-    except (HomeAssistantError, SmartHeatingError, ValidationError) as err:
+    except (HomeAssistantError, SmartHeatingError) as err:
         _LOGGER.error("Failed to disable vacation mode: %s", err)

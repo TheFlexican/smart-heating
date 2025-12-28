@@ -15,7 +15,7 @@ from ...models import DeviceEvent
 _LOGGER = logging.getLogger(__name__)
 
 # Timezone constant
-_TZ_UTC_SUFFIX = "+00:00"
+UTC_SUFFIX = "+00:00"
 
 
 class DeviceService:
@@ -92,7 +92,7 @@ class DeviceService:
         while self._device_logs[area_id]:
             try:
                 ts = self._device_logs[area_id][-1].timestamp
-                ts_dt = datetime.fromisoformat(ts.replace("Z", _TZ_UTC_SUFFIX))
+                ts_dt = datetime.fromisoformat(ts.replace("Z", UTC_SUFFIX))
             except (HomeAssistantError, DeviceError, ValidationError, AttributeError, ValueError):
                 # If parsing fails, keep the event (tests expect malformed timestamps to be included)
                 break
@@ -154,13 +154,13 @@ class DeviceService:
         # Filter by since (ISO timestamp string)
         if since is not None:
             try:
-                since_dt = datetime.fromisoformat(since.replace("Z", _TZ_UTC_SUFFIX))
+                since_dt = datetime.fromisoformat(since.replace("Z", UTC_SUFFIX))
             except (HomeAssistantError, DeviceError, ValidationError, AttributeError, ValueError):
                 since_dt = None
 
             def since_filter(e):
                 try:
-                    ts = datetime.fromisoformat(e.timestamp.replace("Z", _TZ_UTC_SUFFIX))
+                    ts = datetime.fromisoformat(e.timestamp.replace("Z", UTC_SUFFIX))
                     return ts >= since_dt if since_dt is not None else True
                 except (
                     HomeAssistantError,

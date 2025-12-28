@@ -1,6 +1,7 @@
 import json
 from unittest.mock import AsyncMock, MagicMock
 
+import asyncio
 import pytest
 from smart_heating.api.handlers.opentherm import handle_calibrate_opentherm
 from smart_heating.const import DOMAIN
@@ -106,6 +107,7 @@ async def test_calibrate_opv_paths(monkeypatch):
 
     class OPFail:
         async def calculate(self):
+            await asyncio.sleep(0)  # Satisfy async requirement
             return None
 
     monkeypatch.setattr(
@@ -117,6 +119,7 @@ async def test_calibrate_opv_paths(monkeypatch):
 
     class OPSuccess:
         async def calculate(self):
+            await asyncio.sleep(0)  # Satisfy async requirement
             return 2.5
 
     monkeypatch.setattr(

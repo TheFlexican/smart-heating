@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
   Card,
   CardContent,
   Button,
@@ -22,6 +21,7 @@ import {
   Alert,
   IconButton,
 } from '@mui/material'
+import Grid from '@mui/material/Grid'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'

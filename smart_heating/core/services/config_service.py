@@ -1,5 +1,6 @@
 """Global configuration service."""
 
+import asyncio
 import logging
 from typing import Any
 
@@ -129,6 +130,9 @@ class ConfigService:
         Args:
             gateway_id: Device ID of the OpenTherm gateway
         """
+        # Minimal async operation to satisfy async requirement (awaited by callers)
+        await asyncio.sleep(0)
+
         self.opentherm_gateway_id = gateway_id
 
         # Auto-enable heating curve when OpenTherm gateway is configured

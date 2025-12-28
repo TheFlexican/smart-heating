@@ -16,10 +16,10 @@ import {
   TableRow,
   IconButton,
   Collapse,
-  Grid,
   Card,
   CardContent,
 } from '@mui/material'
+import Grid from '@mui/material/Grid'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import DeleteIcon from '@mui/icons-material/Delete'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'

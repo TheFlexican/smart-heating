@@ -248,6 +248,8 @@ class LearningEngine:
         Returns:
             Outdoor temperature in Celsius or None if unavailable
         """
+        # Minimal async operation to satisfy async requirement
+        await asyncio.sleep(0)
         return get_outdoor_temperature_from_weather_entity(self.hass, self._weather_entity)
 
     async def async_predict_heating_time(

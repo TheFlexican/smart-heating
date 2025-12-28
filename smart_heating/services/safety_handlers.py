@@ -48,7 +48,7 @@ async def async_handle_set_safety_sensor(
             attribute,
             enabled,
         )
-    except (HomeAssistantError, SafetySensorError, SmartHeatingError) as err:
+    except (HomeAssistantError, SmartHeatingError) as err:
         _LOGGER.error("Failed to set safety sensor: %s", err)
 
 
@@ -79,5 +79,5 @@ async def async_handle_remove_safety_sensor(
             await safety_monitor.async_reconfigure()
 
         _LOGGER.info("Safety sensor removed: %s", sensor_id)
-    except (HomeAssistantError, SafetySensorError, SmartHeatingError) as err:
+    except (HomeAssistantError, SmartHeatingError) as err:
         _LOGGER.error("Failed to remove safety sensor: %s", err)

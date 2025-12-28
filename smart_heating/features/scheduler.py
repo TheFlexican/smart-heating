@@ -532,160 +532,255 @@ class ScheduleExecutor:
             area: Area instance with smart_boost_enabled
             now: Current datetime
         """
-        # Only work for areas with schedules
-        if not area.schedules or len(area.schedules) == 0:
-            _LOGGER.debug("Smart boost disabled for %s: No schedules configured", area.area_id)
-            # Deactivate smart boost if it was active
-            if area.boost_manager.smart_boost_active:
-                if area.boost_manager.smart_boost_original_target is not None:
-                    area.target_temperature = area.boost_manager.smart_boost_original_target
-                area.boost_manager.smart_boost_active = False
-                area.boost_manager.smart_boost_original_target = None
-                if hasattr(self, "area_logger") and self.area_logger:
-                    self.area_logger.log_event(
-                        area.area_id,
-                        "smart_boost",
-                        "Smart boost deactivated - no schedules configured",
-                        {"reason": "no_schedules"},
-                    )
-                await self.area_manager.async_save()
+        # Guard clauses for early exit
+        if not self._has_valid_schedules(area):
+            await self._deactivate_smart_boost_no_schedules(area)
             return
 
-        # First, check if we should maintain temperature during an active schedule
-        is_maintaining = await self._handle_smart_boost_schedule_maintenance(area, now)
-        if is_maintaining:
-            # Temperature maintenance is handling the heating
+        # Check schedule maintenance first
+        if await self._handle_smart_boost_schedule_maintenance(area, now):
             return
-        # Determine target time and temperature
-        target_time = None
-        target_temp = area.target_temperature
 
-        # First, check if there's a morning schedule that should be our target
-        morning_schedule = self._find_first_morning_schedule(area.schedules, now)
+        # Get target time and temperature
+        target_time, target_temp = self._determine_target_time_and_temp(area, now)
+        if target_time is None:
+            return
 
-        if morning_schedule:
-            target_time, target_temp = self._get_target_time_and_temp_from_schedule(
-                area, morning_schedule, now
-            )
-        else:
-            # Fallback to configured target time
-            target_time = self._get_target_time_from_config(area, now)
-            if target_time is None:
-                # No target configured and no morning schedule
-                return
+        # Adjust target time if needed
+        target_time = self._adjust_target_time_for_tomorrow(target_time, now)
 
-        # If target time has passed today, use tomorrow's target
-        if now >= target_time:
-            target_time += timedelta(days=1)
-
-        # Get current temperature
+        # Get prediction data
         current_temp = area.current_temperature
-
         if current_temp is None:
             return
 
-        # Predict heating time using learning engine (it will get outdoor temp internally)
+        predicted_minutes = await self._get_predicted_heating_time(area, current_temp, target_temp)
+        if predicted_minutes is None:
+            return
+
+        # Calculate optimal start time
+        optimal_start_time = self._calculate_optimal_start_time(target_time, predicted_minutes)
+
+        # Apply smart boost logic based on current time
+        await self._apply_smart_boost_logic(
+            area, now, optimal_start_time, target_time, target_temp, predicted_minutes
+        )
+
+    def _has_valid_schedules(self, area) -> bool:
+        """Check if area has valid schedules configured."""
+        return area.schedules and len(area.schedules) > 0
+
+    async def _deactivate_smart_boost_no_schedules(self, area) -> None:
+        """Deactivate smart boost when no schedules are configured."""
+        _LOGGER.debug("Smart boost disabled for %s: No schedules configured", area.area_id)
+        if not area.boost_manager.smart_boost_active:
+            return
+
+        if area.boost_manager.smart_boost_original_target is not None:
+            area.target_temperature = area.boost_manager.smart_boost_original_target
+
+        area.boost_manager.smart_boost_active = False
+        area.boost_manager.smart_boost_original_target = None
+
+        if hasattr(self, "area_logger") and self.area_logger:
+            self.area_logger.log_event(
+                area.area_id,
+                "smart_boost",
+                "Smart boost deactivated - no schedules configured",
+                {"reason": "no_schedules"},
+            )
+        await self.area_manager.async_save()
+
+    def _determine_target_time_and_temp(
+        self, area, now: datetime
+    ) -> tuple[Optional[datetime], float]:
+        """Determine target time and temperature for smart boost.
+
+        Returns:
+            Tuple of (target_time, target_temp) or (None, target_temp) if no target found
+        """
+        target_temp = area.target_temperature
+        morning_schedule = self._find_first_morning_schedule(area.schedules, now)
+
+        if morning_schedule:
+            return self._get_target_time_and_temp_from_schedule(area, morning_schedule, now)
+
+        # Fallback to configured target time
+        target_time = self._get_target_time_from_config(area, now)
+        return target_time, target_temp
+
+    def _adjust_target_time_for_tomorrow(self, target_time: datetime, now: datetime) -> datetime:
+        """Adjust target time to tomorrow if it has already passed today."""
+        if now >= target_time:
+            return target_time + timedelta(days=1)
+        return target_time
+
+    async def _get_predicted_heating_time(
+        self, area, current_temp: float, target_temp: float
+    ) -> Optional[int]:
+        """Get predicted heating time from learning engine.
+
+        Returns:
+            Predicted minutes or None if insufficient data
+        """
         predicted_minutes = await self.learning_engine.async_predict_heating_time(
             area_id=area.area_id, current_temp=current_temp, target_temp=target_temp
         )
 
         if predicted_minutes is None:
-            _LOGGER.info(
-                "No learning data available for %s yet (needs several heating cycles). "
-                "Falling back to regular night boost if enabled. Current: %.1f°C, Target: %.1f°C",
-                area.area_id,
-                current_temp,
-                target_temp,
-            )
-            if hasattr(self, "area_logger") and self.area_logger:
-                self.area_logger.log_event(
-                    area.area_id,
-                    "smart_boost",
-                    "Insufficient learning data for smart boost predictions",
-                    {
-                        "current_temp": current_temp,
-                        "target_temp": target_temp,
-                        "reason": "needs_more_heating_cycles",
-                    },
-                )
-            return
+            self._log_insufficient_learning_data(area, current_temp, target_temp)
 
-        # Calculate when to start heating
+        return predicted_minutes
+
+    def _log_insufficient_learning_data(
+        self, area, current_temp: float, target_temp: float
+    ) -> None:
+        """Log when there's insufficient learning data for predictions."""
+        _LOGGER.info(
+            "No learning data available for %s yet (needs several heating cycles). "
+            "Falling back to regular night boost if enabled. Current: %.1f°C, Target: %.1f°C",
+            area.area_id,
+            current_temp,
+            target_temp,
+        )
+        if hasattr(self, "area_logger") and self.area_logger:
+            self.area_logger.log_event(
+                area.area_id,
+                "smart_boost",
+                "Insufficient learning data for smart boost predictions",
+                {
+                    "current_temp": current_temp,
+                    "target_temp": target_temp,
+                    "reason": "needs_more_heating_cycles",
+                },
+            )
+
+    def _calculate_optimal_start_time(
+        self, target_time: datetime, predicted_minutes: int
+    ) -> datetime:
+        """Calculate optimal start time with safety margin.
+
+        Args:
+            target_time: When heating should reach target
+            predicted_minutes: Predicted time to heat
+
+        Returns:
+            Optimal start time (with 10-minute safety margin)
+        """
         heating_duration = timedelta(minutes=predicted_minutes)
         optimal_start_time = target_time - heating_duration
-
-        # Add a safety margin (e.g., 10 minutes earlier)
         safety_margin = timedelta(minutes=10)
-        optimal_start_time -= safety_margin
+        return optimal_start_time - safety_margin
 
-        # Check if we should start heating now
-        if now >= optimal_start_time and now < target_time:
-            # Activate smart boost: temporarily raise target temperature
-            if not area.boost_manager.smart_boost_active:
-                # Store original target temperature
-                area.boost_manager.smart_boost_original_target = area.target_temperature
-                area.boost_manager.smart_boost_active = True
+    async def _apply_smart_boost_logic(
+        self,
+        area,
+        now: datetime,
+        optimal_start_time: datetime,
+        target_time: datetime,
+        target_temp: float,
+        predicted_minutes: int,
+    ) -> None:
+        """Apply smart boost logic based on current time window."""
+        if self._should_activate_smart_boost(now, optimal_start_time, target_time):
+            await self._activate_smart_boost(area, now, target_time, target_temp, predicted_minutes)
+        elif self._should_deactivate_smart_boost(now, target_time, area):
+            await self._deactivate_smart_boost_target_reached(area, target_time)
+        else:
+            self._log_waiting_for_boost(
+                area, now, optimal_start_time, predicted_minutes, target_temp
+            )
 
-            # Set target temperature to desired temp to trigger heating
-            area.target_temperature = target_temp
+    def _should_activate_smart_boost(
+        self, now: datetime, optimal_start_time: datetime, target_time: datetime
+    ) -> bool:
+        """Check if smart boost should be activated now."""
+        return now >= optimal_start_time and now < target_time
 
-            _LOGGER.info(
-                "Smart boost for area %s: Active - predicted %d min, target %s @ %.1f°C",
+    def _should_deactivate_smart_boost(self, now: datetime, target_time: datetime, area) -> bool:
+        """Check if smart boost should be deactivated."""
+        return now >= target_time and area.boost_manager.smart_boost_active
+
+    async def _activate_smart_boost(
+        self,
+        area,
+        now: datetime,
+        target_time: datetime,
+        target_temp: float,
+        predicted_minutes: int,
+    ) -> None:
+        """Activate smart boost heating."""
+        if not area.boost_manager.smart_boost_active:
+            area.boost_manager.smart_boost_original_target = area.target_temperature
+            area.boost_manager.smart_boost_active = True
+
+        area.target_temperature = target_temp
+
+        _LOGGER.info(
+            "Smart boost for area %s: Active - predicted %d min, target %s @ %.1f°C",
+            area.area_id,
+            predicted_minutes,
+            target_time.strftime("%H:%M"),
+            target_temp,
+        )
+        if hasattr(self, "area_logger") and self.area_logger:
+            self.area_logger.log_event(
                 area.area_id,
+                "smart_boost",
+                f"Smart boost activated - predicted {predicted_minutes} min to reach {target_temp:.1f}°C",
+                {
+                    "predicted_minutes": predicted_minutes,
+                    "target_time": target_time.strftime("%H:%M"),
+                    "target_temp": target_temp,
+                    "start_time": now.strftime("%H:%M"),
+                },
+            )
+
+        await self.area_manager.async_save()
+
+    async def _deactivate_smart_boost_target_reached(self, area, target_time: datetime) -> None:
+        """Deactivate smart boost when target time is reached."""
+        if area.boost_manager.smart_boost_original_target is not None:
+            area.target_temperature = area.boost_manager.smart_boost_original_target
+
+        area.boost_manager.smart_boost_active = False
+        area.boost_manager.smart_boost_original_target = None
+
+        _LOGGER.info(
+            "Smart boost for area %s: Deactivated - target time reached",
+            area.area_id,
+        )
+        if hasattr(self, "area_logger") and self.area_logger:
+            self.area_logger.log_event(
+                area.area_id,
+                "smart_boost",
+                f"Smart boost deactivated - target time {target_time.strftime('%H:%M')} reached",
+                {
+                    "target_time": target_time.strftime("%H:%M"),
+                    "reason": "target_time_reached",
+                },
+            )
+
+        await self.area_manager.async_save()
+
+    def _log_waiting_for_boost(
+        self,
+        area,
+        now: datetime,
+        optimal_start_time: datetime,
+        predicted_minutes: int,
+        target_temp: float,
+    ) -> None:
+        """Log that we're waiting for the boost window."""
+        time_until_start = (optimal_start_time - now).total_seconds() / 60
+        if time_until_start > 0:
+            _LOGGER.debug(
+                "Smart night boost for area %s: Will start in %.0f min (predicted %d min heating to %.1f°C)",
+                area.area_id,
+                time_until_start,
                 predicted_minutes,
-                target_time.strftime("%H:%M"),
                 target_temp,
             )
-            if hasattr(self, "area_logger") and self.area_logger:
-                self.area_logger.log_event(
-                    area.area_id,
-                    "smart_boost",
-                    f"Smart boost activated - predicted {predicted_minutes} min to reach {target_temp:.1f}°C",
-                    {
-                        "predicted_minutes": predicted_minutes,
-                        "target_time": target_time.strftime("%H:%M"),
-                        "target_temp": target_temp,
-                        "start_time": now.strftime("%H:%M"),
-                    },
-                )
-
-            # Save area state
-            await self.area_manager.async_save()
-        elif now >= target_time and area.boost_manager.smart_boost_active:
-            # Target time reached - deactivate smart boost and restore original target
-            if area.boost_manager.smart_boost_original_target is not None:
-                area.target_temperature = area.boost_manager.smart_boost_original_target
-
-            area.boost_manager.smart_boost_active = False
-            area.boost_manager.smart_boost_original_target = None
-
-            _LOGGER.info(
-                "Smart boost for area %s: Deactivated - target time reached",
-                area.area_id,
-            )
-            if hasattr(self, "area_logger") and self.area_logger:
-                self.area_logger.log_event(
-                    area.area_id,
-                    "smart_boost",
-                    f"Smart boost deactivated - target time {target_time.strftime('%H:%M')} reached",
-                    {
-                        "target_time": target_time.strftime("%H:%M"),
-                        "reason": "target_time_reached",
-                    },
-                )
-
-            # Save area state
-            await self.area_manager.async_save()
-        else:
-            time_until_start = (optimal_start_time - now).total_seconds() / 60
-            if time_until_start > 0:
-                _LOGGER.debug(
-                    "Smart night boost for area %s: Will start in %.0f min (predicted %d min heating to %.1f°C)",
-                    area.area_id,
-                    time_until_start,
-                    predicted_minutes,
-                    target_temp,
-                )
 
     def _find_first_morning_schedule(self, schedules: dict, now: datetime) -> Optional[object]:
         """Find the first schedule entry in the morning (after midnight, before noon).
@@ -828,7 +923,7 @@ class ScheduleExecutor:
                     climate_entity_id,
                     preset_temp,
                 )
-            except (HomeAssistantError, ScheduleError, SmartHeatingError) as err:
+            except (HomeAssistantError, SmartHeatingError) as err:
                 _LOGGER.debug(
                     "Climate entity %s not found or error updating: %s (will be handled by climate controller)",
                     climate_entity_id,
@@ -900,7 +995,7 @@ class ScheduleExecutor:
                 climate_entity_id,
                 target_temp,
             )
-        except (HomeAssistantError, ScheduleError, SmartHeatingError) as err:
+        except (HomeAssistantError, SmartHeatingError) as err:
             _LOGGER.warning(
                 "Failed to set temperature via climate service for %s: %s",
                 climate_entity_id,

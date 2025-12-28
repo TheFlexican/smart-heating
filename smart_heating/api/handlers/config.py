@@ -15,7 +15,7 @@ from ...utils import get_coordinator
 _LOGGER = logging.getLogger(__name__)
 
 # Constants
-ERROR_VACATION_MANAGER_NOT_INITIALIZED = "Vacation manager not initialized"
+MSG_VACATION_MANAGER_NOT_INITIALIZED = "Vacation manager not initialized"
 ERROR_INTERNAL = "Internal server error"
 MISSING_TIME = "Missing required field: time or start_time"
 
@@ -383,7 +383,7 @@ async def handle_get_vacation_mode(hass: HomeAssistant) -> web.Response:
     await asyncio.sleep(0)
     vacation_manager = hass.data.get(DOMAIN, {}).get("vacation_manager")
     if not vacation_manager:
-        return web.json_response({"error": ERROR_VACATION_MANAGER_NOT_INITIALIZED}, status=500)
+        return web.json_response({"error": MSG_VACATION_MANAGER_NOT_INITIALIZED}, status=500)
 
     return web.json_response(vacation_manager.get_data())
 
@@ -400,7 +400,7 @@ async def handle_enable_vacation_mode(hass: HomeAssistant, data: dict) -> web.Re
     """
     vacation_manager = hass.data[DOMAIN].get("vacation_manager")
     if not vacation_manager:
-        return web.json_response({"error": ERROR_VACATION_MANAGER_NOT_INITIALIZED}, status=500)
+        return web.json_response({"error": MSG_VACATION_MANAGER_NOT_INITIALIZED}, status=500)
 
     start_date = data.get("start_date")
     end_date = data.get("end_date")
@@ -430,7 +430,7 @@ async def handle_disable_vacation_mode(hass: HomeAssistant) -> web.Response:
     """
     vacation_manager = hass.data[DOMAIN].get("vacation_manager")
     if not vacation_manager:
-        return web.json_response({"error": ERROR_VACATION_MANAGER_NOT_INITIALIZED}, status=500)
+        return web.json_response({"error": MSG_VACATION_MANAGER_NOT_INITIALIZED}, status=500)
 
     await vacation_manager.async_disable()
 

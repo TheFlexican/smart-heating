@@ -66,7 +66,6 @@ class VacationManager:
         except (
             HomeAssistantError,
             SmartHeatingError,
-            ValidationError,
             json.JSONDecodeError,
             OSError,
         ) as err:
@@ -88,7 +87,6 @@ class VacationManager:
         except (
             HomeAssistantError,
             SmartHeatingError,
-            ValidationError,
             OSError,
         ) as err:
             _LOGGER.error("Failed to save vacation mode data: %s", err)
