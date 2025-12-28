@@ -41,7 +41,7 @@ jobs:
 
       - name: Run Python tests with coverage
         run: |
-          pytest tests/unit --cov=smart_heating --cov-report=xml --cov-report=html
+          pytest tests/unit --cov=smart_heating --cov-report=xml:coverage.xml --cov-report=html
         continue-on-error: false
 
       - name: Upload Python coverage reports
@@ -51,6 +51,17 @@ jobs:
           flags: backend
           name: backend-coverage
           fail_ci_if_error: false
+
+      - name: Debug Python coverage file
+        run: |
+          echo "Workspace: $PWD"
+          echo "Listing files:"
+          ls -la
+          echo "coverage.xml size:"
+          wc -c coverage.xml || true
+          echo "First 40 lines of coverage.xml:"
+          head -n 40 coverage.xml || true
+        continue-on-error: true
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@master
