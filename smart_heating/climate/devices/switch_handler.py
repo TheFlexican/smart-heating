@@ -15,6 +15,11 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Constants for duplicated strings
+_SERVICE_SWITCH_TURN_ON = "switch.turn_on"
+_SERVICE_SWITCH_TURN_OFF = "switch.turn_off"
+_MSG_SWITCH_CONTROL_FAILED = "Failed to control switch %s: %s"
+
 
 class SwitchHandler(BaseDeviceHandler):
     """Handle switch (pumps, relays) device operations."""
@@ -61,171 +66,92 @@ class SwitchHandler(BaseDeviceHandler):
         temp_handler = ThermostatHandler(self.hass, self.area_manager, self.capability_detector)
         return temp_handler.is_any_thermostat_actively_heating(area)
 
+    def _record_switch_event_safe(
+        self, switch_id: str, direction: str, service: str, data: dict
+    ) -> None:
+        """Record switch event, suppressing errors."""
+        try:
+            self._record_device_event(switch_id, direction, service, data)
+        except (AttributeError, KeyError, TypeError, ValueError) as err:
+            _LOGGER.debug("Failed to record %s %s for %s: %s", direction, service, switch_id, err)
+
+    async def _turn_switch_on(self, switch_id: str) -> bool:
+        """Turn on a switch if not already on. Returns True if action taken."""
+        current = self.hass.states.get(switch_id)
+        if getattr(current, "state", None) == "on":
+            return False
+
+        payload = {"entity_id": switch_id}
+        self._record_switch_event_safe(
+            switch_id,
+            "sent",
+            _SERVICE_SWITCH_TURN_ON,
+            {"domain": "switch", "service": SERVICE_TURN_ON, "data": payload},
+        )
+
+        await self.hass.services.async_call("switch", SERVICE_TURN_ON, payload, blocking=False)
+
+        self._record_switch_event_safe(
+            switch_id, "received", _SERVICE_SWITCH_TURN_ON, {"result": "dispatched"}
+        )
+        return True
+
+    async def _turn_switch_off(self, switch_id: str) -> bool:
+        """Turn off a switch if not already off. Returns True if action taken."""
+        current = self.hass.states.get(switch_id)
+        if getattr(current, "state", None) == "off":
+            return False
+
+        payload = {"entity_id": switch_id}
+        self._record_switch_event_safe(
+            switch_id,
+            "sent",
+            _SERVICE_SWITCH_TURN_OFF,
+            {"domain": "switch", "service": SERVICE_TURN_OFF, "data": payload},
+        )
+
+        await self.hass.services.async_call("switch", SERVICE_TURN_OFF, payload, blocking=False)
+
+        self._record_switch_event_safe(
+            switch_id, "received", _SERVICE_SWITCH_TURN_OFF, {"result": "dispatched"}
+        )
+        _LOGGER.debug("Turned off switch %s", switch_id)
+        return True
+
+    def _should_keep_switch_on(self, area: "Area", thermostats_still_heating: bool) -> bool:
+        """Determine if switch should stay on when not actively heating."""
+        if not thermostats_still_heating:
+            return False
+        return getattr(area, "state", None) == "heating" or getattr(area, "manual_override", False)
+
+    async def _control_single_switch(
+        self, switch_id: str, area: "Area", heating: bool, thermostats_still_heating: bool
+    ) -> None:
+        """Control a single switch based on heating state."""
+        try:
+            if heating:
+                await self._turn_switch_on(switch_id)
+                return
+
+            # Not actively heating - determine action
+            if self._should_keep_switch_on(area, thermostats_still_heating):
+                _LOGGER.info(
+                    "Area %s: Target reached but thermostat still heating - keeping switch %s ON",
+                    area.area_id,
+                    switch_id,
+                )
+                await self._turn_switch_on(switch_id)
+            elif getattr(area, "shutdown_switches_when_idle", True):
+                await self._turn_switch_off(switch_id)
+            else:
+                _LOGGER.debug("Keeping switch %s on (shutdown_switches_when_idle=False)", switch_id)
+        except (HomeAssistantError, DeviceError, asyncio.TimeoutError, AttributeError) as err:
+            _LOGGER.error(_MSG_SWITCH_CONTROL_FAILED, switch_id, err, exc_info=True)
+
     async def async_control_switches(self, area: "Area", heating: bool) -> None:
         """Control switches (pumps, relays) in an area."""
         switches = area.get_switches()
-
-        # Check if any thermostat is still actively heating
         thermostats_still_heating = self._check_thermostats_actively_heating(area)
 
         for switch_id in switches:
-            try:
-                if heating:
-                    try:
-                        # Only call turn_on if the switch is not already on to avoid
-                        # repeated service calls when state is unchanged.
-                        current = self.hass.states.get(switch_id)
-                        current_state = getattr(current, "state", None)
-                        if current_state != "on":
-                            payload = {"entity_id": switch_id}
-                            try:
-                                self._record_device_event(
-                                    switch_id,
-                                    "sent",
-                                    "switch.turn_on",
-                                    {
-                                        "domain": "switch",
-                                        "service": SERVICE_TURN_ON,
-                                        "data": payload,
-                                    },
-                                )
-                            except (AttributeError, KeyError, TypeError, ValueError) as err:
-                                _LOGGER.debug(
-                                    "Failed to record sent turn_on for %s: %s", switch_id, err
-                                )
-
-                            await self.hass.services.async_call(
-                                "switch",
-                                SERVICE_TURN_ON,
-                                payload,
-                                blocking=False,
-                            )
-                            try:
-                                self._record_device_event(
-                                    switch_id,
-                                    "received",
-                                    "switch.turn_on",
-                                    {"result": "dispatched"},
-                                )
-                            except (AttributeError, KeyError, TypeError, ValueError) as err:
-                                _LOGGER.debug(
-                                    "Failed to record received turn_on for %s: %s", switch_id, err
-                                )
-                    except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
-                        _LOGGER.error(
-                            "Failed to control switch %s: %s", switch_id, err, exc_info=True
-                        )
-                else:
-                    # When stopping heating we should only keep switches on if the
-                    # thermostat still reports it is heating AND the area is still
-                    # considered to be in a heating state. This avoids re-enabling
-                    # pumps when there are no active heating events for the area
-                    # (e.g., stale thermostat hvac_action values).
-                    if thermostats_still_heating and (
-                        getattr(area, "state", None) == "heating"
-                        or getattr(area, "manual_override", False)
-                    ):
-                        _LOGGER.info(
-                            "Area %s: Target reached but thermostat still heating - keeping switch %s ON",
-                            area.area_id,
-                            switch_id,
-                        )
-                        try:
-                            # Only call turn_on if the switch is not already on
-                            current = self.hass.states.get(switch_id)
-                            current_state = getattr(current, "state", None)
-                            if current_state != "on":
-                                payload = {"entity_id": switch_id}
-                                try:
-                                    self._record_device_event(
-                                        switch_id,
-                                        "sent",
-                                        "switch.turn_on",
-                                        {
-                                            "domain": "switch",
-                                            "service": SERVICE_TURN_ON,
-                                            "data": payload,
-                                        },
-                                    )
-                                except (AttributeError, KeyError, TypeError, ValueError) as err:
-                                    _LOGGER.debug(
-                                        "Failed to record sent turn_on for %s: %s", switch_id, err
-                                    )
-
-                                await self.hass.services.async_call(
-                                    "switch",
-                                    SERVICE_TURN_ON,
-                                    payload,
-                                    blocking=False,
-                                )
-                                try:
-                                    self._record_device_event(
-                                        switch_id,
-                                        "received",
-                                        "switch.turn_on",
-                                        {"result": "dispatched"},
-                                    )
-                                except (AttributeError, KeyError, TypeError, ValueError) as err:
-                                    _LOGGER.debug(
-                                        "Failed to record received turn_on for %s: %s",
-                                        switch_id,
-                                        err,
-                                    )
-                        except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
-                            _LOGGER.error(
-                                "Failed to control switch %s: %s", switch_id, err, exc_info=True
-                            )
-                    elif getattr(area, "shutdown_switches_when_idle", True):
-                        try:
-                            # Only call turn_off if the switch is not already off
-                            current = self.hass.states.get(switch_id)
-                            current_state = getattr(current, "state", None)
-                            if current_state != "off":
-                                payload = {"entity_id": switch_id}
-                                try:
-                                    self._record_device_event(
-                                        switch_id,
-                                        "sent",
-                                        "switch.turn_off",
-                                        {
-                                            "domain": "switch",
-                                            "service": SERVICE_TURN_OFF,
-                                            "data": payload,
-                                        },
-                                    )
-                                except (AttributeError, KeyError, TypeError, ValueError) as err:
-                                    _LOGGER.debug(
-                                        "Failed to record sent turn_off for %s: %s", switch_id, err
-                                    )
-
-                                await self.hass.services.async_call(
-                                    "switch",
-                                    SERVICE_TURN_OFF,
-                                    payload,
-                                    blocking=False,
-                                )
-                                try:
-                                    self._record_device_event(
-                                        switch_id,
-                                        "received",
-                                        "switch.turn_off",
-                                        {"result": "dispatched"},
-                                    )
-                                except (AttributeError, KeyError, TypeError, ValueError) as err:
-                                    _LOGGER.debug(
-                                        "Failed to record received turn_off for %s: %s",
-                                        switch_id,
-                                        err,
-                                    )
-                                _LOGGER.debug("Turned off switch %s", switch_id)
-                        except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
-                            _LOGGER.error(
-                                "Failed to control switch %s: %s", switch_id, err, exc_info=True
-                            )
-                    else:
-                        _LOGGER.debug(
-                            "Keeping switch %s on (shutdown_switches_when_idle=False)",
-                            switch_id,
-                        )
-            except (HomeAssistantError, DeviceError, asyncio.TimeoutError, AttributeError) as err:
-                _LOGGER.error("Failed to control switch %s: %s", switch_id, err, exc_info=True)
+            await self._control_single_switch(switch_id, area, heating, thermostats_still_heating)

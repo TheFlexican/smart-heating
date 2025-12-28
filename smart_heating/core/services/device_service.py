@@ -14,6 +14,9 @@ from ...models import DeviceEvent
 
 _LOGGER = logging.getLogger(__name__)
 
+# Timezone suffix for ISO timestamp parsing
+_TZ_UTC_SUFFIX = "+00:00"
+
 
 class DeviceService:
     """Handles device management and event logging."""
@@ -89,7 +92,7 @@ class DeviceService:
         while self._device_logs[area_id]:
             try:
                 ts = self._device_logs[area_id][-1].timestamp
-                ts_dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                ts_dt = datetime.fromisoformat(ts.replace("Z", _TZ_UTC_SUFFIX))
             except (HomeAssistantError, DeviceError, ValidationError, AttributeError, ValueError):
                 # If parsing fails, keep the event (tests expect malformed timestamps to be included)
                 break
@@ -105,9 +108,17 @@ class DeviceService:
             try:
                 if asyncio.iscoroutinefunction(listener):
                     try:
-                        self.hass.async_create_task(listener(event_dict))
+                        # Save task reference to prevent garbage collection (S7502)
+                        task = self.hass.async_create_task(listener(event_dict))
+                        task.add_done_callback(
+                            lambda t: t.exception() if not t.cancelled() else None
+                        )
                     except (HomeAssistantError, DeviceError, ValidationError, AttributeError):
-                        asyncio.create_task(listener(event_dict))
+                        # Fallback - save task reference (S7502)
+                        task = asyncio.create_task(listener(event_dict))
+                        task.add_done_callback(
+                            lambda t: t.exception() if not t.cancelled() else None
+                        )
                 else:
                     listener(event_dict)
             except (HomeAssistantError, DeviceError, ValidationError, AttributeError):
@@ -145,13 +156,13 @@ class DeviceService:
         # Filter by since (ISO timestamp string)
         if since is not None:
             try:
-                since_dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
+                since_dt = datetime.fromisoformat(since.replace("Z", _TZ_UTC_SUFFIX))
             except (HomeAssistantError, DeviceError, ValidationError, AttributeError, ValueError):
                 since_dt = None
 
             def since_filter(e):
                 try:
-                    ts = datetime.fromisoformat(e.timestamp.replace("Z", "+00:00"))
+                    ts = datetime.fromisoformat(e.timestamp.replace("Z", _TZ_UTC_SUFFIX))
                     return ts >= since_dt if since_dt is not None else True
                 except (
                     HomeAssistantError,

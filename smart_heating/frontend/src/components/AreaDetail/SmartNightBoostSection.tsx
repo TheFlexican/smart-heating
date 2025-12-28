@@ -28,7 +28,7 @@ const updateSmartBoost = async (
     })
     await response.json()
     await new Promise(resolve => setTimeout(resolve, 500))
-    await onUpdate()
+    onUpdate()
   } catch (error) {
     console.error('Failed to update smart night boost:', error)
   }

@@ -17,6 +17,11 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Service name constants for event recording
+_SERVICE_NUMBER_SET_VALUE = "number.set_value"
+_SERVICE_CLIMATE_SET_POSITION = "climate.set_position"
+_SERVICE_CLIMATE_SET_TEMPERATURE = "climate.set_temperature"
+
 
 class ValveHandler(BaseDeviceHandler):
     """Handle valve/TRV device operations."""
@@ -183,7 +188,7 @@ class ValveHandler(BaseDeviceHandler):
                 self._record_device_event(
                     valve_id,
                     "sent",
-                    "number.set_value",
+                    _SERVICE_NUMBER_SET_VALUE,
                     {"domain": "number", "service": "set_value", "data": payload},
                 )
             except (AttributeError, KeyError, TypeError, ValueError) as err:
@@ -197,7 +202,7 @@ class ValveHandler(BaseDeviceHandler):
             )
             try:
                 self._record_device_event(
-                    valve_id, "received", "number.set_value", {"result": "dispatched"}
+                    valve_id, "received", _SERVICE_NUMBER_SET_VALUE, {"result": "dispatched"}
                 )
             except (AttributeError, KeyError, TypeError, ValueError) as err:
                 _LOGGER.debug(
@@ -208,7 +213,7 @@ class ValveHandler(BaseDeviceHandler):
                 self._record_device_event(
                     valve_id,
                     "received",
-                    "number.set_value",
+                    _SERVICE_NUMBER_SET_VALUE,
                     {"result": "error"},
                     status="error",
                     error=str(err),
@@ -229,7 +234,7 @@ class ValveHandler(BaseDeviceHandler):
                 self._record_device_event(
                     valve_id,
                     "sent",
-                    "climate.set_position",
+                    _SERVICE_CLIMATE_SET_POSITION,
                     {"domain": CLIMATE_DOMAIN, "service": "set_position", "data": payload},
                 )
             except (AttributeError, KeyError, TypeError, ValueError) as err:
@@ -245,7 +250,7 @@ class ValveHandler(BaseDeviceHandler):
             )
             try:
                 self._record_device_event(
-                    valve_id, "received", "climate.set_position", {"result": "dispatched"}
+                    valve_id, "received", _SERVICE_CLIMATE_SET_POSITION, {"result": "dispatched"}
                 )
             except (AttributeError, KeyError, TypeError, ValueError) as err:
                 _LOGGER.debug(
@@ -256,7 +261,7 @@ class ValveHandler(BaseDeviceHandler):
                 self._record_device_event(
                     valve_id,
                     "received",
-                    "climate.set_position",
+                    _SERVICE_CLIMATE_SET_POSITION,
                     {"result": "error"},
                     status="error",
                     error=str(err),
@@ -278,7 +283,7 @@ class ValveHandler(BaseDeviceHandler):
                 self._record_device_event(
                     valve_id,
                     "sent",
-                    "climate.set_temperature",
+                    _SERVICE_CLIMATE_SET_TEMPERATURE,
                     {"domain": CLIMATE_DOMAIN, "service": SERVICE_SET_TEMPERATURE, "data": payload},
                 )
             except (AttributeError, KeyError, TypeError, ValueError) as err:
@@ -292,7 +297,7 @@ class ValveHandler(BaseDeviceHandler):
             )
             try:
                 self._record_device_event(
-                    valve_id, "received", "climate.set_temperature", {"result": "dispatched"}
+                    valve_id, "received", _SERVICE_CLIMATE_SET_TEMPERATURE, {"result": "dispatched"}
                 )
             except (AttributeError, KeyError, TypeError, ValueError) as err:
                 _LOGGER.debug("Failed to record received set_temperature for %s: %s", valve_id, err)
@@ -301,7 +306,7 @@ class ValveHandler(BaseDeviceHandler):
                 self._record_device_event(
                     valve_id,
                     "received",
-                    "climate.set_temperature",
+                    _SERVICE_CLIMATE_SET_TEMPERATURE,
                     {"result": "error"},
                     status="error",
                     error=str(err),
