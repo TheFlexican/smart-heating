@@ -2,6 +2,9 @@
 
 from typing import Any, Dict, Optional, Tuple
 
+# Standardized error messages
+_ERR_VALUE_REQUIRED = "Value is required"
+
 
 def validate_temperature(
     temp: Any, min_temp: float = 5.0, max_temp: float = 35.0
@@ -172,7 +175,7 @@ def validate_float_range(
         Tuple of (is_valid, error_message)
     """
     if value is None:
-        return False, "Value is required"
+        return False, _ERR_VALUE_REQUIRED
 
     try:
         float_value = float(value)
@@ -202,7 +205,7 @@ def validate_integer_range(
         Tuple of (is_valid, error_message)
     """
     if value is None:
-        return False, "Value is required"
+        return False, _ERR_VALUE_REQUIRED
 
     try:
         int_value = int(value)
@@ -273,7 +276,7 @@ def sanitize_string_input(value: Any, max_length: int = 255) -> tuple[bool, Opti
         Tuple of (is_valid, error_message)
     """
     if value is None:
-        return False, "Value is required"
+        return False, _ERR_VALUE_REQUIRED
 
     if not isinstance(value, str):
         return False, "Value must be a string"

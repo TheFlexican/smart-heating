@@ -15,6 +15,11 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Service and message constants
+_SERVICE_SWITCH_TURN_ON = "switch.turn_on"
+_SERVICE_SWITCH_TURN_OFF = "switch.turn_off"
+_MSG_SWITCH_CONTROL_FAILED = "Failed to control switch %s: %s"
+
 
 class SwitchHandler(BaseDeviceHandler):
     """Handle switch (pumps, relays) device operations."""
@@ -82,7 +87,7 @@ class SwitchHandler(BaseDeviceHandler):
                                 self._record_device_event(
                                     switch_id,
                                     "sent",
-                                    "switch.turn_on",
+                                    _SERVICE_SWITCH_TURN_ON,
                                     {
                                         "domain": "switch",
                                         "service": SERVICE_TURN_ON,
@@ -104,7 +109,7 @@ class SwitchHandler(BaseDeviceHandler):
                                 self._record_device_event(
                                     switch_id,
                                     "received",
-                                    "switch.turn_on",
+                                    _SERVICE_SWITCH_TURN_ON,
                                     {"result": "dispatched"},
                                 )
                             except (AttributeError, KeyError, TypeError, ValueError) as err:
@@ -112,9 +117,7 @@ class SwitchHandler(BaseDeviceHandler):
                                     "Failed to record received turn_on for %s: %s", switch_id, err
                                 )
                     except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
-                        _LOGGER.error(
-                            "Failed to control switch %s: %s", switch_id, err, exc_info=True
-                        )
+                        _LOGGER.error(_MSG_SWITCH_CONTROL_FAILED, switch_id, err, exc_info=True)
                 else:
                     # When stopping heating we should only keep switches on if the
                     # thermostat still reports it is heating AND the area is still
@@ -140,7 +143,7 @@ class SwitchHandler(BaseDeviceHandler):
                                     self._record_device_event(
                                         switch_id,
                                         "sent",
-                                        "switch.turn_on",
+                                        _SERVICE_SWITCH_TURN_ON,
                                         {
                                             "domain": "switch",
                                             "service": SERVICE_TURN_ON,
@@ -162,7 +165,7 @@ class SwitchHandler(BaseDeviceHandler):
                                     self._record_device_event(
                                         switch_id,
                                         "received",
-                                        "switch.turn_on",
+                                        _SERVICE_SWITCH_TURN_ON,
                                         {"result": "dispatched"},
                                     )
                                 except (AttributeError, KeyError, TypeError, ValueError) as err:
@@ -172,9 +175,7 @@ class SwitchHandler(BaseDeviceHandler):
                                         err,
                                     )
                         except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
-                            _LOGGER.error(
-                                "Failed to control switch %s: %s", switch_id, err, exc_info=True
-                            )
+                            _LOGGER.error(_MSG_SWITCH_CONTROL_FAILED, switch_id, err, exc_info=True)
                     elif getattr(area, "shutdown_switches_when_idle", True):
                         try:
                             # Only call turn_off if the switch is not already off
@@ -186,7 +187,7 @@ class SwitchHandler(BaseDeviceHandler):
                                     self._record_device_event(
                                         switch_id,
                                         "sent",
-                                        "switch.turn_off",
+                                        _SERVICE_SWITCH_TURN_OFF,
                                         {
                                             "domain": "switch",
                                             "service": SERVICE_TURN_OFF,
@@ -208,7 +209,7 @@ class SwitchHandler(BaseDeviceHandler):
                                     self._record_device_event(
                                         switch_id,
                                         "received",
-                                        "switch.turn_off",
+                                        _SERVICE_SWITCH_TURN_OFF,
                                         {"result": "dispatched"},
                                     )
                                 except (AttributeError, KeyError, TypeError, ValueError) as err:
@@ -219,13 +220,11 @@ class SwitchHandler(BaseDeviceHandler):
                                     )
                                 _LOGGER.debug("Turned off switch %s", switch_id)
                         except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
-                            _LOGGER.error(
-                                "Failed to control switch %s: %s", switch_id, err, exc_info=True
-                            )
+                            _LOGGER.error(_MSG_SWITCH_CONTROL_FAILED, switch_id, err, exc_info=True)
                     else:
                         _LOGGER.debug(
                             "Keeping switch %s on (shutdown_switches_when_idle=False)",
                             switch_id,
                         )
             except (HomeAssistantError, DeviceError, asyncio.TimeoutError, AttributeError) as err:
-                _LOGGER.error("Failed to control switch %s: %s", switch_id, err, exc_info=True)
+                _LOGGER.error(_MSG_SWITCH_CONTROL_FAILED, switch_id, err, exc_info=True)

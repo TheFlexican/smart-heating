@@ -21,6 +21,9 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Service constant
+_SERVICE_CLIMATE_SET_TEMPERATURE = "climate.set_temperature"
+
 
 class TemperatureSetter:
     """Set temperatures for thermostats."""
@@ -255,7 +258,7 @@ class TemperatureSetter:
                     self._record_device_event(
                         thermostat_id,
                         "sent",
-                        "climate.set_temperature",
+                        _SERVICE_CLIMATE_SET_TEMPERATURE,
                         {
                             "domain": CLIMATE_DOMAIN,
                             "service": SERVICE_SET_TEMPERATURE,
@@ -278,7 +281,10 @@ class TemperatureSetter:
             if self._record_device_event:
                 try:
                     self._record_device_event(
-                        thermostat_id, "received", "climate.set_temperature", {"result": "ok"}
+                        thermostat_id,
+                        "received",
+                        _SERVICE_CLIMATE_SET_TEMPERATURE,
+                        {"result": "ok"},
                     )
                 except (OSError, RuntimeError, ValueError) as err:
                     _LOGGER.debug(
@@ -298,7 +304,7 @@ class TemperatureSetter:
                     self._record_device_event(
                         thermostat_id,
                         "received",
-                        "climate.set_temperature",
+                        _SERVICE_CLIMATE_SET_TEMPERATURE,
                         {"result": "error"},
                         status="error",
                         error=str(err),
