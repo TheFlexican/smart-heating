@@ -10,7 +10,9 @@ from smart_heating.const import DOMAIN
 @pytest.mark.asyncio
 async def test_api_view_post_many_branches(hass, mock_area_manager):
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN]["config_manager"] = MagicMock()
+    config_manager = MagicMock()
+    config_manager.async_import_config = AsyncMock(return_value={"changes": []})
+    hass.data[DOMAIN]["config_manager"] = config_manager
     hass.data[DOMAIN]["user_manager"] = MagicMock()
     hass.data[DOMAIN]["comparison_engine"] = MagicMock()
 
