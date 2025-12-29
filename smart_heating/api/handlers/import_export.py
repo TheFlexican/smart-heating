@@ -86,7 +86,7 @@ async def handle_import_config(
     except ValueError as err:
         _LOGGER.exception("Invalid configuration data")
         return web.json_response({"error": f"Invalid configuration: {str(err)}"}, status=400)
-    except (HomeAssistantError, json.JSONDecodeError, Exception) as err:
+    except (HomeAssistantError, json.JSONDecodeError) as err:
         _LOGGER.exception("Failed to import configuration")
         return web.json_response({"error": str(err), "message": ERROR_INTERNAL}, status=500)
 

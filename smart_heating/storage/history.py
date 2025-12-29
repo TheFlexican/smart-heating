@@ -255,49 +255,48 @@ class HistoryTracker:
             self._db_engine = None
 
     def _ensure_trvs_column(self) -> None:
-        """Ensure the 'trvs' column exists in the DB table.
-
-        Runs simple inspection and ALTER TABLE statements where needed. Run-time
-        guards are present to avoid sensor errors during initialization.
-        """
+        """Ensure the 'trvs' column exists in the DB table."""
         from sqlalchemy import inspect, text
 
         if not getattr(self, "_db_engine", None):
             raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)
         assert self._db_engine is not None
 
+        if self._column_exists("trvs"):
+            return
+
+        _LOGGER.info("Database table '%s' missing 'trvs' column - adding it", DB_TABLE_NAME)
+        alter_sql = self._get_trvs_alter_sql()
+        if alter_sql:
+            self._execute_alter_table(alter_sql)
+            _LOGGER.info("Added 'trvs' column to %s", DB_TABLE_NAME)
+
+    def _column_exists(self, column_name: str) -> bool:
+        """Check if a column exists in the database table."""
+        from sqlalchemy import inspect
+
         inspector = inspect(self._db_engine)
         existing_cols = [c["name"] for c in inspector.get_columns(DB_TABLE_NAME)]
+        return column_name in existing_cols
 
-        if "trvs" not in existing_cols:
-            _LOGGER.info("Database table '%s' missing 'trvs' column - adding it", DB_TABLE_NAME)
-            alter_sql = None
-            dialect = self._db_engine.name.lower() if hasattr(self._db_engine, "name") else ""
+    def _execute_alter_table(self, alter_sql: str) -> None:
+        """Execute an ALTER TABLE statement."""
+        from sqlalchemy import text
 
-            # Use TEXT for compatibility across MySQL/Postgres/MariaDB
-            if "mysql" in dialect or "mariadb" in dialect:
-                alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT NULL"
-            elif "postgres" in dialect or "postgresql" in dialect:
-                alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT"
-            else:
-                # Fallback generic SQL (may work for many DBs)
-                alter_sql = f"ALTER TABLE {DB_TABLE_NAME} ADD COLUMN trvs TEXT"
+        def _alter():
+            with self._db_engine.connect() as conn:
+                conn.execute(text(alter_sql))
+                self._try_commit(conn)
 
-            if alter_sql:
+        self._db_engine.begin()
+        _alter()
 
-                def _alter():
-                    with self._db_engine.connect() as conn:
-                        conn.execute(text(alter_sql))
-                        # Some DBs require an explicit commit
-                        try:
-                            conn.commit()
-                        except (SQLAlchemyError, AttributeError) as err:
-                            _LOGGER.debug("Commit after ALTER TABLE not needed/failed: %s", err)
-
-                # Run migration synchronously (this is called from init time)
-                self._db_engine.begin()
-                _alter()
-                _LOGGER.info("Added 'trvs' column to %s", DB_TABLE_NAME)
+    def _try_commit(self, conn) -> None:
+        """Try to commit, ignoring errors for DBs that auto-commit."""
+        try:
+            conn.commit()
+        except (SQLAlchemyError, AttributeError) as err:
+            _LOGGER.debug("Commit after ALTER TABLE not needed/failed: %s", err)
 
     def _get_trvs_alter_sql(self) -> str | None:
         """Return the ALTER SQL required to add the `trvs` column for the DB dialect."""

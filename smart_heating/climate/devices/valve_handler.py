@@ -333,44 +333,46 @@ class ValveHandler(BaseDeviceHandler):
         For temperature-controlled valves this sets the temperature to the provided
         off_temperature (defaults to 0.0°C which instructs TRVs to close).
         """
-        valves = area.get_valves()
+        for valve_id in area.get_valves():
+            await self._set_single_valve_to_off(valve_id, off_temperature)
 
-        for valve_id in valves:
-            try:
-                caps = self.get_valve_capability(valve_id)
+    async def _set_single_valve_to_off(self, valve_id: str, off_temperature: float) -> None:
+        """Set a single valve to off state."""
+        try:
+            caps = self.get_valve_capability(valve_id)
+            await self._apply_valve_off_action(valve_id, caps, off_temperature)
+        except (HomeAssistantError, DeviceError) as err:
+            _LOGGER.error("Failed to set valve %s to off: %s", valve_id, err, exc_info=True)
+        except asyncio.TimeoutError:
+            _LOGGER.error("Timeout setting valve %s to off", valve_id, exc_info=True)
 
-                # Prefer position control where available
-                if caps.get("supports_position"):
-                    # Set to minimum position (closed)
-                    position = caps.get("position_min", 0)
-                    if caps.get("entity_domain") == "number":
-                        await self._set_valve_number_position(valve_id, position)
-                    else:
-                        # climate with position attribute
-                        try:
-                            await self._set_valve_climate_position(valve_id, position)
-                        except DeviceError:
-                            # Fallback to temperature control
-                            _LOGGER.debug(
-                                "Climate position failed for %s, falling back to temperature control",
-                                valve_id,
-                            )
-                            await self._set_valve_temperature(valve_id, off_temperature)
+    async def _apply_valve_off_action(
+        self, valve_id: str, caps: dict, off_temperature: float
+    ) -> None:
+        """Apply the appropriate off action based on valve capabilities."""
+        if caps.get("supports_position"):
+            await self._set_valve_position_to_closed(valve_id, caps, off_temperature)
+        elif caps.get("supports_temperature"):
+            await self._set_valve_temperature(valve_id, off_temperature)
+        else:
+            _LOGGER.warning(
+                "Valve %s doesn't support position or temperature control - cannot reliably turn off",
+                valve_id,
+            )
 
-                elif caps.get("supports_temperature"):
-                    # Temperature-controlled TRV: set to off_temperature (0°C by default)
-                    await self._set_valve_temperature(valve_id, off_temperature)
-                else:
-                    _LOGGER.warning(
-                        "Valve %s doesn't support position or temperature control - cannot reliably turn off",
-                        valve_id,
-                    )
-            except (HomeAssistantError, DeviceError) as err:
-                _LOGGER.error(
-                    "Failed to set valve %s to off: %s",
-                    valve_id,
-                    err,
-                    exc_info=True,
-                )
-            except asyncio.TimeoutError:
-                _LOGGER.error("Timeout setting valve %s to off", valve_id, exc_info=True)
+    async def _set_valve_position_to_closed(
+        self, valve_id: str, caps: dict, off_temperature: float
+    ) -> None:
+        """Set valve to closed position."""
+        position = caps.get("position_min", 0)
+        if caps.get("entity_domain") == "number":
+            await self._set_valve_number_position(valve_id, position)
+            return
+
+        try:
+            await self._set_valve_climate_position(valve_id, position)
+        except DeviceError:
+            _LOGGER.debug(
+                "Climate position failed for %s, falling back to temperature control", valve_id
+            )
+            await self._set_valve_temperature(valve_id, off_temperature)

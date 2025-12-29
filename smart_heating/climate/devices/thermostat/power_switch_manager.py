@@ -36,6 +36,45 @@ class PowerSwitchManager:
         self._power_switch_patterns = power_switch_patterns_func
         self._record_device_event = record_device_event
 
+    def _record_event_safely(
+        self, entity_id: str, direction: str, service: str, data: dict, **kwargs
+    ) -> None:
+        """Record a device event, suppressing any errors."""
+        if not self._record_device_event:
+            return
+        try:
+            self._record_device_event(entity_id, direction, service, data, **kwargs)
+        except (OSError, RuntimeError, ValueError) as err:
+            _LOGGER.debug("Failed to record %s event for %s: %s", direction, entity_id, err)
+
+    async def _call_switch_service(
+        self, switch_id: str, service: str, climate_entity_id: str
+    ) -> bool:
+        """Call a switch service and record the event."""
+        payload = {"entity_id": switch_id}
+        self._record_event_safely(
+            switch_id,
+            "sent",
+            f"switch.{service}",
+            {"domain": "switch", "service": service, "data": payload},
+        )
+        try:
+            await self.hass.services.async_call("switch", service, payload, blocking=False)
+            return True
+        except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
+            _LOGGER.debug("Failed to call %s for switch %s: %s", service, switch_id, err)
+            return False
+
+    async def _wait_for_switch_state(self, switch_id: str, target_state: str) -> bool:
+        """Wait for a switch to reach a target state."""
+        for _ in range(6):
+            await asyncio.sleep(0.25)
+            state = self.hass.states.get(switch_id)
+            if state and getattr(state, "state", None) == target_state:
+                _LOGGER.debug("Power switch %s is now %s", switch_id, target_state)
+                return True
+        return False
+
     async def turn_on_switch_and_wait(self, switch_id: str, climate_entity_id: str) -> bool:
         """Turn on a power switch and wait for it to report 'on'.
 
@@ -48,51 +87,15 @@ class PowerSwitchManager:
         """
         try:
             state = self.hass.states.get(switch_id)
-            if state and getattr(state, "state", None) != "on":
-                _LOGGER.info(
-                    "Turning on power switch %s for climate entity %s",
-                    switch_id,
-                    climate_entity_id,
-                )
-                try:
-                    payload = {"entity_id": switch_id}
-                    # Best-effort record of the outgoing service call
-                    if self._record_device_event:
-                        try:
-                            self._record_device_event(
-                                switch_id,
-                                "sent",
-                                "switch.turn_on",
-                                {"domain": "switch", "service": "turn_on", "data": payload},
-                            )
-                        except (OSError, RuntimeError, ValueError) as err:
-                            _LOGGER.debug(
-                                "Failed to record sent event for switch %s: %s", switch_id, err
-                            )
-
-                    await self.hass.services.async_call(
-                        "switch",
-                        "turn_on",
-                        payload,
-                        blocking=False,
-                    )
-                except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
-                    _LOGGER.debug("Failed to call turn_on for switch %s: %s", switch_id, err)
-
-                for _ in range(6):
-                    await asyncio.sleep(0.25)
-                    state = self.hass.states.get(switch_id)
-                    if state and getattr(state, "state", None) == "on":
-                        _LOGGER.debug("Power switch %s is now on", switch_id)
-                        return True
-                return False
-            else:
-                _LOGGER.debug(
-                    "Power switch %s already on for %s",
-                    switch_id,
-                    climate_entity_id,
-                )
+            if state and getattr(state, "state", None) == "on":
+                _LOGGER.debug("Power switch %s already on for %s", switch_id, climate_entity_id)
                 return True
+
+            _LOGGER.info(
+                "Turning on power switch %s for climate entity %s", switch_id, climate_entity_id
+            )
+            await self._call_switch_service(switch_id, "turn_on", climate_entity_id)
+            return await self._wait_for_switch_state(switch_id, "on")
         except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
             _LOGGER.debug("Error while turning on switch %s: %s", switch_id, err)
             return False
@@ -139,54 +142,25 @@ class PowerSwitchManager:
         """
         try:
             state = self.hass.states.get(climate_entity_id)
-            if state and getattr(state, "state", None) != "on":
-                _LOGGER.info("Turning on climate entity %s", climate_entity_id)
-                try:
-                    payload = {"entity_id": climate_entity_id}
-                    if self._record_device_event:
-                        try:
-                            self._record_device_event(
-                                climate_entity_id,
-                                "sent",
-                                "climate.turn_on",
-                                {
-                                    "domain": CLIMATE_DOMAIN,
-                                    "service": SERVICE_TURN_ON,
-                                    "data": payload,
-                                },
-                            )
-                        except (OSError, RuntimeError, ValueError) as err:
-                            _LOGGER.debug(
-                                "Failed to record sent turn_on for %s: %s", climate_entity_id, err
-                            )
+            if not state or getattr(state, "state", None) == "on":
+                return
 
-                    await self.hass.services.async_call(
-                        CLIMATE_DOMAIN,
-                        SERVICE_TURN_ON,
-                        payload,
-                        blocking=False,
-                    )
-                    if self._record_device_event:
-                        try:
-                            self._record_device_event(
-                                climate_entity_id,
-                                "received",
-                                "climate.turn_on",
-                                {"result": "dispatched"},
-                            )
-                        except (OSError, RuntimeError, ValueError) as err:
-                            _LOGGER.debug(
-                                "Failed to record received turn_on for %s: %s",
-                                climate_entity_id,
-                                err,
-                            )
-                except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
-                    # Be defensive - do not raise from best-effort fallback
-                    _LOGGER.debug(
-                        "Failed to turn on climate entity %s (fallback): %s", climate_entity_id, err
-                    )
+            _LOGGER.info("Turning on climate entity %s", climate_entity_id)
+            payload = {"entity_id": climate_entity_id}
+            self._record_event_safely(
+                climate_entity_id,
+                "sent",
+                "climate.turn_on",
+                {"domain": CLIMATE_DOMAIN, "service": SERVICE_TURN_ON, "data": payload},
+            )
+
+            await self.hass.services.async_call(
+                CLIMATE_DOMAIN, SERVICE_TURN_ON, payload, blocking=False
+            )
+            self._record_event_safely(
+                climate_entity_id, "received", "climate.turn_on", {"result": "dispatched"}
+            )
         except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
-            # Be defensive - do not raise from best-effort fallback
             _LOGGER.debug(
                 "Failed to turn on climate entity %s (fallback): %s", climate_entity_id, err
             )
@@ -197,67 +171,45 @@ class PowerSwitchManager:
         Args:
             climate_entity_id: Climate entity ID
         """
-        # Extract base name from climate entity
         if "." not in climate_entity_id:
             return
 
         base_name = climate_entity_id.split(".", 1)[1]
 
-        # Check for common power switch patterns
         for switch_id in self._power_switch_patterns(base_name):
             state = self.hass.states.get(switch_id)
-            if state:
-                # Found a power switch, turn it off
-                if state.state == "on":
-                    _LOGGER.info(
-                        "Turning off power switch %s for climate entity %s",
-                        switch_id,
-                        climate_entity_id,
-                    )
-                    try:
-                        payload = {"entity_id": switch_id}
-                        if self._record_device_event:
-                            try:
-                                self._record_device_event(
-                                    switch_id,
-                                    "sent",
-                                    "switch.turn_off",
-                                    {"domain": "switch", "service": "turn_off", "data": payload},
-                                )
-                            except (OSError, RuntimeError, ValueError) as err:
-                                _LOGGER.debug(
-                                    "Failed to record sent turn_off for %s: %s", switch_id, err
-                                )
+            if not state:
+                continue
 
-                        await self.hass.services.async_call(
-                            "switch",
-                            "turn_off",
-                            payload,
-                            blocking=False,
-                        )
-                    except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
-                        # Some integrations reject redundant off commands - ignore
-                        if self._record_device_event:
-                            try:
-                                self._record_device_event(
-                                    switch_id,
-                                    "received",
-                                    "switch.turn_off",
-                                    {"result": "error"},
-                                    status="error",
-                                    error=str(err),
-                                )
-                            except (OSError, RuntimeError, ValueError) as log_err:
-                                _LOGGER.debug(
-                                    "Failed to record received error for turn_off %s: %s",
-                                    switch_id,
-                                    log_err,
-                                )
-                        _LOGGER.debug(
-                            "Failed to turn off switch %s (may already be off): %s",
-                            switch_id,
-                            err,
-                        )
-                else:
-                    _LOGGER.debug("Power switch %s already off", switch_id)
-                return  # Found and handled the switch
+            await self._turn_off_switch(switch_id, climate_entity_id, state)
+            return  # Found and handled the switch
+
+    async def _turn_off_switch(self, switch_id: str, climate_entity_id: str, state) -> None:
+        """Turn off a specific switch."""
+        if state.state != "on":
+            _LOGGER.debug("Power switch %s already off", switch_id)
+            return
+
+        _LOGGER.info(
+            "Turning off power switch %s for climate entity %s", switch_id, climate_entity_id
+        )
+        payload = {"entity_id": switch_id}
+        self._record_event_safely(
+            switch_id,
+            "sent",
+            "switch.turn_off",
+            {"domain": "switch", "service": "turn_off", "data": payload},
+        )
+
+        try:
+            await self.hass.services.async_call("switch", "turn_off", payload, blocking=False)
+        except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
+            self._record_event_safely(
+                switch_id,
+                "received",
+                "switch.turn_off",
+                {"result": "error"},
+                status="error",
+                error=str(err),
+            )
+            _LOGGER.debug("Failed to turn off switch %s (may already be off): %s", switch_id, err)

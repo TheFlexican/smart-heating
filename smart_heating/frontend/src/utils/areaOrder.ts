@@ -10,53 +10,91 @@ import { Zone } from '../types'
  *   updated zone objects when available, and append any new zones not present in prev.
  * - If prevZones is empty, fall back to updatedZones order.
  */
+
+// Helper: Check if parsed data is valid array of strings
+function isValidOrderArray(parsed: unknown): parsed is string[] {
+  return Array.isArray(parsed) && parsed.every(p => typeof p === 'string')
+}
+
+// Helper: Merge zones using saved order
+function mergeWithSavedOrder(
+  updatedMap: Map<string, Zone>,
+  orderIds: string[],
+  updatedZones: Zone[],
+): Zone[] {
+  const ordered: Zone[] = []
+
+  // Add zones in saved order
+  for (const id of orderIds) {
+    const zone = updatedMap.get(id)
+    if (zone) ordered.push(zone)
+  }
+
+  // Append new zones not in saved order
+  const orderedIds = new Set(orderIds)
+  for (const zone of updatedZones) {
+    if (!orderedIds.has(zone.id)) ordered.push(zone)
+  }
+
+  return ordered
+}
+
+// Helper: Try to parse and merge with saved order
+function tryMergeWithSavedOrder(
+  savedOrderJson: string,
+  updatedMap: Map<string, Zone>,
+  updatedZones: Zone[],
+): Zone[] | null {
+  try {
+    const parsed = JSON.parse(savedOrderJson)
+    if (!isValidOrderArray(parsed)) return null
+
+    return mergeWithSavedOrder(updatedMap, parsed, updatedZones)
+  } catch {
+    return null
+  }
+}
+
+// Helper: Merge zones preserving previous order
+function mergeWithPreviousOrder(
+  prevZones: Zone[],
+  updatedMap: Map<string, Zone>,
+  updatedZones: Zone[],
+): Zone[] {
+  const prevIds = new Set(prevZones.map(z => z.id))
+
+  // Map previous zones to updated data
+  const merged: Zone[] = prevZones
+    .map(p => updatedMap.get(p.id))
+    .filter((z): z is Zone => z !== undefined)
+
+  // Append new zones
+  for (const zone of updatedZones) {
+    if (!prevIds.has(zone.id)) merged.push(zone)
+  }
+
+  return merged
+}
+
 export function mergeZones(
   prevZones: Zone[],
   updatedZones: Zone[],
   savedOrderJson: string | null,
 ): Zone[] {
-  // Build map of updated zones by id for quick lookup
   const updatedMap = new Map(updatedZones.map(z => [z.id, z]))
 
+  // Try saved order first
   if (savedOrderJson) {
-    try {
-      const parsed = JSON.parse(savedOrderJson)
-      // Validate it's an array of strings
-      if (Array.isArray(parsed) && parsed.every(p => typeof p === 'string')) {
-        const orderIds = parsed as string[]
-        const ordered: Zone[] = []
-        for (const id of orderIds) {
-          const z = updatedMap.get(id)
-          if (z) ordered.push(z)
-        }
-        // Append any zones that are new (not in saved order)
-        const orderedIds = new Set(orderIds)
-        for (const z of updatedZones) {
-          if (!orderedIds.has(z.id)) ordered.push(z)
-        }
-        return ordered
-      }
-      // If validation failed, fall through to preserve-prev behavior
-    } catch {
-      // Fallthrough to preserve-prev behavior
-    }
+    const result = tryMergeWithSavedOrder(savedOrderJson, updatedMap, updatedZones)
+    if (result) return result
   }
 
-  // No saved order -> try to preserve previous client order
-  if (prevZones && prevZones.length > 0) {
-    const prevIds = new Set(prevZones.map(z => z.id))
-    // Only include zones that still exist in the updated list
-    const merged: Zone[] = prevZones
-      .map(p => updatedMap.get(p.id))
-      .filter((z): z is Zone => z !== undefined)
-    // Append any new zones that didn't exist before
-    for (const z of updatedZones) {
-      if (!prevIds.has(z.id)) merged.push(z)
-    }
-    return merged
+  // Try previous order
+  if (prevZones?.length > 0) {
+    return mergeWithPreviousOrder(prevZones, updatedMap, updatedZones)
   }
 
-  // Fallback: return updated zones as-is
+  // Fallback to updated zones order
   return updatedZones
 }
 

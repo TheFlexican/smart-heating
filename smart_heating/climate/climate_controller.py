@@ -1,12 +1,15 @@
 """Climate controller for Smart Heating - Refactored."""
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import Optional
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from ..core.area_manager import AreaManager
+from ..exceptions import SmartHeatingError
 from .device_control import DeviceControlHandler
 from .heating_cycle import HeatingCycleHandler
 from .protection import ProtectionHandler
@@ -313,46 +316,59 @@ class ClimateController:
         Returns a list of dicts with keys: entity_id, open, position, running_state
         """
         trv_states: list[dict] = []
+        running_state = getattr(area, "state", None)
+
         for trv in getattr(area, "trv_entities", []):
             entity_id = trv.get("entity_id")
             if not entity_id:
                 continue
 
-            state = self.hass.states.get(entity_id)
-            open_state = None
-            position = None
-            running_state = getattr(area, "state", None)
-
-            try:
-                domain = entity_id.split(".")[0]
-                if domain == "binary_sensor":
-                    if state and state.state not in ("unknown", "unavailable"):
-                        open_state = state.state in ("on", "open")
-                else:
-                    if state and state.state not in ("unknown", "unavailable"):
-                        try:
-                            position = float(state.state)
-                        except (ValueError, TypeError):
-                            for attr in ("position", "valve_position", "current_position"):
-                                if attr in state.attributes:
-                                    try:
-                                        position = float(state.attributes.get(attr))
-                                        break
-                                    except (ValueError, TypeError):
-                                        continue
-            except (HomeAssistantError, SmartHeatingError, asyncio.TimeoutError):
-                continue
-
-            trv_states.append(
-                {
-                    "entity_id": entity_id,
-                    "open": open_state,
-                    "position": position,
-                    "running_state": running_state,
-                }
-            )
+            trv_data = self._get_single_trv_state(entity_id, running_state)
+            if trv_data:
+                trv_states.append(trv_data)
 
         return trv_states
+
+    def _get_single_trv_state(self, entity_id: str, running_state) -> Optional[dict]:
+        """Get state data for a single TRV entity."""
+        try:
+            state = self.hass.states.get(entity_id)
+            open_state, position = self._extract_trv_values(entity_id, state)
+
+            return {
+                "entity_id": entity_id,
+                "open": open_state,
+                "position": position,
+                "running_state": running_state,
+            }
+        except (HomeAssistantError, SmartHeatingError, asyncio.TimeoutError):
+            return None
+
+    def _extract_trv_values(self, entity_id: str, state) -> tuple[Optional[bool], Optional[float]]:
+        """Extract open state and position from TRV entity state."""
+        if not state or state.state in ("unknown", "unavailable"):
+            return None, None
+
+        domain = entity_id.split(".")[0]
+        if domain == "binary_sensor":
+            return state.state in ("on", "open"), None
+
+        return None, self._get_valve_position(state)
+
+    def _get_valve_position(self, state) -> Optional[float]:
+        """Extract valve position from state or attributes."""
+        try:
+            return float(state.state)
+        except (ValueError, TypeError):
+            pass
+
+        for attr in ("position", "valve_position", "current_position"):
+            if attr in state.attributes:
+                try:
+                    return float(state.attributes.get(attr))
+                except (ValueError, TypeError):
+                    continue
+        return None
 
     async def _handle_disabled_area(self, area_id, area, history_tracker, should_record_history):
         """Handle an area that is disabled and return True if processing should stop."""

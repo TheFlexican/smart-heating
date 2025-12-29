@@ -77,50 +77,56 @@ class DeviceService:
             area_id: Area identifier
             event: Device event to log
         """
-        # Ensure deque exists
         if area_id not in self._device_logs:
             self._device_logs[area_id] = deque(maxlen=self._device_log_capacity)
 
-        # Append new event to the left so newest events are first
         self._device_logs[area_id].appendleft(event)
+        self._purge_old_events(area_id)
+        self._notify_device_log_listeners(event)
 
-        # Purge old events by retention
+    def _purge_old_events(self, area_id: str) -> None:
+        """Remove events older than retention period."""
         cutoff = datetime.now(timezone.utc) - timedelta(
             minutes=self._device_event_retention_minutes
         )
-        # Remove from right while events are older than cutoff
         while self._device_logs[area_id]:
-            try:
-                ts = self._device_logs[area_id][-1].timestamp
-                ts_dt = datetime.fromisoformat(ts.replace("Z", UTC_SUFFIX))
-            except (HomeAssistantError, DeviceError, ValidationError, AttributeError, ValueError):
-                # If parsing fails, keep the event (tests expect malformed timestamps to be included)
+            if not self._is_event_expired(self._device_logs[area_id][-1], cutoff):
                 break
+            self._device_logs[area_id].pop()
 
-            if ts_dt < cutoff:
-                self._device_logs[area_id].pop()
-            else:
-                break
+    def _is_event_expired(self, event: DeviceEvent, cutoff: datetime) -> bool:
+        """Check if an event is older than the cutoff time."""
+        try:
+            ts = event.timestamp
+            ts_dt = datetime.fromisoformat(ts.replace("Z", UTC_SUFFIX))
+            return ts_dt < cutoff
+        except (HomeAssistantError, DeviceError, ValidationError, AttributeError, ValueError):
+            # If parsing fails, keep the event
+            return False
 
-        # Notify listeners
+    def _notify_device_log_listeners(self, event: DeviceEvent) -> None:
+        """Notify all registered listeners of a new device event."""
         event_dict = event.to_dict() if hasattr(event, "to_dict") else event
         for listener in list(self._device_log_listeners):
-            try:
-                if asyncio.iscoroutinefunction(listener):
-                    try:
-                        task = self.hass.async_create_task(listener(event_dict))
-                        task.add_done_callback(
-                            lambda t: t.exception() if not t.cancelled() else None
-                        )
-                    except (HomeAssistantError, DeviceError, ValidationError, AttributeError):
-                        task = asyncio.create_task(listener(event_dict))
-                        task.add_done_callback(
-                            lambda t: t.exception() if not t.cancelled() else None
-                        )
-                else:
-                    listener(event_dict)
-            except (HomeAssistantError, DeviceError, ValidationError, AttributeError):
-                _LOGGER.exception("Device log listener failed")
+            self._call_listener(listener, event_dict)
+
+    def _call_listener(self, listener, event_dict: dict) -> None:
+        """Call a single listener, handling async and sync cases."""
+        try:
+            if asyncio.iscoroutinefunction(listener):
+                self._schedule_async_listener(listener, event_dict)
+            else:
+                listener(event_dict)
+        except (HomeAssistantError, DeviceError, ValidationError, AttributeError):
+            _LOGGER.exception("Device log listener failed")
+
+    def _schedule_async_listener(self, listener, event_dict: dict) -> None:
+        """Schedule an async listener to run."""
+        try:
+            task = self.hass.async_create_task(listener(event_dict))
+        except (HomeAssistantError, DeviceError, ValidationError, AttributeError):
+            task = asyncio.create_task(listener(event_dict))
+        task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
 
     def async_get_device_logs(
         self,

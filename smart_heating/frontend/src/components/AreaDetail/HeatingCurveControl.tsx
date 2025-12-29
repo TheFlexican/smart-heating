@@ -1,8 +1,20 @@
 import React from 'react'
 import { Box, Typography, FormControlLabel, Switch, TextField, Button } from '@mui/material'
 import { useTranslation } from 'react-i18next'
+import { TFunction } from 'i18next'
 import { Zone } from '../../types'
 import { setAreaHeatingCurve } from '../../api/areas'
+
+// Helper: Get appropriate helper text for heating curve field
+const getHelperText = (area: Zone, useGlobalHeatingCurve: boolean, t: TFunction): string => {
+  if (area.heating_type === 'airco') {
+    return t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')
+  }
+  if (useGlobalHeatingCurve) {
+    return t('settingsCards.heatingCurveHelper.usingGlobal', 'Using global coefficient')
+  }
+  return t('settingsCards.heatingCurveHelper.overrideActive', 'Per-area override active')
+}
 
 export interface HeatingCurveControlProps {
   area: Zone
@@ -65,13 +77,7 @@ export const HeatingCurveControl: React.FC<HeatingCurveControlProps> = ({ area, 
           disabled={useGlobalHeatingCurve || area.heating_type === 'airco'}
           slotProps={{ htmlInput: { step: 0.1, min: 0.1, max: 10 } }}
           inputProps={{ 'data-testid': 'heating-curve-control' }}
-          helperText={
-            area.heating_type === 'airco'
-              ? t('settingsCards.disabledForAirco', 'Disabled for Air Conditioner')
-              : useGlobalHeatingCurve
-                ? t('settingsCards.heatingCurveHelper.usingGlobal', 'Using global coefficient')
-                : t('settingsCards.heatingCurveHelper.overrideActive', 'Per-area override active')
-          }
+          helperText={getHelperText(area, useGlobalHeatingCurve, t)}
         />
         <Button
           variant="contained"

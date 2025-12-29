@@ -145,7 +145,7 @@ async def handle_create_user(
     except ValueError as e:
         _LOGGER.warning("Invalid user data: %s", e)
         return web.json_response({"error": str(e)}, status=400)
-    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError) as e:
         _LOGGER.error("Error creating user: %s", e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)
 
@@ -190,7 +190,7 @@ async def handle_update_user(
     except ValueError as e:
         _LOGGER.warning("Invalid user data: %s", e)
         return web.json_response({"error": str(e)}, status=400)
-    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError) as e:
         _LOGGER.error("Error updating user %s: %s", user_id, e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)
 
@@ -223,7 +223,7 @@ async def handle_delete_user(
     except ValueError as e:
         _LOGGER.warning("User not found: %s", e)
         return web.json_response({"error": str(e)}, status=404)
-    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as e:
+    except (HomeAssistantError, SmartHeatingError, KeyError) as e:
         _LOGGER.error("Error deleting user %s: %s", user_id, e, exc_info=True)
         return web.json_response({"error": str(e)}, status=500)
 

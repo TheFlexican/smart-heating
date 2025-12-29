@@ -151,39 +151,42 @@ class AreaSensorManager:
         if not hass:
             return self.get_window_open_temperature()
 
-        # Check if any window is open
-        any_window_open = False
-        max_temp_drop = 0.0
+        max_temp_drop = self._get_max_window_temp_drop(hass)
+        if max_temp_drop == 0.0:
+            return None
 
+        base_temp = self._get_base_temperature_with_presence(use_global_presence)
+        return base_temp - max_temp_drop
+
+    def _get_max_window_temp_drop(self, hass) -> float:
+        """Get the maximum temperature drop from open windows."""
+        max_temp_drop = 0.0
         for sensor_id, sensor_config in self.area.window_sensors.items():
             if not sensor_config.get("enabled", True):
                 continue
-
             state = hass.states.get(sensor_id)
-            if state and state.state == "on":  # Window is open
-                any_window_open = True
+            if state and state.state == "on":
                 temp_drop = sensor_config.get("temp_drop", DEFAULT_WINDOW_OPEN_TEMP_DROP)
                 max_temp_drop = max(max_temp_drop, temp_drop)
+        return max_temp_drop
 
-        if not any_window_open:
-            return None
-
-        # Get base temperature (considering presence if enabled)
+    def _get_base_temperature_with_presence(self, use_global_presence: bool) -> float:
+        """Get base temperature, applying presence boost if applicable."""
         base_temp = self.area.target_temperature
 
-        if use_global_presence and self.area.area_manager:
-            # Check if global presence affects this area
-            presence_state = self.area.area_manager.get_global_presence_state()
-            if presence_state == "home":
-                # Apply presence boost before window drop
-                presence_boost = 0.0
-                for sensor_config in self.area.presence_sensors.values():
-                    if sensor_config.get("enabled", True):
-                        presence_boost = max(
-                            presence_boost,
-                            sensor_config.get("temp_boost", DEFAULT_PRESENCE_TEMP_BOOST),
-                        )
-                base_temp += presence_boost
+        if not use_global_presence or not self.area.area_manager:
+            return base_temp
 
-        # Apply window drop
-        return base_temp - max_temp_drop
+        if self.area.area_manager.get_global_presence_state() != "home":
+            return base_temp
+
+        return base_temp + self._get_presence_boost()
+
+    def _get_presence_boost(self) -> float:
+        """Get the maximum presence boost from enabled sensors."""
+        presence_boost = 0.0
+        for sensor_config in self.area.presence_sensors.values():
+            if sensor_config.get("enabled", True):
+                boost = sensor_config.get("temp_boost", DEFAULT_PRESENCE_TEMP_BOOST)
+                presence_boost = max(presence_boost, boost)
+        return presence_boost

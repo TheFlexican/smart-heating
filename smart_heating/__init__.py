@@ -78,6 +78,47 @@ _LOGGER = logging.getLogger(__name__)
 CLIMATE_UPDATE_INTERVAL = timedelta(seconds=30)
 
 
+async def _apply_config_entry_options(entry: ConfigEntry, area_manager: AreaManager) -> None:
+    """Apply config entry options to area manager."""
+    if not entry.options:
+        return
+
+    _LOGGER.debug("Loading config entry options: %s", entry.options)
+    gateway_id = entry.options.get("opentherm_gateway_id")
+    if not gateway_id:
+        return
+
+    # Only override saved numeric gateway IDs if options explicitly provide a string gateway id
+    existing_id = getattr(area_manager, "opentherm_gateway_id", None)
+    if existing_id and isinstance(existing_id, str) and existing_id.isnumeric():
+        _LOGGER.debug("Skipping options override for OpenTherm gateway: numeric value present")
+    else:
+        await area_manager.set_opentherm_gateway(gateway_id)
+
+    _LOGGER.info("Applied OpenTherm config from options: %s", gateway_id)
+
+
+def _start_opentherm_discovery_task(
+    hass: HomeAssistant, area_manager: AreaManager, opentherm_logger
+) -> None:
+    """Start OpenTherm capability discovery task if gateway is configured."""
+    if not area_manager.opentherm_gateway_id:
+        return
+
+    async def discover_capabilities():
+        await asyncio.sleep(10)  # Wait for HA to be fully started
+        try:
+            await opentherm_logger.async_discover_mqtt_capabilities(
+                area_manager.opentherm_gateway_id
+            )
+        except (HomeAssistantError, RuntimeError, ValueError) as err:
+            _LOGGER.error("Failed to discover OpenTherm capabilities: %s", err, exc_info=True)
+
+    hass.data[DOMAIN]["discover_capabilities_task"] = hass.async_create_task(
+        discover_capabilities()
+    )
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Smart Heating from a config entry.
 
@@ -98,21 +139,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await area_manager.async_load()
 
     # Apply config entry options to area manager
-    if entry.options:
-        _LOGGER.debug("Loading config entry options: %s", entry.options)
-        if entry.options.get("opentherm_gateway_id"):
-            # Only override saved numeric gateway IDs if options explicitly provide a string gateway id
-            existing_id = getattr(area_manager, "opentherm_gateway_id", None)
-            if existing_id and isinstance(existing_id, str) and existing_id.isnumeric():
-                _LOGGER.debug(
-                    "Skipping options override for OpenTherm gateway: numeric value present"
-                )
-            else:
-                await area_manager.set_opentherm_gateway(entry.options["opentherm_gateway_id"])
-            _LOGGER.info(
-                "Applied OpenTherm config from options: %s",
-                entry.options["opentherm_gateway_id"],
-            )
+    await _apply_config_entry_options(entry, area_manager)
 
     # Store area_manager in hass.data for other components
     hass.data[DOMAIN]["area_manager"] = area_manager
@@ -279,21 +306,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await setup_websocket(hass)
 
     # Discover OpenTherm Gateway capabilities if configured
-    if area_manager.opentherm_gateway_id:
-
-        async def discover_capabilities():
-            await asyncio.sleep(10)  # Wait for HA to be fully started
-            try:
-                await opentherm_logger.async_discover_mqtt_capabilities(
-                    area_manager.opentherm_gateway_id
-                )
-            except (HomeAssistantError, RuntimeError, ValueError) as err:
-                _LOGGER.error("Failed to discover OpenTherm capabilities: %s", err, exc_info=True)
-
-        # Keep the discover task reference for cleanup
-        hass.data[DOMAIN]["discover_capabilities_task"] = hass.async_create_task(
-            discover_capabilities()
-        )
+    _start_opentherm_discovery_task(hass, area_manager, opentherm_logger)
 
     # Register sidebar panel
     await async_register_panel(hass, entry)

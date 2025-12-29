@@ -221,6 +221,119 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     }
   }, [])
 
+  // Helper: Try to get token from meta tag
+  const tryGetTokenFromMetaTag = useCallback((isiOS: boolean): string | null => {
+    try {
+      const metaTag = document.querySelector('meta[name="ha-auth-token"]')
+      if (!metaTag) {
+        if (isiOS) console.warn('[WebSocket] iOS: No auth meta tag found')
+        return null
+      }
+
+      const metaToken = metaTag.getAttribute('content')
+      if (metaToken) {
+        console.log(`[WebSocket] ✓ Using auth token from meta tag (length: ${metaToken.length})`)
+        console.log('[WebSocket] Meta tag token injection working - iOS compatible!')
+        return metaToken
+      }
+    } catch (e) {
+      console.error('[WebSocket] Error reading meta tag:', e)
+    }
+    return null
+  }, [])
+
+  // Helper: Try to get token from URL parameters
+  const tryGetTokenFromUrl = useCallback((isiOS: boolean): string | null => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const urlToken = params.get('hassToken') || params.get('token')
+
+      if (urlToken) {
+        console.log(
+          `[WebSocket] ✓ Using auth token from URL parameter (length: ${urlToken.length})`,
+        )
+        return urlToken
+      }
+
+      if (isiOS) {
+        console.warn('[WebSocket] iOS: No token in URL parameters')
+        console.log(
+          '[WebSocket] Available URL params:',
+          Array.from(params.keys()).join(', ') || 'none',
+        )
+      }
+    } catch (e) {
+      console.error('[WebSocket] Error reading URL parameters:', e)
+    }
+    return null
+  }, [])
+
+  // Helper: Try to get token from parent window (iframe)
+  const tryGetTokenFromParent = useCallback(
+    (isiOS: boolean, isInIframe: boolean): string | null => {
+      try {
+        if (!window.parent || window.parent === window) {
+          return null
+        }
+
+        const parentConnection = (window.parent as any).hassConnection
+        if (parentConnection?.auth?.data?.access_token) {
+          console.log('[WebSocket] ✓ Using auth token from parent window')
+          return parentConnection.auth.data.access_token
+        }
+
+        if (isiOS && isInIframe) {
+          console.warn('[WebSocket] iOS iframe: Parent window accessible but no auth token found')
+        }
+      } catch {
+        if (isiOS && isInIframe) {
+          console.warn(
+            '[WebSocket] iOS iframe: Cannot access parent window (Safari privacy restriction)',
+          )
+        } else {
+          console.debug('[WebSocket] Cannot access parent window (expected in iframe)')
+        }
+      }
+      return null
+    },
+    [],
+  )
+
+  // Helper: Try to get token from localStorage
+  const tryGetTokenFromLocalStorage = useCallback((isiOS: boolean): string | null => {
+    try {
+      const haTokens = localStorage.getItem('hassTokens')
+      if (!haTokens) {
+        if (isiOS) console.warn('[WebSocket] iOS: No tokens in localStorage')
+        return null
+      }
+
+      const tokens = JSON.parse(haTokens)
+      if (tokens.access_token) {
+        console.log('[WebSocket] ✓ Using auth token from localStorage')
+        return tokens.access_token
+      }
+    } catch (e) {
+      console.error('[WebSocket] Failed to parse HA tokens from localStorage:', e)
+    }
+    return null
+  }, [])
+
+  // Helper: Log token not found error
+  const logTokenNotFound = useCallback((isiOS: boolean, isInIframe: boolean) => {
+    if (isiOS && isInIframe) {
+      console.error('[WebSocket] ❌ iOS iframe: No auth token found via any method!')
+      console.error(
+        '[WebSocket] iOS iframe: This usually means the panel URL is missing ?hassToken={%token%}',
+      )
+      console.error(
+        '[WebSocket] iOS iframe: Please ensure the HA panel config includes the token parameter',
+      )
+    } else {
+      console.warn('[WebSocket] No auth token found - WebSocket will be disabled')
+    }
+  }, [])
+
   const getAuthToken = useCallback((): string | null => {
     const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
     const isInIframe = window.self !== window.top
@@ -234,96 +347,295 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       console.log('[WebSocket] iOS-specific auth flow starting...')
     }
 
-    // Method 0: Try to get from meta tag (injected by backend for iOS compatibility)
-    try {
-      const metaTag = document.querySelector('meta[name="ha-auth-token"]')
-      if (metaTag) {
-        const metaToken = metaTag.getAttribute('content')
-        if (metaToken) {
-          console.log(`[WebSocket] ✓ Using auth token from meta tag (length: ${metaToken.length})`)
-          console.log('[WebSocket] Meta tag token injection working - iOS compatible!')
-          return metaToken
+    // Try each method in order
+    const token =
+      tryGetTokenFromMetaTag(isiOS) ||
+      tryGetTokenFromUrl(isiOS) ||
+      tryGetTokenFromParent(isiOS, isInIframe) ||
+      tryGetTokenFromLocalStorage(isiOS)
+
+    if (!token) {
+      logTokenNotFound(isiOS, isInIframe)
+      return null
+    }
+
+    return token
+  }, [
+    tryGetTokenFromMetaTag,
+    tryGetTokenFromUrl,
+    tryGetTokenFromParent,
+    tryGetTokenFromLocalStorage,
+    logTokenNotFound,
+  ])
+
+  // Helper: Handle auth_required message
+  const handleAuthRequired = useCallback(
+    (ws: WebSocket) => {
+      console.log('[WebSocket] Authentication required, getting token...')
+      const token = getAuthToken()
+
+      if (!token) {
+        console.error('[WebSocket] ❌ No authentication token available!')
+        setError('No authentication token available')
+        ws.close()
+        return
+      }
+
+      ws.send(JSON.stringify({ type: 'auth', access_token: token }))
+      console.log('[WebSocket] Auth message sent')
+    },
+    [getAuthToken],
+  )
+
+  // Helper: Setup keepalive ping
+  const setupKeepalivePing = useCallback(
+    (ws: WebSocket) => {
+      const pingInterval = isIOS ? 15000 : 30000
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current)
+      }
+      lastPongRef.current = Date.now()
+
+      pingIntervalRef.current = setInterval(() => {
+        if (ws.readyState !== WebSocket.OPEN) return
+
+        const timeSinceLastPong = Date.now() - lastPongRef.current
+        if (timeSinceLastPong > 20000) {
+          console.warn('[WebSocket] No pong received in 20s, forcing reconnect')
+          ws.close()
+          return
         }
-      } else if (isiOS) {
-        console.warn('[WebSocket] iOS: No auth meta tag found')
-      }
-    } catch (e) {
-      console.error('[WebSocket] Error reading meta tag:', e)
-    }
 
-    // Method 1: Try to get from URL query parameter (for iframe embedding)
-    try {
-      const params = new URLSearchParams(window.location.search)
-      const urlToken = params.get('hassToken') || params.get('token')
-      if (urlToken) {
-        console.log(
-          `[WebSocket] ✓ Using auth token from URL parameter (length: ${urlToken.length})`,
-        )
-        return urlToken
-      } else if (isiOS) {
-        console.warn('[WebSocket] iOS: No token in URL parameters')
-        console.log(
-          '[WebSocket] Available URL params:',
-          Array.from(params.keys()).join(', ') || 'none',
-        )
-      }
-    } catch (e) {
-      console.error('[WebSocket] Error reading URL parameters:', e)
-    }
+        ws.send(JSON.stringify({ id: messageIdRef.current++, type: 'ping' }))
+      }, pingInterval)
 
-    // Method 2: Try to get from parent window (for iframe embedding)
-    try {
-      if (window.parent && window.parent !== window) {
-        // We're in an iframe - try to access parent's connection
-        const parentConnection = (window.parent as any).hassConnection
-        if (parentConnection?.auth?.data?.access_token) {
-          console.log('[WebSocket] ✓ Using auth token from parent window')
-          return parentConnection.auth.data.access_token
-        } else if (isiOS && isInIframe) {
-          console.warn('[WebSocket] iOS iframe: Parent window accessible but no auth token found')
-        }
-      }
-    } catch {
-      // Cross-origin error is expected on iOS Safari - blocked by privacy restrictions
-      if (isiOS && isInIframe) {
-        console.warn(
-          '[WebSocket] iOS iframe: Cannot access parent window (Safari privacy restriction)',
-        )
-      } else {
-        console.debug('[WebSocket] Cannot access parent window (expected in iframe)')
-      }
-    }
-
-    // Method 3: Try to get from localStorage (for standalone or same-origin)
-    try {
-      const haTokens = localStorage.getItem('hassTokens')
-      if (haTokens) {
-        const tokens = JSON.parse(haTokens)
-        if (tokens.access_token) {
-          console.log('[WebSocket] ✓ Using auth token from localStorage')
-          return tokens.access_token
-        }
-      } else if (isiOS) {
-        console.warn('[WebSocket] iOS: No tokens in localStorage')
-      }
-    } catch (e) {
-      console.error('[WebSocket] Failed to parse HA tokens from localStorage:', e)
-    }
-
-    // No token found - log detailed error for iOS
-    if (isiOS && isInIframe) {
-      console.error('[WebSocket] ❌ iOS iframe: No auth token found via any method!')
-      console.error(
-        '[WebSocket] iOS iframe: This usually means the panel URL is missing ?hassToken={%token%}',
+      console.log(
+        `[WebSocket] Keepalive ping interval set to ${pingInterval}ms ${isIOS ? '(iOS optimized)' : ''}`,
       )
-      console.error(
-        '[WebSocket] iOS iframe: Please ensure the HA panel config includes the token parameter',
-      )
-    } else {
-      console.warn('[WebSocket] No auth token found - WebSocket will be disabled')
+    },
+    [isIOS],
+  )
+
+  // Helper: Handle auth_ok message
+  const handleAuthOk = useCallback(
+    (ws: WebSocket) => {
+      console.log('[WebSocket] ✓ Authenticated successfully!')
+      isAuthenticatedRef.current = true
+      setIsConnected(true)
+      setError(null)
+      reconnectAttempts.current = 0
+      wsFailureCount.current = 0
+
+      if (transportMode === 'polling') {
+        console.log('[WebSocket] Switching from polling back to WebSocket')
+        setTransportMode('websocket')
+        stopPollingFallback()
+      }
+
+      updateMetrics({
+        successfulConnections: metricsRef.current.successfulConnections + 1,
+        lastConnectedAt: new Date().toISOString(),
+      })
+
+      optionsRef.current?.onConnect?.()
+      setupKeepalivePing(ws)
+
+      ws.send(JSON.stringify({ id: messageIdRef.current++, type: 'smart_heating/subscribe' }))
+    },
+    [transportMode, stopPollingFallback, updateMetrics, setupKeepalivePing],
+  )
+
+  // Helper: Handle auth_invalid message
+  const handleAuthInvalid = useCallback(
+    (ws: WebSocket, message: WebSocketMessage) => {
+      console.error('Authentication failed:', message.error)
+      setError('Authentication failed')
+
+      updateMetrics({
+        failedConnections: metricsRef.current.failedConnections + 1,
+        lastFailureReason: `Authentication failed: ${message.error?.message || 'Unknown error'}`,
+      })
+
+      ws.close()
+    },
+    [updateMetrics],
+  )
+
+  // Helper: Handle result message
+  const handleResultMessage = useCallback((message: WebSocketMessage) => {
+    // Check if this is a subscription update
+    if (message.result?.event === 'update' && message.result?.data?.areas) {
+      const areasArray = Object.values(message.result.data.areas) as Zone[]
+      optionsRef.current?.onZonesUpdate?.(areasArray)
+      return
     }
-    return null
+
+    // Handle live device events
+    if (message.result?.event === 'device_event' && message.result?.data) {
+      try {
+        const evt = message.result.data
+        try {
+          window.dispatchEvent(new CustomEvent('smart_heating.device_event', { detail: evt }))
+        } catch {
+          ;(window as any).smart_heating_device_event = evt
+        }
+      } catch (e) {
+        console.error('Failed to handle device_event:', e)
+      }
+      return
+    }
+
+    if (!message.success) {
+      console.error('Command failed:', message.error)
+      setError(message.error?.message || 'Command failed')
+    }
   }, [])
+
+  // Helper: Handle event message
+  const handleEventMessage = useCallback((message: WebSocketMessage) => {
+    const event = message.result || message
+    if (event.data?.areas) {
+      optionsRef.current?.onZonesUpdate?.(event.data.areas)
+    } else if (event.data?.area) {
+      optionsRef.current?.onZoneUpdate?.(event.data.area)
+    } else if (event.data?.area_id) {
+      optionsRef.current?.onZoneDelete?.(event.data.area_id)
+    }
+  }, [])
+
+  // Helper: Handle legacy messages
+  const handleLegacyMessage = useCallback((message: WebSocketMessage) => {
+    switch (message.type) {
+      case 'pong':
+        lastPongRef.current = Date.now()
+        break
+      case 'areas_updated':
+        if (message.data?.areas) {
+          optionsRef.current?.onZonesUpdate?.(message.data.areas)
+        }
+        break
+      case 'area_updated':
+        if (message.data?.area) {
+          optionsRef.current?.onZoneUpdate?.(message.data.area)
+        }
+        break
+      case 'area_deleted':
+        if (message.data?.area_id) {
+          optionsRef.current?.onZoneDelete?.(message.data.area_id)
+        }
+        break
+    }
+  }, [])
+
+  // Helper: Record connection duration on disconnect
+  const recordDisconnection = useCallback(
+    (wasAuthenticated: boolean, wasIntentional: boolean) => {
+      if (!connectionStartTimeRef.current) return
+
+      const duration = Date.now() - connectionStartTimeRef.current
+
+      if (wasAuthenticated && !wasIntentional) {
+        updateMetrics({
+          unexpectedDisconnects: metricsRef.current.unexpectedDisconnects + 1,
+          lastDisconnectedAt: new Date().toISOString(),
+          connectionDurations: [...metricsRef.current.connectionDurations, duration],
+        })
+      } else if (wasAuthenticated) {
+        updateMetrics({
+          lastDisconnectedAt: new Date().toISOString(),
+          connectionDurations: [...metricsRef.current.connectionDurations, duration],
+        })
+      }
+
+      connectionStartTimeRef.current = null
+    },
+    [updateMetrics],
+  )
+
+  // Helper: Schedule reconnection attempt with exponential backoff
+  const scheduleReconnect = useCallback(
+    (connectFn: () => void) => {
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000)
+      console.log(
+        `[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`,
+      )
+
+      reconnectTimeoutRef.current = setTimeout(() => {
+        reconnectAttempts.current++
+        connectFn()
+      }, delay)
+    },
+    [maxReconnectAttempts],
+  )
+
+  // Helper: Handle max reconnect attempts reached
+  const handleMaxReconnectFailure = useCallback(() => {
+    console.error('[WebSocket] Failed to connect after maximum attempts')
+    setError('Failed to connect after multiple attempts')
+
+    updateMetrics({
+      failedConnections: metricsRef.current.failedConnections + 1,
+      lastFailureReason: 'Failed to connect after maximum attempts',
+    })
+
+    wsFailureCount.current++
+    console.log(
+      `[WebSocket] Failure count: ${wsFailureCount.current}/${maxWsFailuresBeforeFallback}`,
+    )
+
+    if (wsFailureCount.current >= maxWsFailuresBeforeFallback && transportMode !== 'polling') {
+      console.log('[WebSocket] Max failures reached, falling back to polling')
+      startPollingFallback()
+    }
+
+    optionsRef.current?.onError?.('Connection failed')
+  }, [updateMetrics, transportMode, startPollingFallback, maxWsFailuresBeforeFallback])
+
+  // Helper: Handle WebSocket message
+  const handleWebSocketMessage = useCallback(
+    (ws: WebSocket, event: MessageEvent) => {
+      try {
+        const message: WebSocketMessage = JSON.parse(event.data)
+
+        if (message.type === 'auth_required') {
+          handleAuthRequired(ws)
+          return
+        }
+
+        if (message.type === 'auth_ok') {
+          handleAuthOk(ws)
+          return
+        }
+
+        if (message.type === 'auth_invalid') {
+          handleAuthInvalid(ws, message)
+          return
+        }
+
+        if (message.type === 'result') {
+          handleResultMessage(message)
+          return
+        }
+
+        if (message.type === 'event') {
+          handleEventMessage(message)
+          return
+        }
+
+        handleLegacyMessage(message)
+      } catch (err) {
+        console.error('Failed to parse WebSocket message:', err)
+      }
+    },
+    [
+      handleAuthRequired,
+      handleAuthOk,
+      handleAuthInvalid,
+      handleResultMessage,
+      handleEventMessage,
+      handleLegacyMessage,
+    ],
+  )
 
   // `options` is accessed via `optionsRef` to avoid reconnect churn when the object identity changes
   const connect = useCallback(() => {
@@ -358,195 +670,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       }
 
       ws.onmessage = event => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data)
-
-          // Handle authentication phase
-          if (message.type === 'auth_required') {
-            console.log('[WebSocket] Authentication required, getting token...')
-            const token = getAuthToken()
-
-            if (!token) {
-              console.error('[WebSocket] ❌ No authentication token available!')
-              setError('No authentication token available')
-              ws.close()
-              return
-            }
-
-            // Send auth message
-            ws.send(
-              JSON.stringify({
-                type: 'auth',
-                access_token: token,
-              }),
-            )
-            console.log('[WebSocket] Auth message sent')
-            return
-          }
-
-          if (message.type === 'auth_ok') {
-            console.log('[WebSocket] ✓ Authenticated successfully!')
-            isAuthenticatedRef.current = true
-            setIsConnected(true)
-            setError(null)
-            reconnectAttempts.current = 0
-            wsFailureCount.current = 0 // Reset failure count on success
-
-            // If we were in polling mode, switch back to WebSocket and stop polling
-            if (transportMode === 'polling') {
-              console.log('[WebSocket] Switching from polling back to WebSocket')
-              setTransportMode('websocket')
-              stopPollingFallback()
-            }
-
-            // Track successful connection
-            updateMetrics({
-              successfulConnections: metricsRef.current.successfulConnections + 1,
-              lastConnectedAt: new Date().toISOString(),
-            })
-
-            optionsRef.current?.onConnect?.()
-
-            // Start keepalive ping - 15 seconds on iOS, 30 seconds on other platforms
-            // iOS Safari suspends connections aggressively, so we need more frequent pings
-            const pingInterval = isIOS ? 15000 : 30000
-            if (pingIntervalRef.current) {
-              clearInterval(pingIntervalRef.current)
-            }
-            lastPongRef.current = Date.now()
-
-            pingIntervalRef.current = setInterval(() => {
-              if (ws.readyState === WebSocket.OPEN) {
-                // Check if we received a pong response to our last ping
-                const timeSinceLastPong = Date.now() - lastPongRef.current
-                if (timeSinceLastPong > 20000) {
-                  // No pong received in 20 seconds - connection is likely dead
-                  console.warn('[WebSocket] No pong received in 20s, forcing reconnect')
-                  ws.close()
-                  return
-                }
-
-                ws.send(
-                  JSON.stringify({
-                    id: messageIdRef.current++,
-                    type: 'ping',
-                  }),
-                )
-              }
-            }, pingInterval)
-
-            console.log(
-              `[WebSocket] Keepalive ping interval set to ${pingInterval}ms ${isIOS ? '(iOS optimized)' : ''}`,
-            )
-
-            // Now subscribe to our custom events
-            ws.send(
-              JSON.stringify({
-                id: messageIdRef.current++,
-                type: 'smart_heating/subscribe',
-              }),
-            )
-            return
-          }
-
-          if (message.type === 'auth_invalid') {
-            console.error('Authentication failed:', message.error)
-            setError('Authentication failed')
-
-            // Track failed connection
-            updateMetrics({
-              failedConnections: metricsRef.current.failedConnections + 1,
-              lastFailureReason: `Authentication failed: ${message.error?.message || 'Unknown error'}`,
-            })
-
-            ws.close()
-            return
-          }
-
-          // Handle command phase messages
-          if (message.type === 'result') {
-            // Check if this is a subscription update (has event data)
-            if (message.result?.event === 'update' && message.result?.data?.areas) {
-              // Convert areas object to array (backend sends object with area_id as keys)
-              const areasData = message.result.data.areas
-              const areasArray = Object.values(areasData) as Zone[]
-              optionsRef.current?.onZonesUpdate?.(areasArray)
-              return
-            }
-
-            // Handle live device events forwarded from backend
-            if (message.result?.event === 'device_event' && message.result?.data) {
-              try {
-                const evt = message.result.data
-                // Dispatch a global CustomEvent so UI components can subscribe
-                try {
-                  window.dispatchEvent(
-                    new CustomEvent('smart_heating.device_event', { detail: evt }),
-                  )
-                } catch {
-                  // Fallback for older browsers
-                  ;(window as any).smart_heating_device_event = evt
-                }
-              } catch (e) {
-                console.error('Failed to handle device_event:', e)
-              }
-              return
-            }
-
-            if (!message.success) {
-              console.error('Command failed:', message.error)
-              setError(message.error?.message || 'Command failed')
-            }
-            return
-          }
-
-          if (message.type === 'event') {
-            // Handle our custom area events
-            const event = message.result || message
-            if (event.data?.areas) {
-              optionsRef.current?.onZonesUpdate?.(event.data.areas)
-            } else if (event.data?.area) {
-              optionsRef.current?.onZoneUpdate?.(event.data.area)
-            } else if (event.data?.area_id) {
-              optionsRef.current?.onZoneDelete?.(event.data.area_id)
-            }
-            return
-          }
-
-          // Legacy message handling (for backward compatibility)
-          switch (message.type) {
-            case 'pong':
-              // Keepalive response - update last pong time
-              lastPongRef.current = Date.now()
-              break
-
-            case 'areas_updated':
-              if (message.data?.areas) {
-                optionsRef.current?.onZonesUpdate?.(message.data.areas)
-              }
-              break
-
-            case 'area_updated':
-              if (message.data?.area) {
-                optionsRef.current?.onZoneUpdate?.(message.data.area)
-              }
-              break
-
-            case 'area_deleted':
-              if (message.data?.area_id) {
-                optionsRef.current?.onZoneDelete?.(message.data.area_id)
-              }
-              break
-          }
-        } catch (err) {
-          console.error('Failed to parse WebSocket message:', err)
-        }
+        handleWebSocketMessage(ws, event)
       }
 
       ws.onerror = event => {
         console.error('[WebSocket] Error:', event)
         setError('WebSocket connection error')
-        optionsRef.current?.onError?.('Connection error')
         optionsRef.current?.onError?.('Connection error')
       }
 
@@ -556,28 +685,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         wsRef.current = null
 
         // Track connection duration and disconnection
-        if (connectionStartTimeRef.current) {
-          const duration = Date.now() - connectionStartTimeRef.current
-          const wasAuthenticated = isAuthenticatedRef.current
-
-          if (wasAuthenticated && !intentionalCloseRef.current) {
-            // Unexpected disconnect
-            updateMetrics({
-              unexpectedDisconnects: metricsRef.current.unexpectedDisconnects + 1,
-              lastDisconnectedAt: new Date().toISOString(),
-              connectionDurations: [...metricsRef.current.connectionDurations, duration],
-            })
-          } else if (wasAuthenticated) {
-            // Intentional disconnect - still track duration
-            updateMetrics({
-              lastDisconnectedAt: new Date().toISOString(),
-              connectionDurations: [...metricsRef.current.connectionDurations, duration],
-            })
-          }
-
-          connectionStartTimeRef.current = null
-        }
-
+        recordDisconnection(isAuthenticatedRef.current, intentionalCloseRef.current)
         optionsRef.current?.onDisconnect?.()
 
         // Clear ping interval
@@ -595,40 +703,9 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
         // Attempt to reconnect with exponential backoff
         if (reconnectAttempts.current < maxReconnectAttempts) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000)
-          console.log(
-            `[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`,
-          )
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            reconnectAttempts.current++
-            connect()
-          }, delay)
+          scheduleReconnect(connect)
         } else {
-          console.error('[WebSocket] Failed to connect after maximum attempts')
-          setError('Failed to connect after multiple attempts')
-
-          // Track max attempts reached
-          updateMetrics({
-            failedConnections: metricsRef.current.failedConnections + 1,
-            lastFailureReason: 'Failed to connect after maximum attempts',
-          })
-
-          // Increment WebSocket failure count and fall back to polling if needed
-          wsFailureCount.current++
-          console.log(
-            `[WebSocket] Failure count: ${wsFailureCount.current}/${maxWsFailuresBeforeFallback}`,
-          )
-
-          if (
-            wsFailureCount.current >= maxWsFailuresBeforeFallback &&
-            transportMode !== 'polling'
-          ) {
-            console.log('[WebSocket] Max failures reached, falling back to polling')
-            startPollingFallback()
-          }
-
-          optionsRef.current?.onError?.('Connection failed')
+          handleMaxReconnectFailure()
         }
       }
     } catch (err) {
@@ -641,7 +718,13 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         lastFailureReason: `Failed to create WebSocket: ${err instanceof Error ? err.message : 'Unknown error'}`,
       })
     }
-  }, [getAuthToken, updateMetrics, transportMode, startPollingFallback, stopPollingFallback, isIOS])
+  }, [
+    handleWebSocketMessage,
+    updateMetrics,
+    recordDisconnection,
+    scheduleReconnect,
+    handleMaxReconnectFailure,
+  ])
 
   const disconnect = useCallback(() => {
     console.log('[WebSocket] Disconnecting')

@@ -6,6 +6,17 @@ import { SettingSection } from '../DraggableSettings'
 import { setHeatingType } from '../../api/areas'
 import { HeatingCurveControl } from './HeatingCurveControl'
 
+// Helper: Get badge label for heating type
+const getHeatingTypeBadge = (area: Zone, t: TFunction): string => {
+  if (area.heating_type === 'floor_heating') {
+    return t('settingsCards.floorHeating', 'Floor Heating')
+  }
+  if (area.heating_type === 'airco') {
+    return t('settingsCards.airConditioner', 'Air Conditioner')
+  }
+  return t('settingsCards.radiator', 'Radiator')
+}
+
 export interface HeatingTypeSectionProps {
   area: Zone
   onUpdate: () => void
@@ -25,12 +36,7 @@ export const HeatingTypeSection = ({
       'Select radiator or floor heating to optimize temperature control',
     ),
     icon: <LocalFireDepartmentIcon />,
-    badge:
-      area.heating_type === 'floor_heating'
-        ? t('settingsCards.floorHeating', 'Floor Heating')
-        : area.heating_type === 'airco'
-          ? t('settingsCards.airConditioner', 'Air Conditioner')
-          : t('settingsCards.radiator', 'Radiator'),
+    badge: getHeatingTypeBadge(area, t),
     defaultExpanded: false,
     content: (
       <Box>

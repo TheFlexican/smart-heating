@@ -20,6 +20,102 @@ const StatRow: React.FC<StatRowProps> = ({ label, value, color }) => (
   </Box>
 )
 
+// Helper: Render recent events list
+const RecentEventsList: React.FC<{ events: any[] }> = ({ events }) => (
+  <Box sx={{ mt: 2 }}>
+    <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+      Recent Events (Last 10):
+    </Typography>
+    <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
+      {events.map((event: any, index: number) => (
+        <Box
+          key={index}
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            py: 0.5,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Typography variant="caption" color="text.secondary">
+            {new Date(event.timestamp).toLocaleString()}
+          </Typography>
+          <Typography variant="caption" color="text.primary">
+            {event.heating_rate.toFixed(4)}°C/min
+          </Typography>
+        </Box>
+      ))}
+    </Box>
+  </Box>
+)
+
+// Helper: Render learning statistics
+interface LearningStatsDisplayProps {
+  learningStats: any
+  learningStatsLoading: boolean
+}
+
+const LearningStatsDisplay: React.FC<LearningStatsDisplayProps> = ({
+  learningStats,
+  learningStatsLoading,
+}) => {
+  if (learningStatsLoading) {
+    return (
+      <Box sx={{ textAlign: 'center', py: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          Loading statistics...
+        </Typography>
+      </Box>
+    )
+  }
+
+  if (!learningStats) {
+    return (
+      <Box sx={{ textAlign: 'center', py: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          No learning data available yet. Start heating cycles to collect data.
+        </Typography>
+      </Box>
+    )
+  }
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
+      <StatRow label="Total Events" value={String(learningStats.total_events_all_time || 0)} />
+      <StatRow label="Data Points (Last 30 Days)" value={String(learningStats.data_points || 0)} />
+      {learningStats.avg_heating_rate > 0 && (
+        <StatRow
+          label="Average Heating Rate"
+          value={`${learningStats.avg_heating_rate.toFixed(4)}°C/min`}
+        />
+      )}
+      <StatRow
+        label="Ready for Predictions"
+        value={
+          <strong>{learningStats.ready_for_predictions ? 'Yes' : 'No (need 20+ events)'}</strong>
+        }
+        color={learningStats.ready_for_predictions ? 'success.main' : 'warning.main'}
+      />
+      {learningStats.first_event_time && (
+        <StatRow
+          label="First Event"
+          value={new Date(learningStats.first_event_time).toLocaleString()}
+        />
+      )}
+      {learningStats.last_event_time && (
+        <StatRow
+          label="Last Event"
+          value={new Date(learningStats.last_event_time).toLocaleString()}
+        />
+      )}
+      {learningStats.recent_events?.length > 0 && (
+        <RecentEventsList events={learningStats.recent_events} />
+      )}
+    </Box>
+  )
+}
+
 export interface AreaLearningTabProps {
   area: Zone
   learningStats: any | null
@@ -81,90 +177,10 @@ export const AreaLearningTab: React.FC<AreaLearningTabProps> = ({
             <Typography variant="subtitle2" color="text.primary" gutterBottom sx={{ mt: 3 }}>
               Learning Data
             </Typography>
-            {learningStatsLoading ? (
-              <Box sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Loading statistics...
-                </Typography>
-              </Box>
-            ) : learningStats ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                <StatRow
-                  label="Total Events"
-                  value={String(learningStats.total_events_all_time || 0)}
-                />
-                <StatRow
-                  label="Data Points (Last 30 Days)"
-                  value={String(learningStats.data_points || 0)}
-                />
-                {learningStats.avg_heating_rate > 0 && (
-                  <StatRow
-                    label="Average Heating Rate"
-                    value={`${learningStats.avg_heating_rate.toFixed(4)}°C/min`}
-                  />
-                )}
-                <StatRow
-                  label="Ready for Predictions"
-                  value={
-                    <strong>
-                      {learningStats.ready_for_predictions ? 'Yes' : 'No (need 20+ events)'}
-                    </strong>
-                  }
-                  color={learningStats.ready_for_predictions ? 'success.main' : 'warning.main'}
-                />
-                {learningStats.first_event_time && (
-                  <StatRow
-                    label="First Event"
-                    value={new Date(learningStats.first_event_time).toLocaleString()}
-                  />
-                )}
-                {learningStats.last_event_time && (
-                  <StatRow
-                    label="Last Event"
-                    value={new Date(learningStats.last_event_time).toLocaleString()}
-                  />
-                )}
-                {learningStats.recent_events && learningStats.recent_events.length > 0 && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      display="block"
-                      gutterBottom
-                    >
-                      Recent Events (Last 10):
-                    </Typography>
-                    <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
-                      {learningStats.recent_events.map((event: any, index: number) => (
-                        <Box
-                          key={index}
-                          sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            py: 0.5,
-                            borderBottom: '1px solid',
-                            borderColor: 'divider',
-                          }}
-                        >
-                          <Typography variant="caption" color="text.secondary">
-                            {new Date(event.timestamp).toLocaleString()}
-                          </Typography>
-                          <Typography variant="caption" color="text.primary">
-                            {event.heating_rate.toFixed(4)}°C/min
-                          </Typography>
-                        </Box>
-                      ))}
-                    </Box>
-                  </Box>
-                )}
-              </Box>
-            ) : (
-              <Box sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  No learning data available yet. Start heating cycles to collect data.
-                </Typography>
-              </Box>
-            )}
+            <LearningStatsDisplay
+              learningStats={learningStats}
+              learningStatsLoading={learningStatsLoading}
+            />
             <Typography variant="subtitle2" color="text.primary" gutterBottom sx={{ mt: 3 }}>
               {t('areaDetail.learningProcessTitle')}
             </Typography>

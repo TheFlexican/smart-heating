@@ -107,7 +107,7 @@ class ManualOverrideDetector:
 
     def _is_manual_change(
         self,
-        entity_id: str,
+        _entity_id: str,
         new_temp: float,
         area: "Area",
     ) -> bool:
@@ -118,7 +118,7 @@ class ManualOverrideDetector:
         - Stale changes that are lower than current target
 
         Args:
-            entity_id: Thermostat entity ID
+            _entity_id: Thermostat entity ID (unused, kept for API consistency)
             new_temp: New temperature
             area: Area instance
 
@@ -153,7 +153,7 @@ class ManualOverrideDetector:
 
     async def _apply_override(
         self,
-        entity_id: str,
+        _entity_id: str,
         new_temp: float,
         area: "Area",
         area_manager: "AreaManager",
@@ -161,7 +161,7 @@ class ManualOverrideDetector:
         """Apply manual override to the area.
 
         Args:
-            entity_id: Thermostat entity ID
+            _entity_id: Thermostat entity ID (unused, kept for API consistency)
             new_temp: New temperature
             area: Area instance
             area_manager: Area manager instance
