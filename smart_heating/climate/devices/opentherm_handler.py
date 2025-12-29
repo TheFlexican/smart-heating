@@ -9,9 +9,6 @@ from homeassistant.exceptions import HomeAssistantError
 from ...exceptions import DeviceError
 from .base_device_handler import BaseDeviceHandler
 
-if TYPE_CHECKING:
-    pass
-
 _LOGGER = logging.getLogger(__name__)
 
 # Service constant
@@ -133,16 +130,16 @@ class OpenThermHandler(BaseDeviceHandler):
         if not gateway_state or gateway_state.attributes.get("relative_mod_level"):
             return boiler_setpoint
 
-        boiler_temp = gateway_state.attributes.get(
-            "boiler_water_temp"
-        ) or gateway_state.attributes.get("ch_water_temp")
+        boiler_temp_raw = gateway_state.attributes.get("boiler_water_temp")
+        if boiler_temp_raw is None:
+            boiler_temp_raw = gateway_state.attributes.get("ch_water_temp")
 
-        try:
-            boiler_temp = float(boiler_temp)
-        except (HomeAssistantError, DeviceError, asyncio.TimeoutError, AttributeError, KeyError):
+        if boiler_temp_raw is None:
             return boiler_setpoint
 
-        if boiler_temp is None:
+        try:
+            boiler_temp = float(boiler_temp_raw)
+        except (ValueError, TypeError):
             return boiler_setpoint
 
         duty = self._calculate_pwm_duty(boiler_setpoint, boiler_temp, heating_types)

@@ -1,5 +1,6 @@
 """Temperature sensor handling for climate control."""
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Optional
 
@@ -14,7 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def get_outdoor_temperature_from_weather_entity(
-    hass: HomeAssistant, weather_entity_id: str
+    hass: HomeAssistant, weather_entity_id: str | None
 ) -> Optional[float]:
     """Get outdoor temperature from a weather entity.
 
@@ -220,6 +221,7 @@ class TemperatureSensorHandler:
         Returns:
             Outdoor temperature in Celsius or None if not available
         """
+        await asyncio.sleep(0)  # Ensure this is an async function
         return get_outdoor_temperature_from_weather_entity(
             self.hass, area.boost_manager.weather_entity_id
         )
