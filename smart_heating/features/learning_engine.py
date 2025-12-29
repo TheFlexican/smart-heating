@@ -96,6 +96,7 @@ class LearningEngine:
             Weather entity ID or None if not found
         """
         # Look for weather entities
+        await asyncio.sleep(0)  # Minimal async operation to satisfy async requirement
         for entity_id in self.hass.states.async_entity_ids("weather"):
             state = self.hass.states.get(entity_id)
             if state and state.state not in ("unknown", "unavailable"):

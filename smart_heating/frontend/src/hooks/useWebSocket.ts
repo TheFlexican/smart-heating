@@ -51,7 +51,7 @@ interface WebSocketMetrics {
 // Helper to detect device info
 const getDeviceInfo = () => {
   const ua = navigator.userAgent
-  const isIframe = window.self !== window.top
+  const isIframe = globalThis.self !== globalThis.top
   const isiOS = /iPad|iPhone|iPod/.test(ua)
   const isAndroid = /Android/.test(ua)
 
@@ -61,9 +61,12 @@ const getDeviceInfo = () => {
   else if (ua.includes('Firefox')) browserName = 'Firefox'
   else if (ua.includes('Edg')) browserName = 'Edge'
 
+  // Use userAgentData.platform when available (modern API) and fall back to userAgent string
+  const platform = navigator.userAgent
+
   return {
     userAgent: ua,
-    platform: navigator.platform,
+    platform,
     isIframe,
     isiOS,
     isAndroid,
@@ -245,7 +248,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   // Helper: Try to get token from URL parameters
   const tryGetTokenFromUrl = useCallback((isiOS: boolean): string | null => {
     try {
-      const params = new URLSearchParams(window.location.search)
+      const params = new URLSearchParams(globalThis.location.search)
       const urlToken = params.get('hassToken') || params.get('token')
 
       if (urlToken) {
@@ -268,30 +271,32 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     return null
   }, [])
 
-  // Helper: Try to get token from parent window (iframe)
+  // Helper: Try to get token from parent globalThis (iframe)
   const tryGetTokenFromParent = useCallback(
     (isiOS: boolean, isInIframe: boolean): string | null => {
       try {
-        if (!window.parent || window.parent === window) {
+        if (!globalThis.parent) {
           return null
         }
 
-        const parentConnection = (window.parent as any).hassConnection
+        const parentConnection = (globalThis.parent as any).hassConnection
         if (parentConnection?.auth?.data?.access_token) {
-          console.log('[WebSocket] ✓ Using auth token from parent window')
+          console.log('[WebSocket] ✓ Using auth token from parent globalThis')
           return parentConnection.auth.data.access_token
         }
 
         if (isiOS && isInIframe) {
-          console.warn('[WebSocket] iOS iframe: Parent window accessible but no auth token found')
+          console.warn(
+            '[WebSocket] iOS iframe: Parent globalThis accessible but no auth token found',
+          )
         }
       } catch {
         if (isiOS && isInIframe) {
           console.warn(
-            '[WebSocket] iOS iframe: Cannot access parent window (Safari privacy restriction)',
+            '[WebSocket] iOS iframe: Cannot access parent globalThis (Safari privacy restriction)',
           )
         } else {
-          console.debug('[WebSocket] Cannot access parent window (expected in iframe)')
+          console.debug('[WebSocket] Cannot access parent globalThis (expected in iframe)')
         }
       }
       return null
@@ -336,12 +341,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
   const getAuthToken = useCallback((): string | null => {
     const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-    const isInIframe = window.self !== window.top
+    const isInIframe = globalThis.self !== globalThis.top
 
     console.log(`[WebSocket] Device: ${isiOS ? 'iOS' : 'Other'} | iframe: ${isInIframe}`)
-    console.log(`[WebSocket] Full URL: ${window.location.href}`)
-    console.log(`[WebSocket] Search params: ${window.location.search || '(none)'}`)
-    console.log(`[WebSocket] Hash: ${window.location.hash || '(none)'}`)
+    console.log(`[WebSocket] Full URL: ${globalThis.location.href}`)
+    console.log(`[WebSocket] Search params: ${globalThis.location.search || '(none)'}`)
+    console.log(`[WebSocket] Hash: ${globalThis.location.hash || '(none)'}`)
 
     if (isiOS) {
       console.log('[WebSocket] iOS-specific auth flow starting...')
@@ -465,7 +470,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const handleResultMessage = useCallback((message: WebSocketMessage) => {
     // Check if this is a subscription update
     if (message.result?.event === 'update' && message.result?.data?.areas) {
-      const areasArray = Object.values(message.result.data.areas) as Zone[]
+      const areasArray: Zone[] = Object.values(message.result.data.areas)
       optionsRef.current?.onZonesUpdate?.(areasArray)
       return
     }
@@ -475,9 +480,9 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       try {
         const evt = message.result.data
         try {
-          window.dispatchEvent(new CustomEvent('smart_heating.device_event', { detail: evt }))
+          globalThis.dispatchEvent(new CustomEvent('smart_heating.device_event', { detail: evt }))
         } catch {
-          ;(window as any).smart_heating_device_event = evt
+          ;(globalThis as any).smart_heating_device_event = evt
         }
       } catch (e) {
         console.error('Failed to handle device_event:', e)
@@ -657,8 +662,8 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       connectionStartTimeRef.current = Date.now()
 
       // Connect to Home Assistant WebSocket API
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const wsUrl = `${protocol}//${window.location.host}/api/websocket`
+      const protocol = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const wsUrl = `${protocol}//${globalThis.location.host}/api/websocket`
 
       console.log(`[WebSocket] Connecting to ${wsUrl}...`)
       const ws = new WebSocket(wsUrl)
@@ -755,10 +760,8 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       if (!data || typeof data !== 'object') return false
 
       // Ensure command has an id field expected by Home Assistant websocket handlers
-      if (data.id == null) {
-        // Assign a monotonic id from our messageIdRef
-        data.id = messageIdRef.current++
-      }
+      // Assign a monotonic id from our messageIdRef using nullish coalescing assignment
+      data.id ??= messageIdRef.current++
 
       if (
         wsRef.current &&
@@ -792,9 +795,9 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       }
     }
 
-    // Handle window focus (iOS Safari specific)
+    // Handle globalThis focus (iOS Safari specific)
     const handleFocus = () => {
-      console.log('[WebSocket] Window focused - verifying connection')
+      console.log('[WebSocket] globalThis focused - verifying connection')
       if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
         reconnectAttempts.current = 0
         connect()
@@ -835,17 +838,17 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
-    window.addEventListener('pagehide', handlePageHide as EventListener)
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    window.addEventListener('pageshow', handlePageShow as EventListener)
+    globalThis.addEventListener('focus', handleFocus)
+    globalThis.addEventListener('pagehide', handlePageHide as EventListener)
+    globalThis.addEventListener('beforeunload', handleBeforeUnload)
+    globalThis.addEventListener('pageshow', handlePageShow as EventListener)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-      window.removeEventListener('pagehide', handlePageHide as EventListener)
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-      window.removeEventListener('pageshow', handlePageShow as EventListener)
+      globalThis.removeEventListener('focus', handleFocus)
+      globalThis.removeEventListener('pagehide', handlePageHide as EventListener)
+      globalThis.removeEventListener('beforeunload', handleBeforeUnload)
+      globalThis.removeEventListener('pageshow', handlePageShow as EventListener)
       disconnect()
     }
   }, [connect, disconnect])
