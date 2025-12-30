@@ -60,7 +60,7 @@ export default function OpenThermLogger() {
   const [gatewayPresent, setGatewayPresent] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [autoRefresh, setAutoRefresh] = useState(true)
 
   const fetchLogs = useCallback(async () => {
@@ -123,12 +123,12 @@ export default function OpenThermLogger() {
     }
   }
 
-  const toggleRow = (index: number) => {
+  const toggleRow = (key: string) => {
     const newExpanded = new Set(expandedRows)
-    if (newExpanded.has(index)) {
-      newExpanded.delete(index)
+    if (newExpanded.has(key)) {
+      newExpanded.delete(key)
     } else {
-      newExpanded.add(index)
+      newExpanded.add(key)
     }
     setExpandedRows(newExpanded)
   }
@@ -614,12 +614,14 @@ export default function OpenThermLogger() {
                 </TableCell>
               </TableRow>
             ) : (
-              logs.map((log, index) => (
-                <Fragment key={`${log.timestamp}-${index}`}>
+              logs.map((log) => {
+                const rowKey = `${log.timestamp}-${log.event_type}`
+                return (
+                  <Fragment key={rowKey}>
                   <TableRow hover>
                     <TableCell>
-                      <IconButton size="small" onClick={() => toggleRow(index)}>
-                        {expandedRows.has(index) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      <IconButton size="small" onClick={() => toggleRow(rowKey)}>
+                        {expandedRows.has(rowKey) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                       </IconButton>
                     </TableCell>
                     <TableCell>{formatTimestamp(log.timestamp)}</TableCell>
@@ -661,7 +663,7 @@ export default function OpenThermLogger() {
                   </TableRow>
                   <TableRow>
                     <TableCell colSpan={5} sx={{ py: 0 }}>
-                      <Collapse in={expandedRows.has(index)} timeout="auto" unmountOnExit>
+                      <Collapse in={expandedRows.has(rowKey)} timeout="auto" unmountOnExit>
                         <Box sx={{ p: 2, bgcolor: 'background.default' }}>
                           <pre style={{ margin: 0, fontSize: '0.875rem' }}>
                             {JSON.stringify(log.data, null, 2)}
@@ -671,8 +673,8 @@ export default function OpenThermLogger() {
                     </TableCell>
                   </TableRow>
                 </Fragment>
-              ))
-            )}
+              })
+            }
           </TableBody>
         </Table>
       </TableContainer>
