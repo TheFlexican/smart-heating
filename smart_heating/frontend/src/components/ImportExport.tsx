@@ -1,19 +1,5 @@
 import { useState } from 'react'
-import {
-  Box,
-  Button,
-  Typography,
-  Alert,
-  CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  IconButton,
-} from '@mui/material'
+import { Box, Button, Typography, Alert, CircularProgress, IconButton } from '@mui/material'
 import {
   Download as DownloadIcon,
   Upload as UploadIcon,
@@ -23,6 +9,8 @@ import {
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { importConfig, validateConfig } from '../api/import_export'
+import PreviewDialog from './ImportExportPreviewDialog'
+import SuccessAlert from './ImportExportSuccessAlert'
 
 interface ImportPreview {
   valid: boolean
@@ -66,26 +54,6 @@ const formatImportMessage = (t: any, changes?: ImportResult['changes']) => {
   return message
 }
 
-const ExportButton = ({
-  loading,
-  onExport,
-  t,
-}: {
-  loading: boolean
-  onExport: () => void
-  t: any
-}) => (
-  <Button
-    data-testid="import-export-button"
-    variant="contained"
-    startIcon={loading ? <CircularProgress size={20} /> : <DownloadIcon />}
-    onClick={onExport}
-    disabled={loading}
-  >
-    {t('importExport.exportButton')}
-  </Button>
-)
-
 const ImportButton = ({
   loading,
   onFileSelect,
@@ -107,99 +75,24 @@ const ImportButton = ({
   </Button>
 )
 
-const PreviewDialog = ({
-  open,
-  preview,
-  onCancel,
-  onConfirm,
+const ExportButton = ({
   loading,
+  onExport,
   t,
 }: {
-  open: boolean
-  preview: ImportPreview | null
-  onCancel: () => void
-  onConfirm: () => void
   loading: boolean
+  onExport: () => void
   t: any
 }) => (
-  <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
-    <DialogTitle>{t('importExport.previewTitle')}</DialogTitle>
-    <DialogContent>
-      {preview?.valid ? (
-        <>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            {t('importExport.previewDescription')}
-          </Typography>
-          <List dense>
-            {preview.version && (
-              <ListItem>
-                <ListItemText primary={t('importExport.version')} secondary={preview.version} />
-              </ListItem>
-            )}
-            {preview.export_date && (
-              <ListItem>
-                <ListItemText
-                  primary={t('importExport.exportDate')}
-                  secondary={new Date(preview.export_date).toLocaleString()}
-                />
-              </ListItem>
-            )}
-            {(preview.areas_to_create ?? 0) > 0 && (
-              <ListItem>
-                <ListItemText
-                  primary={t('importExport.areasToCreate')}
-                  secondary={preview.areas_to_create}
-                />
-              </ListItem>
-            )}
-            {(preview.areas_to_update ?? 0) > 0 && (
-              <ListItem>
-                <ListItemText
-                  primary={t('importExport.areasToUpdate')}
-                  secondary={preview.areas_to_update}
-                />
-              </ListItem>
-            )}
-            {preview.global_settings_included && (
-              <ListItem>
-                <ListItemText
-                  primary={t('importExport.globalSettings')}
-                  secondary={t('importExport.willBeUpdated')}
-                />
-              </ListItem>
-            )}
-            {preview.vacation_mode_included && (
-              <ListItem>
-                <ListItemText
-                  primary={t('importExport.vacationMode')}
-                  secondary={t('importExport.willBeUpdated')}
-                />
-              </ListItem>
-            )}
-          </List>
-          <Alert severity="warning" sx={{ mt: 2 }}>
-            {t('importExport.backupWarning')}
-          </Alert>
-        </>
-      ) : (
-        <Alert severity="error">{preview?.error || t('importExport.invalidConfig')}</Alert>
-      )}
-    </DialogContent>
-    <DialogActions>
-      <Button onClick={onCancel}>{t('common.cancel')}</Button>
-      <Button onClick={onConfirm} variant="contained" disabled={!preview?.valid || loading}>
-        {loading ? <CircularProgress size={20} /> : t('importExport.confirmImport')}
-      </Button>
-    </DialogActions>
-  </Dialog>
-)
-
-const SuccessAlert = ({ message, onClose }: { message: string; onClose: () => void }) => (
-  <Alert severity="success" sx={{ mb: 2 }} onClose={onClose}>
-    {message.split('\n').map((line, i) => (
-      <div key={`${line}-${i}`}>{line}</div>
-    ))}
-  </Alert>
+  <Button
+    data-testid="import-export-button"
+    variant="contained"
+    startIcon={loading ? <CircularProgress size={20} /> : <DownloadIcon />}
+    onClick={onExport}
+    disabled={loading}
+  >
+    {t('importExport.exportButton')}
+  </Button>
 )
 
 const ImportExport = () => {
