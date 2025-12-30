@@ -47,9 +47,7 @@ class PowerSwitchManager:
         except (OSError, RuntimeError, ValueError) as err:
             _LOGGER.debug("Failed to record %s event for %s: %s", direction, entity_id, err)
 
-    async def _call_switch_service(
-        self, switch_id: str, service: str, climate_entity_id: str
-    ) -> bool:
+    async def _call_switch_service(self, switch_id: str, service: str) -> bool:
         """Call a switch service and record the event."""
         payload = {"entity_id": switch_id}
         self._record_event_safely(
@@ -94,7 +92,7 @@ class PowerSwitchManager:
             _LOGGER.info(
                 "Turning on power switch %s for climate entity %s", switch_id, climate_entity_id
             )
-            await self._call_switch_service(switch_id, "turn_on", climate_entity_id)
+            await self._call_switch_service(switch_id, "turn_on")
             return await self._wait_for_switch_state(switch_id, "on")
         except (HomeAssistantError, DeviceError, asyncio.TimeoutError) as err:
             _LOGGER.debug("Error while turning on switch %s: %s", switch_id, err)

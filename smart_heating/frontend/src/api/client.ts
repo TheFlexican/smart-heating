@@ -7,7 +7,7 @@ import axios from 'axios'
 export const getAuthToken = (): string | null => {
   // Try URL parameter
   try {
-    const params = new URLSearchParams(window.location.search)
+    const params = new URLSearchParams(globalThis.location.search)
     const urlToken = params.get('hassToken') || params.get('token')
     if (urlToken) return urlToken
   } catch {
@@ -16,8 +16,8 @@ export const getAuthToken = (): string | null => {
 
   // Try parent window (iframe context)
   try {
-    if (window.parent && window.parent !== window) {
-      const parentConnection = (window.parent as any).hassConnection
+    if ((globalThis as any).parent && (globalThis as any).parent !== globalThis) {
+      const parentConnection = (globalThis as any).parent?.hassConnection
       if (parentConnection?.auth?.data?.access_token) {
         return parentConnection.auth.data.access_token
       }
