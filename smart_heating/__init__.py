@@ -364,8 +364,9 @@ async def async_setup_services(  # NOSONAR
     """
     from functools import partial
 
+    # Service schemas and handlers
     from .services import (
-        ADD_DEVICE_SCHEMA,  # Schemas; Handlers
+        ADD_DEVICE_SCHEMA,
         ADD_SCHEDULE_SCHEMA,
         BOOST_MODE_SCHEMA,
         CANCEL_BOOST_SCHEMA,
@@ -455,17 +456,13 @@ async def async_setup_services(  # NOSONAR
     hass.services.async_register(
         DOMAIN,
         SERVICE_ENABLE_AREA,
-        partial(async_handle_enable_area, area_manager=area_manager, coordinator=coordinator),
+        partial(async_handle_enable_area, coordinator=coordinator),
         schema=ZONE_ID_SCHEMA,
     )
     hass.services.async_register(
         DOMAIN,
         SERVICE_DISABLE_AREA,
-        partial(
-            async_handle_disable_area,
-            area_manager=area_manager,
-            coordinator=coordinator,
-        ),
+        partial(async_handle_disable_area, coordinator=coordinator),
         schema=ZONE_ID_SCHEMA,
     )
     hass.services.async_register(
