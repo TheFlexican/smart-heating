@@ -114,6 +114,45 @@ const ZoneDetail = () => {
     },
   })
 
+  const getEntityId = (sensor: string | WindowSensorConfig | PresenceSensorConfig): string =>
+    typeof sensor === 'string' ? sensor : sensor.entity_id
+
+  const loadStatesForSensors = useCallback(
+    async (
+      sensors: (string | WindowSensorConfig | PresenceSensorConfig)[] | undefined,
+      states: Record<string, any>,
+    ): Promise<void> => {
+      if (!sensors) return
+      for (const sensor of sensors) {
+        const entity_id = getEntityId(sensor)
+        try {
+          const state = await getEntityState(entity_id)
+          states[entity_id] = state
+        } catch (error) {
+          console.error(`Failed to load state for ${entity_id}:`, error)
+        }
+      }
+    },
+    [],
+  )
+
+  const loadEntityStates = useCallback(
+    async (currentZone: Zone) => {
+      try {
+        const states: Record<string, any> = {}
+
+        // Load presence and window sensor states
+        await loadStatesForSensors(currentZone.presence_sensors, states)
+        await loadStatesForSensors(currentZone.window_sensors, states)
+
+        setEntityStates(states)
+      } catch (error) {
+        console.error('Failed to load entity states:', error)
+      }
+    },
+    [loadStatesForSensors],
+  )
+
   const loadData = useCallback(async () => {
     if (!areaId) return
 
@@ -147,7 +186,7 @@ const ZoneDetail = () => {
     } finally {
       setLoading(false)
     }
-  }, [areaId, navigate])
+  }, [areaId, navigate, loadEntityStates])
 
   // Void-returning wrapper for loadData to avoid promise misuse in callbacks
   const handleDataUpdate = useCallback(() => {
@@ -219,39 +258,6 @@ const ZoneDetail = () => {
     loadData().catch(console.error)
     loadHistoryConfig().catch(console.error)
   }, [areaId, loadData, loadHistoryConfig])
-
-  const getEntityId = (sensor: string | WindowSensorConfig | PresenceSensorConfig): string =>
-    typeof sensor === 'string' ? sensor : sensor.entity_id
-
-  const loadStatesForSensors = async (
-    sensors: (string | WindowSensorConfig | PresenceSensorConfig)[] | undefined,
-    states: Record<string, any>,
-  ): Promise<void> => {
-    if (!sensors) return
-    for (const sensor of sensors) {
-      const entity_id = getEntityId(sensor)
-      try {
-        const state = await getEntityState(entity_id)
-        states[entity_id] = state
-      } catch (error) {
-        console.error(`Failed to load state for ${entity_id}:`, error)
-      }
-    }
-  }
-
-  const loadEntityStates = useCallback(async (currentZone: Zone) => {
-    try {
-      const states: Record<string, any> = {}
-
-      // Load presence and window sensor states
-      await loadStatesForSensors(currentZone.presence_sensors, states)
-      await loadStatesForSensors(currentZone.window_sensors, states)
-
-      setEntityStates(states)
-    } catch (error) {
-      console.error('Failed to load entity states:', error)
-    }
-  }, [])
 
   const loadWeatherEntities = async () => {
     setWeatherEntitiesLoading(true)
