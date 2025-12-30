@@ -605,7 +605,7 @@ export default function OpenThermLogger() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {logs.length === 0 ? (
+            {logs.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center">
                   <Typography variant="body2" color="text.secondary">
@@ -613,68 +613,70 @@ export default function OpenThermLogger() {
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : (
-              logs.map((log) => {
+            )}
+
+            {logs.length > 0 &&
+              logs.map(log => {
                 const rowKey = `${log.timestamp}-${log.event_type}`
                 return (
                   <Fragment key={rowKey}>
-                  <TableRow hover>
-                    <TableCell>
-                      <IconButton size="small" onClick={() => toggleRow(rowKey)}>
-                        {expandedRows.has(rowKey) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                      </IconButton>
-                    </TableCell>
-                    <TableCell>{formatTimestamp(log.timestamp)}</TableCell>
-                    <TableCell>
-                      <Chip
-                        icon={getEventIcon(log.event_type) || undefined}
-                        label={log.event_type.replace('_', ' ')}
-                        size="small"
-                        color={getEventColor(log.event_type, log.data)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">{log.message || '-'}</Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      {log.event_type === 'boiler_control' && (
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          {log.data.setpoint && (
-                            <Chip label={`${log.data.setpoint}°C`} size="small" />
-                          )}
-                          {log.data.num_heating_areas !== undefined && (
+                    <TableRow hover>
+                      <TableCell>
+                        <IconButton size="small" onClick={() => toggleRow(rowKey)}>
+                          {expandedRows.has(rowKey) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                        </IconButton>
+                      </TableCell>
+                      <TableCell>{formatTimestamp(log.timestamp)}</TableCell>
+                      <TableCell>
+                        <Chip
+                          icon={getEventIcon(log.event_type) || undefined}
+                          label={log.event_type.replace('_', ' ')}
+                          size="small"
+                          color={getEventColor(log.event_type, log.data)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{log.message || '-'}</Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        {log.event_type === 'boiler_control' && (
+                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            {log.data.setpoint && (
+                              <Chip label={`${log.data.setpoint}°C`} size="small" />
+                            )}
+                            {log.data.num_heating_areas !== undefined && (
+                              <Chip
+                                label={`${log.data.num_heating_areas} zones`}
+                                size="small"
+                                color="warning"
+                              />
+                            )}
+                          </Stack>
+                        )}
+                        {log.event_type === 'modulation' &&
+                          log.data.modulation_level !== undefined && (
                             <Chip
-                              label={`${log.data.num_heating_areas} zones`}
+                              label={`${log.data.modulation_level}%`}
                               size="small"
-                              color="warning"
+                              color={log.data.modulation_level > 0 ? 'success' : 'default'}
                             />
                           )}
-                        </Stack>
-                      )}
-                      {log.event_type === 'modulation' &&
-                        log.data.modulation_level !== undefined && (
-                          <Chip
-                            label={`${log.data.modulation_level}%`}
-                            size="small"
-                            color={log.data.modulation_level > 0 ? 'success' : 'default'}
-                          />
-                        )}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell colSpan={5} sx={{ py: 0 }}>
-                      <Collapse in={expandedRows.has(rowKey)} timeout="auto" unmountOnExit>
-                        <Box sx={{ p: 2, bgcolor: 'background.default' }}>
-                          <pre style={{ margin: 0, fontSize: '0.875rem' }}>
-                            {JSON.stringify(log.data, null, 2)}
-                          </pre>
-                        </Box>
-                      </Collapse>
-                    </TableCell>
-                  </TableRow>
-                </Fragment>
-              })
-            }
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell colSpan={5} sx={{ py: 0 }}>
+                        <Collapse in={expandedRows.has(rowKey)} timeout="auto" unmountOnExit>
+                          <Box sx={{ p: 2, bgcolor: 'background.default' }}>
+                            <pre style={{ margin: 0, fontSize: '0.875rem' }}>
+                              {JSON.stringify(log.data, null, 2)}
+                            </pre>
+                          </Box>
+                        </Collapse>
+                      </TableCell>
+                    </TableRow>
+                  </Fragment>
+                )
+              })}
           </TableBody>
         </Table>
       </TableContainer>
