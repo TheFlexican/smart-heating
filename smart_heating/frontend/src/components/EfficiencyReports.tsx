@@ -166,8 +166,8 @@ const EfficiencyReports: React.FC = () => {
 
     return (
       <List>
-        {recommendations.map((rec, index) => (
-          <ListItem key={index}>
+        {recommendations.map(rec => (
+          <ListItem key={rec}>
             <WarningIcon color="warning" sx={{ mr: 2 }} />
             <ListItemText primary={rec} />
           </ListItem>

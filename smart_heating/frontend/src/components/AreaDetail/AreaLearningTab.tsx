@@ -27,9 +27,9 @@ const RecentEventsList: React.FC<{ events: any[] }> = ({ events }) => (
       Recent Events (Last 10):
     </Typography>
     <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
-      {events.map((event: any, index: number) => (
+      {events.map((event: any) => (
         <Box
-          key={index}
+          key={`${event.timestamp}-${event.heating_rate}`}
           sx={{
             display: 'flex',
             justifyContent: 'space-between',

@@ -572,14 +572,22 @@ export default function OpenThermLogger() {
           </Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
             {capabilities.attributes &&
-              Object.entries(capabilities.attributes).map(([key, value]: [string, any]) => (
-                <Chip
-                  key={key}
-                  label={`${key}: ${typeof value === 'boolean' ? (value ? 'ON' : 'OFF') : value}`}
-                  size="small"
-                  variant="outlined"
-                />
-              ))}
+              Object.entries(capabilities.attributes).map(([key, value]: [string, any]) => {
+                const formatCapability = (v: any) => {
+                  if (typeof v === 'boolean') {
+                    return v ? 'ON' : 'OFF'
+                  }
+                  return String(v)
+                }
+                return (
+                  <Chip
+                    key={key}
+                    label={`${key}: ${formatCapability(value)}`}
+                    size="small"
+                    variant="outlined"
+                  />
+                )
+              })}
           </Stack>
         </Paper>
       )}
