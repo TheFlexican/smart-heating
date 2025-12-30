@@ -49,4 +49,19 @@ describe('EfficiencyReports', () => {
     await waitFor(() => expect(screen.getByText('rec1')).toBeInTheDocument())
     expect(screen.getByText('rec2')).toBeInTheDocument()
   })
+
+  test('renders global recommendations when no area selected', async () => {
+    vi.spyOn(efficiencyApi, 'getAllAreasEfficiency').mockResolvedValue({
+      area_reports: [],
+      recommendations: ['global-rec'],
+    } as any)
+
+    render(
+      <MemoryRouter>
+        <EfficiencyReports />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(screen.getByText('global-rec')).toBeInTheDocument())
+  })
 })
