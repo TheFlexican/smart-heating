@@ -35,9 +35,7 @@ async def async_handle_set_temperature(
         _LOGGER.error("Failed to set temperature: %s", err)
 
 
-async def async_handle_enable_area(
-    call: ServiceCall, area_manager: AreaManager, coordinator: SmartHeatingCoordinator
-) -> None:
+async def async_handle_enable_area(call: ServiceCall, coordinator: SmartHeatingCoordinator) -> None:
     """Handle the enable_area service call.
 
     Args:
@@ -57,7 +55,7 @@ async def async_handle_enable_area(
 
 
 async def async_handle_disable_area(
-    call: ServiceCall, area_manager: AreaManager, coordinator: SmartHeatingCoordinator
+    call: ServiceCall, coordinator: SmartHeatingCoordinator
 ) -> None:
     """Handle the disable_area service call.
 
