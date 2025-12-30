@@ -1,8 +1,9 @@
 import React from 'react'
-import { Box, Alert, Typography, IconButton } from '@mui/material'
-import { Backup as BackupIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material'
+import { Box } from '@mui/material'
 import ImportExportActions from './ImportExportActions'
 import ImportExportNotifications from './ImportExportNotifications'
+import ImportExportHeader from './ImportExportHeader'
+import ImportExportInfo from './ImportExportInfo'
 import PreviewDialog from './ImportExportPreviewDialog'
 
 type Props = {
@@ -37,19 +38,7 @@ const ImportExportView = ({
   setSuccess,
 }: Props) => (
   <Box>
-    <Box display="flex" alignItems="center" gap={2} mb={2}>
-      <IconButton
-        data-testid="import-export-back"
-        onClick={() => navigate('/')}
-        size="large"
-        color="primary"
-      >
-        <ArrowBackIcon />
-      </IconButton>
-      <Typography variant="body2" color="text.secondary">
-        {t('importExport.description')}
-      </Typography>
-    </Box>
+    <ImportExportHeader t={t} navigate={navigate} />
 
     <ImportExportNotifications
       error={error}
@@ -65,12 +54,7 @@ const ImportExportView = ({
       t={t}
     />
 
-    <Alert severity="info" sx={{ mt: 3 }}>
-      <Typography variant="body2">
-        <BackupIcon sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }} />
-        {t('importExport.backupInfo')}
-      </Typography>
-    </Alert>
+    <ImportExportInfo t={t} />
 
     <PreviewDialog
       open={showPreviewDialog}
