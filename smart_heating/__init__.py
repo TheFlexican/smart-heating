@@ -364,8 +364,9 @@ async def async_setup_services(  # NOSONAR
     """
     from functools import partial
 
+    # Service schemas and handlers
     from .services import (
-        ADD_DEVICE_SCHEMA,  # Schemas; Handlers
+        ADD_DEVICE_SCHEMA,
         ADD_SCHEDULE_SCHEMA,
         BOOST_MODE_SCHEMA,
         CANCEL_BOOST_SCHEMA,
