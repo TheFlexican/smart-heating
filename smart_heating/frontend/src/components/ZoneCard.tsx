@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -251,10 +251,204 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
     }
   }
 
+  const renderStateChip = () => {
+    let stateLabel = t(`area.${area.state}`, { defaultValue: area.state }).toUpperCase()
+    if (!enabled) stateLabel = t('area.off')
+    else if (area.manual_override) stateLabel = t('area.manual')
+
+    return (
+      <Chip
+        data-testid={`area-state-${area.id}`}
+        icon={getStateIcon()}
+        label={stateLabel}
+        color={getStateColor()}
+        size="small"
+        sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
+      />
+    )
+  }
+
   const formatTemperature = (temp: number | undefined | null): string | null => {
     if (temp === undefined || temp === null) return null
     return `${temp.toFixed(1)}°C`
   }
+
+  const renderBadges = () => {
+    const badges: React.ReactElement[] = []
+    if (area.presence_sensors && area.presence_sensors.length > 0 && presenceState) {
+      badges.push(
+        <Chip
+          key="presence"
+          data-testid={`area-presence-${area.id}`}
+          icon={<PersonIcon />}
+          label={t(`presets.${presenceState}`, { defaultValue: presenceState }).toUpperCase()}
+          color={presenceState === 'home' ? 'success' : 'default'}
+          size="small"
+          sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
+        />,
+      )
+    }
+    if (area.boost_mode_active) {
+      badges.push(
+        <Chip
+          key="boost"
+          data-testid="boost-active-badge"
+          icon={<RocketLaunchIcon />}
+          label={t('presets.boost', { defaultValue: 'BOOST' }).toUpperCase()}
+          color="error"
+          size="small"
+          sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
+        />,
+      )
+    }
+    return badges
+  }
+
+  const renderHeaderSection = () => (
+    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+      <Box flex={1}>
+        <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+          {area.name}
+        </Typography>
+        <Box display="flex" gap={1} flexWrap="wrap">
+          {renderStateChip()}
+          {renderBadges()}
+        </Box>
+      </Box>
+      <Box onClick={e => e.stopPropagation()} display="flex" gap={1}>
+        <Tooltip
+          title={
+            area.boost_mode_active ? t('boost.quickBoostActive') : t('boost.quickBoostInactive')
+          }
+        >
+          <IconButton
+            data-testid={`boost-toggle-${area.id}`}
+            size="small"
+            onClick={handleBoostToggle}
+            sx={{
+              p: { xs: 0.5, sm: 1 },
+              color: area.boost_mode_active ? 'error.main' : 'text.secondary',
+              bgcolor: area.boost_mode_active ? 'error.dark' : 'transparent',
+              '&:hover': {
+                bgcolor: area.boost_mode_active ? 'error.dark' : 'rgba(255, 255, 255, 0.08)',
+              },
+            }}
+          >
+            <RocketLaunchIcon />
+          </IconButton>
+        </Tooltip>
+        <IconButton
+          data-testid={`zone-menu-button-${area.id}`}
+          size="small"
+          onClick={handleMenuOpen}
+          sx={{ p: { xs: 0.5, sm: 1 } }}
+        >
+          <MoreVertIcon />
+        </IconButton>
+      </Box>
+    </Box>
+  )
+
+  const renderTemperatureSection = () => (
+    <Box my={{ xs: 2, sm: 3 }} onClick={handleSliderClick}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+        >
+          {t('area.targetTemperature')}
+          {enabled && area.state !== 'off' && area.preset_mode && area.preset_mode !== 'none' && (
+            <Chip
+              data-testid="preset-mode-badge"
+              label={t(`presets.${area.preset_mode}`).toUpperCase()}
+              size="small"
+              color="secondary"
+              sx={{ ml: 1, fontSize: { xs: '0.65rem', sm: '0.7rem' }, height: '20px' }}
+            />
+          )}
+        </Typography>
+        <Typography
+          variant="h5"
+          color="primary"
+          data-testid="target-temperature-display"
+          sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}
+        >
+          {Number.isFinite(temperature)
+            ? `${temperature}°C`
+            : (formatTemperature(area.target_temperature) ?? '-')}
+        </Typography>
+      </Box>
+      <Slider
+        data-testid="temperature-slider"
+        value={Number.isFinite(temperature) ? temperature : (area.target_temperature ?? 20)}
+        onChange={handleTemperatureChange}
+        onChangeCommitted={handleTemperatureCommit}
+        min={5}
+        max={30}
+        step={0.1}
+        marks={[
+          { value: 5, label: '5°' },
+          { value: 30, label: '30°' },
+        ]}
+        valueLabelDisplay="auto"
+        disabled={!enabled || area.devices.length === 0 || !area.manual_override}
+        sx={{
+          '& .MuiSlider-thumb': {
+            width: { xs: 24, sm: 20 },
+            height: { xs: 24, sm: 20 },
+          },
+          '& .MuiSlider-track': { height: { xs: 6, sm: 4 } },
+          '& .MuiSlider-rail': { height: { xs: 6, sm: 4 } },
+        }}
+      />
+      {area.devices.length === 0 && (
+        <Box display="flex" alignItems="center" gap={1} mt={1} sx={{ color: 'warning.main' }}>
+          <InfoOutlinedIcon fontSize="small" />
+          <Typography variant="caption" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+            {t('area.addDevicesPrompt')}
+          </Typography>
+        </Box>
+      )}
+    </Box>
+  )
+
+  const renderHvacSelector = () => (
+    <Box mb={2} onClick={e => e.stopPropagation()}>
+      <FormControl fullWidth size="small">
+        <InputLabel id={`hvac-mode-label-${area.id}`}>
+          {t('area.hvacMode', { defaultValue: 'Mode' })}
+        </InputLabel>
+        <Select
+          labelId={`hvac-mode-label-${area.id}`}
+          data-testid={`hvac-mode-select-${area.id}`}
+          value={area.hvac_mode || 'auto'}
+          label={t('area.hvacMode', { defaultValue: 'Mode' })}
+          onChange={handleHvacModeChange}
+          disabled={!enabled || area.devices.length === 0}
+        >
+          <MenuItem value="heat" data-testid="hvac-mode-heat">
+            <Box display="flex" alignItems="center" gap={1}>
+              <LocalFireDepartmentIcon fontSize="small" color="error" />
+              <span>{t('area.hvacModeHeat', { defaultValue: 'Heat' })}</span>
+            </Box>
+          </MenuItem>
+          <MenuItem value="cool" data-testid="hvac-mode-cool">
+            <Box display="flex" alignItems="center" gap={1}>
+              <AcUnitIcon fontSize="small" color="info" />
+              <span>{t('area.hvacModeCool', { defaultValue: 'Cool' })}</span>
+            </Box>
+          </MenuItem>
+          <MenuItem value="off" data-testid="hvac-mode-off">
+            <Box display="flex" alignItems="center" gap={1}>
+              <RemoveCircleOutlineIcon fontSize="small" />
+              <span>{t('area.hvacModeOff', { defaultValue: 'Off' })}</span>
+            </Box>
+          </MenuItem>
+        </Select>
+      </FormControl>
+    </Box>
+  )
 
   const isValidState = (state: string | undefined): boolean => {
     return state !== undefined && state !== 'unavailable' && state !== 'unknown'
@@ -403,190 +597,11 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
         >
           <DragIndicatorIcon fontSize="small" />
         </Box>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-          <Box flex={1}>
-            <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-              {area.name}
-            </Typography>
-            <Box display="flex" gap={1} flexWrap="wrap">
-              {(() => {
-                let stateLabel = t(`area.${area.state}`, { defaultValue: area.state }).toUpperCase()
-                if (!enabled) stateLabel = t('area.off')
-                else if (area.manual_override) stateLabel = t('area.manual')
-                return (
-                  <Chip
-                    data-testid={`area-state-${area.id}`}
-                    icon={getStateIcon()}
-                    label={stateLabel}
-                    color={getStateColor()}
-                    size="small"
-                    sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
-                  />
-                )
-              })()}
-              {area.presence_sensors && area.presence_sensors.length > 0 && presenceState && (
-                <Chip
-                  data-testid={`area-presence-${area.id}`}
-                  icon={<PersonIcon />}
-                  label={t(`presets.${presenceState}`, {
-                    defaultValue: presenceState,
-                  }).toUpperCase()}
-                  color={presenceState === 'home' ? 'success' : 'default'}
-                  size="small"
-                  sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
-                />
-              )}
-              {area.boost_mode_active && (
-                <Chip
-                  data-testid="boost-active-badge"
-                  icon={<RocketLaunchIcon />}
-                  label={t('presets.boost', { defaultValue: 'BOOST' }).toUpperCase()}
-                  color="error"
-                  size="small"
-                  sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
-                />
-              )}
-            </Box>
-          </Box>
-          <Box onClick={e => e.stopPropagation()} display="flex" gap={1}>
-            <Tooltip
-              title={
-                area.boost_mode_active ? t('boost.quickBoostActive') : t('boost.quickBoostInactive')
-              }
-            >
-              <IconButton
-                data-testid={`boost-toggle-${area.id}`}
-                size="small"
-                onClick={handleBoostToggle}
-                sx={{
-                  p: { xs: 0.5, sm: 1 },
-                  color: area.boost_mode_active ? 'error.main' : 'text.secondary',
-                  bgcolor: area.boost_mode_active ? 'error.dark' : 'transparent',
-                  '&:hover': {
-                    bgcolor: area.boost_mode_active ? 'error.dark' : 'rgba(255, 255, 255, 0.08)',
-                  },
-                }}
-              >
-                <RocketLaunchIcon />
-              </IconButton>
-            </Tooltip>
-            <IconButton
-              data-testid={`zone-menu-button-${area.id}`}
-              size="small"
-              onClick={handleMenuOpen}
-              sx={{ p: { xs: 0.5, sm: 1 } }}
-            >
-              <MoreVertIcon />
-            </IconButton>
-          </Box>
-        </Box>
+        {renderHeaderSection()}
 
-        {/* HVAC Mode Selector for Air Conditioned Areas */}
-        {area.heating_type === 'airco' && (
-          <Box mb={2} onClick={e => e.stopPropagation()}>
-            <FormControl fullWidth size="small">
-              <InputLabel id={`hvac-mode-label-${area.id}`}>
-                {t('area.hvacMode', { defaultValue: 'Mode' })}
-              </InputLabel>
-              <Select
-                labelId={`hvac-mode-label-${area.id}`}
-                data-testid={`hvac-mode-select-${area.id}`}
-                value={area.hvac_mode || 'auto'}
-                label={t('area.hvacMode', { defaultValue: 'Mode' })}
-                onChange={handleHvacModeChange}
-                disabled={!enabled || area.devices.length === 0}
-              >
-                <MenuItem value="heat" data-testid="hvac-mode-heat">
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <LocalFireDepartmentIcon fontSize="small" color="error" />
-                    <span>{t('area.hvacModeHeat', { defaultValue: 'Heat' })}</span>
-                  </Box>
-                </MenuItem>
-                <MenuItem value="cool" data-testid="hvac-mode-cool">
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <AcUnitIcon fontSize="small" color="info" />
-                    <span>{t('area.hvacModeCool', { defaultValue: 'Cool' })}</span>
-                  </Box>
-                </MenuItem>
-                <MenuItem value="off" data-testid="hvac-mode-off">
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <RemoveCircleOutlineIcon fontSize="small" />
-                    <span>{t('area.hvacModeOff', { defaultValue: 'Off' })}</span>
-                  </Box>
-                </MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-        )}
+        {area.heating_type === 'airco' && renderHvacSelector()}
 
-        <Box my={{ xs: 2, sm: 3 }} onClick={handleSliderClick}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-            >
-              {t('area.targetTemperature')}
-              {enabled &&
-                area.state !== 'off' &&
-                area.preset_mode &&
-                area.preset_mode !== 'none' && (
-                  <Chip
-                    data-testid="preset-mode-badge"
-                    label={t(`presets.${area.preset_mode}`).toUpperCase()}
-                    size="small"
-                    color="secondary"
-                    sx={{ ml: 1, fontSize: { xs: '0.65rem', sm: '0.7rem' }, height: '20px' }}
-                  />
-                )}
-            </Typography>
-            <Typography
-              variant="h5"
-              color="primary"
-              data-testid="target-temperature-display"
-              sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}
-            >
-              {Number.isFinite(temperature)
-                ? `${temperature}°C`
-                : (formatTemperature(area.target_temperature) ?? '-')}
-            </Typography>
-          </Box>
-          <Slider
-            data-testid="temperature-slider"
-            value={Number.isFinite(temperature) ? temperature : (area.target_temperature ?? 20)}
-            onChange={handleTemperatureChange}
-            onChangeCommitted={handleTemperatureCommit}
-            min={5}
-            max={30}
-            step={0.1}
-            marks={[
-              { value: 5, label: '5°' },
-              { value: 30, label: '30°' },
-            ]}
-            valueLabelDisplay="auto"
-            disabled={!enabled || area.devices.length === 0 || !area.manual_override}
-            sx={{
-              '& .MuiSlider-thumb': {
-                width: { xs: 24, sm: 20 },
-                height: { xs: 24, sm: 20 },
-              },
-              '& .MuiSlider-track': {
-                height: { xs: 6, sm: 4 },
-              },
-              '& .MuiSlider-rail': {
-                height: { xs: 6, sm: 4 },
-              },
-            }}
-          />
-          {area.devices.length === 0 && (
-            <Box display="flex" alignItems="center" gap={1} mt={1} sx={{ color: 'warning.main' }}>
-              <InfoOutlinedIcon fontSize="small" />
-              <Typography variant="caption" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                {t('area.addDevicesPrompt')}
-              </Typography>
-            </Box>
-          )}
-        </Box>
+        {renderTemperatureSection()}
 
         {area.current_temperature !== undefined && area.current_temperature !== null && (
           <Box display="flex" justifyContent="space-between" mb={2}>

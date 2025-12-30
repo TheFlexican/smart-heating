@@ -23,6 +23,65 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 
+type AnalyticsMenuProps = {
+  anchorEl: null | HTMLElement
+  onClose: () => void
+  onNavigate: (path: string) => void
+  t: (key: string, opts?: any) => string
+}
+
+const AnalyticsMenu = ({ anchorEl, onClose, onNavigate, t }: AnalyticsMenuProps) => (
+  <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={onClose}>
+    <MenuItem
+      data-testid="header-analytics-efficiency"
+      onClick={() => onNavigate('/analytics/efficiency')}
+    >
+      <TrendingUpIcon sx={{ mr: 1 }} />
+      {t('efficiency.title', 'Efficiency Reports')}
+    </MenuItem>
+    <MenuItem
+      data-testid="header-analytics-comparison"
+      onClick={() => onNavigate('/analytics/comparison')}
+    >
+      <CompareArrowsIcon sx={{ mr: 1 }} />
+      {t('comparison.title', 'Historical Comparisons')}
+    </MenuItem>
+    <MenuItem
+      data-testid="header-analytics-opentherm"
+      onClick={() => onNavigate('/opentherm/metrics')}
+    >
+      <FireplaceIcon sx={{ mr: 1 }} />
+      {t('opentherm.title', 'OpenTherm Metrics')}
+    </MenuItem>
+  </Menu>
+)
+
+type LanguageMenuProps = {
+  anchorEl: null | HTMLElement
+  onClose: () => void
+  onChange: (lang: string) => void
+  i18n: any
+}
+
+const LanguageMenu = ({ anchorEl, onClose, onChange, i18n }: LanguageMenuProps) => (
+  <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={onClose}>
+    <MenuItem
+      data-testid="header-language-en"
+      onClick={() => onChange('en')}
+      selected={i18n.language === 'en'}
+    >
+      English
+    </MenuItem>
+    <MenuItem
+      data-testid="header-language-nl"
+      onClick={() => onChange('nl')}
+      selected={i18n.language === 'nl'}
+    >
+      Nederlands
+    </MenuItem>
+  </Menu>
+)
+
 interface HeaderProps {
   wsConnected?: boolean
   transportMode?: 'websocket' | 'polling'
@@ -70,6 +129,73 @@ const Header = ({ wsConnected = false, transportMode = 'websocket' }: HeaderProp
     navigate(path)
     handleAnalyticsMenuClose()
   }
+
+  // Rendered as separate components below to keep cognitive complexity low
+
+  const renderRightActions = () => (
+    <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, alignItems: 'center' }}>
+      <Tooltip title={t('header.changeLanguage')}>
+        <IconButton
+          data-testid="header-language-button"
+          onClick={handleLanguageMenuOpen}
+          sx={{
+            color: 'text.secondary',
+            p: { xs: 0.5, sm: 1 },
+          }}
+        >
+          <LanguageIcon />
+        </IconButton>
+      </Tooltip>
+      <LanguageMenu
+        anchorEl={langMenuAnchor}
+        onClose={handleLanguageMenuClose}
+        onChange={handleLanguageChange}
+        i18n={i18n}
+      />
+      <Tooltip title={wsConnected ? t('header.realtimeActive') : t('header.realtimeInactive')}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Chip
+            icon={wsConnected ? <WifiIcon /> : <WifiOffIcon />}
+            label={wsConnected ? t('header.connected') : t('header.disconnected')}
+            size="small"
+            color={wsConnected ? 'success' : 'default'}
+            variant="outlined"
+            sx={{
+              borderColor: wsConnected ? 'success.main' : 'divider',
+              color: wsConnected ? 'success.main' : 'text.secondary',
+              display: { xs: 'none', sm: 'flex' },
+            }}
+          />
+          <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
+            {wsConnected ? <WifiIcon color="success" /> : <WifiOffIcon color="disabled" />}
+          </Box>
+        </Box>
+      </Tooltip>
+      {transportMode === 'polling' && (
+        <Tooltip title="Using polling mode (limited connectivity). WebSocket failed 3 times, falling back to periodic polling.">
+          <Chip
+            label="Polling"
+            size="small"
+            color="warning"
+            variant="filled"
+            sx={{
+              display: { xs: 'none', sm: 'flex' },
+            }}
+          />
+        </Tooltip>
+      )}
+      <Chip
+        label="v1.0.0"
+        size="small"
+        variant="outlined"
+        sx={{
+          borderColor: 'divider',
+          color: 'text.secondary',
+          display: { xs: 'none', sm: 'flex' },
+        }}
+      />
+    </Box>
+  )
 
   return (
     <AppBar
@@ -146,110 +272,14 @@ const Header = ({ wsConnected = false, transportMode = 'websocket' }: HeaderProp
               <SettingsIcon />
             </IconButton>
           </Tooltip>
-        </Box>
-        <Menu
-          anchorEl={analyticsMenuAnchor}
-          open={Boolean(analyticsMenuAnchor)}
-          onClose={handleAnalyticsMenuClose}
-        >
-          <MenuItem
-            data-testid="header-analytics-efficiency"
-            onClick={() => handleNavigateAnalytics('/analytics/efficiency')}
-          >
-            <TrendingUpIcon sx={{ mr: 1 }} />
-            {t('efficiency.title', 'Efficiency Reports')}
-          </MenuItem>
-          <MenuItem
-            data-testid="header-analytics-comparison"
-            onClick={() => handleNavigateAnalytics('/analytics/comparison')}
-          >
-            <CompareArrowsIcon sx={{ mr: 1 }} />
-            {t('comparison.title', 'Historical Comparisons')}
-          </MenuItem>
-          <MenuItem
-            data-testid="header-analytics-opentherm"
-            onClick={() => handleNavigateAnalytics('/opentherm/metrics')}
-          >
-            <FireplaceIcon sx={{ mr: 1 }} />
-            {t('opentherm.title', 'OpenTherm Metrics')}
-          </MenuItem>
-        </Menu>
-        <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, alignItems: 'center' }}>
-          <Tooltip title={t('header.changeLanguage')}>
-            <IconButton
-              data-testid="header-language-button"
-              onClick={handleLanguageMenuOpen}
-              sx={{
-                color: 'text.secondary',
-                p: { xs: 0.5, sm: 1 },
-              }}
-            >
-              <LanguageIcon />
-            </IconButton>
-          </Tooltip>
-          <Menu
-            anchorEl={langMenuAnchor}
-            open={Boolean(langMenuAnchor)}
-            onClose={handleLanguageMenuClose}
-          >
-            <MenuItem
-              data-testid="header-language-en"
-              onClick={() => handleLanguageChange('en')}
-              selected={i18n.language === 'en'}
-            >
-              English
-            </MenuItem>
-            <MenuItem
-              data-testid="header-language-nl"
-              onClick={() => handleLanguageChange('nl')}
-              selected={i18n.language === 'nl'}
-            >
-              Nederlands
-            </MenuItem>
-          </Menu>
-          <Tooltip title={wsConnected ? t('header.realtimeActive') : t('header.realtimeInactive')}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Chip
-                icon={wsConnected ? <WifiIcon /> : <WifiOffIcon />}
-                label={wsConnected ? t('header.connected') : t('header.disconnected')}
-                size="small"
-                color={wsConnected ? 'success' : 'default'}
-                variant="outlined"
-                sx={{
-                  borderColor: wsConnected ? 'success.main' : 'divider',
-                  color: wsConnected ? 'success.main' : 'text.secondary',
-                  display: { xs: 'none', sm: 'flex' },
-                }}
-              />
-              <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
-                {wsConnected ? <WifiIcon color="success" /> : <WifiOffIcon color="disabled" />}
-              </Box>
-            </Box>
-          </Tooltip>
-          {transportMode === 'polling' && (
-            <Tooltip title="Using polling mode (limited connectivity). WebSocket failed 3 times, falling back to periodic polling.">
-              <Chip
-                label="Polling"
-                size="small"
-                color="warning"
-                variant="filled"
-                sx={{
-                  display: { xs: 'none', sm: 'flex' },
-                }}
-              />
-            </Tooltip>
-          )}
-          <Chip
-            label="v1.0.0"
-            size="small"
-            variant="outlined"
-            sx={{
-              borderColor: 'divider',
-              color: 'text.secondary',
-              display: { xs: 'none', sm: 'flex' },
-            }}
+          <AnalyticsMenu
+            anchorEl={analyticsMenuAnchor}
+            onClose={handleAnalyticsMenuClose}
+            onNavigate={handleNavigateAnalytics}
+            t={t}
           />
         </Box>
+        {renderRightActions()}
       </Toolbar>
     </AppBar>
   )

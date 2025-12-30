@@ -2,7 +2,7 @@
 name: sonarqube-quality
 description: Analyze code quality, fix issues, and refactor using SonarQube
 argument-hint: Describe what code quality issues to analyze or fix...
-tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'sonarqube/*', 'github/*', 'todo']
+tools: ['runCommands', 'runTasks', 'sonarqube/*', 'github/*', 'edit', 'runNotebooks', 'search', 'new', 'extensions', 'todos', 'runSubagent', 'runTests', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo']
 target: vscode
 infer: true
 handoffs:
