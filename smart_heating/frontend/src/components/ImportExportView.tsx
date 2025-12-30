@@ -1,9 +1,8 @@
 import React from 'react'
 import { Box, Alert, Typography, IconButton } from '@mui/material'
 import { Backup as BackupIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material'
-import ExportButton from './ExportButton'
-import ImportButton from './ImportButton'
-import SuccessAlert from './ImportExportSuccessAlert'
+import ImportExportActions from './ImportExportActions'
+import ImportExportNotifications from './ImportExportNotifications'
 import PreviewDialog from './ImportExportPreviewDialog'
 
 type Props = {
@@ -52,18 +51,19 @@ const ImportExportView = ({
       </Typography>
     </Box>
 
-    {error && (
-      <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-        {error}
-      </Alert>
-    )}
+    <ImportExportNotifications
+      error={error}
+      success={success}
+      setError={setError}
+      setSuccess={setSuccess}
+    />
 
-    {success && <SuccessAlert message={success} onClose={() => setSuccess(null)} />}
-
-    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-      <ExportButton loading={loading} onExport={handleExport} t={t} />
-      <ImportButton loading={loading} onFileSelect={handleFileSelect} t={t} />
-    </Box>
+    <ImportExportActions
+      loading={loading}
+      onExport={handleExport}
+      onFileSelect={handleFileSelect}
+      t={t}
+    />
 
     <Alert severity="info" sx={{ mt: 3 }}>
       <Typography variant="body2">
