@@ -107,7 +107,7 @@ def mock_area_manager():
 
     manager.get_all_areas.return_value = {"living_room": mock_area}
     manager.frost_protection_enabled = True
-    manager.frost_protection_min_temp = 7.0
+    manager.frost_protection_temp = 7.0
     manager.global_away_temp = 15.0
     manager.global_eco_temp = 18.0
     manager.global_comfort_temp = 21.0

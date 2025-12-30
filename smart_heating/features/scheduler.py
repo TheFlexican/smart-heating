@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime, time, timedelta
-from typing import Optional
+from typing import Optional, Any, Dict
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -45,7 +45,8 @@ class ScheduleExecutor:
         self.area_manager = area_manager
         self.learning_engine = learning_engine
         self._unsub_interval = None
-        self._last_applied_schedule = {}  # Track last applied schedule per area
+        self._last_applied_schedule: Dict[str, str] = {}  # Track last applied schedule per area
+        self.area_logger: Optional[Any] = None
         _LOGGER.info("Schedule executor initialized")
 
     async def async_start(self) -> None:
@@ -219,7 +220,7 @@ class ScheduleExecutor:
         raise ValueError("Invalid day input: expected int index or day name/short code")
 
     def _is_time_in_midnight_crossing_schedule_from_previous_day(
-        self, schedule: dict, current_time: time
+        self, schedule: Schedule, current_time: time
     ) -> bool:
         """Check if current time falls in a midnight-crossing schedule from previous day.
 
@@ -246,7 +247,7 @@ class ScheduleExecutor:
         return False
 
     def _is_time_in_midnight_crossing_schedule_today(
-        self, schedule: dict, current_time: time
+        self, schedule: Schedule, current_time: time
     ) -> bool:
         """Check if current time falls in a midnight-crossing schedule starting today.
 
@@ -272,7 +273,7 @@ class ScheduleExecutor:
                 return True
         return False
 
-    def _is_time_in_normal_schedule(self, schedule: dict, current_time: time) -> bool:
+    def _is_time_in_normal_schedule(self, schedule: Schedule, current_time: time) -> bool:
         """Check if current time falls in a normal (non-midnight-crossing) schedule.
 
         Args:
@@ -298,10 +299,10 @@ class ScheduleExecutor:
 
     def _find_active_schedule(
         self,
-        schedules: dict,
+        schedules: Dict[str, Schedule],
         current_day: "str | int",
         current_time: time,
-    ) -> Optional[dict]:
+    ) -> Optional[Schedule]:
         """Find the active schedule for the given day and time.
 
         Handles schedules that cross midnight (e.g., Saturday 22:00 - Sunday 07:00).
@@ -332,8 +333,8 @@ class ScheduleExecutor:
         return self._find_normal_schedule(schedules, current_day_normalized, current_time)
 
     def _find_previous_day_schedule(
-        self, schedules: dict, previous_day: int, current_time: time
-    ) -> Optional[dict]:
+        self, schedules: Dict[str, Schedule], previous_day: int, current_time: time
+    ) -> Optional[Schedule]:
         for schedule in schedules.values():
             if (
                 schedule.day == previous_day
@@ -345,8 +346,8 @@ class ScheduleExecutor:
         return None
 
     def _find_midnight_crossing_today_schedule(
-        self, schedules: dict, current_day: int, current_time: time
-    ) -> Optional[dict]:
+        self, schedules: Dict[str, Schedule], current_day: int, current_time: time
+    ) -> Optional[Schedule]:
         for schedule in schedules.values():
             if schedule.day == current_day and self._is_time_in_midnight_crossing_schedule_today(
                 schedule, current_time
@@ -355,8 +356,8 @@ class ScheduleExecutor:
         return None
 
     def _find_normal_schedule(
-        self, schedules: dict, current_day: int, current_time: time
-    ) -> Optional[dict]:
+        self, schedules: Dict[str, Schedule], current_day: int, current_time: time
+    ) -> Optional[Schedule]:
         for schedule in schedules.values():
             if schedule.day == current_day and self._is_time_in_normal_schedule(
                 schedule, current_time
@@ -483,40 +484,29 @@ class ScheduleExecutor:
 
         # If temperature is approaching target from below (within 1°C), predict if we need heating soon
         temp_delta = active_schedule_temp - current_temp
-        if 0 < temp_delta <= 1.0:
-            # Predict how long it would take to heat up if we started now
-            predicted_minutes = await self.learning_engine.async_predict_heating_time(
-                area_id=area.area_id,
-                current_temp=current_temp,
-                target_temp=active_schedule_temp,
+        if not (0 < temp_delta <= 1.0):
+            return False
+
+        if not self.learning_engine:
+            _LOGGER.debug(
+                "No learning engine available to predict heating time for %s", area.area_id
             )
+            return False
 
-            if predicted_minutes is not None and predicted_minutes > 0:
-                # If prediction shows significant heating time, start now to maintain steady temp
-                if predicted_minutes >= 10:  # Only pre-heat if it would take 10+ minutes
-                    _LOGGER.info(
-                        "Smart boost maintaining temperature for %s during active schedule: "
-                        "Current %.1f°C, Target %.1f°C, Predicted %d min",
-                        area.area_id,
-                        current_temp,
-                        active_schedule_temp,
-                        predicted_minutes,
-                    )
-                    if hasattr(self, "area_logger") and self.area_logger:
-                        self.area_logger.log_event(
-                            area.area_id,
-                            "smart_boost",
-                            f"Smart boost maintaining schedule temperature - predicted {predicted_minutes} min needed",
-                            {
-                                "current_temp": current_temp,
-                                "target_temp": active_schedule_temp,
-                                "predicted_minutes": predicted_minutes,
-                                "mode": "schedule_maintenance",
-                            },
-                        )
-                    return True
+        predicted_minutes = await self.learning_engine.async_predict_heating_time(
+            area_id=area.area_id,
+            current_temp=current_temp,
+            target_temp=active_schedule_temp,
+        )
 
-        return False
+        if not predicted_minutes or predicted_minutes < 10:
+            return False
+
+        # If prediction shows significant heating time, start now to maintain steady temp
+        self._log_smart_boost_maintenance(
+            area, current_temp, active_schedule_temp, predicted_minutes
+        )
+        return True
 
     async def _handle_smart_boost(self, area, now: datetime) -> None:
         """Handle smart boost by predicting when to start heating.
@@ -623,6 +613,10 @@ class ScheduleExecutor:
         Returns:
             Predicted minutes or None if insufficient data
         """
+        if not self.learning_engine:
+            _LOGGER.debug("No learning engine available for prediction for %s", area.area_id)
+            return None
+
         predicted_minutes = await self.learning_engine.async_predict_heating_time(
             area_id=area.area_id, current_temp=current_temp, target_temp=target_temp
         )
@@ -652,6 +646,30 @@ class ScheduleExecutor:
                     "current_temp": current_temp,
                     "target_temp": target_temp,
                     "reason": "needs_more_heating_cycles",
+                },
+            )
+
+    def _log_smart_boost_maintenance(
+        self, area, current_temp: float, target_temp: float, predicted_minutes: int
+    ) -> None:
+        """Log smart boost maintenance information and fire area logger event."""
+        _LOGGER.info(
+            "Smart boost maintaining temperature for %s during active schedule: Current %.1f°C, Target %.1f°C, Predicted %d min",
+            area.area_id,
+            current_temp,
+            target_temp,
+            predicted_minutes,
+        )
+        if hasattr(self, "area_logger") and self.area_logger:
+            self.area_logger.log_event(
+                area.area_id,
+                "smart_boost",
+                f"Smart boost maintaining schedule temperature - predicted {predicted_minutes} min needed",
+                {
+                    "current_temp": current_temp,
+                    "target_temp": target_temp,
+                    "predicted_minutes": predicted_minutes,
+                    "mode": "schedule_maintenance",
                 },
             )
 
@@ -782,7 +800,9 @@ class ScheduleExecutor:
                 target_temp,
             )
 
-    def _find_first_morning_schedule(self, schedules: dict, now: datetime) -> Optional[object]:
+    def _find_first_morning_schedule(
+        self, schedules: Dict[str, Schedule], now: datetime
+    ) -> Optional[Schedule]:
         """Find the first schedule entry in the morning (after midnight, before noon).
 
         This is used by smart night boost to determine when to start heating.
@@ -907,20 +927,20 @@ class ScheduleExecutor:
 
         # If we cleared manual override, immediately update thermostat with preset temperature
         if manual_override_cleared and preset_temp is not None:
-            climate_entity_id = f"climate.{area.area_id}"
+            climate_entity_to_update = f"climate.{area.area_id}"
             try:
                 await self.hass.services.async_call(
                     "climate",
                     "set_temperature",
                     {
-                        "entity_id": climate_entity_id,
+                        "entity_id": climate_entity_to_update,
                         "temperature": preset_temp,
                     },
                     blocking=False,
                 )
                 _LOGGER.info(
                     "Updated thermostat %s to preset temperature %.1f°C after clearing manual override",
-                    climate_entity_id,
+                    climate_entity_to_update,
                     preset_temp,
                 )
             except (HomeAssistantError, SmartHeatingError) as err:

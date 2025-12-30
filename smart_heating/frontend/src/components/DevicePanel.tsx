@@ -15,7 +15,6 @@ import {
   FormControlLabel,
   Switch,
 } from '@mui/material'
-// import { Droppable, Draggable } from 'react-beautiful-dnd' // TODO: Migrate to @dnd-kit
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import SensorsIcon from '@mui/icons-material/Sensors'
 import RouterIcon from '@mui/icons-material/Router'
@@ -23,19 +22,30 @@ import WaterIcon from '@mui/icons-material/Water'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import { Device } from '../types'
 import { refreshDevices } from '../api/devices'
-import { useState } from 'react'
+import { useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
+
+// Small helper to use native replaceAll when available, fallback to split/join for older targets
+const safeReplaceAll = (input: string, search: string, replace: string): string => {
+  if (!input) return input
+  // Prefer native replaceAll (lint rule), but fall back for older targets
+  if (typeof (input as any).replaceAll === 'function') {
+    return (input as any).replaceAll(search, replace)
+  }
+  // Safe fallback for simple search strings
+  return input.split(search).join(replace)
+}
 
 interface DevicePanelProps {
   devices: Device[]
   onUpdate: () => void
 }
 
-const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
+const DevicePanel = ({ devices, onUpdate }: DevicePanelProps): ReactElement => {
   const { t } = useTranslation()
-  const [refreshing, setRefreshing] = useState(false)
-  const [deviceSearch, setDeviceSearch] = useState('')
-  const [showOnlyHeating, setShowOnlyHeating] = useState(true)
+  const [refreshing, setRefreshing] = useState<boolean>(false)
+  const [deviceSearch, setDeviceSearch] = useState<string>('')
+  const [showOnlyHeating, setShowOnlyHeating] = useState<boolean>(true)
 
   const handleRefresh = async () => {
     setRefreshing(true)
@@ -68,7 +78,11 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
   }
 
   const getDeviceTypeLabel = (type: string) => {
-    return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+    // Replace underscores with spaces and capitalize each word
+    return safeReplaceAll(type, '_', ' ')
+      .split(' ')
+      .map(word => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ''))
+      .join(' ')
   }
 
   // Filter devices based on search and type filter
@@ -160,25 +174,35 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
       <Box sx={{ flex: 1, overflow: 'auto' }}>
         {filteredDevices.length === 0 ? (
           <Box sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              {deviceSearch
-                ? t('devices.noMatch', { search: deviceSearch })
-                : showOnlyHeating
-                  ? t('devices.noClimateDevices')
-                  : t('devices.noDevicesFound')}
-            </Typography>
-            {!deviceSearch && !showOnlyHeating && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                {t('devices.configureInHA')}
-              </Typography>
-            )}
+            {(() => {
+              let emptyMessage = ''
+              if (deviceSearch) emptyMessage = t('devices.noMatch', { search: deviceSearch })
+              else if (showOnlyHeating) emptyMessage = t('devices.noClimateDevices')
+              else emptyMessage = t('devices.noDevicesFound')
+              return (
+                <>
+                  <Typography variant="body2" color="text.secondary">
+                    {emptyMessage}
+                  </Typography>
+                  {!deviceSearch && !showOnlyHeating && (
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ mt: 1, display: 'block' }}
+                    >
+                      {t('devices.configureInHA')}
+                    </Typography>
+                  )}
+                </>
+              )
+            })()}
           </Box>
         ) : (
           <List>
             {filteredDevices.map(device => (
               <ListItem
                 key={device.id}
-                data-testid={`available-device-${(device.name || device.id).toLowerCase().replaceAll(' ', '-')}`}
+                data-testid={`available-device-${safeReplaceAll((device.name || device.id || '').toLowerCase(), ' ', '-')}`}
                 sx={{
                   borderRadius: 1,
                   '&:hover': {
@@ -194,14 +218,10 @@ const DevicePanel = ({ devices, onUpdate }: DevicePanelProps) => {
                   slotProps={{
                     primary: { sx: { color: 'text.primary' } },
                   }}
-                  secondaryTypographyProps={{ component: 'div' }}
                   secondary={
-                    <Box
-                      component="span"
-                      sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}
-                    >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
                       <Chip
-                        data-testid={`device-type-chip-${(device.name || device.id).toLowerCase().replaceAll(' ', '-')}`}
+                        data-testid={`device-type-chip-${safeReplaceAll((device.name || device.id || '').toLowerCase(), ' ', '-')}`}
                         label={getDeviceTypeLabel(device.type)}
                         size="small"
                         variant="outlined"

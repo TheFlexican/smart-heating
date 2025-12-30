@@ -160,7 +160,7 @@ const DeviceOverview = ({ areas }: DeviceOverviewProps) => {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Chip label={device.type.replace(/_/g, ' ')} size="small" variant="outlined" />
+                  <Chip label={device.type.replaceAll('_', ' ')} size="small" variant="outlined" />
                 </TableCell>
                 <TableCell>
                   <Chip
