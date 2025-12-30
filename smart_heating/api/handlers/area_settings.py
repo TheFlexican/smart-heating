@@ -350,16 +350,7 @@ async def handle_set_switch_shutdown(
         await _refresh_coordinator(hass)
 
         return web.json_response({"success": True})
-    except (
-        HomeAssistantError,
-        SmartHeatingError,
-        ValidationError,
-        StorageError,
-        AreaNotFoundError,
-        KeyError,
-        ValueError,
-        AttributeError,
-    ) as err:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError, AttributeError) as err:
         _LOGGER.error("Error setting switch shutdown for area %s", area_id, exc_info=True)
         return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 
@@ -381,16 +372,7 @@ async def handle_set_area_hysteresis(
         await _refresh_coordinator(hass)
 
         return web.json_response({"success": True})
-    except (
-        HomeAssistantError,
-        SmartHeatingError,
-        ValidationError,
-        StorageError,
-        AreaNotFoundError,
-        KeyError,
-        ValueError,
-        AttributeError,
-    ) as err:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError, AttributeError) as err:
         _LOGGER.error("Error setting hysteresis for area %s", area_id, exc_info=True)
         return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 
@@ -425,16 +407,7 @@ async def handle_set_auto_preset(
         await _refresh_coordinator(hass)
 
         return web.json_response({"success": True})
-    except (
-        HomeAssistantError,
-        SmartHeatingError,
-        ValidationError,
-        StorageError,
-        AreaNotFoundError,
-        KeyError,
-        ValueError,
-        AttributeError,
-    ) as err:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError, AttributeError) as err:
         _LOGGER.error("Error setting auto preset for area %s", area_id, exc_info=True)
         return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 
@@ -466,16 +439,7 @@ async def handle_set_heating_type(
         await _refresh_coordinator(hass)
 
         return web.json_response({"success": True})
-    except (
-        HomeAssistantError,
-        SmartHeatingError,
-        ValidationError,
-        StorageError,
-        AreaNotFoundError,
-        KeyError,
-        ValueError,
-        AttributeError,
-    ) as err:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError, AttributeError) as err:
         _LOGGER.error("Error setting heating type for area %s", area_id, exc_info=True)
         return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 
@@ -510,16 +474,7 @@ async def handle_set_area_heating_curve(
         await _refresh_coordinator(hass)
 
         return web.json_response({"success": True})
-    except (
-        HomeAssistantError,
-        SmartHeatingError,
-        ValidationError,
-        StorageError,
-        AreaNotFoundError,
-        KeyError,
-        ValueError,
-        AttributeError,
-    ) as err:
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError, AttributeError) as err:
         _LOGGER.error("Error setting area heating curve for %s", area_id, exc_info=True)
         return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 
