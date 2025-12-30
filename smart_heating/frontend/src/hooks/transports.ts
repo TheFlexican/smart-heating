@@ -24,8 +24,7 @@ export class PollingTransport implements TransportAdapter {
   mode: TransportMode = 'polling'
   private intervalId: ReturnType<typeof setInterval> | null = null
   private connected: boolean = false
-  private callbacks: TransportCallbacks
-
+  private readonly callbacks: TransportCallbacks
   constructor(callbacks: TransportCallbacks) {
     this.callbacks = callbacks
   }
@@ -95,22 +94,22 @@ export class PollingTransport implements TransportAdapter {
 export class WebSocketTransport implements TransportAdapter {
   mode: TransportMode = 'websocket'
   private ws: WebSocket | null = null
-  private callbacks: TransportCallbacks
+  private readonly callbacks: TransportCallbacks
   private messageId: number = 1
   private isAuthenticated: boolean = false
   private pingInterval: ReturnType<typeof setInterval> | null = null
   private lastPong: number = Date.now()
-  private isIOS: boolean
+  private readonly isIOS: boolean
 
   constructor(callbacks: TransportCallbacks) {
     this.callbacks = callbacks
-    this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    this.isIOS = /iPad|iPhone|iPod/.test(globalThis.navigator?.userAgent || '')
   }
 
   async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const wsUrl = `${protocol}//${window.location.host}/api/websocket`
+      const protocol = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const wsUrl = `${protocol}//${globalThis.location.host}/api/websocket`
 
       console.log(`[WebSocketTransport] Connecting to ${wsUrl}...`)
       this.ws = new WebSocket(wsUrl)
@@ -171,8 +170,8 @@ export class WebSocketTransport implements TransportAdapter {
             message.result?.data?.areas
           ) {
             const areasData = message.result.data.areas
-            const areasArray = Object.values(areasData) as Zone[]
-            this.callbacks.onZonesUpdate?.(areasArray)
+            const areasArray = Object.values(areasData)
+            this.callbacks.onZonesUpdate?.(areasArray as Zone[])
             return
           }
 
