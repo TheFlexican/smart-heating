@@ -1,4 +1,5 @@
 import { createTheme } from '@mui/material'
+import type { Theme } from '@mui/material/styles'
 
 /**
  * Home Assistant theme factory - matches HA's native theme with enhanced visual polish
@@ -10,7 +11,7 @@ import { createTheme } from '@mui/material'
  * - Improved shadows and depth
  * - Enhanced spacing and padding
  */
-export const createHATheme = (mode: 'light' | 'dark') =>
+export const createHATheme = (mode: 'light' | 'dark'): Theme =>
   createTheme({
     palette: {
       mode,
@@ -203,10 +204,7 @@ export const createHATheme = (mode: 'light' | 'dark') =>
             '& .MuiSlider-thumb': {
               transition: 'box-shadow 0.2s ease-in-out',
               '&:hover': {
-                boxShadow:
-                  mode === 'dark'
-                    ? '0 0 0 8px rgba(3, 169, 244, 0.16)'
-                    : '0 0 0 8px rgba(3, 169, 244, 0.16)',
+                boxShadow: '0 0 0 8px rgba(3, 169, 244, 0.16)',
               },
             },
           },

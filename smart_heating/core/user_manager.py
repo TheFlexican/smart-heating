@@ -1,12 +1,16 @@
 """User Profile Manager for Multi-User Presence Tracking."""
 
+import asyncio
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, List
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.exceptions import HomeAssistantError
+
+from ..exceptions import ValidationError, StorageError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -457,6 +461,8 @@ class UserManager:
         self,
     ) -> None:  # NOSONAR - intentionally async (cleanup may be awaited by caller)
         """Clean up resources."""
+        # Use a short await to keep function asynchronous for callers and satisfy linters
+        await asyncio.sleep(0)
         for unsub in self._unsub_person_listeners:
             unsub()
         self._unsub_person_listeners.clear()

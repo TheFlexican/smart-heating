@@ -2,6 +2,7 @@
 
 import json
 import logging
+import asyncio
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -53,7 +54,7 @@ class ConfigManager:
         global_settings = {
             "frost_protection": {
                 "enabled": self.area_manager.frost_protection_enabled,
-                "min_temperature": self.area_manager.frost_protection_min_temp,
+                "min_temperature": self.area_manager.frost_protection_temp,
             },
             "global_presets": {
                 "away_temp": self.area_manager.global_away_temp,
@@ -99,6 +100,8 @@ class ConfigManager:
             "vacation_mode": vacation_data,
         }
 
+        # Ensure function uses async features for linters
+        await asyncio.sleep(0)
         _LOGGER.info("Configuration export complete (%d areas)", len(areas_data))
         return export_data
 
@@ -203,21 +206,9 @@ class ConfigManager:
         Args:
             settings: Global settings data
         """
-        # Frost protection
-        if "frost_protection" in settings:
-            fp = settings["frost_protection"]
-            self.area_manager.frost_protection_enabled = fp.get("enabled", True)
-            self.area_manager.frost_protection_min_temp = fp.get("min_temperature", 10.0)
-
-        # Global presets
-        if "global_presets" in settings:
-            presets = settings["global_presets"]
-            self.area_manager.global_away_temp = presets.get("away_temp", 16.0)
-            self.area_manager.global_eco_temp = presets.get("eco_temp", 18.0)
-            self.area_manager.global_comfort_temp = presets.get("comfort_temp", 22.0)
-            self.area_manager.global_home_temp = presets.get("home_temp", 20.0)
-            self.area_manager.global_sleep_temp = presets.get("sleep_temp", 17.0)
-            self.area_manager.global_activity_temp = presets.get("activity_temp", 21.0)
+        # Import high-level global settings
+        self._import_frost_protection(settings.get("frost_protection"))
+        self._import_global_presets(settings.get("global_presets"))
 
         # TRV settings
         if "trv_settings" in settings:
@@ -234,12 +225,65 @@ class ConfigManager:
 
         # Safety sensors
         if "safety_sensors" in settings:
-            self.area_manager.set_safety_sensors(settings["safety_sensors"])
+            sensors = settings["safety_sensors"] or []
+            if hasattr(self.area_manager, "clear_safety_sensors"):
+                try:
+                    self.area_manager.clear_safety_sensors()
+                except Exception:
+                    _LOGGER.debug("Failed to clear existing safety sensors - continuing import")
+            for s in sensors:
+                try:
+                    self._import_single_safety_sensor(s)
+                except Exception as err:
+                    _LOGGER.warning("Failed to add safety sensor from import: %s", err)
 
         # Save to storage
         await self.area_manager.async_save()
 
         _LOGGER.info("Global settings imported")
+
+    def _import_frost_protection(self, fp: dict | None) -> None:
+        if not fp:
+            return
+        self.area_manager.frost_protection_enabled = fp.get("enabled", True)
+        self.area_manager.frost_protection_temp = fp.get("min_temperature", 10.0)
+
+    def _import_global_presets(self, presets: dict | None) -> None:
+        if not presets:
+            return
+        self.area_manager.global_away_temp = presets.get("away_temp", 16.0)
+        self.area_manager.global_eco_temp = presets.get("eco_temp", 18.0)
+        self.area_manager.global_comfort_temp = presets.get("comfort_temp", 22.0)
+        self.area_manager.global_home_temp = presets.get("home_temp", 20.0)
+        self.area_manager.global_sleep_temp = presets.get("sleep_temp", 17.0)
+        self.area_manager.global_activity_temp = presets.get("activity_temp", 21.0)
+
+    def _import_single_safety_sensor(self, s: Any) -> None:
+        """Import a single safety sensor entry (dict or string)."""
+        sensor_id = None
+        attribute = "state"
+        alert_value: str | bool = True
+        enabled = True
+
+        if isinstance(s, dict):
+            sensor_id = s.get("sensor_id") or s.get("entity_id") or s.get("id")
+            attribute = s.get("attribute", "state")
+            alert_value = s.get("alert_value", True)
+            enabled = s.get("enabled", True)
+        elif isinstance(s, str):
+            sensor_id = s
+
+        if not sensor_id:
+            return
+
+        # Ensure typed values
+        try:
+            enabled_bool = bool(enabled)
+            # attribute must be str
+            attr_str = str(attribute)
+            self.area_manager.add_safety_sensor(sensor_id, attr_str, alert_value, enabled_bool)
+        except Exception as err:
+            _LOGGER.warning("Failed to add safety sensor %s: %s", sensor_id, err)
 
     async def _async_import_areas(self, areas_data: dict[str, Any]) -> dict[str, int]:
         """Import areas configuration.

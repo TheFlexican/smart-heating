@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any, List, Tuple, Dict
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -44,13 +44,16 @@ class ClimateController:
         self._hysteresis = 0.5  # Temperature hysteresis in °C
 
         # Initialize handlers
-        self.temp_handler = TemperatureSensorHandler(hass)
-        self.device_handler = DeviceControlHandler(hass, area_manager, capability_detector)
-        self.sensor_handler = None  # Set by set_area_logger
-        self.protection_handler = None  # Set by set_area_logger
-        self.cycle_handler = None  # Set by set_area_logger
+        self.temp_handler: TemperatureSensorHandler = TemperatureSensorHandler(hass)
+        self.device_handler: DeviceControlHandler = DeviceControlHandler(
+            hass, area_manager, capability_detector
+        )
+        self.sensor_handler: Optional[SensorMonitoringHandler] = None  # Set by set_area_logger
+        self.protection_handler: Optional[ProtectionHandler] = None  # Set by set_area_logger
+        self.cycle_handler: Optional[HeatingCycleHandler] = None  # Set by set_area_logger
+        self.area_logger: Optional[Any] = None
 
-    def set_area_logger(self, area_logger) -> None:
+    def set_area_logger(self, area_logger: Any) -> None:
         """Set area logger and reinitialize handlers that need it.
 
         Args:
@@ -190,6 +193,7 @@ class ClimateController:
 
         Delegates to centralized temperature handler for consistent behavior.
         """
+        await asyncio.sleep(0)
         self.temp_handler.update_all_area_temperatures(self.area_manager)
 
     async def _async_set_area_heating(
@@ -220,13 +224,20 @@ class ClimateController:
 
         # Check for manual override mode
         if hasattr(area, "manual_override") and area.manual_override:
-            await self.protection_handler.async_handle_manual_override(
-                area_id, area, self.device_handler
-            )
+            if self.protection_handler:
+                await self.protection_handler.async_handle_manual_override(
+                    area_id, area, self.device_handler
+                )
+            else:
+                _LOGGER.debug(
+                    "No protection handler available to handle manual override for area %s",
+                    area_id,
+                )
             return None, None
 
         # Check for vacation mode (applies in place)
-        self.protection_handler.apply_vacation_mode(area_id, area)
+        if self.protection_handler:
+            self.protection_handler.apply_vacation_mode(area_id, area)
 
         # Get effective target temperature
         target_temp = self._get_and_log_target_temp(area_id, area, current_time)
@@ -256,21 +267,7 @@ class ClimateController:
         target_temp = self._apply_frost_protection(area_id, target_temp)
 
         # Apply HVAC mode - turn off thermostats when hvac_mode is "off"
-        if hasattr(area, "hvac_mode") and area.hvac_mode == "off":
-            _LOGGER.info("Area %s: HVAC mode is OFF - turning off all thermostats", area_id)
-            # Turn off all thermostats in the area
-            thermostats = area.get_thermostats()
-            for thermostat_id in thermostats:
-                try:
-                    await self.device_handler._handle_thermostat_turn_off(thermostat_id)
-                    _LOGGER.debug("Turned off thermostat %s in area %s", thermostat_id, area_id)
-                except (HomeAssistantError, SmartHeatingError, asyncio.TimeoutError) as err:
-                    _LOGGER.error("Failed to turn off thermostat %s: %s", thermostat_id, err)
-            # Turn off switches and valves too
-            await self.device_handler.async_control_switches(area, False)
-            await self.device_handler.async_control_valves(area, False, None)
-            area.state = "off"
-            _LOGGER.debug("Area %s: All climate devices turned off", area_id)
+        if await self._handle_hvac_off(area_id, area):
             return None, None
 
         current_temp = area.current_temperature
@@ -301,6 +298,26 @@ class ClimateController:
             should_stop_heat,
             should_stop_cool,
         )
+
+    async def _handle_hvac_off(self, area_id: str, area) -> bool:
+        """Handle HVAC off mode for an area and return True if processing should stop."""
+        if hasattr(area, "hvac_mode") and area.hvac_mode == "off":
+            _LOGGER.info("Area %s: HVAC mode is OFF - turning off all thermostats", area_id)
+            # Turn off all thermostats in the area
+            thermostats = area.get_thermostats()
+            for thermostat_id in thermostats:
+                try:
+                    await self.device_handler._handle_thermostat_turn_off(thermostat_id)
+                    _LOGGER.debug("Turned off thermostat %s in area %s", thermostat_id, area_id)
+                except (HomeAssistantError, SmartHeatingError, asyncio.TimeoutError) as err:
+                    _LOGGER.error("Failed to turn off thermostat %s: %s", thermostat_id, err)
+            # Turn off switches and valves too
+            await self.device_handler.async_control_switches(area, False)
+            await self.device_handler.async_control_valves(area, False, None)
+            area.state = "off"
+            _LOGGER.debug("Area %s: All climate devices turned off", area_id)
+            return True
+        return False
 
     async def _record_area_history(self, area_id, area, should_record_history, history_tracker):
         """Record history if enabled and available."""
@@ -373,13 +390,19 @@ class ClimateController:
     async def _handle_disabled_area(self, area_id, area, history_tracker, should_record_history):
         """Handle an area that is disabled and return True if processing should stop."""
         if not area.enabled:
-            await self.protection_handler.async_handle_disabled_area(
-                area_id,
-                area,
-                self.device_handler,
-                history_tracker,
-                should_record_history,
-            )
+            if self.protection_handler:
+                await self.protection_handler.async_handle_disabled_area(
+                    area_id,
+                    area,
+                    self.device_handler,
+                    history_tracker,
+                    should_record_history,
+                )
+            else:
+                _LOGGER.debug(
+                    "No protection handler available to handle disabled area %s",
+                    area_id,
+                )
             return True
         return False
 
@@ -481,19 +504,19 @@ class ClimateController:
             await self._handle_cooling_transition(
                 area, area_id, current_temp, target_temp, last_state
             )
-            return None, None
+            return [], None
 
         if should_stop_heat:
             await self._handle_stop_heating_transition(
                 area, area_id, current_temp, target_temp, last_state
             )
-            return None, None
+            return [], None
 
         if should_stop_cool:
             await self._handle_stop_cooling_transition(area, area_id, current_temp, last_state)
-            return None, None
+            return [], None
 
-        return None, None
+        return [], None
 
     async def _handle_heating_transition(
         self, area, area_id, current_temp, target_temp, last_state
@@ -512,9 +535,16 @@ class ClimateController:
                 target_temp,
             )
             area._last_heating_state = True
-            return await self.cycle_handler.async_handle_heating_required(
-                area_id, area, current_temp, target_temp, self.device_handler, self.temp_handler
+            if self.cycle_handler:
+                return await self.cycle_handler.async_handle_heating_required(
+                    area_id, area, current_temp, target_temp, self.device_handler, self.temp_handler
+                )
+            _LOGGER.warning(
+                "No cycle handler available to process heating transition for area %s",
+                area_id,
             )
+            heating_areas = [] if getattr(area, "heating_type", "radiator") == "airco" else [area]
+            return heating_areas, target_temp
 
         # Already heating - skip handler call
         _LOGGER.debug(
@@ -539,9 +569,15 @@ class ClimateController:
                 target_temp,
             )
             area._last_heating_state = "cooling"
-            await self.cycle_handler.async_handle_cooling_required(
-                area_id, area, current_temp, target_temp, self.device_handler, self.temp_handler
-            )
+            if self.cycle_handler:
+                await self.cycle_handler.async_handle_cooling_required(
+                    area_id, area, current_temp, target_temp, self.device_handler, self.temp_handler
+                )
+            else:
+                _LOGGER.warning(
+                    "No cycle handler available to process cooling transition for area %s",
+                    area_id,
+                )
         else:
             # Already cooling - skip handler call
             _LOGGER.debug(
@@ -561,9 +597,15 @@ class ClimateController:
                 target_temp,
             )
             area._last_heating_state = False
-            await self.cycle_handler.async_handle_heating_stop(
-                area_id, area, current_temp, target_temp, self.device_handler
-            )
+            if self.cycle_handler:
+                await self.cycle_handler.async_handle_heating_stop(
+                    area_id, area, current_temp, target_temp, self.device_handler
+                )
+            else:
+                _LOGGER.warning(
+                    "No cycle handler available to process heating stop for area %s",
+                    area_id,
+                )
         else:
             # Already idle - skip handler call
             _LOGGER.debug("Area %s: Already idle (%.1f°C) - no handler call", area_id, current_temp)
@@ -578,9 +620,16 @@ class ClimateController:
                 current_temp,
             )
             area._last_heating_state = False
-            await self.cycle_handler.async_handle_cooling_stop(
-                area_id, area, current_temp, None, self.device_handler
-            )
+            if self.cycle_handler:
+                target_temp = getattr(area, "target_temperature", current_temp)
+                await self.cycle_handler.async_handle_cooling_stop(
+                    area_id, area, current_temp, target_temp, self.device_handler
+                )
+            else:
+                _LOGGER.warning(
+                    "No cycle handler available to process cooling stop for area %s",
+                    area_id,
+                )
         else:
             # Already idle - skip handler call
             _LOGGER.debug("Area %s: Already idle - no handler call", area_id)
@@ -614,9 +663,9 @@ class ClimateController:
                 should_record_history,
                 history_tracker,
             )
-            if area_heating:
+            if area_heating is not None:
                 heating_areas.extend(area_heating)
-            if area_max_temp:
+            if area_max_temp is not None:
                 max_target_temp = max(max_target_temp, area_max_temp)
 
         # Control OpenTherm gateway

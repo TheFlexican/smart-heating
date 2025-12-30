@@ -114,6 +114,45 @@ const ZoneDetail = () => {
     },
   })
 
+  const getEntityId = (sensor: string | WindowSensorConfig | PresenceSensorConfig): string =>
+    typeof sensor === 'string' ? sensor : sensor.entity_id
+
+  const loadStatesForSensors = useCallback(
+    async (
+      sensors: (string | WindowSensorConfig | PresenceSensorConfig)[] | undefined,
+      states: Record<string, any>,
+    ): Promise<void> => {
+      if (!sensors) return
+      for (const sensor of sensors) {
+        const entity_id = getEntityId(sensor)
+        try {
+          const state = await getEntityState(entity_id)
+          states[entity_id] = state
+        } catch (error) {
+          console.error(`Failed to load state for ${entity_id}:`, error)
+        }
+      }
+    },
+    [],
+  )
+
+  const loadEntityStates = useCallback(
+    async (currentZone: Zone) => {
+      try {
+        const states: Record<string, any> = {}
+
+        // Load presence and window sensor states
+        await loadStatesForSensors(currentZone.presence_sensors, states)
+        await loadStatesForSensors(currentZone.window_sensors, states)
+
+        setEntityStates(states)
+      } catch (error) {
+        console.error('Failed to load entity states:', error)
+      }
+    },
+    [loadStatesForSensors],
+  )
+
   const loadData = useCallback(async () => {
     if (!areaId) return
 
@@ -147,7 +186,7 @@ const ZoneDetail = () => {
     } finally {
       setLoading(false)
     }
-  }, [areaId, navigate])
+  }, [areaId, navigate, loadEntityStates])
 
   // Void-returning wrapper for loadData to avoid promise misuse in callbacks
   const handleDataUpdate = useCallback(() => {
@@ -157,7 +196,7 @@ const ZoneDetail = () => {
   const startEditingTrv = (trv: any) => {
     setEditingTrvId(trv.entity_id)
     setEditingTrvName(trv.name ?? '')
-    setEditingTrvRole((trv.role as any) ?? 'both')
+    setEditingTrvRole((trv.role ?? 'both') as 'position' | 'open' | 'both')
   }
 
   const cancelEditingTrv = () => {
@@ -220,42 +259,6 @@ const ZoneDetail = () => {
     loadHistoryConfig().catch(console.error)
   }, [areaId, loadData, loadHistoryConfig])
 
-  const loadEntityStates = async (currentZone: Zone) => {
-    try {
-      const states: Record<string, any> = {}
-
-      // Load presence sensor states and names
-      if (currentZone.presence_sensors) {
-        for (const sensor of currentZone.presence_sensors) {
-          const entity_id = typeof sensor === 'string' ? sensor : sensor.entity_id
-          try {
-            const state = await getEntityState(entity_id)
-            states[entity_id] = state
-          } catch (error) {
-            console.error(`Failed to load state for ${entity_id}:`, error)
-          }
-        }
-      }
-
-      // Load window sensor states and names
-      if (currentZone.window_sensors) {
-        for (const sensor of currentZone.window_sensors) {
-          const entity_id = typeof sensor === 'string' ? sensor : sensor.entity_id
-          try {
-            const state = await getEntityState(entity_id)
-            states[entity_id] = state
-          } catch (error) {
-            console.error(`Failed to load state for ${entity_id}:`, error)
-          }
-        }
-      }
-
-      setEntityStates(states)
-    } catch (error) {
-      console.error('Failed to load entity states:', error)
-    }
-  }
-
   const loadWeatherEntities = async () => {
     setWeatherEntitiesLoading(true)
     try {
@@ -273,9 +276,9 @@ const ZoneDetail = () => {
   // outdoor sensor persistently visible across page reloads.
   useEffect(() => {
     const ensureSelectedWeatherEntityVisible = async () => {
-      if (!area || !area.weather_entity_id) return
+      if (!area?.weather_entity_id) return
       // If we already have the full list or the selected entity is present, nothing to do
-      if (weatherEntities.find(e => e.entity_id === area.weather_entity_id)) return
+      if (weatherEntities.some(e => e.entity_id === area.weather_entity_id)) return
 
       try {
         const state = await getEntityState(area.weather_entity_id)
@@ -454,39 +457,53 @@ const ZoneDetail = () => {
     }
   }
 
-  const getDeviceStatus = (device: any) => {
-    if (device.type === 'thermostat') {
-      const parts = []
-      if (device.current_temperature !== undefined && device.current_temperature !== null) {
-        parts.push(`${device.current_temperature.toFixed(1)}°C`)
-      }
-      // Use area target temperature instead of device's stale target
-      if (
-        area?.target_temperature !== undefined &&
-        area.target_temperature !== null &&
-        device.current_temperature !== undefined &&
-        device.current_temperature !== null &&
-        area.target_temperature > device.current_temperature
-      ) {
-        parts.push(`→ ${area.target_temperature.toFixed(1)}°C`)
-      }
-      return parts.length > 0 ? parts.join(' · ') : device.state || 'unknown'
-    } else if (device.type === 'temperature_sensor') {
-      if (device.temperature !== undefined && device.temperature !== null) {
-        return `${device.temperature.toFixed(1)}°C`
-      }
-      return device.state || 'unknown'
-    } else if (device.type === 'valve') {
-      const parts = []
-      if (device.position !== undefined) {
-        parts.push(`${device.position}%`)
-      }
-      if (device.state) {
-        parts.push(device.state)
-      }
-      return parts.length > 0 ? parts.join(' · ') : 'unknown'
-    } else {
-      return device.state || 'unknown'
+  const getThermostatStatus = (device: Device): string => {
+    const parts: string[] = []
+    if (device.current_temperature !== undefined && device.current_temperature !== null) {
+      parts.push(`${device.current_temperature.toFixed(1)}°C`)
+    }
+
+    if (
+      area?.target_temperature !== undefined &&
+      area.target_temperature !== null &&
+      device.current_temperature !== undefined &&
+      device.current_temperature !== null &&
+      area.target_temperature > device.current_temperature
+    ) {
+      parts.push(`→ ${area.target_temperature.toFixed(1)}°C`)
+    }
+
+    return parts.length > 0 ? parts.join(' · ') : device.state || 'unknown'
+  }
+
+  const getTemperatureSensorStatus = (device: Device): string => {
+    if (device.temperature !== undefined && device.temperature !== null) {
+      return `${(device.temperature as number).toFixed(1)}°C`
+    }
+    return device.state || 'unknown'
+  }
+
+  const getValveStatus = (device: Device): string => {
+    const parts: string[] = []
+    if (device.position !== undefined && device.position !== null) {
+      parts.push(`${device.position}%`)
+    }
+    if (device.state) {
+      parts.push(device.state)
+    }
+    return parts.length > 0 ? parts.join(' · ') : 'unknown'
+  }
+
+  const getDeviceStatus = (device: Device): string => {
+    switch (device.type) {
+      case 'thermostat':
+        return getThermostatStatus(device)
+      case 'temperature_sensor':
+        return getTemperatureSensorStatus(device)
+      case 'valve':
+        return getValveStatus(device)
+      default:
+        return device.state || 'unknown'
     }
   }
 
@@ -529,7 +546,9 @@ const ZoneDetail = () => {
         t,
         weatherEntities,
         weatherEntitiesLoading,
-        onLoadWeatherEntities: loadWeatherEntities,
+        onLoadWeatherEntities: () => {
+          loadWeatherEntities().catch(console.error)
+        },
       }),
       HeatingControlSection({ area, onUpdate: handleDataUpdate, t }),
       HistoryManagementSection({

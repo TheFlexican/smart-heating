@@ -1,7 +1,12 @@
 """Sensor management functionality for Area model."""
 
 import logging
-from typing import Optional
+from typing import Optional, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .area import Area  # pragma: no cover
+
+from homeassistant.core import HomeAssistant
 
 from ..const import DEFAULT_PRESENCE_TEMP_BOOST, DEFAULT_WINDOW_OPEN_TEMP_DROP
 
@@ -133,7 +138,7 @@ class AreaSensorManager:
         return None
 
     def get_window_open_temperature_with_hass(
-        self, hass=None, use_global_presence: bool = True
+        self, hass: HomeAssistant | Any = None, use_global_presence: bool = True
     ) -> Optional[float]:
         """Calculate target temperature when window is open (with hass support).
 
@@ -152,22 +157,30 @@ class AreaSensorManager:
             return self.get_window_open_temperature()
 
         max_temp_drop = self._get_max_window_temp_drop(hass)
-        if max_temp_drop == 0.0:
+        if max_temp_drop <= 0.0:
             return None
 
-        base_temp = self._get_base_temperature_with_presence(use_global_presence)
+        base_temp = float(self._get_base_temperature_with_presence(use_global_presence))
         return base_temp - max_temp_drop
 
-    def _get_max_window_temp_drop(self, hass) -> float:
+    def _get_max_window_temp_drop(self, hass: HomeAssistant | Any) -> float:
         """Get the maximum temperature drop from open windows."""
         max_temp_drop = 0.0
-        for sensor_id, sensor_config in self.area.window_sensors.items():
+        for sensor_config in self.area.window_sensors:
+            # sensor_config expected to be a dict with entity_id and settings
             if not sensor_config.get("enabled", True):
                 continue
-            state = hass.states.get(sensor_id)
+            entity_id = sensor_config.get("entity_id")
+            if not entity_id:
+                continue
+            state = hass.states.get(entity_id)
             if state and state.state == "on":
                 temp_drop = sensor_config.get("temp_drop", DEFAULT_WINDOW_OPEN_TEMP_DROP)
-                max_temp_drop = max(max_temp_drop, temp_drop)
+                try:
+                    temp_drop_val = float(temp_drop)
+                except (TypeError, ValueError):
+                    temp_drop_val = float(DEFAULT_WINDOW_OPEN_TEMP_DROP)
+                max_temp_drop = max(max_temp_drop, temp_drop_val)
         return max_temp_drop
 
     def _get_base_temperature_with_presence(self, use_global_presence: bool) -> float:
@@ -177,16 +190,33 @@ class AreaSensorManager:
         if not use_global_presence or not self.area.area_manager:
             return base_temp
 
-        if self.area.area_manager.get_global_presence_state() != "home":
-            return base_temp
+        # If AreaManager provides global presence state helper, use it; otherwise assume no global 'home'
+        helper = getattr(self.area.area_manager, "get_global_presence_state", None)
+        if callable(helper):
+            try:
+                if helper() != "home":
+                    return base_temp
+            except Exception:
+                # If the helper fails, fall back to no boost
+                _LOGGER.debug(
+                    "Failed to get global presence state from AreaManager, skipping boost"
+                )
+                return base_temp
 
+        # No explicit global presence helper — apply presence boost if any local presence sensors
         return base_temp + self._get_presence_boost()
 
     def _get_presence_boost(self) -> float:
         """Get the maximum presence boost from enabled sensors."""
         presence_boost = 0.0
-        for sensor_config in self.area.presence_sensors.values():
+        for sensor_config in self.area.presence_sensors:
+            if not isinstance(sensor_config, dict):
+                continue
             if sensor_config.get("enabled", True):
                 boost = sensor_config.get("temp_boost", DEFAULT_PRESENCE_TEMP_BOOST)
-                presence_boost = max(presence_boost, boost)
+                try:
+                    boost_val = float(boost)
+                except (TypeError, ValueError):
+                    boost_val = float(DEFAULT_PRESENCE_TEMP_BOOST)
+                presence_boost = max(presence_boost, boost_val)
         return presence_boost

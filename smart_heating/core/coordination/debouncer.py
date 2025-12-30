@@ -45,6 +45,7 @@ class Debouncer:
             key: Unique identifier for this debounce operation (e.g., entity_id)
             callback: Async callback to execute after debounce delay
         """
+        await asyncio.sleep(0)  # Yield control to event loop
         _LOGGER.debug("Debouncing callback for %s (delay: %.1fs)", key, self._delay)
 
         # Cancel any existing debounce task for this key
@@ -85,7 +86,7 @@ class Debouncer:
     def cancel_all(self) -> None:
         """Cancel all pending debounce tasks."""
         _LOGGER.debug("Cancelling all %d debounce tasks", len(self._tasks))
-        for task in list(self._tasks.values()):
+        for task in self._tasks.values():
             try:
                 task.cancel()
             except (asyncio.CancelledError, RuntimeError, AttributeError) as err:

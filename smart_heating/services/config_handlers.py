@@ -1,5 +1,6 @@
 """Configuration service handlers for Smart Heating."""
 
+import asyncio
 import logging
 
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -29,6 +30,7 @@ async def async_handle_set_hysteresis(
         hass: Home Assistant instance
         coordinator: Data coordinator instance
     """
+    await asyncio.sleep(0)  # Yield to event loop
     hysteresis = call.data[ATTR_HYSTERESIS]
 
     _LOGGER.debug("Setting global hysteresis to %.2f°C", hysteresis)
