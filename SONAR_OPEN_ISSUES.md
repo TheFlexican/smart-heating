@@ -22,7 +22,7 @@
    - Suggested fix: Remove `list()` wrapping and use the iterator directly (micro-change / low-risk).
    **Status:** ✅ **Implemented & committed** — removed `list()` and replaced deprecated `asyncio.iscoroutinefunction` with `inspect.iscoroutinefunction` (commit: `d141d6aa`); unit tests passed (1654 passed, 1 skipped; coverage 82%).
 
-3. **AZtbHblsSIICIYy7qd-y** — **OPEN** — **MINOR** — `typescript:S6606`
+3. **AZtbHblsSIICIYy7qd-y** — **CLOSED** — **MINOR** — `typescript:S6606`
    - Component: `smart_heating/frontend/src/components/AreaDetail/HeatingCurveControl.tsx` (lines ~29-31)
    - Message: Prefer using nullish coalescing operator (`??`) instead of a ternary expression.
    - Suggested fix: Replace ternary with `??` (readability improvement).
@@ -74,7 +74,7 @@
     - Messages: Prefer `??` and unexpected negated condition.
     - Suggested fix: Replace with `??` where appropriate and adjust logic.
    **Status:** ✅ **Implemented & committed** — replaced ternary with `??` and simplified boolean inversion in `SettingsSection.tsx` (commit: `136fdb46`); frontend tests passed.
-12. **AZsRJB9OIp8cjludK1kH** — **REOPENED** — **MINOR** — `python:S7503`
+12. **AZsRJB9OIp8cjludK1kH** — **CLOSED** — **MINOR** — `python:S7503`
     - Component: `smart_heating/__init__.py` (line 322)
     - Message: Use asynchronous features in this function or remove the `async` keyword.
     - Suggested fix: Convert to synchronous or add awaits / async usage as appropriate.
