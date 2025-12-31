@@ -10,17 +10,17 @@
 
 ## Open / Reopened Findings (prioritized)
 
-1. **AZtj3RIb** — **MAJOR** — `python:S5713`
+1. **AZtj3RIb** — **CLOSED** — **MAJOR** — `python:S5713`
    - Component: `smart_heating/storage/history.py` (line 505)
    - Message: Remove this redundant Exception class; it derives from another which is already caught.
    - Suggested fix: Remove / merge redundant Exception definitions or catch only the base exception.
-   **Status:** ✅ **Implemented locally** — removed the redundant `json.JSONDecodeError` from the except tuple (it is a subclass of `ValueError`). Commit: `fb20d4af` on branch `fix/sonar-backend`. Backend tests passed locally (1654 passed, 1 skipped; coverage 82%).
+   **Status:** ✅ **Implemented & committed** — removed the redundant `json.JSONDecodeError` from the except tuple (commit: `fb20d4af`); backend tests passed locally (1654 passed, 1 skipped; coverage 82%).
 
-2. **AZtj3RKMqzPaaClP-zUR** — **OPEN** — **MINOR** — `python:S7504`
+2. **AZtj3RKMqzPaaClP-zUR** — **CLOSED** — **MINOR** — `python:S7504`
    - Component: `smart_heating/core/services/device_service.py` (line 110)
    - Message: Remove this unnecessary `list()` call on an already iterable object.
    - Suggested fix: Remove `list()` wrapping and use the iterator directly (micro-change / low-risk).
-   **Status:** ✅ **Implemented locally & committed** — removed `list()` and replaced deprecated `asyncio.iscoroutinefunction` with `inspect.iscoroutinefunction`. Commit: `d141d6aa` on branch `fix/sonar-backend`. Unit tests passed (1654 passed, 1 skipped; coverage 82%).
+   **Status:** ✅ **Implemented & committed** — removed `list()` and replaced deprecated `asyncio.iscoroutinefunction` with `inspect.iscoroutinefunction` (commit: `d141d6aa`); unit tests passed (1654 passed, 1 skipped; coverage 82%).
 
 3. **AZtbHblsSIICIYy7qd-y** — **OPEN** — **MINOR** — `typescript:S6606`
    - Component: `smart_heating/frontend/src/components/AreaDetail/HeatingCurveControl.tsx` (lines ~29-31)
@@ -69,11 +69,11 @@
     - Suggested fix: Same as above — extract helper/branch.
    **Status:** ✅ **Implemented & committed** — extracted `gridTemplateColumns` calculation out of JSX to a small helper IIFE (commit: `055ac203`); frontend tests passed.
 
-11. **AZsRJB5zIp8cjludK1in / AZsRJB5zIp8cjludK1io** — **OPEN** — `typescript:S6606` & `S7735`
+11. **AZsRJB5zIp8cjludK1in / AZsRJB5zIp8cjludK1io** — **CLOSED** — `typescript:S6606` & `S7735`
     - Component: `smart_heating/frontend/src/components/SettingsSection.tsx` (line 34)
     - Messages: Prefer `??` and unexpected negated condition.
     - Suggested fix: Replace with `??` where appropriate and adjust logic.
-
+   **Status:** ✅ **Implemented & committed** — replaced ternary with `??` and simplified boolean inversion in `SettingsSection.tsx` (commit: `136fdb46`); frontend tests passed.
 12. **AZsRJB9OIp8cjludK1kH** — **REOPENED** — **MINOR** — `python:S7503`
     - Component: `smart_heating/__init__.py` (line 322)
     - Message: Use asynchronous features in this function or remove the `async` keyword.

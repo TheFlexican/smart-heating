@@ -30,8 +30,8 @@ const SettingsSection = ({
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded)
   const [isToggling, setIsToggling] = useState(false)
 
-  // Use controlled or uncontrolled state
-  const expanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded
+  // Use controlled or uncontrolled state (prefer nullish coalescing)
+  const expanded = controlledExpanded ?? internalExpanded
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault()
