@@ -66,6 +66,7 @@
     - Component: `smart_heating/frontend/src/components/DraggableSettings.tsx` (lines ~137-139)
     - Message: Extract nested ternary into independent statement.
     - Suggested fix: Same as above — extract helper/branch.
+   **Status:** ✅ **Implemented locally** — extracted `gridTemplateColumns` calculation out of JSX to a small helper IIFE; frontend tests passed (333 tests). Will commit after you approve pushing.
 
 11. **AZsRJB5zIp8cjludK1in / AZsRJB5zIp8cjludK1io** — **OPEN** — `typescript:S6606` & `S7735`
     - Component: `smart_heating/frontend/src/components/SettingsSection.tsx` (line 34)
