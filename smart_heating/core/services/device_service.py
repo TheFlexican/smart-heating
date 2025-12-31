@@ -10,12 +10,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from ...exceptions import DeviceError, ValidationError
+from ...const import TIMEZONE_SUFFIX
 from ...models import DeviceEvent
 
 _LOGGER = logging.getLogger(__name__)
 
-# Timezone constant
-UTC_SUFFIX = "+00:00"
+# Use centralized timezone suffix constant
+UTC_SUFFIX = TIMEZONE_SUFFIX
 
 
 class DeviceService:

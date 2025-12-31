@@ -90,6 +90,9 @@ DEFAULT_HISTORY_RETENTION_DAYS: Final = 30  # Keep 30 days by default
 MAX_HISTORY_RETENTION_DAYS: Final = 365  # Maximum 1 year retention
 HISTORY_RECORD_INTERVAL_SECONDS: Final = 300  # Record every 5 minutes
 
+# Timezone formatting
+TIMEZONE_SUFFIX: Final = "+00:00"
+
 # History storage backends
 HISTORY_STORAGE_JSON: Final = "json"  # JSON file storage (default)
 HISTORY_STORAGE_DATABASE: Final = "database"  # Database storage (MariaDB/PostgreSQL)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
+from ..const import TIMEZONE_SUFFIX
 from typing import Any, Dict
 
 
@@ -43,7 +44,7 @@ class DeviceEvent:
         error: str | None = None,
     ) -> "DeviceEvent":
         return cls(
-            timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            timestamp=datetime.now(timezone.utc).isoformat().replace(TIMEZONE_SUFFIX, "Z"),
             area_id=area_id,
             device_id=device_id,
             direction=direction,
