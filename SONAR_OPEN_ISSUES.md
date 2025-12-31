@@ -55,6 +55,7 @@
    - Component: `smart_heating/frontend/src/components/SafetySensorConfigDialog.tsx` (line 70)
    - Message: Extract this nested ternary operation into an independent statement.
    - Suggested fix: Refactor nested ternary into if/else or helper function.
+   **Status:** ✅ **Implemented locally** — extracted nested ternary into a helper `parseAlertValue`; frontend tests passed (333 tests). Will commit after you approve pushing.
 
 9. **AZsRJB4gIp8cjludK1iP** — **OPEN** — **MAJOR** — `typescript:S6759`
    - Component: `smart_heating/frontend/src/components/HysteresisHelpModal.tsx` (line 19)

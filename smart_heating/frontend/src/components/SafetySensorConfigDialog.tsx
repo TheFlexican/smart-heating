@@ -64,10 +64,16 @@ const SafetySensorConfigDialog = ({
     }
 
     try {
+      const parseAlertValue = (v: string): string | boolean => {
+        if (v === 'true') return true
+        if (v === 'false') return false
+        return v
+      }
+
       const config: SafetySensorConfig = {
         sensor_id: selectedEntity,
         attribute: attribute,
-        alert_value: alertValue === 'true' ? true : alertValue === 'false' ? false : alertValue,
+        alert_value: parseAlertValue(alertValue),
         enabled: enabled,
       }
       await onAdd(config)
