@@ -121,7 +121,7 @@ export const AreaLogsTab: React.FC<AreaLogsTabProps> = ({
                 const dateStr = timestamp.toLocaleDateString('nl-NL')
 
                 return (
-                  <Box key={`${log.timestamp}-${index}`}>
+                  <Box key={`${log.timestamp}-${log.type}`}>
                     {index > 0 && <Divider />}
                     <ListItem alignItems="flex-start" sx={{ py: 2 }}>
                       <ListItemIcon sx={{ minWidth: 40, mt: 0.5 }}>

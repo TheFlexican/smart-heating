@@ -50,7 +50,7 @@ async def async_handle_enable_area(
         area_manager: Area manager instance
         coordinator: Data coordinator instance
     """
-    # area_manager is accepted for compatibility with service registration
+    # `area_manager` is accepted for compatibility with service registration
     # and tests; it is intentionally unused here.
     del area_manager
 
@@ -78,7 +78,7 @@ async def async_handle_disable_area(
         area_manager: Area manager instance
         coordinator: Data coordinator instance
     """
-    # area_manager is accepted for compatibility with service registration
+    # `area_manager` is accepted for compatibility with service registration
     # and tests; it is intentionally unused here.
     del area_manager
 

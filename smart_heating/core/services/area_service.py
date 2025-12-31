@@ -165,7 +165,6 @@ class AreaService:
             except (
                 HomeAssistantError,
                 SmartHeatingError,
-                ValidationError,
                 AttributeError,
                 KeyError,
             ) as e:
