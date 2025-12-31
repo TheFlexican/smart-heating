@@ -31,7 +31,7 @@ async def async_handle_set_temperature(
         await area_manager.async_save()
         await coordinator.async_request_refresh()
         _LOGGER.info("Set area %s temperature to %.1f°C", area_id, temperature)
-    except ValueError as err:
+    except Exception as err:  # catch general exceptions from area_manager for robustness
         _LOGGER.error("Failed to set temperature: %s", err)
 
 
@@ -69,7 +69,6 @@ async def async_handle_disable_area(
     call: ServiceCall,
     area_manager: Optional[AreaManager] = None,
     coordinator: SmartHeatingCoordinator | None = None,
-) -> None:
 ) -> None:
     """Handle the disable_area service call.
 
