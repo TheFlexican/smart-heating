@@ -78,7 +78,7 @@ const EfficiencyReports: React.FC = () => {
     }
   }
 
-  const getScoreColor = (score: number): string => {
+  const getScoreColor = (score: number): 'success' | 'info' | 'warning' | 'error' => {
     if (score >= 80) return 'success'
     if (score >= 60) return 'info'
     if (score >= 40) return 'warning'
@@ -124,14 +124,14 @@ const EfficiencyReports: React.FC = () => {
               </Typography>
               <Chip
                 label={getScoreLabel(metrics.energy_score)}
-                color={getScoreColor(metrics.energy_score) as any}
+                color={getScoreColor(metrics.energy_score)}
                 size="small"
               />
             </Box>
             <LinearProgress
               variant="determinate"
               value={metrics.energy_score}
-              color={getScoreColor(metrics.energy_score) as any}
+              color={getScoreColor(metrics.energy_score)}
               sx={{ mt: 1 }}
             />
           </CardContent>
@@ -206,7 +206,7 @@ const EfficiencyReports: React.FC = () => {
                 <TableCell align="right">
                   <Chip
                     label={report.metrics.energy_score.toFixed(0)}
-                    color={getScoreColor(report.metrics.energy_score) as any}
+                    color={getScoreColor(report.metrics.energy_score)}
                     size="small"
                   />
                 </TableCell>

@@ -1,6 +1,7 @@
 """Device management and event logging service."""
 
 import asyncio
+import inspect
 import logging
 from collections import deque
 from datetime import datetime, timedelta, timezone
@@ -114,7 +115,9 @@ class DeviceService:
     def _call_listener(self, listener, event_dict: dict) -> None:
         """Call a single listener, handling async and sync cases."""
         try:
-            if asyncio.iscoroutinefunction(listener):
+            # Use inspect.iscoroutinefunction instead of asyncio.iscoroutinefunction
+            # (deprecated) to detect coroutine functions reliably.
+            if inspect.iscoroutinefunction(listener):
                 self._schedule_async_listener(listener, event_dict)
             else:
                 listener(event_dict)
@@ -150,7 +153,9 @@ class DeviceService:
         if area_id not in self._device_logs:
             return []
 
-        events = list(self._device_logs[area_id])
+        # The deque is iterable; avoid an unnecessary copy by iterating it
+        # directly. Filtering below produces new lists as needed.
+        events = self._device_logs[area_id]
 
         # Filter by device_id and direction
         if device_id is not None:
