@@ -14,12 +14,13 @@
    - Component: `smart_heating/storage/history.py` (line 505)
    - Message: Remove this redundant Exception class; it derives from another which is already caught.
    - Suggested fix: Remove / merge redundant Exception definitions or catch only the base exception.
+   **Status:** ✅ **Implemented locally** — removed the redundant `json.JSONDecodeError` from the except tuple (it is a subclass of `ValueError`). Commit: `fb20d4af` on branch `fix/sonar-backend`. Backend tests passed locally (1654 passed, 1 skipped; coverage 82%).
 
 2. **AZtj3RKMqzPaaClP-zUR** — **OPEN** — **MINOR** — `python:S7504`
    - Component: `smart_heating/core/services/device_service.py` (line 110)
    - Message: Remove this unnecessary `list()` call on an already iterable object.
    - Suggested fix: Remove `list()` wrapping and use the iterator directly (micro-change / low-risk).
-   **Status:** ✅ **Implemented locally** — `list()` removed; unit tests passed (1654 passed, coverage 82%). Will commit after you approve.
+   **Status:** ✅ **Implemented locally & committed** — removed `list()` and replaced deprecated `asyncio.iscoroutinefunction` with `inspect.iscoroutinefunction`. Commit: `d141d6aa` on branch `fix/sonar-backend`. Unit tests passed (1654 passed, 1 skipped; coverage 82%).
 
 3. **AZtbHblsSIICIYy7qd-y** — **OPEN** — **MINOR** — `typescript:S6606`
    - Component: `smart_heating/frontend/src/components/AreaDetail/HeatingCurveControl.tsx` (lines ~29-31)

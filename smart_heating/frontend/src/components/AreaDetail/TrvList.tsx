@@ -96,7 +96,27 @@ export const TrvList: React.FC<TrvListProps> = ({
                 }}
               >
                 <Box sx={{ flex: 1 }}>
-                  {!isEditing ? (
+                  {isEditing ? (
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <TextField
+                        size="small"
+                        value={editingTrvName ?? ''}
+                        onChange={e => onEditingTrvNameChange(e.target.value)}
+                        data-testid={`trv-edit-name-${trv.entity_id}`}
+                      />
+                      <FormControl size="small">
+                        <Select
+                          value={editingTrvRole ?? trv.role ?? 'both'}
+                          onChange={e => onEditingTrvRoleChange(e.target.value)}
+                          data-testid={`trv-edit-role-${trv.entity_id}`}
+                        >
+                          <MenuItem value="position">Position</MenuItem>
+                          <MenuItem value="open">Open/Closed</MenuItem>
+                          <MenuItem value="both">Both</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Box>
+                  ) : (
                     <>
                       <Typography variant="body1">{name}</Typography>
                       <Typography variant="caption" color="text.secondary">
@@ -120,31 +140,29 @@ export const TrvList: React.FC<TrvListProps> = ({
                         </Typography>
                       </Box>
                     </>
-                  ) : (
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                      <TextField
-                        size="small"
-                        value={editingTrvName ?? ''}
-                        onChange={e => onEditingTrvNameChange(e.target.value)}
-                        data-testid={`trv-edit-name-${trv.entity_id}`}
-                      />
-                      <FormControl size="small">
-                        <Select
-                          value={editingTrvRole ?? trv.role ?? 'both'}
-                          onChange={e => onEditingTrvRoleChange(e.target.value)}
-                          data-testid={`trv-edit-role-${trv.entity_id}`}
-                        >
-                          <MenuItem value="position">Position</MenuItem>
-                          <MenuItem value="open">Open/Closed</MenuItem>
-                          <MenuItem value="both">Both</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Box>
                   )}
                 </Box>
 
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  {!isEditing ? (
+                  {isEditing ? (
+                    <>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        data-testid={`trv-save-${trv.entity_id}`}
+                        onClick={() => onSaveTrv(trv)}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        size="small"
+                        data-testid={`trv-cancel-edit-${trv.entity_id}`}
+                        onClick={onCancelEditingTrv}
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
                     <>
                       <IconButton
                         aria-label={`edit-${trv.entity_id}`}
@@ -163,24 +181,6 @@ export const TrvList: React.FC<TrvListProps> = ({
                         <RemoveCircleOutlineIcon />
                       </IconButton>
                     </>
-                  ) : (
-                    <>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        data-testid={`trv-save-${trv.entity_id}`}
-                        onClick={() => onSaveTrv(trv)}
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        size="small"
-                        data-testid={`trv-cancel-edit-${trv.entity_id}`}
-                        onClick={onCancelEditingTrv}
-                      >
-                        Cancel
-                      </Button>
-                    </>
                   )}
                 </Box>
               </Paper>
@@ -193,3 +193,5 @@ export const TrvList: React.FC<TrvListProps> = ({
     </Box>
   )
 }
+
+export default TrvList
