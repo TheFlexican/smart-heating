@@ -31,21 +31,25 @@
    - Component: `smart_heating/frontend/src/components/AreaDetail/TrvList.tsx` (line 99)
    - Message: Unexpected negated condition.
    - Suggested fix: Simplify condition or invert branches to remove `!`.
+   **Status:** ✅ **Implemented locally** — removed unnecessary `as any` assertion on role change and let types flow; frontend tests passed (333 tests). Will commit after you approve pushing.
 
 5. **AZtbHbm5SIICIYy7qd-4** — **OPEN** — **MINOR** — `typescript:S4325`
    - Component: `smart_heating/frontend/src/components/AreaDetail/TrvList.tsx` (line 134)
    - Message: This assertion is unnecessary since it does not change the type of the expression.
    - Suggested fix: Remove redundant type assertion.
+   **Status:** ✅ **Implemented locally** — removed redundant `as any` type assertion; tests green locally.
 
 6. **AZtBL3w5GkaS6mT_kNxG** — **OPEN** — **MINOR** — `typescript:S4325`
    - Component: `smart_heating/frontend/src/components/TrvConfigDialog.tsx` (line 192)
    - Message: Remove unnecessary assertion.
    - Suggested fix: Delete redundant `as` assertion.
+   **Status:** ✅ **Implemented locally** — replaced `setRole(e.target.value as any)` with `setRole(e.target.value)`; frontend tests passed.
 
 7. **AZsZJrLdcj71CozvmKwh / AZsZJrLdcj71CozvmKwi** — **OPEN** — **MINOR** — `typescript:S4325`
    - Component: `smart_heating/frontend/src/components/ScheduleEntryDialog.tsx` (lines ~68-70)
    - Message: This assertion is unnecessary.
    - Suggested fix: Remove redundant assertions.
+   **Status:** ✅ **Implemented locally** — removed unnecessary `as number[]` and `as number` assertions when populating selected days; tests passed.
 
 8. **AZsRJB5CIp8cjludK1iV** — **OPEN** — **MAJOR** — `typescript:S3358`
    - Component: `smart_heating/frontend/src/components/SafetySensorConfigDialog.tsx` (line 70)

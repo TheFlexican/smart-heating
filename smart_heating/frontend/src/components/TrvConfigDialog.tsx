@@ -189,7 +189,7 @@ const TrvConfigDialog = ({
                   data-testid="trv-role-select"
                   value={role}
                   label="Role"
-                  onChange={e => setRole(e.target.value as any)}
+                  onChange={e => setRole(e.target.value)}
                 >
                   <MenuItem value="position">Position</MenuItem>
                   <MenuItem value="open">Open/Closed</MenuItem>

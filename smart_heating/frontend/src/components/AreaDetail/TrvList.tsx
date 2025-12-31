@@ -131,7 +131,7 @@ export const TrvList: React.FC<TrvListProps> = ({
                       <FormControl size="small">
                         <Select
                           value={editingTrvRole ?? trv.role ?? 'both'}
-                          onChange={e => onEditingTrvRoleChange(e.target.value as any)}
+                          onChange={e => onEditingTrvRoleChange(e.target.value)}
                           data-testid={`trv-edit-role-${trv.entity_id}`}
                         >
                           <MenuItem value="position">Position</MenuItem>
