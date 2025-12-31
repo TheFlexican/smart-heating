@@ -10,6 +10,7 @@
 
 ## Open / Reopened Findings (prioritized)
 
+
 1. **AZtj3RIb** — **CLOSED** — **MAJOR** — `python:S5713`
    - Component: `smart_heating/storage/history.py` (line 505)
    - Message: Remove this redundant Exception class; it derives from another which is already caught.
@@ -79,6 +80,7 @@
     - Message: Use asynchronous features in this function or remove the `async` keyword.
     - Suggested fix: Convert to synchronous or add awaits / async usage as appropriate.
    **Status:** ✅ **Implemented & committed** — added a minimal `await asyncio.sleep(0)` to `async_register_panel`; backend tests passed locally and Sonar shows the issue as resolved.
+
 
 ---
 

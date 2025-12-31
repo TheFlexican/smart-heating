@@ -15,7 +15,7 @@ import {
 import EditIcon from '@mui/icons-material/Edit'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 import { useTranslation } from 'react-i18next'
-import { Zone, TrvRuntimeState } from '../../types'
+import { Zone } from '../../types'
 
 export interface TrvListProps {
   area: Zone
@@ -76,9 +76,7 @@ export const TrvList: React.FC<TrvListProps> = ({
           }}
         >
           {area.trv_entities.map(trv => {
-            const runtime = (area.trvs || []).find(t => t.entity_id === trv.entity_id) as
-              | TrvRuntimeState
-              | undefined
+            const runtime = (area.trvs || []).find(t => t.entity_id === trv.entity_id)
             const name = trv.name || runtime?.name || trv.entity_id
             const open = runtime?.open
             const position = runtime?.position
