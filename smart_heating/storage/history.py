@@ -502,7 +502,10 @@ class HistoryTracker:
 
         try:
             return json.loads(trvs_json)
-        except (json.JSONDecodeError, TypeError, ValueError) as err:
+        # json.JSONDecodeError is a subclass of ValueError, so catching
+        # ValueError already handles JSON decoding errors; remove the
+        # redundant explicit JSONDecodeError to satisfy Sonar S5713.
+        except (TypeError, ValueError) as err:
             _LOGGER.debug("Failed to parse TRV JSON for row: %s", err)
             return None
 
