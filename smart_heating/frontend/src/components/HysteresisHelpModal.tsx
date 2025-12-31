@@ -12,8 +12,8 @@ import {
 import { useTranslation } from 'react-i18next'
 
 interface HysteresisHelpModalProps {
-  open: boolean
-  onClose: () => void
+  readonly open: boolean
+  readonly onClose: () => void
 }
 
 export default function HysteresisHelpModal({ open, onClose }: HysteresisHelpModalProps) {
