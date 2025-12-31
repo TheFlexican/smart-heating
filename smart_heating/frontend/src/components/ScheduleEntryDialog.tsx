@@ -65,9 +65,9 @@ const ScheduleEntryDialog = ({ open, onClose, onSave, editingEntry }: ScheduleEn
           setScheduleType('weekly')
           if (editingEntry.days && editingEntry.days.length > 0) {
             // editingEntry.days are indices
-            setSelectedDays(editingEntry.days as number[])
+            setSelectedDays(editingEntry.days)
           } else if (typeof editingEntry.day === 'number') {
-            setSelectedDays([editingEntry.day as number])
+            setSelectedDays([editingEntry.day])
           }
         }
       } else {

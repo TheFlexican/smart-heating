@@ -10,12 +10,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from ...exceptions import DeviceError, ValidationError
+from ...const import TIMEZONE_SUFFIX
 from ...models import DeviceEvent
 
 _LOGGER = logging.getLogger(__name__)
 
-# Timezone constant
-UTC_SUFFIX = "+00:00"
+# Use centralized timezone suffix constant
+UTC_SUFFIX = TIMEZONE_SUFFIX
 
 
 class DeviceService:
@@ -107,7 +108,7 @@ class DeviceService:
     def _notify_device_log_listeners(self, event: DeviceEvent) -> None:
         """Notify all registered listeners of a new device event."""
         event_dict = event.to_dict() if hasattr(event, "to_dict") else event
-        for listener in list(self._device_log_listeners):
+        for listener in self._device_log_listeners:
             self._call_listener(listener, event_dict)
 
     def _call_listener(self, listener, event_dict: dict) -> None:

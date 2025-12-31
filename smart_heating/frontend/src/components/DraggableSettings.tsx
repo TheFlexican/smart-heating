@@ -48,6 +48,11 @@ const DraggableSettings = ({
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const isTablet = useMediaQuery(theme.breakpoints.down('lg'))
+  const gridTemplateColumns = (() => {
+    if (isMobile) return '1fr'
+    if (isTablet) return 'repeat(2, 1fr)'
+    return 'repeat(3, 1fr)'
+  })()
 
   // Load saved order from localStorage
   useEffect(() => {
@@ -132,11 +137,7 @@ const DraggableSettings = ({
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: isMobile
-                ? '1fr'
-                : isTablet
-                  ? 'repeat(2, 1fr)'
-                  : 'repeat(3, 1fr)',
+              gridTemplateColumns,
               gap: 2,
             }}
           >

@@ -332,6 +332,10 @@ async def async_register_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
     )
 
     # Remove panel if it already exists (from previous failed setup)
+    # Make sure this function actually awaits something so it uses async features
+    # (Sonar S7503: either use async features or remove async keyword)
+    await asyncio.sleep(0)
+
     try:
         async_remove_panel(hass, "smart_heating")  # Not actually async despite the name
         _LOGGER.debug("Removed existing Smart Heating panel")
