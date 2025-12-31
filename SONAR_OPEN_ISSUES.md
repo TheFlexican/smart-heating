@@ -25,6 +25,7 @@
    - Component: `smart_heating/frontend/src/components/AreaDetail/HeatingCurveControl.tsx` (lines ~29-31)
    - Message: Prefer using nullish coalescing operator (`??`) instead of a ternary expression.
    - Suggested fix: Replace ternary with `??` (readability improvement).
+   **Status:** ✅ **Implemented locally** — replaced ternary with `??`; frontend tests passed (333 tests). Will commit after you approve.
 
 4. **AZtbHbm5SIICIYy7qd-3** — **OPEN** — **MINOR** — `typescript:S7735`
    - Component: `smart_heating/frontend/src/components/AreaDetail/TrvList.tsx` (line 99)

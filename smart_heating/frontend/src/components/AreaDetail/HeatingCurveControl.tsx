@@ -25,11 +25,7 @@ export const HeatingCurveControl: React.FC<HeatingCurveControlProps> = ({ area, 
   const { t } = useTranslation()
   const [areaHeatingCurveCoefficient, setAreaHeatingCurveCoefficient] = React.useState<
     number | null
-  >(
-    area.heating_curve_coefficient !== undefined && area.heating_curve_coefficient !== null
-      ? area.heating_curve_coefficient
-      : null,
-  )
+  >(area.heating_curve_coefficient ?? null)
   const [useGlobalHeatingCurve, setUseGlobalHeatingCurve] = React.useState<boolean>(
     area.heating_curve_coefficient === undefined || area.heating_curve_coefficient === null,
   )
