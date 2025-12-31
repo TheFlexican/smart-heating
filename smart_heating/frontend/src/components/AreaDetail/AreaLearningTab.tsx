@@ -20,8 +20,24 @@ const StatRow: React.FC<StatRowProps> = ({ label, value, color }) => (
   </Box>
 )
 
+// Types for learning data
+interface RecentEvent {
+  timestamp: string
+  heating_rate: number
+}
+
+interface LearningStats {
+  total_events_all_time?: number
+  data_points?: number
+  avg_heating_rate?: number
+  ready_for_predictions?: boolean
+  first_event_time?: string
+  last_event_time?: string
+  recent_events?: RecentEvent[]
+}
+
 // Helper: Render recent events list
-const RecentEventsList: React.FC<{ events: any[] }> = ({ events }) => (
+const RecentEventsList: React.FC<{ events: RecentEvent[] }> = ({ events }) => (
   <Box sx={{ mt: 2 }}>
     <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
       Recent Events (Last 10):
@@ -52,7 +68,7 @@ const RecentEventsList: React.FC<{ events: any[] }> = ({ events }) => (
 
 // Helper: Render learning statistics
 interface LearningStatsDisplayProps {
-  learningStats: any
+  learningStats: LearningStats | null
   learningStatsLoading: boolean
 }
 
@@ -84,7 +100,7 @@ const LearningStatsDisplay: React.FC<LearningStatsDisplayProps> = ({
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
       <StatRow label="Total Events" value={String(learningStats.total_events_all_time || 0)} />
       <StatRow label="Data Points (Last 30 Days)" value={String(learningStats.data_points || 0)} />
-      {learningStats.avg_heating_rate > 0 && (
+      {typeof learningStats.avg_heating_rate === 'number' && learningStats.avg_heating_rate > 0 && (
         <StatRow
           label="Average Heating Rate"
           value={`${learningStats.avg_heating_rate.toFixed(4)}°C/min`}
@@ -109,8 +125,8 @@ const LearningStatsDisplay: React.FC<LearningStatsDisplayProps> = ({
           value={new Date(learningStats.last_event_time).toLocaleString()}
         />
       )}
-      {learningStats.recent_events?.length > 0 && (
-        <RecentEventsList events={learningStats.recent_events} />
+      {(learningStats.recent_events?.length ?? 0) > 0 && (
+        <RecentEventsList events={learningStats.recent_events ?? []} />
       )}
     </Box>
   )
@@ -118,7 +134,7 @@ const LearningStatsDisplay: React.FC<LearningStatsDisplayProps> = ({
 
 export interface AreaLearningTabProps {
   area: Zone
-  learningStats: any | null
+  learningStats: LearningStats | null
   learningStatsLoading: boolean
 }
 
