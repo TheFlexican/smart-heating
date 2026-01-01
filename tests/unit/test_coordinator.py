@@ -1727,3 +1727,150 @@ class TestBuildAreaDataWithWeatherAndTRV:
         assert len(area_data["trvs"]) == 1
         assert area_data["trvs"][0]["entity_id"] == "binary_sensor.trv1"
         assert area_data["trvs"][0]["open"] is True
+
+
+class TestBoilerTemperature:
+    """Test boiler_temperature property."""
+
+    def test_boiler_temperature_no_gateway(self, coordinator: SmartHeatingCoordinator):
+        """Test boiler temperature when no gateway configured."""
+        coordinator.area_manager.opentherm_gateway_id = None
+
+        result = coordinator.boiler_temperature
+
+        assert result is None
+
+    def test_boiler_temperature_unavailable_state(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test boiler temperature when gateway state is unavailable."""
+        gateway_id = "climate.opentherm_gateway"
+        coordinator.area_manager.opentherm_gateway_id = gateway_id
+
+        hass.states.async_set(gateway_id, "unavailable", {})
+
+        result = coordinator.boiler_temperature
+
+        assert result is None
+
+    def test_boiler_temperature_ch_water_temp(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test boiler temperature from ch_water_temp attribute."""
+        gateway_id = "climate.opentherm_gateway"
+        coordinator.area_manager.opentherm_gateway_id = gateway_id
+
+        hass.states.async_set(gateway_id, "heat", {"ch_water_temp": 55.5})
+
+        result = coordinator.boiler_temperature
+
+        assert result == 55.5
+
+    def test_boiler_temperature_boiler_water_temp(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test boiler temperature from boiler_water_temp attribute."""
+        gateway_id = "climate.opentherm_gateway"
+        coordinator.area_manager.opentherm_gateway_id = gateway_id
+
+        hass.states.async_set(gateway_id, "heat", {"boiler_water_temp": 60.0})
+
+        result = coordinator.boiler_temperature
+
+        assert result == 60.0
+
+    def test_boiler_temperature_control_setpoint(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test boiler temperature from control_setpoint attribute."""
+        gateway_id = "climate.opentherm_gateway"
+        coordinator.area_manager.opentherm_gateway_id = gateway_id
+
+        hass.states.async_set(gateway_id, "heat", {"control_setpoint": 45.0})
+
+        result = coordinator.boiler_temperature
+
+        assert result == 45.0
+
+    def test_boiler_temperature_invalid_value(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test boiler temperature when attribute has invalid value."""
+        gateway_id = "climate.opentherm_gateway"
+        coordinator.area_manager.opentherm_gateway_id = gateway_id
+
+        hass.states.async_set(gateway_id, "heat", {"ch_water_temp": "invalid"})
+
+        result = coordinator.boiler_temperature
+
+        assert result is None
+
+    def test_boiler_temperature_no_matching_attributes(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test boiler temperature when no matching attributes exist."""
+        gateway_id = "climate.opentherm_gateway"
+        coordinator.area_manager.opentherm_gateway_id = gateway_id
+
+        hass.states.async_set(gateway_id, "heat", {"other_attribute": 123})
+
+        result = coordinator.boiler_temperature
+
+        assert result is None
+
+
+class TestAsyncSetControlMaxRelativeModulation:
+    """Test async_set_control_max_relative_modulation method."""
+
+    @pytest.mark.asyncio
+    async def test_set_modulation_no_gateway(self, coordinator: SmartHeatingCoordinator):
+        """Test setting modulation when no gateway configured."""
+        from homeassistant.exceptions import HomeAssistantError
+
+        coordinator.area_manager.opentherm_gateway_id = None
+
+        with pytest.raises(HomeAssistantError, match="gateway not configured"):
+            await coordinator.async_set_control_max_relative_modulation(50)
+
+    @pytest.mark.asyncio
+    async def test_set_modulation_success(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test setting modulation successfully."""
+        gateway_id = "opentherm_gw_1"
+        coordinator.area_manager.opentherm_gateway_id = gateway_id
+
+        # Patch the ServiceRegistry.async_call method on the class
+        with patch(
+            "homeassistant.core.ServiceRegistry.async_call",
+            new_callable=AsyncMock,
+        ) as mock_call:
+            await coordinator.async_set_control_max_relative_modulation(75)
+
+            mock_call.assert_called_once_with(
+                "opentherm_gw",
+                "set_control_max_relative_modulation",
+                {"gateway_id": gateway_id, "level": 75},
+                blocking=True,
+            )
+
+    @pytest.mark.asyncio
+    async def test_set_modulation_zero(
+        self, coordinator: SmartHeatingCoordinator, hass: HomeAssistant
+    ):
+        """Test setting modulation to 0% (used in OPV calibration)."""
+        gateway_id = "opentherm_gw_1"
+        coordinator.area_manager.opentherm_gateway_id = gateway_id
+
+        with patch(
+            "homeassistant.core.ServiceRegistry.async_call",
+            new_callable=AsyncMock,
+        ) as mock_call:
+            await coordinator.async_set_control_max_relative_modulation(0)
+
+            mock_call.assert_called_once_with(
+                "opentherm_gw",
+                "set_control_max_relative_modulation",
+                {"gateway_id": gateway_id, "level": 0},
+                blocking=True,
+            )

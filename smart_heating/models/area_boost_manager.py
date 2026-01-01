@@ -49,6 +49,18 @@ class AreaBoostManager:
         self.smart_boost_active: bool = False  # Currently in smart boost heating period
         self.smart_boost_original_target: float | None = None  # Original target before smart boost
 
+        # Proactive temperature maintenance settings
+        self.proactive_maintenance_enabled: bool = False  # Master toggle
+        self.proactive_maintenance_sensitivity: float = 1.0  # 0.5-2.0 multiplier for margin
+        self.proactive_maintenance_min_trend: float = -0.1  # Min trend (°C/hour) to trigger
+        self.proactive_maintenance_margin_minutes: int = 5  # Extra buffer (15 for floor heating)
+        self.proactive_maintenance_cooldown_minutes: int = 10  # Prevent oscillation
+
+        # Proactive maintenance runtime state (not persisted)
+        self.proactive_maintenance_active: bool = False  # Currently in proactive heating
+        self.proactive_maintenance_started_at: datetime | None = None
+        self.proactive_maintenance_ended_at: datetime | None = None
+
     def activate_boost(self, duration: int, temp: float | None = None) -> None:
         """Activate boost mode for a specified duration.
 
@@ -253,6 +265,69 @@ class AreaBoostManager:
 
         return target
 
+    def start_proactive_maintenance(self) -> None:
+        """Start proactive temperature maintenance.
+
+        Called when the system predicts a temperature drop and starts heating preemptively.
+        """
+        self.proactive_maintenance_active = True
+        self.proactive_maintenance_started_at = datetime.now()
+        _LOGGER.info(
+            "Proactive maintenance started for area %s",
+            self.area.area_id,
+        )
+
+    def end_proactive_maintenance(self) -> None:
+        """End proactive temperature maintenance.
+
+        Called when target temperature is reached or conditions change.
+        """
+        if self.proactive_maintenance_active:
+            self.proactive_maintenance_active = False
+            self.proactive_maintenance_ended_at = datetime.now()
+            _LOGGER.info(
+                "Proactive maintenance ended for area %s",
+                self.area.area_id,
+            )
+
+    def is_proactive_cooldown_active(self, current_time: datetime | None = None) -> bool:
+        """Check if proactive maintenance cooldown is active.
+
+        Prevents rapid cycling by ensuring a minimum time between proactive heating sessions.
+
+        Args:
+            current_time: Time to check (defaults to now)
+
+        Returns:
+            True if cooldown is active (should not start proactive heating)
+        """
+        if not self.proactive_maintenance_ended_at:
+            return False
+
+        if current_time is None:
+            current_time = datetime.now()
+
+        cooldown_end = self.proactive_maintenance_ended_at + timedelta(
+            minutes=self.proactive_maintenance_cooldown_minutes
+        )
+        return current_time < cooldown_end
+
+    def get_effective_margin_minutes(self) -> int:
+        """Get effective margin in minutes, considering heating type.
+
+        Floor heating systems use a larger margin due to thermal inertia.
+
+        Returns:
+            Margin in minutes (adjusted for heating type)
+        """
+        base_margin = self.proactive_maintenance_margin_minutes
+
+        # Floor heating needs larger margin due to slow thermal response
+        if hasattr(self.area, "heating_type") and self.area.heating_type == "floor_heating":
+            return max(base_margin, 15)  # Minimum 15 minutes for floor heating
+
+        return base_margin
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize boost configuration.
 
@@ -274,6 +349,12 @@ class AreaBoostManager:
             "smart_boost_enabled": self.smart_boost_enabled,
             "smart_boost_target_time": self.smart_boost_target_time,
             "weather_entity_id": self.weather_entity_id,
+            # Proactive maintenance
+            "proactive_maintenance_enabled": self.proactive_maintenance_enabled,
+            "proactive_maintenance_sensitivity": self.proactive_maintenance_sensitivity,
+            "proactive_maintenance_min_trend": self.proactive_maintenance_min_trend,
+            "proactive_maintenance_margin_minutes": self.proactive_maintenance_margin_minutes,
+            "proactive_maintenance_cooldown_minutes": self.proactive_maintenance_cooldown_minutes,
         }
 
     @classmethod
@@ -317,5 +398,18 @@ class AreaBoostManager:
         manager.smart_boost_enabled = data.get("smart_boost_enabled", False)
         manager.smart_boost_target_time = data.get("smart_boost_target_time", "06:00")
         manager.weather_entity_id = data.get("weather_entity_id")
+
+        # Proactive maintenance
+        manager.proactive_maintenance_enabled = data.get("proactive_maintenance_enabled", False)
+        manager.proactive_maintenance_sensitivity = data.get(
+            "proactive_maintenance_sensitivity", 1.0
+        )
+        manager.proactive_maintenance_min_trend = data.get("proactive_maintenance_min_trend", -0.1)
+        manager.proactive_maintenance_margin_minutes = data.get(
+            "proactive_maintenance_margin_minutes", 5
+        )
+        manager.proactive_maintenance_cooldown_minutes = data.get(
+            "proactive_maintenance_cooldown_minutes", 10
+        )
 
         return manager

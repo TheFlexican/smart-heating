@@ -167,19 +167,43 @@ async def handle_calibrate_opentherm(
     """
     try:
         if not area_manager.opentherm_gateway_id:
-            return web.json_response({"error": "No OpenTherm Gateway configured"}, status=400)
+            return web.json_response(
+                {
+                    "error": "No OpenTherm Gateway configured",
+                    "details": "Please configure an OpenTherm gateway first.",
+                },
+                status=400,
+            )
+
+        # Check if coordinator supports modulation control
+        if not hasattr(coordinator, "async_set_control_max_relative_modulation"):
+            return web.json_response(
+                {
+                    "error": "Coordinator does not support modulation control",
+                    "details": "Cannot run OPV calibration. The coordinator must support "
+                    "async_set_control_max_relative_modulation method.",
+                },
+                status=503,
+            )
 
         _LOGGER.info("Starting OPV calibration (approx. 2 minutes)")
         op = OvershootProtection(coordinator, "radiator")
         value = await op.calculate()
         if value is None:
-            return web.json_response({"error": "Calibration failed or timed out"}, status=500)
+            return web.json_response(
+                {
+                    "error": "Calibration failed to compute OPV value",
+                    "details": "No boiler temperature samples could be read. "
+                    "Check that the OpenTherm gateway is reporting flow temperature.",
+                },
+                status=500,
+            )
 
         # Save to area manager
         area_manager.default_opv = value
         await area_manager.async_save()
 
-        return web.json_response({"opv": value})
-    except (HomeAssistantError, ValidationError, KeyError, ValueError) as err:
+        return web.json_response({"opv": value, "success": True})
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError) as err:
         _LOGGER.error("Error during OPV calibration: %s", err)
-        return web.json_response({"error": str(err)}, status=500)
+        return web.json_response({"error": "Calibration error", "details": str(err)}, status=500)

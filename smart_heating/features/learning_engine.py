@@ -58,6 +58,48 @@ class HeatingEvent:
         )
 
 
+class CoolingEvent:
+    """Represents a cooling event for learning room thermal characteristics.
+
+    Cooling events track how fast a room loses heat when heating is off,
+    correlated with outdoor temperature for better predictions.
+    """
+
+    def __init__(
+        self,
+        area_id: str,
+        start_time: datetime,
+        end_time: datetime,
+        start_temp: float,
+        end_temp: float,
+        outdoor_temp: float | None = None,
+    ):
+        """Initialize cooling event.
+
+        Args:
+            area_id: Area identifier
+            start_time: When cooling started (heating stopped)
+            end_time: When cooling ended (heating started again)
+            start_temp: Temperature at start
+            end_temp: Temperature at end
+            outdoor_temp: Outdoor temperature during event
+        """
+        self.area_id = area_id
+        self.start_time = start_time
+        self.end_time = end_time
+        self.start_temp = start_temp
+        self.end_temp = end_temp
+        self.outdoor_temp = outdoor_temp
+
+        # Calculate derived metrics
+        self.duration_minutes = (end_time - start_time).total_seconds() / 60
+        self.temp_change = end_temp - start_temp  # Will be negative for cooling
+        # Cooling rate in °C/hour (negative value)
+        self.cooling_rate = (
+            (self.temp_change / self.duration_minutes) * 60 if self.duration_minutes > 0 else 0
+        )
+
+
 class LearningEngine:
     """Engine for learning heating patterns and making predictions."""
 
@@ -71,6 +113,7 @@ class LearningEngine:
         self.hass = hass
         self.event_store = event_store
         self._active_heating_events: dict[str, dict[str, Any]] = {}
+        self._active_cooling_events: dict[str, dict[str, Any]] = {}
         self._weather_entity: str | None = None
 
         _LOGGER.debug("Learning engine initialized")
@@ -238,6 +281,256 @@ class LearningEngine:
             event.heating_rate,
             event.outdoor_temp or 0,
         )
+
+    async def async_start_cooling_event(
+        self,
+        area_id: str,
+        current_temp: float,
+    ) -> None:
+        """Record the start of a cooling event (when heating stops).
+
+        Args:
+            area_id: Area identifier
+            current_temp: Current temperature when heating stopped
+        """
+        outdoor_temp = await self._async_get_outdoor_temperature()
+
+        self._active_cooling_events[area_id] = {
+            "start_time": dt_util.now(),
+            "start_temp": current_temp,
+            "outdoor_temp": outdoor_temp,
+        }
+
+        _LOGGER.debug(
+            "[LEARNING] Started cooling event for %s: temp=%.1f°C, outdoor=%.1f°C",
+            area_id,
+            current_temp,
+            outdoor_temp or 0,
+        )
+
+    async def async_end_cooling_event(
+        self,
+        area_id: str,
+        current_temp: float,
+    ) -> None:
+        """Record the end of a cooling event and calculate learning metrics.
+
+        Called when heating starts again after a cooling period.
+
+        Args:
+            area_id: Area identifier
+            current_temp: Current temperature when heating started again
+        """
+        if area_id not in self._active_cooling_events:
+            _LOGGER.debug(
+                "[LEARNING] No active cooling event for %s to end",
+                area_id,
+            )
+            return
+
+        event_data = self._active_cooling_events.pop(area_id)
+
+        event = CoolingEvent(
+            area_id=area_id,
+            start_time=event_data["start_time"],
+            end_time=dt_util.now(),
+            start_temp=event_data["start_temp"],
+            end_temp=current_temp,
+            outdoor_temp=event_data.get("outdoor_temp"),
+        )
+
+        # Only record meaningful cooling events (>10 minutes, >0.1°C drop)
+        too_short = event.duration_minutes < 10
+        insignificant_temp = abs(event.temp_change) < 0.1
+        temp_increased = event.temp_change > 0  # Temperature went up (not cooling)
+
+        if too_short or insignificant_temp or temp_increased:
+            reasons: list[str] = []
+            if too_short:
+                reasons.append(f"duration: {event.duration_minutes:.1f} min < 10 min")
+            if insignificant_temp:
+                reasons.append(f"temp change: {event.temp_change:.2f}°C < 0.1°C")
+            if temp_increased:
+                reasons.append("temperature increased (not cooling)")
+
+            _LOGGER.debug(
+                "[LEARNING] Skipping cooling event for %s - %s",
+                area_id,
+                "; ".join(reasons),
+            )
+            return
+
+        # Record cooling event to event store
+        cooling_data = {
+            "event_type": "cooling",
+            "start_time": event.start_time.isoformat(),
+            "end_time": event.end_time.isoformat(),
+            "start_temp": event.start_temp,
+            "end_temp": event.end_temp,
+            "duration_minutes": event.duration_minutes,
+            "temp_change": event.temp_change,
+            "cooling_rate": event.cooling_rate,
+            "outdoor_temp": event.outdoor_temp,
+        }
+
+        await self.event_store.async_record_event(area_id, cooling_data)
+
+        _LOGGER.info(
+            "[LEARNING] ✓ Cooling event recorded for %s: %.1f°C → %.1f°C in %.1f min "
+            "(rate: %.2f°C/hour, outdoor: %.1f°C)",
+            area_id,
+            event.start_temp,
+            event.end_temp,
+            event.duration_minutes,
+            event.cooling_rate,
+            event.outdoor_temp or 0,
+        )
+
+    async def async_get_average_cooling_rate(
+        self,
+        area_id: str,
+        days: int = 30,
+    ) -> float | None:
+        """Get average cooling rate for an area.
+
+        Args:
+            area_id: Area identifier
+            days: Number of days to look back
+
+        Returns:
+            Average cooling rate in °C/hour (negative) or None if insufficient data
+        """
+        cooling_rates = await self._async_get_recent_cooling_rates(area_id, days=days)
+
+        if len(cooling_rates) < 5:  # Need at least 5 cooling events
+            _LOGGER.debug(
+                "Insufficient cooling data for %s (need 5 events, have %d)",
+                area_id,
+                len(cooling_rates),
+            )
+            return None
+
+        avg_rate = statistics.mean(cooling_rates)
+        _LOGGER.debug(
+            "Average cooling rate for %s: %.2f°C/hour (from %d events)",
+            area_id,
+            avg_rate,
+            len(cooling_rates),
+        )
+        return avg_rate
+
+    async def _async_get_recent_cooling_rates(
+        self,
+        area_id: str,
+        days: int = 30,
+    ) -> list[float]:
+        """Get recent cooling rates from event store.
+
+        Args:
+            area_id: Area identifier
+            days: Number of days to look back
+
+        Returns:
+            List of cooling rates (°C/hour, negative values)
+        """
+        # Get events from event store
+        events = await self.event_store.async_get_events(area_id, days=days)
+
+        # Extract cooling rates from cooling events
+        rates = [
+            event["cooling_rate"]
+            for event in events
+            if event.get("event_type") == "cooling"
+            and event.get("cooling_rate") is not None
+            and event["cooling_rate"] < 0  # Cooling rates are negative
+        ]
+
+        _LOGGER.debug(
+            "Retrieved %d cooling rate data points for %s (last %d days)",
+            len(rates),
+            area_id,
+            days,
+        )
+
+        return rates
+
+    async def async_predict_cooling_time(
+        self,
+        area_id: str,
+        current_temp: float,
+        threshold_temp: float,
+    ) -> float | None:
+        """Predict how many minutes until temperature drops to threshold.
+
+        Uses learned cooling rates adjusted for current outdoor temperature.
+
+        Args:
+            area_id: Area identifier
+            current_temp: Current temperature
+            threshold_temp: Temperature threshold to reach
+
+        Returns:
+            Predicted minutes or None if insufficient data
+        """
+        if current_temp <= threshold_temp:
+            return 0.0
+
+        avg_cooling_rate = await self.async_get_average_cooling_rate(area_id)
+        if avg_cooling_rate is None:
+            return None
+
+        # Adjust for outdoor temperature
+        outdoor_temp = await self._async_get_outdoor_temperature()
+        if outdoor_temp is not None:
+            adjustment = await self._async_calculate_cooling_outdoor_adjustment(outdoor_temp)
+            avg_cooling_rate *= adjustment
+
+        # cooling_rate is in °C/hour (negative)
+        # temp_diff is positive (current > threshold)
+        temp_diff = current_temp - threshold_temp
+        hours_to_threshold = temp_diff / abs(avg_cooling_rate)
+        minutes_to_threshold = hours_to_threshold * 60
+
+        _LOGGER.debug(
+            "Predicted cooling time for %s: %.1f min to reach %.1f°C "
+            "(current: %.1f°C, rate: %.2f°C/hour)",
+            area_id,
+            minutes_to_threshold,
+            threshold_temp,
+            current_temp,
+            avg_cooling_rate,
+        )
+
+        return minutes_to_threshold
+
+    async def _async_calculate_cooling_outdoor_adjustment(
+        self,
+        current_outdoor_temp: float,
+    ) -> float:
+        """Calculate cooling rate adjustment based on outdoor temperature.
+
+        Colder outdoor temperatures cause faster cooling.
+
+        Args:
+            current_outdoor_temp: Current outdoor temperature
+
+        Returns:
+            Adjustment factor (1.0 = no change, >1 = faster cooling, <1 = slower)
+        """
+        await asyncio.sleep(0)  # Minimal async operation
+
+        # Colder outdoor = faster cooling
+        # Base reference is 10°C - adjustments relative to that
+        if current_outdoor_temp >= 15:
+            return 0.8  # Slower cooling when warm outside
+        elif current_outdoor_temp >= 10:
+            return 0.9  # Slightly slower
+        elif current_outdoor_temp >= 5:
+            return 1.0  # Normal
+        elif current_outdoor_temp >= 0:
+            return 1.2  # Faster when cold
+        else:
+            return 1.5  # Much faster when very cold (below freezing)
 
     async def _async_get_outdoor_temperature(
         self,

@@ -260,3 +260,22 @@ ATTR_SAFETY_SENSOR_ENABLED: Final = "safety_sensor_enabled"
 SAFETY_SENSOR_TYPE_SMOKE: Final = "smoke"
 SAFETY_SENSOR_TYPE_CO: Final = "carbon_monoxide"
 SAFETY_SENSOR_TYPE_GAS: Final = "gas"
+
+# Proactive temperature maintenance settings
+ATTR_PROACTIVE_MAINTENANCE_ENABLED: Final = "proactive_maintenance_enabled"
+ATTR_PROACTIVE_MAINTENANCE_SENSITIVITY: Final = "proactive_maintenance_sensitivity"
+ATTR_PROACTIVE_MAINTENANCE_MIN_TREND: Final = "proactive_maintenance_min_trend"
+ATTR_PROACTIVE_MAINTENANCE_MARGIN_MINUTES: Final = "proactive_maintenance_margin_minutes"
+ATTR_PROACTIVE_MAINTENANCE_COOLDOWN_MINUTES: Final = "proactive_maintenance_cooldown_minutes"
+
+# Proactive maintenance defaults
+DEFAULT_PROACTIVE_MAINTENANCE_SENSITIVITY: Final = 1.0  # Multiplier for predicted heating time
+DEFAULT_PROACTIVE_MAINTENANCE_MIN_TREND: Final = -0.1  # °C/hour - minimum negative trend to trigger
+DEFAULT_PROACTIVE_MAINTENANCE_MARGIN_MINUTES: Final = 5  # Extra buffer for radiators
+DEFAULT_PROACTIVE_MAINTENANCE_MARGIN_FLOOR_HEATING: Final = 15  # Extra buffer for floor heating
+DEFAULT_PROACTIVE_MAINTENANCE_COOLDOWN_MINUTES: Final = 10  # Prevent rapid cycling
+
+# Cooling rate learning settings
+COOLING_RATE_HISTORY_DAYS: Final = 7  # Days of cooling events to consider
+COOLING_RATE_MIN_DURATION_MINUTES: Final = 15  # Minimum duration for valid cooling event
+COOLING_RATE_MIN_TEMP_CHANGE: Final = 0.3  # °C - Minimum temp drop to record event

@@ -73,7 +73,7 @@ tar xzf /tmp/smart_heating_sync.tar.gz -C /Volumes/config/custom_components/smar
 
 # Need to restart Home Assistant for changes to take effect
 echo -e "${YELLOW}[2/3]${NC} Restarting Home Assistant..."
-ssh root@192.168.2.2 -p 22222 "ha core start"
+ssh root@192.168.2.2 -p 22222 "ha core restart"
 
 # Clean up
 rm /tmp/smart_heating_sync.tar.gz
