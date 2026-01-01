@@ -2,7 +2,7 @@
 name: typescript-testing
 description: Write Jest/Vitest unit tests for React components with Testing Library patterns
 argument-hint: Describe what to test (component, hook, or API client)...
-tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'todo']
+tools: ['runCommands', 'runTasks', 'sonarqube/*', 'github/*', 'edit', 'runNotebooks', 'search', 'new', 'sonarsource.sonarlint-vscode/sonarqube_getPotentialSecurityIssues', 'sonarsource.sonarlint-vscode/sonarqube_excludeFiles', 'sonarsource.sonarlint-vscode/sonarqube_setUpConnectedMode', 'sonarsource.sonarlint-vscode/sonarqube_analyzeFile', 'extensions', 'todos', 'runSubagent', 'runTests', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo']
 target: vscode
 infer: true
 handoffs:

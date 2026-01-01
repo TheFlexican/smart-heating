@@ -266,3 +266,171 @@ class TestTemperatureTracker:
         assert len(tracker.get_history("living_room")) == 0
         assert len(tracker.get_history("bedroom")) == 0
         assert len(tracker._history) == 0
+
+    def test_get_latest_temperature(self):
+        """Test getting the latest temperature for an area."""
+        tracker = TemperatureTracker()
+
+        # No data yet
+        assert tracker.get_latest_temperature("living_room") is None
+
+        # Add samples
+        tracker.record_temperature("living_room", 20.0)
+        tracker.record_temperature("living_room", 20.5)
+        tracker.record_temperature("living_room", 21.0)
+
+        # Should return the most recent
+        assert tracker.get_latest_temperature("living_room") == 21.0
+
+    def test_get_latest_temperature_nonexistent_area(self):
+        """Test getting latest temp for non-existent area."""
+        tracker = TemperatureTracker()
+        assert tracker.get_latest_temperature("nonexistent") is None
+
+    @patch("smart_heating.core.coordination.temperature_tracker.datetime")
+    def test_predict_time_to_temperature_falling(self, mock_datetime):
+        """Test predicting time to reach a threshold temperature when falling."""
+        base_time = datetime(2024, 1, 1, 12, 0, 0)
+        mock_datetime.now.return_value = base_time + timedelta(minutes=30)
+
+        tracker = TemperatureTracker(trend_window_minutes=30)
+
+        # Manually create samples with specific timestamps
+        tracker._history["living_room"] = __import__("collections").deque(
+            maxlen=tracker._max_samples
+        )
+
+        # Add samples showing temperature fall: 22°C to 20°C over 30 min = -4°C/hour
+        tracker._history["living_room"].append(
+            TemperatureSample(timestamp=base_time, temperature=22.0)
+        )
+        tracker._history["living_room"].append(
+            TemperatureSample(timestamp=base_time + timedelta(minutes=30), temperature=20.0)
+        )
+
+        # Current temp is 20.0, threshold is 19.5
+        # Trend is -4°C/hour, need to drop 0.5°C
+        # Time = 0.5 / 4 * 60 = 7.5 minutes
+        time_to_threshold = tracker.predict_time_to_temperature("living_room", 19.5)
+
+        assert time_to_threshold is not None
+        assert pytest.approx(time_to_threshold, abs=0.5) == 7.5
+
+    @patch("smart_heating.core.coordination.temperature_tracker.datetime")
+    def test_predict_time_to_temperature_rising(self, mock_datetime):
+        """Test that prediction returns None when temperature is rising."""
+        base_time = datetime(2024, 1, 1, 12, 0, 0)
+        mock_datetime.now.return_value = base_time + timedelta(minutes=20)
+
+        tracker = TemperatureTracker(trend_window_minutes=30)
+
+        # Manually create samples with rising temperature
+        tracker._history["living_room"] = __import__("collections").deque(
+            maxlen=tracker._max_samples
+        )
+
+        tracker._history["living_room"].append(
+            TemperatureSample(timestamp=base_time, temperature=20.0)
+        )
+        tracker._history["living_room"].append(
+            TemperatureSample(timestamp=base_time + timedelta(minutes=20), temperature=21.0)
+        )
+
+        # Trend is positive, prediction should be None
+        time_to_threshold = tracker.predict_time_to_temperature("living_room", 19.5)
+        assert time_to_threshold is None
+
+    @patch("smart_heating.core.coordination.temperature_tracker.datetime")
+    def test_predict_time_to_temperature_already_below(self, mock_datetime):
+        """Test prediction when already below threshold."""
+        base_time = datetime(2024, 1, 1, 12, 0, 0)
+        mock_datetime.now.return_value = base_time + timedelta(minutes=30)
+
+        tracker = TemperatureTracker(trend_window_minutes=30)
+
+        tracker._history["living_room"] = __import__("collections").deque(
+            maxlen=tracker._max_samples
+        )
+
+        # Temperature already below threshold (19.5)
+        tracker._history["living_room"].append(
+            TemperatureSample(timestamp=base_time, temperature=20.0)
+        )
+        tracker._history["living_room"].append(
+            TemperatureSample(timestamp=base_time + timedelta(minutes=30), temperature=19.0)
+        )
+
+        # Current temp (19.0) is below threshold (19.5)
+        time_to_threshold = tracker.predict_time_to_temperature("living_room", 19.5)
+        assert time_to_threshold == 0.0
+
+    def test_predict_time_to_temperature_no_data(self):
+        """Test prediction with no data."""
+        tracker = TemperatureTracker()
+        time_to_threshold = tracker.predict_time_to_temperature("living_room", 19.5)
+        assert time_to_threshold is None
+
+    @patch("smart_heating.core.coordination.temperature_tracker.datetime")
+    def test_get_trend_confidence_no_data(self, mock_datetime):
+        """Test trend confidence with no data."""
+        tracker = TemperatureTracker()
+        confidence = tracker.get_trend_confidence("living_room")
+        assert confidence is None
+
+    @patch("smart_heating.core.coordination.temperature_tracker.datetime")
+    def test_get_trend_confidence_single_sample(self, mock_datetime):
+        """Test trend confidence with single sample."""
+        tracker = TemperatureTracker()
+        tracker.record_temperature("living_room", 20.0)
+        confidence = tracker.get_trend_confidence("living_room")
+        assert confidence is None
+
+    @patch("smart_heating.core.coordination.temperature_tracker.datetime")
+    def test_get_trend_confidence_full_window(self, mock_datetime):
+        """Test trend confidence with full window coverage."""
+        base_time = datetime(2024, 1, 1, 12, 0, 0)
+        mock_datetime.now.return_value = base_time + timedelta(minutes=30)
+
+        tracker = TemperatureTracker(trend_window_minutes=30)
+
+        tracker._history["living_room"] = __import__("collections").deque(
+            maxlen=tracker._max_samples
+        )
+
+        # Add many samples covering full window
+        for i in range(11):  # 11 samples over 30 minutes
+            tracker._history["living_room"].append(
+                TemperatureSample(
+                    timestamp=base_time + timedelta(minutes=i * 3),
+                    temperature=20.0 + i * 0.1,
+                )
+            )
+
+        confidence = tracker.get_trend_confidence("living_room")
+        assert confidence is not None
+        assert 0.0 <= confidence <= 1.0
+        assert confidence > 0.5  # Should be high with many samples and full coverage
+
+    @patch("smart_heating.core.coordination.temperature_tracker.datetime")
+    def test_get_trend_confidence_few_samples(self, mock_datetime):
+        """Test trend confidence with few samples."""
+        base_time = datetime(2024, 1, 1, 12, 0, 0)
+        mock_datetime.now.return_value = base_time + timedelta(minutes=30)
+
+        tracker = TemperatureTracker(trend_window_minutes=30)
+
+        tracker._history["living_room"] = __import__("collections").deque(
+            maxlen=tracker._max_samples
+        )
+
+        # Only 2 samples, but covering the window
+        tracker._history["living_room"].append(
+            TemperatureSample(timestamp=base_time, temperature=20.0)
+        )
+        tracker._history["living_room"].append(
+            TemperatureSample(timestamp=base_time + timedelta(minutes=30), temperature=21.0)
+        )
+
+        confidence = tracker.get_trend_confidence("living_room")
+        assert confidence is not None
+        assert 0.0 <= confidence <= 1.0

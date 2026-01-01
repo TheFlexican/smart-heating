@@ -149,3 +149,109 @@ class TemperatureTracker:
         """Clear temperature history for all areas."""
         self._history.clear()
         _LOGGER.debug("Cleared all temperature history")
+
+    def get_latest_temperature(self, area_id: str) -> Optional[float]:
+        """Get the most recent temperature for an area.
+
+        Args:
+            area_id: Area identifier
+
+        Returns:
+            Latest temperature or None if no data
+        """
+        if area_id not in self._history or not self._history[area_id]:
+            return None
+        return self._history[area_id][-1].temperature
+
+    def predict_time_to_temperature(
+        self,
+        area_id: str,
+        threshold_temp: float,
+    ) -> Optional[float]:
+        """Predict minutes until area temperature reaches a threshold.
+
+        Uses current trend to extrapolate when temperature will drop to threshold.
+        Only works for falling temperatures (negative trend).
+
+        Args:
+            area_id: Area identifier
+            threshold_temp: Temperature threshold to reach
+
+        Returns:
+            Predicted minutes until threshold is reached, or None if:
+            - Trend is positive (rising temperature)
+            - Insufficient data for trend calculation
+            - Current temperature is already below threshold
+        """
+        trend = self.get_trend(area_id)
+        if trend is None or trend >= 0:
+            # No trend data or temperature is rising/stable
+            return None
+
+        current_temp = self.get_latest_temperature(area_id)
+        if current_temp is None:
+            return None
+
+        if current_temp <= threshold_temp:
+            # Already at or below threshold
+            return 0.0
+
+        # Calculate time to reach threshold
+        # trend is in °C/hour (negative), temp_diff is positive
+        temp_diff = current_temp - threshold_temp
+        hours_to_threshold = temp_diff / abs(trend)
+        minutes_to_threshold = hours_to_threshold * 60
+
+        _LOGGER.debug(
+            "Predicted time to %.1f°C for %s: %.1f min (current: %.1f°C, trend: %.2f°C/h)",
+            threshold_temp,
+            area_id,
+            minutes_to_threshold,
+            current_temp,
+            trend,
+        )
+
+        return minutes_to_threshold
+
+    def get_trend_confidence(self, area_id: str) -> Optional[float]:
+        """Get confidence level of trend calculation.
+
+        Based on number of samples and time span of data.
+
+        Args:
+            area_id: Area identifier
+
+        Returns:
+            Confidence level 0.0-1.0, or None if insufficient data
+        """
+        if area_id not in self._history:
+            return None
+
+        samples = list(self._history[area_id])
+        if len(samples) < 2:
+            return None
+
+        now = datetime.now()
+        cutoff = now - self._trend_window
+
+        # Count samples within trend window
+        valid_samples = [s for s in samples if s.timestamp >= cutoff]
+        sample_count = len(valid_samples)
+
+        if sample_count < 2:
+            return None
+
+        # Calculate time span coverage
+        if valid_samples:
+            time_span = (valid_samples[-1].timestamp - valid_samples[0].timestamp).total_seconds()
+            window_seconds = self._trend_window.total_seconds()
+            coverage = min(1.0, time_span / window_seconds) if window_seconds > 0 else 0.0
+        else:
+            coverage = 0.0
+
+        # Confidence based on sample count and coverage
+        # More samples and longer time span = higher confidence
+        sample_factor = min(1.0, sample_count / 10)  # Max confidence at 10+ samples
+        confidence = (sample_factor + coverage) / 2
+
+        return confidence

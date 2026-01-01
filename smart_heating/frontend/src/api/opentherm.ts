@@ -113,7 +113,7 @@ export const getOpenthermGateways = async (): Promise<
 }
 
 export const calibrateOpentherm = async (): Promise<any> => {
-  const response = await apiClient.post('/opentherm/calibrate', {})
+  const response = await apiClient.get('/opentherm/calibrate')
   return response.data
 }
 

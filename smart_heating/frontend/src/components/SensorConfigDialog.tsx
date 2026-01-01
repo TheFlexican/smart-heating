@@ -8,6 +8,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  SelectChangeEvent,
   MenuItem,
   TextField,
   Box,
@@ -179,7 +180,9 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
                       data-testid="sensor-window-action-select"
                       value={windowAction}
                       label="Action When Open"
-                      onChange={e => setWindowAction(e.target.value as any)}
+                      onChange={(
+                        e: SelectChangeEvent<'turn_off' | 'reduce_temperature' | 'none'>,
+                      ) => setWindowAction(e.target.value)}
                     >
                       <MenuItem
                         data-testid="sensor-window-action-reduce"
@@ -211,21 +214,19 @@ const SensorConfigDialog = ({ open, onClose, onAdd, sensorType }: SensorConfigDi
                 </>
               ) : (
                 // Presence Sensor Configuration
-                <>
-                  <Alert severity="info" data-testid="sensor-info">
-                    <Typography variant="body2">
-                      <strong>Preset Mode Control</strong>
-                    </Typography>
-                    <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                      When nobody is home, the system will automatically switch to the
-                      &quot;Away&quot; preset mode. When someone comes home, it will switch back to
-                      the &quot;Home&quot; preset mode.
-                    </Typography>
-                    <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                      Configure preset temperatures in <strong>Settings → Global Presets</strong>.
-                    </Typography>
-                  </Alert>
-                </>
+                <Alert severity="info" data-testid="sensor-info">
+                  <Typography variant="body2">
+                    <strong>Preset Mode Control</strong>
+                  </Typography>
+                  <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                    When nobody is home, the system will automatically switch to the
+                    &quot;Away&quot; preset mode. When someone comes home, it will switch back to
+                    the &quot;Home&quot; preset mode.
+                  </Typography>
+                  <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                    Configure preset temperatures in <strong>Settings → Global Presets</strong>.
+                  </Typography>
+                </Alert>
               )}
             </>
           )}

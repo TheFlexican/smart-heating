@@ -148,17 +148,22 @@ class OpenThermHandler(BaseDeviceHandler):
             _LOGGER.debug("PWM approximation: duty=%.2f -> setpoint=0.0", duty)
             return 0.0
         else:
+            # Clamp to 0.0 minimum even when duty >= 0.5
+            clamped_setpoint = max(0.0, boiler_setpoint)
             _LOGGER.debug(
                 "PWM approximation: duty=%.2f -> setpoint=%.1f",
                 duty,
-                boiler_setpoint,
+                clamped_setpoint,
             )
-            return boiler_setpoint
+            return clamped_setpoint
 
     async def _set_gateway_setpoint(self, gateway_device_id: str, temperature: float) -> None:
         """Set OpenTherm gateway setpoint via service call."""
         try:
-            payload = {"gateway_id": gateway_device_id, "temperature": float(temperature)}
+            # Clamp temperature to valid range (0.0 - 90.0°C)
+            # OpenTherm service enforces: minimum 0.0, maximum 90.0
+            clamped_temp = max(0.0, min(90.0, float(temperature)))
+            payload = {"gateway_id": gateway_device_id, "temperature": clamped_temp}
             try:
                 self._record_device_event(
                     gateway_device_id,
@@ -201,7 +206,7 @@ class OpenThermHandler(BaseDeviceHandler):
             _LOGGER.info(
                 "OpenTherm gateway: Set setpoint via gateway service (gateway_id=%s): %.1f°C",
                 gateway_device_id,
-                temperature,
+                clamped_temp,
             )
         except (
             HomeAssistantError,

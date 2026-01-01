@@ -105,18 +105,32 @@ async def test_calibrate_opv_paths(monkeypatch):
     area_manager = MagicMock()
     area_manager.opentherm_gateway_id = "g1"
 
+    # Test 503 when coordinator lacks modulation control method
+    coordinator_no_mod = MagicMock(spec=[])  # Empty spec = no methods
+    resp = await handle_calibrate_opentherm(hass, area_manager, coordinator_no_mod)
+    assert resp.status == 503
+    body = json.loads(resp.body.decode())
+    assert "modulation control" in body["error"]
+
+    # Test 500 when calibration fails (returns None)
     class OPFail:
         async def calculate(self):
             await asyncio.sleep(0)  # Satisfy async requirement
             return None
 
+    coordinator_with_mod = MagicMock()
+    coordinator_with_mod.async_set_control_max_relative_modulation = AsyncMock()
     monkeypatch.setattr(
         "smart_heating.api.handlers.opentherm.OvershootProtection",
         lambda *a, **k: OPFail(),
     )
-    resp = await handle_calibrate_opentherm(hass, area_manager, None)
+    resp = await handle_calibrate_opentherm(hass, area_manager, coordinator_with_mod)
     assert resp.status == 500
+    body = json.loads(resp.body.decode())
+    assert "error" in body
+    assert "details" in body
 
+    # Test success case
     class OPSuccess:
         async def calculate(self):
             await asyncio.sleep(0)  # Satisfy async requirement
@@ -127,5 +141,8 @@ async def test_calibrate_opv_paths(monkeypatch):
         lambda *a, **k: OPSuccess(),
     )
     area_manager.async_save = AsyncMock()
-    resp = await handle_calibrate_opentherm(hass, area_manager, MagicMock())
+    resp = await handle_calibrate_opentherm(hass, area_manager, coordinator_with_mod)
     assert resp.status == 200
+    body = json.loads(resp.body.decode())
+    assert body["success"] is True
+    assert body["opv"] == 2.5

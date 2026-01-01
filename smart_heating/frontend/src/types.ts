@@ -61,6 +61,13 @@ export interface Zone {
   smart_boost_target_time?: string
   weather_entity_id?: string | null
 
+  // Proactive temperature maintenance settings
+  proactive_maintenance_enabled?: boolean
+  proactive_maintenance_sensitivity?: number // 0.5-2.0 multiplier
+  proactive_maintenance_min_trend?: number // Minimum negative trend to trigger (e.g., -0.1)
+  proactive_maintenance_margin_minutes?: number // Extra buffer time
+  proactive_maintenance_cooldown_minutes?: number // Prevent oscillation
+
   // Preset mode settings
   preset_mode?: string
   away_temp?: number

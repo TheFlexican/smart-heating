@@ -221,6 +221,12 @@ class StateBuilder:
             "smart_boost_target_time": area.boost_manager.smart_boost_target_time,
             "weather_entity_id": area.boost_manager.weather_entity_id,
             "weather_state": weather_data,
+            # Proactive temperature maintenance
+            "proactive_maintenance_enabled": area.boost_manager.proactive_maintenance_enabled,
+            "proactive_maintenance_sensitivity": area.boost_manager.proactive_maintenance_sensitivity,
+            "proactive_maintenance_min_trend": area.boost_manager.proactive_maintenance_min_trend,
+            "proactive_maintenance_margin_minutes": area.boost_manager.proactive_maintenance_margin_minutes,
+            "proactive_maintenance_cooldown_minutes": area.boost_manager.proactive_maintenance_cooldown_minutes,
         }
 
     def _build_control_state(self, area: Area) -> dict[str, Any]:

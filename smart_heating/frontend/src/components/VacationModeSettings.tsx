@@ -103,7 +103,7 @@ export const VacationModeSettings: React.FC = () => {
         min_temperature: minTemp,
         auto_disable: autoDisable,
         frost_protection_override: frostProtection,
-        person_entities: [], // TODO: Add person entity selection
+        person_entities: [], // Person entity selection intentionally omitted; will be added in a follow-up enhancement
       }
 
       const data = await enableVacationMode(config)
@@ -247,17 +247,7 @@ export const VacationModeSettings: React.FC = () => {
 
           {/* Action Buttons */}
           <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-            {!vacationMode?.enabled ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleEnable}
-                disabled={saving}
-                fullWidth
-              >
-                {saving ? t('vacation.enabling') : t('vacation.enableButton')}
-              </Button>
-            ) : (
+            {vacationMode?.enabled ? (
               <Button
                 variant="contained"
                 color="error"
@@ -266,6 +256,16 @@ export const VacationModeSettings: React.FC = () => {
                 fullWidth
               >
                 {saving ? t('vacation.disabling') : t('vacation.disableButton')}
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleEnable}
+                disabled={saving}
+                fullWidth
+              >
+                {saving ? t('vacation.enabling') : t('vacation.enableButton')}
               </Button>
             )}
           </Box>
