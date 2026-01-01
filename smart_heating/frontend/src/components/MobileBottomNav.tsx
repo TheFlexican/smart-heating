@@ -18,7 +18,7 @@ const MobileBottomNav = () => {
       setValue(0) // Zones
     } else if (path.startsWith('/devices')) {
       setValue(1) // Devices
-    } else if (path.startsWith('/analytics') || path.startsWith('/opentherm')) {
+    } else if (path.startsWith('/analytics')) {
       setValue(2) // Analytics
     } else if (path.startsWith('/settings')) {
       setValue(3) // Settings

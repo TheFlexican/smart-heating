@@ -22,7 +22,6 @@ const DevicesView = lazy(() => import('./pages/DevicesView'))
 const AnalyticsMenu = lazy(() => import('./pages/AnalyticsMenu'))
 const EfficiencyReports = lazy(() => import('./components/EfficiencyReports'))
 const HistoricalComparisons = lazy(() => import('./components/HistoricalComparisons'))
-const AdvancedMetricsDashboard = lazy(() => import('./components/AdvancedMetricsDashboard'))
 const DeviceLogsView = lazy(() => import('./pages/DeviceLogsView'))
 
 // Loading component
@@ -325,7 +324,6 @@ function App() {
             <Route path="/analytics" element={<AnalyticsMenu />} />
             <Route path="/analytics/efficiency" element={<EfficiencyReports />} />
             <Route path="/analytics/comparison" element={<HistoricalComparisons />} />
-            <Route path="/opentherm/metrics" element={<AdvancedMetricsDashboard />} />
 
             {/* Device logs (live) */}
             <Route path="/devices/logs" element={<DeviceLogsView />} />

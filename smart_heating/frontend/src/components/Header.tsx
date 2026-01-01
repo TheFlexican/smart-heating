@@ -17,8 +17,6 @@ import LanguageIcon from '@mui/icons-material/Language'
 import AnalyticsIcon from '@mui/icons-material/Analytics'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows'
-import DevicesIcon from '@mui/icons-material/Devices'
-import FireplaceIcon from '@mui/icons-material/Fireplace'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
@@ -45,13 +43,6 @@ const AnalyticsMenu = ({ anchorEl, onClose, onNavigate, t }: AnalyticsMenuProps)
     >
       <CompareArrowsIcon sx={{ mr: 1 }} />
       {t('comparison.title', 'Historical Comparisons')}
-    </MenuItem>
-    <MenuItem
-      data-testid="header-analytics-opentherm"
-      onClick={() => onNavigate('/opentherm/metrics')}
-    >
-      <FireplaceIcon sx={{ mr: 1 }} />
-      {t('opentherm.title', 'OpenTherm Metrics')}
     </MenuItem>
   </Menu>
 )
@@ -95,9 +86,7 @@ const Header = ({ wsConnected = false, transportMode = 'websocket' }: HeaderProp
   const [analyticsMenuAnchor, setAnalyticsMenuAnchor] = useState<null | HTMLElement>(null)
 
   // Determine active section for highlighting
-  const isDevices = location.pathname.startsWith('/devices')
-  const isAnalytics =
-    location.pathname.startsWith('/analytics') || location.pathname.startsWith('/opentherm')
+  const isAnalytics = location.pathname.startsWith('/analytics')
   const isSettings = location.pathname.startsWith('/settings')
 
   const handleLanguageMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -223,22 +212,6 @@ const Header = ({ wsConnected = false, transportMode = 'websocket' }: HeaderProp
           {t('header.title')}
         </Typography>
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center' }}>
-          <Tooltip title={t('header.devices', 'Devices')}>
-            <IconButton
-              data-testid="header-devices-button"
-              onClick={() => navigate('/devices')}
-              sx={{
-                color: isDevices ? 'primary.main' : 'text.secondary',
-                bgcolor: isDevices ? 'action.selected' : 'transparent',
-                p: 1,
-                '&:hover': {
-                  bgcolor: isDevices ? 'action.selected' : 'action.hover',
-                },
-              }}
-            >
-              <DevicesIcon />
-            </IconButton>
-          </Tooltip>
           <Tooltip title={t('header.analytics', 'Analytics')}>
             <IconButton
               data-testid="header-analytics-button"
