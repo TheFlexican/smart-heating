@@ -103,6 +103,18 @@ NIGHT_BOOST_SCHEMA = vol.Schema(
         vol.Optional("smart_boost_enabled"): cv.boolean,
         vol.Optional("smart_boost_target_time"): cv.string,
         vol.Optional("weather_entity_id"): cv.string,
+        # Proactive maintenance settings
+        vol.Optional("proactive_maintenance_enabled"): cv.boolean,
+        vol.Optional("proactive_maintenance_sensitivity"): vol.All(
+            vol.Coerce(float), vol.Range(min=0.5, max=2.0)
+        ),
+        vol.Optional("proactive_maintenance_min_trend"): vol.Coerce(float),
+        vol.Optional("proactive_maintenance_margin_minutes"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=60)
+        ),
+        vol.Optional("proactive_maintenance_cooldown_minutes"): vol.All(
+            vol.Coerce(int), vol.Range(min=5, max=60)
+        ),
     }
 )
 

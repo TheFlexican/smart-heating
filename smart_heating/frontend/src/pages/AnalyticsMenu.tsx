@@ -12,7 +12,6 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows'
-import FireplaceIcon from '@mui/icons-material/Fireplace'
 import { useNavigate } from 'react-router-dom'
 
 const AnalyticsMenu = () => {
@@ -34,13 +33,6 @@ const AnalyticsMenu = () => {
       icon: <CompareArrowsIcon sx={{ fontSize: 48, color: 'secondary.main' }} />,
       path: '/analytics/comparison',
       testId: 'analytics-comparison-card',
-    },
-    {
-      title: 'OpenTherm Metrics',
-      description: 'Advanced OpenTherm gateway metrics and diagnostics',
-      icon: <FireplaceIcon sx={{ fontSize: 48, color: 'warning.main' }} />,
-      path: '/opentherm/metrics',
-      testId: 'analytics-opentherm-card',
     },
   ]
 

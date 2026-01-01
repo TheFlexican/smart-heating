@@ -60,6 +60,7 @@ import { PresenceSensorsSection } from '../components/AreaDetail/PresenceSensors
 import { AutoPresetSection } from '../components/AreaDetail/AutoPresetSection'
 import { NightBoostSection } from '../components/AreaDetail/NightBoostSection'
 import { SmartNightBoostSection } from '../components/AreaDetail/SmartNightBoostSection'
+import { ProactiveMaintenanceSection } from '../components/AreaDetail/ProactiveMaintenanceSection'
 import { HeatingControlSection } from '../components/AreaDetail/HeatingControlSection'
 import { HistoryManagementSection } from '../components/AreaDetail/HistoryManagementSection'
 
@@ -550,6 +551,7 @@ const ZoneDetail = () => {
           loadWeatherEntities().catch(console.error)
         },
       }),
+      ProactiveMaintenanceSection({ area, onUpdate: handleDataUpdate, t }),
       HeatingControlSection({ area, onUpdate: handleDataUpdate, t }),
       HistoryManagementSection({
         historyRetention,

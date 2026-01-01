@@ -208,6 +208,13 @@ async def async_handle_set_night_boost(
     smart_target_time = call.data.get("smart_boost_target_time")
     weather_entity_id = call.data.get("weather_entity_id")
 
+    # Proactive maintenance settings
+    proactive_enabled = call.data.get("proactive_maintenance_enabled")
+    proactive_sensitivity = call.data.get("proactive_maintenance_sensitivity")
+    proactive_min_trend = call.data.get("proactive_maintenance_min_trend")
+    proactive_margin = call.data.get("proactive_maintenance_margin_minutes")
+    proactive_cooldown = call.data.get("proactive_maintenance_cooldown_minutes")
+
     _LOGGER.debug(
         "Setting night boost for area %s: enabled=%s, offset=%s, start=%s, end=%s, smart=%s, weather=%s",
         area_id,
@@ -247,6 +254,18 @@ async def async_handle_set_night_boost(
                 weather_entity_id,
             )
             area.boost_manager.weather_entity_id = weather_entity_id
+
+        # Proactive maintenance settings
+        if proactive_enabled is not None:
+            area.boost_manager.proactive_maintenance_enabled = proactive_enabled
+        if proactive_sensitivity is not None:
+            area.boost_manager.proactive_maintenance_sensitivity = proactive_sensitivity
+        if proactive_min_trend is not None:
+            area.boost_manager.proactive_maintenance_min_trend = proactive_min_trend
+        if proactive_margin is not None:
+            area.boost_manager.proactive_maintenance_margin_minutes = proactive_margin
+        if proactive_cooldown is not None:
+            area.boost_manager.proactive_maintenance_cooldown_minutes = proactive_cooldown
 
         await area_manager.async_save()
         await coordinator.async_request_refresh()

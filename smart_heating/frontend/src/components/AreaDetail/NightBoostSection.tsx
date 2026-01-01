@@ -3,6 +3,7 @@ import NightsStayIcon from '@mui/icons-material/NightsStay'
 import { TFunction } from 'i18next'
 import { Zone } from '../../types'
 import { SettingSection } from '../DraggableSettings'
+import { setNightBoostConfig } from '../../api/areas'
 
 const updateNightBoost = async (
   areaId: string,
@@ -10,14 +11,11 @@ const updateNightBoost = async (
   onUpdate: () => void,
 ) => {
   try {
-    await fetch('/api/smart_heating/call_service', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ service: 'set_night_boost', area_id: areaId, ...data }),
-    })
+    await setNightBoostConfig(areaId, data)
     onUpdate()
   } catch (error) {
     console.error('Failed to update night boost:', error)
+    throw error
   }
 }
 

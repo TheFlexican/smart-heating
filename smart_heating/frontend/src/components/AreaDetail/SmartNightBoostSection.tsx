@@ -14,6 +14,7 @@ import PsychologyIcon from '@mui/icons-material/Psychology'
 import { TFunction } from 'i18next'
 import { Zone, HassEntity } from '../../types'
 import { SettingSection } from '../DraggableSettings'
+import { setNightBoostConfig } from '../../api/areas'
 
 const updateSmartBoost = async (
   areaId: string,
@@ -21,16 +22,12 @@ const updateSmartBoost = async (
   onUpdate: () => void,
 ) => {
   try {
-    const response = await fetch('/api/smart_heating/call_service', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ service: 'set_night_boost', area_id: areaId, ...data }),
-    })
-    await response.json()
+    await setNightBoostConfig(areaId, data)
     await new Promise(resolve => setTimeout(resolve, 500))
     onUpdate()
   } catch (error) {
     console.error('Failed to update smart night boost:', error)
+    throw error
   }
 }
 

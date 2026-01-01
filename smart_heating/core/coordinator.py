@@ -545,6 +545,54 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             "attributes": dict(state.attributes),
         }
 
+    @property
+    def boiler_temperature(self) -> float | None:
+        """Get current boiler flow temperature from OpenTherm gateway.
+
+        Returns:
+            Boiler flow temperature in °C or None if unavailable
+        """
+        gateway_id = self.area_manager.opentherm_gateway_id
+        if not gateway_id:
+            return None
+
+        state = self.hass.states.get(gateway_id)
+        if not state or state.state in ("unavailable", "unknown"):
+            return None
+
+        # Try common attribute names for boiler flow temperature
+        for attr_name in ("ch_water_temp", "boiler_water_temp", "control_setpoint"):
+            temp = state.attributes.get(attr_name)
+            if temp is not None:
+                try:
+                    return float(temp)
+                except (ValueError, TypeError):
+                    continue
+
+        return None
+
+    async def async_set_control_max_relative_modulation(self, level: int) -> None:
+        """Set maximum relative modulation level for OpenTherm gateway.
+
+        Args:
+            level: Modulation level (0-100%)
+
+        Raises:
+            HomeAssistantError: If gateway not configured or service call fails
+        """
+        gateway_id = self.area_manager.opentherm_gateway_id
+        if not gateway_id:
+            raise HomeAssistantError("OpenTherm gateway not configured")
+
+        # Call OpenTherm gateway service to set max modulation
+        await self.hass.services.async_call(
+            "opentherm_gw",
+            "set_control_max_relative_modulation",
+            {"gateway_id": gateway_id, "level": level},
+            blocking=True,
+        )
+        _LOGGER.debug("Set max relative modulation to %d%% for gateway %s", level, gateway_id)
+
     async def async_enable_area(self, area_id: str) -> None:
         """Enable area and update devices immediately.
 

@@ -190,4 +190,15 @@ export const setAreaHysteresis = async (
   await apiClient.post(`/areas/${areaId}/hysteresis`, config)
 }
 
+export const setNightBoostConfig = async (
+  areaId: string,
+  config: Record<string, unknown>,
+): Promise<void> => {
+  await apiClient.post('call_service', {
+    service: 'set_night_boost',
+    area_id: areaId,
+    ...config,
+  })
+}
+
 export default {}

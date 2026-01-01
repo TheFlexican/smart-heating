@@ -17,6 +17,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useTranslation } from 'react-i18next'
 import OpenThermLogger from '../OpenThermLogger'
+import OpenThermMetrics from '../OpenThermMetrics'
 
 export const OpenThermSettings: React.FC<{
   openthermGateways: Array<{ gateway_id: string; title: string }>
@@ -112,7 +113,7 @@ export const OpenThermSettings: React.FC<{
           </Stack>
         </AccordionDetails>
       </Accordion>
-
+      <OpenThermMetrics />
       <OpenThermLogger />
     </>
   )

@@ -558,6 +558,7 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
       data-testid={`area-card-${area.name.toLowerCase().replaceAll(' ', '-')}`}
       elevation={isDragging ? 12 : 2}
       sx={{
+        position: 'relative',
         bgcolor: isDragging ? alpha('#03a9f4', 0.15) : 'background.paper',
         borderRadius: 3,
         cursor: isDragging ? 'grabbing' : 'default',
