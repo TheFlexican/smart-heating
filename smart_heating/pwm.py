@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 
 from .heating_curve import HeatingCurve
 from .setpoint_adjuster import SetpointAdjuster

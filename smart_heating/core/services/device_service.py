@@ -10,8 +10,8 @@ from typing import Any, Deque
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
-from ...exceptions import DeviceError, ValidationError
 from ...const import TIMEZONE_SUFFIX
+from ...exceptions import DeviceError, ValidationError
 from ...models import DeviceEvent
 
 _LOGGER = logging.getLogger(__name__)

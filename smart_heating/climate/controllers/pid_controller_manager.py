@@ -25,8 +25,9 @@ def _get_current_area_mode(area: Any) -> str:
     if area.preset_mode and area.preset_mode != "none":
         return area.preset_mode
 
-    # Check if schedule is active
-    return "schedule" if area.schedule_manager.is_schedule_active() else "manual"
+    # Check if schedule is active by checking if there's an active schedule temperature
+    schedule_temp = area.schedule_manager.get_active_schedule_temperature()
+    return "schedule" if schedule_temp is not None else "manual"
 
 
 def _clear_pid_state(area_id: str) -> None:

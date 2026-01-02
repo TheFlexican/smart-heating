@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
-from smart_heating.core.area_manager import AreaManager
 from smart_heating.const import (
     DEFAULT_AWAY_TEMP,
     DEFAULT_COMFORT_TEMP,
@@ -15,6 +14,7 @@ from smart_heating.const import (
     STORAGE_KEY,
     STORAGE_VERSION,
 )
+from smart_heating.core.area_manager import AreaManager
 from smart_heating.models import Area
 
 from tests.unit.const import TEST_AREA_ID, TEST_AREA_NAME
@@ -620,8 +620,9 @@ class TestDeviceEventLogging:
 
     def test_async_add_device_event_with_listener(self, area_manager: AreaManager):
         """Test that event listeners are notified."""
-        from smart_heating.models.device_event import DeviceEvent
         from unittest.mock import Mock
+
+        from smart_heating.models.device_event import DeviceEvent
 
         listener = Mock()
         area_manager.add_device_log_listener(listener)
@@ -672,8 +673,9 @@ class TestDeviceEventLogging:
 
     def test_async_add_device_event_retention(self, area_manager: AreaManager):
         """Test that old events are purged based on retention."""
-        from smart_heating.models.device_event import DeviceEvent
         from datetime import datetime, timedelta, timezone
+
+        from smart_heating.models.device_event import DeviceEvent
 
         # Create old event (older than retention period)
         old_timestamp = (
@@ -793,8 +795,9 @@ class TestDeviceEventLogging:
 
     def test_async_get_device_logs_filter_by_since(self, area_manager: AreaManager):
         """Test filtering logs by timestamp."""
-        from smart_heating.models.device_event import DeviceEvent
         from datetime import datetime, timedelta, timezone
+
+        from smart_heating.models.device_event import DeviceEvent
 
         # Create events with different timestamps
         old_timestamp = (

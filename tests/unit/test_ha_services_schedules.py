@@ -13,6 +13,7 @@ from smart_heating.const import (
     ATTR_TEMPERATURE,
     ATTR_TIME,
 )
+from smart_heating.models import Schedule
 from smart_heating.services.schedule_handlers import (
     async_handle_add_schedule,
     async_handle_copy_schedule,
@@ -21,7 +22,6 @@ from smart_heating.services.schedule_handlers import (
     async_handle_remove_schedule,
     async_handle_set_night_boost,
 )
-from smart_heating.models import Schedule
 
 
 @pytest.fixture

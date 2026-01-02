@@ -26,8 +26,8 @@ from smart_heating.api.handlers.config import (
     handle_set_opentherm_gateway,
     handle_set_safety_sensor,
 )
-from smart_heating.core.area_manager import AreaManager
 from smart_heating.const import DOMAIN
+from smart_heating.core.area_manager import AreaManager
 
 ## The handler test moved down below fixtures to comply with import order linting
 
@@ -312,7 +312,6 @@ class TestConfigHandlers:
             "advanced_control_enabled": True,
             "heating_curve_enabled": True,
             "pwm_enabled": True,
-            "pid_enabled": True,
             "overshoot_protection_enabled": True,
             "default_heating_curve_coefficient": 1.25,
         }
@@ -324,7 +323,6 @@ class TestConfigHandlers:
         assert mock_area_manager.advanced_control_enabled
         assert mock_area_manager.heating_curve_enabled
         assert mock_area_manager.pwm_enabled
-        assert mock_area_manager.pid_enabled
         assert mock_area_manager.overshoot_protection_enabled
         assert mock_area_manager.default_heating_curve_coefficient == pytest.approx(1.25)
         mock_area_manager.async_save.assert_called_once()

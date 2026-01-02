@@ -1,7 +1,7 @@
 """Sensor management functionality for Area model."""
 
 import logging
-from typing import Optional, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from .area import Area  # pragma: no cover

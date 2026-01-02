@@ -1,16 +1,14 @@
-import asyncio
 from types import SimpleNamespace
 
 import pytest
-
-from smart_heating.storage.history import HistoryTracker
 from smart_heating.const import HISTORY_STORAGE_DATABASE
-from smart_heating.storage.history import RECORDER_ENGINE_UNAVAILABLE
+from smart_heating.storage.history import HistoryTracker
 
 
 @pytest.mark.asyncio
 async def test_async_get_database_stats_disabled_by_default(monkeypatch):
     hass = SimpleNamespace()
+
     # Provide minimal Store replacement to avoid HA internal store access
     class FakeStore:
         def __init__(self, hass, v, key):
@@ -33,6 +31,7 @@ async def test_async_get_database_stats_disabled_by_default(monkeypatch):
 @pytest.mark.asyncio
 async def test_async_get_database_stats_enabled(monkeypatch):
     hass = SimpleNamespace()
+
     class FakeStore:
         def __init__(self, hass, v, key):
             self._data = None
@@ -48,7 +47,7 @@ async def test_async_get_database_stats_enabled(monkeypatch):
     # enable DB backend and set dummy table
     tracker._storage_backend = HISTORY_STORAGE_DATABASE
     # Use a real Table object to make SQLAlchemy happy
-    from sqlalchemy import Table, Column, Integer, MetaData
+    from sqlalchemy import Column, Integer, MetaData, Table
 
     tracker._db_table = Table("smart_heating_history", MetaData(), Column("id", Integer))
 
@@ -90,6 +89,7 @@ async def test_async_get_database_stats_enabled(monkeypatch):
 @pytest.mark.asyncio
 async def test_async_get_database_stats_handles_no_engine(monkeypatch):
     hass = SimpleNamespace()
+
     class FakeStore:
         def __init__(self, hass, v, key):
             self._data = None
@@ -104,7 +104,7 @@ async def test_async_get_database_stats_handles_no_engine(monkeypatch):
     tracker = HistoryTracker(hass)
     tracker._storage_backend = HISTORY_STORAGE_DATABASE
     # Use a real Table object to make SQLAlchemy happy
-    from sqlalchemy import Table, Column, Integer, MetaData
+    from sqlalchemy import Column, Integer, MetaData, Table
 
     tracker._db_table = Table("smart_heating_history", MetaData(), Column("id", Integer))
 

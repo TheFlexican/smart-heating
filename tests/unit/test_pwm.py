@@ -1,6 +1,6 @@
+import pytest
 from smart_heating.heating_curve import HeatingCurve
 from smart_heating.pwm import PWM, CycleConfig
-import pytest
 
 
 def test_pwm_duty_cycle_basic():

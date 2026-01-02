@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime, time, timedelta
-from typing import Optional, Any, Dict
+from typing import Any, Dict, Optional
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -10,7 +10,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from ..core.area_manager import AreaManager
-from ..exceptions import ScheduleError, SmartHeatingError
+from ..exceptions import SmartHeatingError
 from ..features.proactive_maintenance import ProactiveMaintenanceHandler
 from ..models import Area, Schedule
 

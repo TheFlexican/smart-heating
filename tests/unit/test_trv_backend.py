@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from smart_heating.api.handlers.sensors import (
-    handle_get_trv_candidates,
     handle_add_trv_entity,
+    handle_get_trv_candidates,
     handle_remove_trv_entity,
 )
 

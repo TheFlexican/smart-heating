@@ -10,7 +10,6 @@ from homeassistant.helpers import area_registry as ar
 
 from ...const import DOMAIN
 from ...core.area_manager import AreaManager
-from ...exceptions import SmartHeatingError
 from ...models import Area, Schedule
 from ...utils import get_coordinator, validate_area_id, validate_temperature
 

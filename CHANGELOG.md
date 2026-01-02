@@ -2,6 +2,17 @@
 # Changelog
 
 ## [Unreleased]
+
+### Features
+- feat: Area-level PID control configuration
+  - PID control is now configured per-area instead of globally
+  - Each area can independently enable/disable PID control
+  - Selective mode activation: Choose which preset modes use PID (e.g., Schedule, Home, Comfort)
+  - UI integration: Configure PID settings in Area Detail → Settings → PID Control
+  - Visual indicator: PID badge shows on zone cards when active
+  - Removed global PID toggle from Advanced settings (deprecated)
+
+### Refactoring
 - refactor: Decompose `GlobalSettings.tsx` into smaller components per tab and helpers to improve maintainability and testability (Presets, Sensors, Safety, Advanced, OpenTherm, Debug, Header, TabPanel).
 - tests: Add unit tests for each new component and ensure lint/format passes.
 

@@ -1,16 +1,16 @@
 """Flask API server for Smart Heating - Refactored to use modular handlers."""
 
+import asyncio
 import logging
 
-import asyncio
 import aiofiles
 from aiohttp import web
-from homeassistant.helpers.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.http import HomeAssistantView
 
 from ..const import DOMAIN
-from .auth import require_admin, get_user_from_request
+from .auth import get_user_from_request, require_admin
 
 # Standardized error messages
 ERROR_INTERNAL = "Internal server error"
@@ -26,6 +26,7 @@ from .handlers import (
     handle_add_device,
     handle_add_presence_sensor,
     handle_add_schedule,
+    handle_add_trv_entity,
     handle_add_window_sensor,
     handle_call_service,
     handle_cancel_boost,
@@ -39,14 +40,11 @@ from .handlers import (
     handle_export_config,
     handle_get_active_preferences,
     handle_get_area,
+    handle_get_area_device_logs,
     handle_get_area_efficiency_history,
     handle_get_area_logs,
-    handle_get_area_device_logs,
     handle_get_areas,
     handle_get_binary_sensor_entities,
-    handle_get_trv_candidates,
-    handle_add_trv_entity,
-    handle_remove_trv_entity,
     handle_get_comparison,
     handle_get_config,
     handle_get_custom_comparison,
@@ -64,11 +62,11 @@ from .handlers import (
     handle_get_presence_state,
     handle_get_safety_sensor,
     handle_get_status,
+    handle_get_trv_candidates,
     handle_get_user,
     handle_get_users,
     handle_get_vacation_mode,
     handle_get_weather_entities,
-    handle_get_trv_candidates,
     handle_hide_area,
     handle_import_config,
     handle_list_backups,
@@ -78,6 +76,7 @@ from .handlers import (
     handle_remove_presence_sensor,
     handle_remove_safety_sensor,
     handle_remove_schedule,
+    handle_remove_trv_entity,
     handle_remove_window_sensor,
     handle_restore_backup,
     handle_set_advanced_control_config,

@@ -24,8 +24,8 @@ def disable_time_interval(monkeypatch):
     try:
         import smart_heating as init_mod
         import smart_heating.features.advanced_metrics_collector as amc_mod
-        import smart_heating.storage.history as history_mod
         import smart_heating.features.scheduler as scheduler_mod
+        import smart_heating.storage.history as history_mod
 
         def dummy_unsub():
             return None

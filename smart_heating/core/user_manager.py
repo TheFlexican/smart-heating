@@ -4,13 +4,13 @@ import asyncio
 import json
 import logging
 from pathlib import Path
-from typing import Any, Callable, List
+from typing import Any
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.event import async_track_state_change_event
 
-from ..exceptions import ValidationError, StorageError
+from ..exceptions import StorageError, ValidationError
 
 _LOGGER = logging.getLogger(__name__)
 

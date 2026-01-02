@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
-
 from smart_heating.core.area_manager import AreaManager
 from smart_heating.models.device_event import DeviceEvent
 

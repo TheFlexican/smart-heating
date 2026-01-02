@@ -1,6 +1,6 @@
 """Response builder utilities for API handlers."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..models.area import Area
 

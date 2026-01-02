@@ -3,9 +3,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from smart_heating.const import (
+    DEFAULT_HISTORY_RETENTION_DAYS,
     HISTORY_STORAGE_DATABASE,
     HISTORY_STORAGE_JSON,
-    DEFAULT_HISTORY_RETENTION_DAYS,
     MAX_HISTORY_RETENTION_DAYS,
 )
 from smart_heating.storage.history import HistoryTracker

@@ -1,14 +1,12 @@
-import asyncio
 from types import SimpleNamespace
 
 import pytest
-
+from smart_heating.const import ATTR_AREA_ID, ATTR_TEMPERATURE
 from smart_heating.services.area_handlers import (
-    async_handle_enable_area,
     async_handle_disable_area,
+    async_handle_enable_area,
     async_handle_set_temperature,
 )
-from smart_heating.const import ATTR_AREA_ID, ATTR_TEMPERATURE
 
 
 class DummyAreaManager:

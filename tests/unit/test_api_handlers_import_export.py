@@ -1,7 +1,7 @@
 """Tests for import/export API handlers - Basic smoke tests."""
 
 import json
-from unittest.mock import AsyncMock, MagicMock, mock_open, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from smart_heating.api.handlers.import_export import (

@@ -3,14 +3,14 @@
 # Exclude heavy database-related code from coverage - exercised by integration tests
 # pragma: no cover
 
+import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Any
-import asyncio
 
-from homeassistant.helpers.recorder import get_instance
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.recorder import get_instance
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 from sqlalchemy import (
@@ -24,7 +24,7 @@ from sqlalchemy import (
     delete,
     select,
 )
-from sqlalchemy.exc import SQLAlchemyError, OperationalError, DatabaseError
+from sqlalchemy.exc import SQLAlchemyError
 
 from ..const import (
     EVENT_RETENTION_DAYS,

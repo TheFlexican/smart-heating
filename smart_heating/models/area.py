@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from ..const import (
     ATTR_AREA_ID,
@@ -15,20 +15,13 @@ from ..const import (
     DEFAULT_COMFORT_TEMP,
     DEFAULT_ECO_TEMP,
     DEFAULT_HOME_TEMP,
-    DEFAULT_NIGHT_BOOST_END_TIME,
-    DEFAULT_NIGHT_BOOST_START_TIME,
     DEFAULT_PRESENCE_TEMP_BOOST,
     DEFAULT_SLEEP_TEMP,
     DEFAULT_WINDOW_OPEN_TEMP_DROP,
     HVAC_MODE_HEAT,
-    PRESET_ACTIVITY,
     PRESET_AWAY,
-    PRESET_BOOST,
-    PRESET_COMFORT,
-    PRESET_ECO,
     PRESET_HOME,
     PRESET_NONE,
-    PRESET_SLEEP,
     STATE_HEATING,
     STATE_IDLE,
     STATE_OFF,

@@ -11,19 +11,17 @@ tables if a recorder DB is available.
 from __future__ import annotations
 
 import logging
+import re
 import shutil
 from typing import Iterable
 
+from homeassistant.components.recorder import get_instance as get_recorder_instance
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
-
-from homeassistant.components.recorder import get_instance as get_recorder_instance
-
-from .exceptions import StorageError
 from sqlalchemy import text
-import re
 
-from .const import STORAGE_VERSION, DOMAIN
+from .const import DOMAIN, STORAGE_VERSION
+from .exceptions import StorageError
 
 _LOGGER = logging.getLogger(__name__)
 

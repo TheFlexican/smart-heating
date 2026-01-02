@@ -1,6 +1,5 @@
 """Test SafetyService functionality."""
 
-import pytest
 from unittest.mock import Mock
 
 from smart_heating.core.services.safety_service import SafetyService

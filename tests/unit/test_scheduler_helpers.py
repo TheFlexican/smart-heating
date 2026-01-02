@@ -14,9 +14,9 @@ from smart_heating.const import (
     PRESET_HOME,
     PRESET_SLEEP,
 )
+from smart_heating.features.scheduler import ScheduleExecutor
 from smart_heating.models.area import Area
 from smart_heating.models.schedule import Schedule
-from smart_heating.features.scheduler import ScheduleExecutor
 
 
 @pytest.fixture

@@ -1,14 +1,14 @@
 """Comprehensive tests for area-level PID controller manager."""
 
-import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 
+import pytest
 from smart_heating.climate.controllers.pid_controller_manager import (
-    _get_current_area_mode,
     _clear_pid_state,
+    _get_current_area_mode,
+    _pids,
     _should_apply_pid,
     apply_pid_adjustment,
-    _pids,
 )
 from smart_heating.pid import PID
 
@@ -30,7 +30,7 @@ def mock_area():
 
     # Mock schedule manager
     area.schedule_manager = Mock()
-    area.schedule_manager.is_schedule_active = Mock(return_value=False)
+    area.schedule_manager.get_active_schedule_temperature = Mock(return_value=None)
 
     return area
 
@@ -57,7 +57,7 @@ class TestGetCurrentAreaMode:
     def test_preset_mode_takes_priority(self, mock_area):
         """Test preset mode takes priority over schedule."""
         mock_area.preset_mode = "comfort"
-        mock_area.schedule_manager.is_schedule_active.return_value = True
+        mock_area.schedule_manager.get_active_schedule_temperature.return_value = 20.0
 
         mode = _get_current_area_mode(mock_area)
         assert mode == "comfort"
@@ -65,7 +65,7 @@ class TestGetCurrentAreaMode:
     def test_schedule_active_when_no_preset(self, mock_area):
         """Test schedule mode when no preset is set."""
         mock_area.preset_mode = "none"
-        mock_area.schedule_manager.is_schedule_active.return_value = True
+        mock_area.schedule_manager.get_active_schedule_temperature.return_value = 20.0
 
         mode = _get_current_area_mode(mock_area)
         assert mode == "schedule"
@@ -73,7 +73,7 @@ class TestGetCurrentAreaMode:
     def test_manual_mode_when_no_preset_or_schedule(self, mock_area):
         """Test manual mode when no preset or schedule."""
         mock_area.preset_mode = "none"
-        mock_area.schedule_manager.is_schedule_active.return_value = False
+        mock_area.schedule_manager.get_active_schedule_temperature.return_value = None
 
         mode = _get_current_area_mode(mock_area)
         assert mode == "manual"
@@ -81,7 +81,7 @@ class TestGetCurrentAreaMode:
     def test_none_preset_treated_as_no_preset(self, mock_area):
         """Test 'none' preset is treated as no preset."""
         mock_area.preset_mode = "none"
-        mock_area.schedule_manager.is_schedule_active.return_value = False
+        mock_area.schedule_manager.get_active_schedule_temperature.return_value = None
 
         mode = _get_current_area_mode(mock_area)
         assert mode == "manual"
@@ -394,7 +394,7 @@ class TestPIDIntegration:
         mock_area.pid_enabled = True
         mock_area.pid_active_modes = ["schedule"]
         mock_area.preset_mode = "none"
-        mock_area.schedule_manager.is_schedule_active.return_value = True
+        mock_area.schedule_manager.get_active_schedule_temperature.return_value = 20.0
         mock_area_manager.get_area = Mock(return_value=mock_area)
 
         candidate = 45.0

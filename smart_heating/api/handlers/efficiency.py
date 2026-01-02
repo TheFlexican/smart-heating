@@ -1,7 +1,7 @@
 """Efficiency report API handlers."""
 
 import logging
-from typing import Any, Tuple
+from typing import Any
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant

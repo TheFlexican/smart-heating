@@ -1,7 +1,7 @@
 """Boost mode manager for heating areas."""
 
 import logging
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:

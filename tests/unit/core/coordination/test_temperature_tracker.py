@@ -1,14 +1,14 @@
 """Tests for TemperatureTracker."""
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import pytest
 from smart_heating.core.coordination.temperature_tracker import (
-    TemperatureTracker,
-    TemperatureSample,
-    MAX_SAMPLES,
     DEFAULT_TREND_WINDOW,
+    MAX_SAMPLES,
+    TemperatureSample,
+    TemperatureTracker,
 )
 
 

@@ -1,7 +1,6 @@
 """Device management functionality for Area model."""
 
 import logging
-from typing import Any
 
 from ..const import (
     DEVICE_TYPE_OPENTHERM_GATEWAY,

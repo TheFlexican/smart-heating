@@ -10,7 +10,7 @@ from homeassistant.helpers import area_registry as ar
 
 from ...const import DOMAIN
 from ...core.area_manager import AreaManager
-from ...exceptions import AreaNotFoundError, SmartHeatingError, StorageError, ValidationError
+from ...exceptions import SmartHeatingError
 from ...models import Area
 from ...utils import get_coordinator
 from ..validators import (
@@ -553,7 +553,7 @@ async def handle_set_area_pid(
         )
 
         return web.json_response({"success": True})
-    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError, AttributeError) as err:
+    except Exception as err:
         _LOGGER.error("Error setting area PID for %s", area_id, exc_info=True)
         return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 

@@ -1,8 +1,8 @@
 """Test StateBuilder component."""
 
-import pytest
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock
 
+import pytest
 from smart_heating.core.coordination.state_builder import StateBuilder
 from smart_heating.models import Area
 

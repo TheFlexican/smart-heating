@@ -9,16 +9,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
 
-from .exceptions import (
-    AreaNotFoundError,
-    ConfigurationError,
-    DeviceError,
-    SafetySensorError,
-    ScheduleError,
-    SmartHeatingError,
-    StorageError,
-    ValidationError,
-)
 from .api.server import setup_api
 from .api.websocket import setup_websocket
 from .area_logger import AreaLogger
@@ -60,6 +50,16 @@ from .const import (
 from .core.area_manager import AreaManager
 from .core.coordinator import SmartHeatingCoordinator
 from .core.user_manager import UserManager
+from .exceptions import (
+    AreaNotFoundError,
+    ConfigurationError,
+    DeviceError,
+    SafetySensorError,
+    ScheduleError,
+    SmartHeatingError,
+    StorageError,
+    ValidationError,
+)
 from .features.advanced_metrics_collector import AdvancedMetricsCollector
 from .features.comparison_engine import ComparisonEngine
 from .features.device_capability_detector import DeviceCapabilityDetector

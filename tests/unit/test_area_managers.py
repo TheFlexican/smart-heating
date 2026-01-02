@@ -4,9 +4,12 @@ These tests verify that the manager classes work correctly and can be integrated
 into the Area class to reduce its complexity.
 """
 
-import pytest
 from datetime import datetime, timedelta
 
+from smart_heating.const import (
+    PRESET_AWAY,
+    PRESET_COMFORT,
+)
 from smart_heating.models import (
     Area,
     AreaDeviceManager,
@@ -15,12 +18,6 @@ from smart_heating.models import (
     AreaSensorManager,
 )
 from smart_heating.models.schedule import Schedule
-from smart_heating.const import (
-    PRESET_AWAY,
-    PRESET_COMFORT,
-    PRESET_ECO,
-    PRESET_HOME,
-)
 
 
 class TestAreaDeviceManager:
