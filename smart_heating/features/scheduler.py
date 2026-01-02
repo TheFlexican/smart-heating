@@ -487,6 +487,70 @@ class ScheduleExecutor:
         except (ValueError, TypeError):
             return None
 
+    def _log_proactive_start(
+        self,
+        area,
+        result,
+    ) -> None:
+        """Log proactive maintenance start event."""
+        _LOGGER.info(
+            "Proactive maintenance for %s: Started - trend=%.2f°C/h, "
+            "time_to_threshold=%.1f min, predicted_heating=%s min",
+            area.area_id,
+            result.trend or 0,
+            result.time_to_threshold or 0,
+            result.predicted_heating_time,
+        )
+
+        if hasattr(self, "area_logger") and self.area_logger:
+            self.area_logger.log_event(
+                area.area_id,
+                "proactive_maintenance",
+                f"Proactive heating started: {result.reason}",
+                {
+                    "trend": result.trend,
+                    "time_to_threshold": result.time_to_threshold,
+                    "predicted_heating_time": result.predicted_heating_time,
+                    "current_temp": result.current_temp,
+                    "target_temp": result.target_temp,
+                },
+            )
+
+    def _log_proactive_end(
+        self,
+        area,
+        result,
+    ) -> None:
+        """Log proactive maintenance end event."""
+        _LOGGER.info(
+            "Proactive maintenance for %s: Ended - %s",
+            area.area_id,
+            result.reason,
+        )
+
+        if hasattr(self, "area_logger") and self.area_logger:
+            self.area_logger.log_event(
+                area.area_id,
+                "proactive_maintenance",
+                f"Proactive heating ended: {result.reason}",
+                {
+                    "current_temp": result.current_temp,
+                    "target_temp": result.target_temp,
+                },
+            )
+
+    async def _start_proactive_heating(self, area, result) -> None:
+        """Start proactive heating for an area."""
+        area.boost_manager.start_proactive_maintenance()
+        self._log_proactive_start(area, result)
+        await self.area_manager.async_save()
+
+    async def _stop_proactive_heating(self, area, result) -> None:
+        """Stop proactive heating for an area."""
+        area.boost_manager.end_proactive_maintenance()
+        self._log_proactive_end(area, result)
+        await self.area_manager.async_save()
+
     async def _handle_proactive_maintenance(self, area, now: datetime) -> None:
         """Handle proactive temperature maintenance for an area.
 
@@ -505,56 +569,11 @@ class ScheduleExecutor:
         if result.should_heat:
             # Should be heating - start if not already active
             if not area.boost_manager.proactive_maintenance_active:
-                area.boost_manager.start_proactive_maintenance()
-
-                _LOGGER.info(
-                    "Proactive maintenance for %s: Started - trend=%.2f°C/h, "
-                    "time_to_threshold=%.1f min, predicted_heating=%s min",
-                    area.area_id,
-                    result.trend or 0,
-                    result.time_to_threshold or 0,
-                    result.predicted_heating_time,
-                )
-
-                if hasattr(self, "area_logger") and self.area_logger:
-                    self.area_logger.log_event(
-                        area.area_id,
-                        "proactive_maintenance",
-                        f"Proactive heating started: {result.reason}",
-                        {
-                            "trend": result.trend,
-                            "time_to_threshold": result.time_to_threshold,
-                            "predicted_heating_time": result.predicted_heating_time,
-                            "current_temp": result.current_temp,
-                            "target_temp": result.target_temp,
-                        },
-                    )
-
-                await self.area_manager.async_save()
-
+                await self._start_proactive_heating(area, result)
         else:
             # Should not be heating - end if currently active
             if area.boost_manager.proactive_maintenance_active:
-                area.boost_manager.end_proactive_maintenance()
-
-                _LOGGER.info(
-                    "Proactive maintenance for %s: Ended - %s",
-                    area.area_id,
-                    result.reason,
-                )
-
-                if hasattr(self, "area_logger") and self.area_logger:
-                    self.area_logger.log_event(
-                        area.area_id,
-                        "proactive_maintenance",
-                        f"Proactive heating ended: {result.reason}",
-                        {
-                            "current_temp": result.current_temp,
-                            "target_temp": result.target_temp,
-                        },
-                    )
-
-                await self.area_manager.async_save()
+                await self._stop_proactive_heating(area, result)
 
     async def _handle_smart_boost_schedule_maintenance(self, area, now: datetime) -> bool:
         """Maintain steady temperature during active schedules using predictive heating.

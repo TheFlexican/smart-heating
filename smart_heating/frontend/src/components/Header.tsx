@@ -8,6 +8,7 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  alpha,
 } from '@mui/material'
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import WifiIcon from '@mui/icons-material/Wifi'
@@ -20,6 +21,7 @@ import CompareArrowsIcon from '@mui/icons-material/CompareArrows'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
+import { thermalColors } from '../theme'
 
 type AnalyticsMenuProps = {
   anchorEl: null | HTMLElement
@@ -34,14 +36,14 @@ const AnalyticsMenu = ({ anchorEl, onClose, onNavigate, t }: AnalyticsMenuProps)
       data-testid="header-analytics-efficiency"
       onClick={() => onNavigate('/analytics/efficiency')}
     >
-      <TrendingUpIcon sx={{ mr: 1 }} />
+      <TrendingUpIcon sx={{ mr: 1.5, color: thermalColors.accent.emerald }} />
       {t('efficiency.title', 'Efficiency Reports')}
     </MenuItem>
     <MenuItem
       data-testid="header-analytics-comparison"
       onClick={() => onNavigate('/analytics/comparison')}
     >
-      <CompareArrowsIcon sx={{ mr: 1 }} />
+      <CompareArrowsIcon sx={{ mr: 1.5, color: thermalColors.cool.primary }} />
       {t('comparison.title', 'Historical Comparisons')}
     </MenuItem>
   </Menu>
@@ -85,7 +87,6 @@ const Header = ({ wsConnected = false, transportMode = 'websocket' }: HeaderProp
   const [langMenuAnchor, setLangMenuAnchor] = useState<null | HTMLElement>(null)
   const [analyticsMenuAnchor, setAnalyticsMenuAnchor] = useState<null | HTMLElement>(null)
 
-  // Determine active section for highlighting
   const isAnalytics = location.pathname.startsWith('/analytics')
   const isSettings = location.pathname.startsWith('/settings')
 
@@ -119,20 +120,21 @@ const Header = ({ wsConnected = false, transportMode = 'websocket' }: HeaderProp
     handleAnalyticsMenuClose()
   }
 
-  // Rendered as separate components below to keep cognitive complexity low
-
   const renderRightActions = () => (
-    <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, alignItems: 'center' }}>
+    <Box sx={{ display: 'flex', gap: { xs: 0.75, sm: 1 }, alignItems: 'center' }}>
       <Tooltip title={t('header.changeLanguage')}>
         <IconButton
           data-testid="header-language-button"
           onClick={handleLanguageMenuOpen}
           sx={{
             color: 'text.secondary',
-            p: { xs: 0.5, sm: 1 },
+            p: { xs: 0.75, sm: 1 },
+            '&:hover': {
+              color: 'primary.main',
+            },
           }}
         >
-          <LanguageIcon />
+          <LanguageIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
         </IconButton>
       </Tooltip>
       <LanguageMenu
@@ -141,46 +143,71 @@ const Header = ({ wsConnected = false, transportMode = 'websocket' }: HeaderProp
         onChange={handleLanguageChange}
         i18n={i18n}
       />
+
+      {/* Connection Status */}
       <Tooltip title={wsConnected ? t('header.realtimeActive') : t('header.realtimeInactive')}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Chip
             icon={wsConnected ? <WifiIcon /> : <WifiOffIcon />}
             label={wsConnected ? t('header.connected') : t('header.disconnected')}
             size="small"
-            color={wsConnected ? 'success' : 'default'}
-            variant="outlined"
             sx={{
-              borderColor: wsConnected ? 'success.main' : 'divider',
-              color: wsConnected ? 'success.main' : 'text.secondary',
               display: { xs: 'none', sm: 'flex' },
+              fontWeight: 500,
+              background: wsConnected
+                ? `linear-gradient(135deg, ${alpha(thermalColors.accent.emerald, 0.15)} 0%, ${alpha('#059669', 0.15)} 100%)`
+                : alpha('#64748b', 0.15),
+              border: `1px solid ${wsConnected ? alpha(thermalColors.accent.emerald, 0.3) : alpha('#64748b', 0.2)}`,
+              color: wsConnected ? thermalColors.accent.emerald : 'text.secondary',
+              '& .MuiChip-icon': {
+                color: wsConnected ? thermalColors.accent.emerald : 'text.secondary',
+              },
             }}
           />
-          <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
-            {wsConnected ? <WifiIcon color="success" /> : <WifiOffIcon color="disabled" />}
+          <Box
+            sx={{
+              display: { xs: 'flex', sm: 'none' },
+              p: 0.75,
+              borderRadius: 2,
+              bgcolor: wsConnected
+                ? alpha(thermalColors.accent.emerald, 0.15)
+                : alpha('#64748b', 0.15),
+            }}
+          >
+            {wsConnected ? (
+              <WifiIcon sx={{ fontSize: 20, color: thermalColors.accent.emerald }} />
+            ) : (
+              <WifiOffIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+            )}
           </Box>
         </Box>
       </Tooltip>
+
       {transportMode === 'polling' && (
         <Tooltip title="Using polling mode (limited connectivity). WebSocket failed 3 times, falling back to periodic polling.">
           <Chip
             label="Polling"
             size="small"
-            color="warning"
-            variant="filled"
             sx={{
               display: { xs: 'none', sm: 'flex' },
+              fontWeight: 500,
+              background: alpha(thermalColors.accent.amber, 0.15),
+              border: `1px solid ${alpha(thermalColors.accent.amber, 0.3)}`,
+              color: thermalColors.accent.amber,
             }}
           />
         </Tooltip>
       )}
+
       <Chip
         label="v1.0.0"
         size="small"
-        variant="outlined"
         sx={{
-          borderColor: 'divider',
+          display: { xs: 'none', md: 'flex' },
+          fontWeight: 500,
+          background: alpha('#64748b', 0.1),
+          border: '1px solid rgba(255, 255, 255, 0.06)',
           color: 'text.secondary',
-          display: { xs: 'none', sm: 'flex' },
         }}
       />
     </Box>
@@ -191,37 +218,84 @@ const Header = ({ wsConnected = false, transportMode = 'websocket' }: HeaderProp
       position="static"
       elevation={0}
       sx={{
-        bgcolor: 'background.paper',
-        borderBottom: 1,
-        borderColor: 'divider',
+        bgcolor: 'transparent',
+        background: theme =>
+          theme.palette.mode === 'dark'
+            ? `linear-gradient(180deg, ${alpha('#0a0a0f', 0.95)} 0%, ${alpha('#12121a', 0.9)} 100%)`
+            : `linear-gradient(180deg, ${alpha('#ffffff', 0.98)} 0%, ${alpha('#f8fafc', 0.95)} 100%)`,
+        backdropFilter: 'blur(20px)',
+        borderBottom: theme =>
+          `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
       }}
     >
-      <Toolbar sx={{ gap: { xs: 1, sm: 2 } }}>
-        <ThermostatIcon sx={{ color: 'primary.main', fontSize: { xs: 28, sm: 32 } }} />
-        <Typography
-          variant="h6"
-          component="div"
-          sx={{
-            flexGrow: 1,
-            fontWeight: 600,
-            fontSize: { xs: '1rem', sm: '1.25rem' },
-            cursor: 'pointer',
-          }}
+      <Toolbar
+        sx={{ gap: { xs: 1, sm: 1.5, md: 2 }, py: { xs: 0.75, sm: 1 }, px: { xs: 1.5, sm: 2 } }}
+      >
+        {/* Logo / Brand */}
+        <Box
           onClick={() => navigate('/')}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: { xs: 1, sm: 1.5 },
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              opacity: 0.85,
+            },
+          }}
         >
-          {t('header.title')}
-        </Typography>
+          <Box
+            sx={{
+              p: { xs: 0.75, sm: 1 },
+              borderRadius: 2.5,
+              background: `linear-gradient(135deg, ${thermalColors.heat.primary} 0%, ${thermalColors.heat.secondary} 100%)`,
+              boxShadow: `0 4px 12px ${thermalColors.heat.glow}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <ThermostatIcon sx={{ color: '#ffffff', fontSize: { xs: 20, sm: 26 } }} />
+          </Box>
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontFamily: '"Outfit", sans-serif',
+                fontWeight: 700,
+                fontSize: { xs: '1rem', sm: '1.2rem' },
+                letterSpacing: '-0.02em',
+                background: `linear-gradient(135deg, ${thermalColors.heat.primary} 0%, ${thermalColors.heat.secondary} 100%)`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              {t('header.title')}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Spacer */}
+        <Box sx={{ flexGrow: 1 }} />
+
+        {/* Navigation Actions */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center' }}>
           <Tooltip title={t('header.analytics', 'Analytics')}>
             <IconButton
               data-testid="header-analytics-button"
               onClick={handleAnalyticsMenuOpen}
               sx={{
-                color: isAnalytics ? 'primary.main' : 'text.secondary',
-                bgcolor: isAnalytics ? 'action.selected' : 'transparent',
-                p: 1,
+                p: 1.25,
+                borderRadius: 2,
+                color: isAnalytics ? thermalColors.heat.primary : 'text.secondary',
+                background: isAnalytics ? alpha(thermalColors.heat.primary, 0.1) : 'transparent',
                 '&:hover': {
-                  bgcolor: isAnalytics ? 'action.selected' : 'action.hover',
+                  background: isAnalytics
+                    ? alpha(thermalColors.heat.primary, 0.15)
+                    : alpha('#ffffff', 0.05),
+                  color: isAnalytics ? thermalColors.heat.primary : 'text.primary',
                 },
               }}
             >
@@ -234,11 +308,15 @@ const Header = ({ wsConnected = false, transportMode = 'websocket' }: HeaderProp
               aria-label={t('header.settings', 'Settings')}
               onClick={handleSettingsClick}
               sx={{
-                color: isSettings ? 'primary.main' : 'text.secondary',
-                bgcolor: isSettings ? 'action.selected' : 'transparent',
-                p: 1,
+                p: 1.25,
+                borderRadius: 2,
+                color: isSettings ? thermalColors.heat.primary : 'text.secondary',
+                background: isSettings ? alpha(thermalColors.heat.primary, 0.1) : 'transparent',
                 '&:hover': {
-                  bgcolor: isSettings ? 'action.selected' : 'action.hover',
+                  background: isSettings
+                    ? alpha(thermalColors.heat.primary, 0.15)
+                    : alpha('#ffffff', 0.05),
+                  color: isSettings ? thermalColors.heat.primary : 'text.primary',
                 },
               }}
             >
@@ -252,6 +330,7 @@ const Header = ({ wsConnected = false, transportMode = 'websocket' }: HeaderProp
             t={t}
           />
         </Box>
+
         {renderRightActions()}
       </Toolbar>
     </AppBar>

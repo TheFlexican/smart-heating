@@ -1,6 +1,5 @@
 import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
-import DevicesIcon from '@mui/icons-material/Devices'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import SettingsIcon from '@mui/icons-material/Settings'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -16,12 +15,10 @@ const MobileBottomNav = () => {
     const path = location.pathname
     if (path === '/' || path.startsWith('/area/')) {
       setValue(0) // Zones
-    } else if (path.startsWith('/devices')) {
-      setValue(1) // Devices
     } else if (path.startsWith('/analytics')) {
-      setValue(2) // Analytics
+      setValue(1) // Analytics
     } else if (path.startsWith('/settings')) {
-      setValue(3) // Settings
+      setValue(2) // Settings
     }
   }, [location.pathname])
 
@@ -33,12 +30,9 @@ const MobileBottomNav = () => {
         navigate('/')
         break
       case 1:
-        navigate('/devices')
-        break
-      case 2:
         navigate('/analytics')
         break
-      case 3:
+      case 2:
         navigate('/settings')
         break
     }
@@ -80,11 +74,6 @@ const MobileBottomNav = () => {
         }}
       >
         <BottomNavigationAction label="Zones" icon={<HomeIcon />} data-testid="mobile-nav-zones" />
-        <BottomNavigationAction
-          label="Devices"
-          icon={<DevicesIcon />}
-          data-testid="mobile-nav-devices"
-        />
         <BottomNavigationAction
           label="Analytics"
           icon={<BarChartIcon />}
