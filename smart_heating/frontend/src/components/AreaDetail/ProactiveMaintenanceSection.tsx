@@ -93,14 +93,14 @@ export const ProactiveMaintenanceSection = ({
                 )}
               </Typography>
               <Slider
-                value={area.proactive_maintenance_sensitivity ?? 1.0}
+                value={area.proactive_maintenance_sensitivity ?? 1}
                 min={0.5}
-                max={2.0}
+                max={2}
                 step={0.1}
                 marks={[
                   { value: 0.5, label: t('settingsCards.conservative', 'Conservative') },
-                  { value: 1.0, label: t('settingsCards.balanced', 'Balanced') },
-                  { value: 2.0, label: t('settingsCards.aggressive', 'Aggressive') },
+                  { value: 1, label: t('settingsCards.balanced', 'Balanced') },
+                  { value: 2, label: t('settingsCards.aggressive', 'Aggressive') },
                 ]}
                 onChange={(_, value) =>
                   updateProactiveMaintenance(
@@ -124,7 +124,7 @@ export const ProactiveMaintenanceSection = ({
               onChange={e =>
                 updateProactiveMaintenance(
                   area.id,
-                  { proactive_maintenance_margin_minutes: parseInt(e.target.value, 10) },
+                  { proactive_maintenance_margin_minutes: Number.parseInt(e.target.value, 10) },
                   onUpdate,
                 )
               }
@@ -147,7 +147,7 @@ export const ProactiveMaintenanceSection = ({
               onChange={e =>
                 updateProactiveMaintenance(
                   area.id,
-                  { proactive_maintenance_cooldown_minutes: parseInt(e.target.value, 10) },
+                  { proactive_maintenance_cooldown_minutes: Number.parseInt(e.target.value, 10) },
                   onUpdate,
                 )
               }

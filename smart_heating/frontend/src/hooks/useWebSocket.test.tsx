@@ -103,4 +103,51 @@ describe('useWebSocket hook (clean)', () => {
     })
     expect(screen.getByText('true')).toBeInTheDocument()
   })
+
+  it('does not timeout on first ping if no pong received yet', async () => {
+    vi.useFakeTimers()
+    localStorage.setItem('hassTokens', JSON.stringify({ access_token: 'tok' }))
+
+    const onConnect = vi.fn()
+    const onDisconnect = vi.fn()
+
+    const TestComp = () => {
+      const hook = useWebSocket({ onConnect, onDisconnect } as any)
+      return <div>{hook.isConnected ? 'connected' : 'disconnected'}</div>
+    }
+
+    render(<TestComp />)
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1]
+
+    // Simulate connection and authentication
+    act(() => ws._open())
+    act(() => ws._message({ type: 'auth_required' }))
+    act(() => ws._message({ type: 'auth_ok' }))
+
+    expect(onConnect).toHaveBeenCalled()
+    expect(screen.getByText('connected')).toBeInTheDocument()
+
+    // Advance time to first ping interval (30s)
+    await act(async () => {
+      vi.advanceTimersByTime(30000)
+    })
+
+    // Connection should still be alive - should NOT have disconnected
+    // The bug causes it to disconnect because timeSinceLastPong > 20000
+    expect(onDisconnect).not.toHaveBeenCalled()
+    expect(screen.getByText('connected')).toBeInTheDocument()
+
+    // Verify ping was sent
+    const pingSent = ws.sent.some((msg: string) => {
+      try {
+        const parsed = JSON.parse(msg)
+        return parsed.type === 'ping'
+      } catch {
+        return false
+      }
+    })
+    expect(pingSent).toBeTruthy()
+
+    vi.useRealTimers()
+  })
 })
