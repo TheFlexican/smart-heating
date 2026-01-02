@@ -52,6 +52,7 @@ import {
   setZoneHvacMode,
 } from '../api/areas'
 import { getEntityState } from '../api/config'
+import { thermalColors } from '../theme'
 
 interface ZoneCardProps {
   area: Zone
@@ -62,7 +63,6 @@ interface ZoneCardProps {
 const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  // Treat explicit boolean true or string 'true' as enabled; string 'false' should be falsy
   const isEnabledVal = (v: boolean | string | undefined | null) =>
     v === true || String(v) === 'true'
   const enabled = isEnabledVal(area.enabled)
@@ -72,20 +72,13 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
     id: area.id,
   })
 
-  // Get displayed temperature: use effective temperature when in preset mode, otherwise use target
   const getDisplayTemperature = useCallback(() => {
-    // If the area is off/disabled, always show the area target temperature
     if (!enabled || area.state === 'off') return area.target_temperature
-
-    // When not in manual override and an effective target exists, prefer the effective temperature
-    // This covers preset mode, schedules, boosts, and other sources of an effective temp.
     if (!area.manual_override && area.effective_target_temperature != null) {
-      // If effective target equals base target, keep base target for clarity
       if (Math.abs(area.effective_target_temperature - area.target_temperature) >= 0.1) {
         return area.effective_target_temperature
       }
     }
-    // Otherwise show the base target temperature
     return area.target_temperature
   }, [area, enabled])
 
@@ -100,7 +93,6 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
   )
   const [presenceState, setPresenceState] = useState<string | null>(null)
 
-  // Sync local temperature state when area or devices change
   useEffect(() => {
     const displayTemp = getDisplayTemperature()
     setTemperature(normalizeTemperature(displayTemp))
@@ -149,7 +141,6 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
     event.stopPropagation()
     try {
       await setZoneTemperature(area.id, value as number)
-      // Optimistically patch the local area so the UI updates smoothly without a full reload
       onPatchArea?.(area.id, {
         target_temperature: value as number,
         manual_override: true,
@@ -195,7 +186,6 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
       if (area.boost_mode_active) {
         await cancelBoost(area.id)
       } else {
-        // Use area's boost settings or defaults
         const boostTemp = area.boost_temp || 25
         const boostDuration = area.boost_duration || 60
         await setBoostMode(area.id, boostDuration, boostTemp)
@@ -217,28 +207,35 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
     }
   }
 
-  const getStateColor = () => {
-    const enabled = isEnabledVal(area.enabled)
-    if (!enabled) return 'default'
-    if (area.manual_override) return 'warning'
+  // Thermal state styling
+  const getStateGradient = () => {
+    if (!enabled) return 'linear-gradient(135deg, #374151 0%, #1f2937 100%)'
+    if (area.manual_override)
+      return `linear-gradient(135deg, ${thermalColors.accent.amber} 0%, #d97706 100%)`
 
     switch (area.state) {
       case 'heating':
-        return 'error'
+        return `linear-gradient(135deg, ${thermalColors.heat.primary} 0%, ${thermalColors.heat.secondary} 100%)`
       case 'idle':
-        return 'info'
+        return `linear-gradient(135deg, ${thermalColors.cool.primary} 0%, ${thermalColors.cool.secondary} 100%)`
       case 'off':
-        return 'default'
+        return 'linear-gradient(135deg, #374151 0%, #1f2937 100%)'
       default:
-        return 'default'
+        return 'linear-gradient(135deg, #374151 0%, #1f2937 100%)'
     }
   }
 
+  const getStateGlow = () => {
+    if (!enabled) return 'none'
+    if (area.state === 'heating') {
+      return `0 0 30px ${thermalColors.heat.glow}, 0 0 60px rgba(255, 107, 53, 0.2)`
+    }
+    return 'none'
+  }
+
   const getStateIcon = () => {
-    const enabled = isEnabledVal(area.enabled)
     if (!enabled) return <AcUnitIcon />
     if (area.manual_override) return <TuneIcon />
-
     switch (area.state) {
       case 'heating':
         return <LocalFireDepartmentIcon />
@@ -248,6 +245,47 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
         return <AcUnitIcon />
       default:
         return <ThermostatIcon />
+    }
+  }
+
+  const getStateChipStyle = () => {
+    if (!enabled) {
+      return {
+        background: alpha('#64748b', 0.2),
+        border: `1px solid ${alpha('#64748b', 0.3)}`,
+        color: '#94a3b8',
+        '& .MuiChip-icon': { color: '#94a3b8' },
+      }
+    }
+    if (area.manual_override) {
+      return {
+        background: `linear-gradient(135deg, ${alpha(thermalColors.accent.amber, 0.9)} 0%, ${alpha('#d97706', 0.9)} 100%)`,
+        color: '#ffffff',
+        '& .MuiChip-icon': { color: '#ffffff' },
+      }
+    }
+    switch (area.state) {
+      case 'heating':
+        return {
+          background: `linear-gradient(135deg, ${thermalColors.heat.primary} 0%, ${thermalColors.heat.secondary} 100%)`,
+          color: '#ffffff',
+          boxShadow: `0 2px 8px ${thermalColors.heat.glow}`,
+          '& .MuiChip-icon': { color: '#ffffff' },
+        }
+      case 'idle':
+        return {
+          background: `linear-gradient(135deg, ${thermalColors.cool.primary} 0%, ${thermalColors.cool.secondary} 100%)`,
+          color: '#ffffff',
+          '& .MuiChip-icon': { color: '#ffffff' },
+        }
+      case 'off':
+      default:
+        return {
+          background: alpha('#64748b', 0.2),
+          border: `1px solid ${alpha('#64748b', 0.3)}`,
+          color: '#94a3b8',
+          '& .MuiChip-icon': { color: '#94a3b8' },
+        }
     }
   }
 
@@ -261,9 +299,13 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
         data-testid={`area-state-${area.id}`}
         icon={getStateIcon()}
         label={stateLabel}
-        color={getStateColor()}
         size="small"
-        sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
+        sx={{
+          fontSize: { xs: '0.7rem', sm: '0.75rem' },
+          fontWeight: 600,
+          letterSpacing: '0.02em',
+          ...getStateChipStyle(),
+        }}
       />
     )
   }
@@ -282,9 +324,23 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
           data-testid={`area-presence-${area.id}`}
           icon={<PersonIcon />}
           label={t(`presets.${presenceState}`, { defaultValue: presenceState }).toUpperCase()}
-          color={presenceState === 'home' ? 'success' : 'default'}
           size="small"
-          sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
+          sx={{
+            fontSize: { xs: '0.7rem', sm: '0.75rem' },
+            fontWeight: 600,
+            ...(presenceState === 'home'
+              ? {
+                  background: `linear-gradient(135deg, ${alpha(thermalColors.accent.emerald, 0.9)} 0%, ${alpha('#059669', 0.9)} 100%)`,
+                  color: '#ffffff',
+                  '& .MuiChip-icon': { color: '#ffffff' },
+                }
+              : {
+                  background: alpha('#64748b', 0.2),
+                  border: `1px solid ${alpha('#64748b', 0.3)}`,
+                  color: '#94a3b8',
+                  '& .MuiChip-icon': { color: '#94a3b8' },
+                }),
+          }}
         />,
       )
     }
@@ -295,160 +351,21 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
           data-testid="boost-active-badge"
           icon={<RocketLaunchIcon />}
           label={t('presets.boost', { defaultValue: 'BOOST' }).toUpperCase()}
-          color="error"
           size="small"
-          sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
+          sx={{
+            fontSize: { xs: '0.7rem', sm: '0.75rem' },
+            fontWeight: 600,
+            animation: 'pulse-heat 2s infinite',
+            background: `linear-gradient(135deg, ${thermalColors.heat.primary} 0%, ${thermalColors.heat.secondary} 100%)`,
+            color: '#ffffff',
+            boxShadow: `0 2px 8px ${thermalColors.heat.glow}`,
+            '& .MuiChip-icon': { color: '#ffffff' },
+          }}
         />,
       )
     }
     return badges
   }
-
-  const renderHeaderSection = () => (
-    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-      <Box flex={1}>
-        <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-          {area.name}
-        </Typography>
-        <Box display="flex" gap={1} flexWrap="wrap">
-          {renderStateChip()}
-          {renderBadges()}
-        </Box>
-      </Box>
-      <Box onClick={e => e.stopPropagation()} display="flex" gap={1}>
-        <Tooltip
-          title={
-            area.boost_mode_active ? t('boost.quickBoostActive') : t('boost.quickBoostInactive')
-          }
-        >
-          <IconButton
-            data-testid={`boost-toggle-${area.id}`}
-            size="small"
-            onClick={handleBoostToggle}
-            sx={{
-              p: { xs: 0.5, sm: 1 },
-              color: area.boost_mode_active ? 'error.main' : 'text.secondary',
-              bgcolor: area.boost_mode_active ? 'error.dark' : 'transparent',
-              '&:hover': {
-                bgcolor: area.boost_mode_active ? 'error.dark' : 'rgba(255, 255, 255, 0.08)',
-              },
-            }}
-          >
-            <RocketLaunchIcon />
-          </IconButton>
-        </Tooltip>
-        <IconButton
-          data-testid={`zone-menu-button-${area.id}`}
-          size="small"
-          onClick={handleMenuOpen}
-          sx={{ p: { xs: 0.5, sm: 1 } }}
-        >
-          <MoreVertIcon />
-        </IconButton>
-      </Box>
-    </Box>
-  )
-
-  const renderTemperatureSection = () => (
-    <Box my={{ xs: 2, sm: 3 }} onClick={handleSliderClick}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-        >
-          {t('area.targetTemperature')}
-          {enabled && area.state !== 'off' && area.preset_mode && area.preset_mode !== 'none' && (
-            <Chip
-              data-testid="preset-mode-badge"
-              label={t(`presets.${area.preset_mode}`).toUpperCase()}
-              size="small"
-              color="secondary"
-              sx={{ ml: 1, fontSize: { xs: '0.65rem', sm: '0.7rem' }, height: '20px' }}
-            />
-          )}
-        </Typography>
-        <Typography
-          variant="h5"
-          color="primary"
-          data-testid="target-temperature-display"
-          sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}
-        >
-          {Number.isFinite(temperature)
-            ? `${temperature}°C`
-            : (formatTemperature(area.target_temperature) ?? '-')}
-        </Typography>
-      </Box>
-      <Slider
-        data-testid="temperature-slider"
-        value={Number.isFinite(temperature) ? temperature : (area.target_temperature ?? 20)}
-        onChange={handleTemperatureChange}
-        onChangeCommitted={handleTemperatureCommit}
-        min={5}
-        max={30}
-        step={0.1}
-        marks={[
-          { value: 5, label: '5°' },
-          { value: 30, label: '30°' },
-        ]}
-        valueLabelDisplay="auto"
-        disabled={!enabled || area.devices.length === 0 || !area.manual_override}
-        sx={{
-          '& .MuiSlider-thumb': {
-            width: { xs: 24, sm: 20 },
-            height: { xs: 24, sm: 20 },
-          },
-          '& .MuiSlider-track': { height: { xs: 6, sm: 4 } },
-          '& .MuiSlider-rail': { height: { xs: 6, sm: 4 } },
-        }}
-      />
-      {area.devices.length === 0 && (
-        <Box display="flex" alignItems="center" gap={1} mt={1} sx={{ color: 'warning.main' }}>
-          <InfoOutlinedIcon fontSize="small" />
-          <Typography variant="caption" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-            {t('area.addDevicesPrompt')}
-          </Typography>
-        </Box>
-      )}
-    </Box>
-  )
-
-  const renderHvacSelector = () => (
-    <Box mb={2} onClick={e => e.stopPropagation()}>
-      <FormControl fullWidth size="small">
-        <InputLabel id={`hvac-mode-label-${area.id}`}>
-          {t('area.hvacMode', { defaultValue: 'Mode' })}
-        </InputLabel>
-        <Select
-          labelId={`hvac-mode-label-${area.id}`}
-          data-testid={`hvac-mode-select-${area.id}`}
-          value={area.hvac_mode || 'auto'}
-          label={t('area.hvacMode', { defaultValue: 'Mode' })}
-          onChange={handleHvacModeChange}
-          disabled={!enabled || area.devices.length === 0}
-        >
-          <MenuItem value="heat" data-testid="hvac-mode-heat">
-            <Box display="flex" alignItems="center" gap={1}>
-              <LocalFireDepartmentIcon fontSize="small" color="error" />
-              <span>{t('area.hvacModeHeat', { defaultValue: 'Heat' })}</span>
-            </Box>
-          </MenuItem>
-          <MenuItem value="cool" data-testid="hvac-mode-cool">
-            <Box display="flex" alignItems="center" gap={1}>
-              <AcUnitIcon fontSize="small" color="info" />
-              <span>{t('area.hvacModeCool', { defaultValue: 'Cool' })}</span>
-            </Box>
-          </MenuItem>
-          <MenuItem value="off" data-testid="hvac-mode-off">
-            <Box display="flex" alignItems="center" gap={1}>
-              <RemoveCircleOutlineIcon fontSize="small" />
-              <span>{t('area.hvacModeOff', { defaultValue: 'Off' })}</span>
-            </Box>
-          </MenuItem>
-        </Select>
-      </FormControl>
-    </Box>
-  )
 
   const isValidState = (state: string | undefined): boolean => {
     return state !== undefined && state !== 'unavailable' && state !== 'unknown'
@@ -456,20 +373,15 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
 
   const getThermostatStatus = (device: any): string[] => {
     const parts = []
-
-    // Add hvac_action if available (heating, cooling, idle, etc.)
     if (device.hvac_action && device.hvac_action !== 'idle' && device.hvac_action !== 'off') {
       const key = `area.${device.hvac_action}`
       const translatedAction = t(key, { defaultValue: device.hvac_action })
       parts.push(`[${translatedAction}]`)
     }
-
     const currentTemp = formatTemperature(device.current_temperature)
     if (currentTemp) {
       parts.push(currentTemp)
     }
-
-    // Use area's target temperature instead of device's stale target
     const areaTarget = area.target_temperature
     if (
       areaTarget !== undefined &&
@@ -481,58 +393,47 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
       const targetTemp = formatTemperature(areaTarget)
       if (targetTemp) parts.push(`→ ${targetTemp}`)
     }
-
     if (parts.length === 0 && device.state) {
-      // Translate common states
       const key = `area.${device.state}`
       const translatedState = t(key, { defaultValue: device.state })
       parts.push(translatedState)
     }
-
     return parts
   }
 
   const getTemperatureSensorStatus = (device: any): string[] => {
     const parts = []
-
     const temp = formatTemperature(device.temperature)
     if (temp) {
       parts.push(temp)
     } else if (isValidState(device.state)) {
       parts.push(`${device.state}°C`)
     }
-
     return parts
   }
 
   const getValveStatus = (device: any): string[] => {
     const parts = []
-
     if (device.position !== undefined && device.position !== null) {
       parts.push(`${device.position}%`)
     } else if (isValidState(device.state)) {
       parts.push(`${device.state}%`)
     }
-
     return parts
   }
 
   const getGenericDeviceStatus = (device: any): string[] => {
     const parts = []
-
     if (isValidState(device.state)) {
-      // Translate common states (on, off, etc.)
       const key = `area.${device.state}`
       const translatedState = t(key, { defaultValue: device.state })
       parts.push(translatedState)
     }
-
     return parts
   }
 
   const getDeviceStatusText = (device: any): string => {
     let parts: string[] = []
-
     if (device.type === 'thermostat') {
       parts = getThermostatStatus(device)
     } else if (device.type === 'temperature_sensor') {
@@ -542,7 +443,6 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
     } else {
       parts = getGenericDeviceStatus(device)
     }
-
     return parts.length > 0 ? parts.join(' · ') : 'unavailable'
   }
 
@@ -559,53 +459,276 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
       elevation={isDragging ? 12 : 2}
       sx={{
         position: 'relative',
-        bgcolor: isDragging ? alpha('#03a9f4', 0.15) : 'background.paper',
-        borderRadius: 3,
+        borderRadius: '24px',
         cursor: isDragging ? 'grabbing' : 'default',
-        boxShadow: isDragging ? '0 12px 32px rgba(3, 169, 244, 0.4)' : undefined,
-        opacity: isDragging ? 0.9 : 1,
-        minHeight: { xs: 160, sm: 180 },
+        opacity: isDragging ? 0.95 : 1,
+        minHeight: { xs: 180, sm: 200 },
+        overflow: 'hidden',
+        // Thermal glow effect when heating
+        boxShadow: isDragging
+          ? `0 24px 48px rgba(0, 0, 0, 0.5), 0 0 0 2px ${alpha(thermalColors.heat.primary, 0.3)}`
+          : getStateGlow(),
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 4,
+          background: getStateGradient(),
+          zIndex: 1,
+        },
         '&:hover': {
-          transform: isDragging ? undefined : 'translateY(-2px)',
+          transform: isDragging ? undefined : 'translateY(-6px)',
           boxShadow: isDragging
-            ? '0 12px 32px rgba(3, 169, 244, 0.4)'
-            : '0 4px 12px rgba(0,0,0,0.3)',
+            ? '0 24px 48px rgba(0, 0, 0, 0.5)'
+            : area.state === 'heating'
+              ? `0 20px 40px rgba(0, 0, 0, 0.4), ${getStateGlow()}`
+              : '0 20px 40px rgba(0, 0, 0, 0.4)',
         },
       }}
     >
-      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+      <CardContent sx={{ p: { xs: 2.5, sm: 3 }, pt: { xs: 3, sm: 3.5 } }}>
         {/* Drag Handle */}
         <Box
           {...attributes}
           {...listeners}
           sx={{
             position: 'absolute',
-            top: 8,
-            left: 8,
+            top: 12,
+            left: 12,
             cursor: isDragging ? 'grabbing' : 'grab',
             color: isDragging ? 'primary.main' : 'text.secondary',
-            opacity: isDragging ? 1 : 0.4,
+            opacity: isDragging ? 1 : 0.3,
             transition: 'all 0.2s',
+            p: 0.5,
+            borderRadius: 1,
             '&:hover': {
               opacity: 1,
               color: 'primary.main',
-            },
-            '&:active': {
-              cursor: 'grabbing',
+              bgcolor: alpha(thermalColors.heat.primary, 0.1),
             },
           }}
           onClick={e => e.stopPropagation()}
         >
           <DragIndicatorIcon fontSize="small" />
         </Box>
-        {renderHeaderSection()}
 
-        {area.heating_type === 'airco' && renderHvacSelector()}
+        {/* Header Section */}
+        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+          <Box flex={1} pl={3}>
+            <Typography
+              variant="h6"
+              gutterBottom
+              sx={{
+                fontSize: { xs: '1.1rem', sm: '1.25rem' },
+                fontWeight: 600,
+                letterSpacing: '-0.01em',
+                mb: 1,
+              }}
+            >
+              {area.name}
+            </Typography>
+            <Box display="flex" gap={1} flexWrap="wrap">
+              {renderStateChip()}
+              {renderBadges()}
+            </Box>
+          </Box>
+          <Box onClick={e => e.stopPropagation()} display="flex" gap={0.5}>
+            <Tooltip
+              title={
+                area.boost_mode_active ? t('boost.quickBoostActive') : t('boost.quickBoostInactive')
+              }
+            >
+              <IconButton
+                data-testid={`boost-toggle-${area.id}`}
+                size="small"
+                onClick={handleBoostToggle}
+                sx={{
+                  p: 1,
+                  color: area.boost_mode_active ? '#fff' : 'text.secondary',
+                  background: area.boost_mode_active
+                    ? `linear-gradient(135deg, ${thermalColors.heat.primary} 0%, ${thermalColors.heat.secondary} 100%)`
+                    : 'transparent',
+                  boxShadow: area.boost_mode_active
+                    ? `0 4px 12px ${thermalColors.heat.glow}`
+                    : 'none',
+                  '&:hover': {
+                    background: area.boost_mode_active
+                      ? `linear-gradient(135deg, ${thermalColors.heat.primary} 0%, ${thermalColors.heat.secondary} 100%)`
+                      : alpha(thermalColors.heat.primary, 0.1),
+                    transform: 'scale(1.1)',
+                  },
+                }}
+              >
+                <RocketLaunchIcon />
+              </IconButton>
+            </Tooltip>
+            <IconButton
+              data-testid={`zone-menu-button-${area.id}`}
+              size="small"
+              onClick={handleMenuOpen}
+              sx={{ p: 1 }}
+            >
+              <MoreVertIcon />
+            </IconButton>
+          </Box>
+        </Box>
 
-        {renderTemperatureSection()}
+        {/* HVAC Mode Selector for Airco */}
+        {area.heating_type === 'airco' && (
+          <Box mb={2} onClick={e => e.stopPropagation()}>
+            <FormControl fullWidth size="small">
+              <InputLabel id={`hvac-mode-label-${area.id}`}>
+                {t('area.hvacMode', { defaultValue: 'Mode' })}
+              </InputLabel>
+              <Select
+                labelId={`hvac-mode-label-${area.id}`}
+                data-testid={`hvac-mode-select-${area.id}`}
+                value={area.hvac_mode || 'auto'}
+                label={t('area.hvacMode', { defaultValue: 'Mode' })}
+                onChange={handleHvacModeChange}
+                disabled={!enabled || area.devices.length === 0}
+              >
+                <MenuItem value="heat" data-testid="hvac-mode-heat">
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <LocalFireDepartmentIcon
+                      fontSize="small"
+                      sx={{ color: thermalColors.heat.primary }}
+                    />
+                    <span>{t('area.hvacModeHeat', { defaultValue: 'Heat' })}</span>
+                  </Box>
+                </MenuItem>
+                <MenuItem value="cool" data-testid="hvac-mode-cool">
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <AcUnitIcon fontSize="small" sx={{ color: thermalColors.cool.primary }} />
+                    <span>{t('area.hvacModeCool', { defaultValue: 'Cool' })}</span>
+                  </Box>
+                </MenuItem>
+                <MenuItem value="off" data-testid="hvac-mode-off">
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <RemoveCircleOutlineIcon fontSize="small" />
+                    <span>{t('area.hvacModeOff', { defaultValue: 'Off' })}</span>
+                  </Box>
+                </MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        )}
 
+        {/* Temperature Section - Hero Element */}
+        <Box
+          my={{ xs: 2.5, sm: 3 }}
+          onClick={handleSliderClick}
+          sx={{
+            p: 2,
+            borderRadius: 3,
+            background: theme =>
+              theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+          }}
+        >
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+              >
+                {t('area.targetTemperature')}
+              </Typography>
+              {enabled &&
+                area.state !== 'off' &&
+                area.preset_mode &&
+                area.preset_mode !== 'none' && (
+                  <Chip
+                    data-testid="preset-mode-badge"
+                    label={t(`presets.${area.preset_mode}`).toUpperCase()}
+                    size="small"
+                    sx={{
+                      fontSize: '0.65rem',
+                      height: 20,
+                      fontWeight: 600,
+                      background: `linear-gradient(135deg, ${alpha(thermalColors.accent.violet, 0.8)} 0%, ${alpha('#6366f1', 0.8)} 100%)`,
+                      color: '#fff',
+                    }}
+                  />
+                )}
+            </Box>
+            <Typography
+              className="temperature-display"
+              data-testid="target-temperature-display"
+              sx={{
+                fontSize: { xs: '2rem', sm: '2.5rem' },
+                fontWeight: 600,
+                fontFamily: '"JetBrains Mono", monospace',
+                background:
+                  area.state === 'heating'
+                    ? `linear-gradient(135deg, ${thermalColors.heat.primary} 0%, ${thermalColors.heat.secondary} 100%)`
+                    : area.state === 'idle'
+                      ? `linear-gradient(135deg, ${thermalColors.cool.primary} 0%, ${thermalColors.cool.secondary} 100%)`
+                      : 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {Number.isFinite(temperature)
+                ? `${temperature}°`
+                : (formatTemperature(area.target_temperature) ?? '-')}
+            </Typography>
+          </Box>
+          <Slider
+            data-testid="temperature-slider"
+            value={Number.isFinite(temperature) ? temperature : (area.target_temperature ?? 20)}
+            onChange={handleTemperatureChange}
+            onChangeCommitted={handleTemperatureCommit}
+            min={5}
+            max={30}
+            step={0.1}
+            marks={[
+              { value: 5, label: '5°' },
+              { value: 30, label: '30°' },
+            ]}
+            valueLabelDisplay="auto"
+            disabled={!enabled || area.devices.length === 0 || !area.manual_override}
+          />
+          {area.devices.length === 0 && (
+            <Box
+              display="flex"
+              alignItems="center"
+              gap={1}
+              mt={1.5}
+              sx={{
+                color: 'warning.main',
+                p: 1,
+                borderRadius: 2,
+                bgcolor: alpha(thermalColors.accent.amber, 0.1),
+              }}
+            >
+              <InfoOutlinedIcon fontSize="small" />
+              <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
+                {t('area.addDevicesPrompt')}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {/* Current Temperature */}
         {area.current_temperature !== undefined && area.current_temperature !== null && (
-          <Box display="flex" justifyContent="space-between" mb={2}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+            sx={{
+              p: 1.5,
+              borderRadius: 2,
+              background: theme =>
+                theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.01)',
+            }}
+          >
             <Typography
               variant="body2"
               color="text.secondary"
@@ -614,9 +737,13 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
               {t('area.currentTemperature')}
             </Typography>
             <Typography
-              variant="body1"
+              className="temperature-display"
               data-testid="current-temperature-display"
-              sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}
+              sx={{
+                fontSize: { xs: '1.1rem', sm: '1.25rem' },
+                fontWeight: 500,
+                fontFamily: '"JetBrains Mono", monospace',
+              }}
             >
               {area.current_temperature.toFixed(1)}°C
             </Typography>
@@ -632,10 +759,8 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
                 checked={!area.manual_override}
                 disabled={!enabled}
                 onChange={async e => {
-                  // If area is disabled, prevent toggling manual override
                   if (!enabled) return
                   try {
-                    // Toggle: if checked (not manual), user wants to use preset mode
                     await setManualOverride(area.id, !e.target.checked)
                     onUpdate()
                   } catch (error) {
@@ -647,7 +772,7 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
             }
             label={
               <Box display="flex" alignItems="center" gap={1}>
-                <BookmarkIcon fontSize="small" />
+                <BookmarkIcon fontSize="small" sx={{ opacity: 0.7 }} />
                 <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                   {area.manual_override ? t('area.usePresetMode') : t('area.usingPresetMode')}
                 </Typography>
@@ -656,8 +781,15 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
           />
         </Box>
 
-        <Box display="flex" alignItems="center" gap={1} mb={area.devices.length > 0 ? 2 : 0}>
-          <SensorsIcon fontSize="small" color="action" />
+        {/* Device Count */}
+        <Box
+          display="flex"
+          alignItems="center"
+          gap={1}
+          mb={area.devices.length > 0 ? 2 : 0}
+          sx={{ opacity: 0.8 }}
+        >
+          <SensorsIcon fontSize="small" sx={{ opacity: 0.7 }} />
           <Typography
             variant="body2"
             color="text.secondary"
@@ -667,8 +799,18 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
           </Typography>
         </Box>
 
+        {/* Devices List */}
         {area.devices.length > 0 && (
-          <List dense sx={{ mt: 1, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 1 }}>
+          <List
+            dense
+            sx={{
+              mt: 1,
+              p: 1,
+              bgcolor: theme =>
+                theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.01)',
+              borderRadius: 2,
+            }}
+          >
             {area.devices.map(device => (
               <ListItem
                 key={device.id}
@@ -682,15 +824,27 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
                     }}
                     sx={{
                       color: 'text.secondary',
-                      p: { xs: 0.5, sm: 1 },
+                      opacity: 0.6,
+                      p: 0.5,
+                      '&:hover': {
+                        opacity: 1,
+                        color: 'error.main',
+                      },
                     }}
                   >
                     <RemoveCircleOutlineIcon fontSize="small" />
                   </IconButton>
                 }
                 sx={{
-                  py: { xs: 0.5, sm: 1 },
-                  pr: { xs: 5, sm: 6 },
+                  py: 0.75,
+                  pr: 5,
+                  borderRadius: 1.5,
+                  '&:hover': {
+                    bgcolor: theme =>
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(255, 255, 255, 0.04)'
+                        : 'rgba(0, 0, 0, 0.02)',
+                  },
                 }}
               >
                 <ListItemText
@@ -701,6 +855,7 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
                       sx={{
                         fontSize: { xs: '0.8rem', sm: '0.875rem' },
                         wordBreak: 'break-word',
+                        fontWeight: 500,
                       }}
                     >
                       {device.name || device.id}
@@ -711,7 +866,10 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
                     secondary: {
                       variant: 'caption',
                       color: 'text.secondary',
-                      sx: { fontSize: { xs: '0.7rem', sm: '0.75rem' } },
+                      sx: {
+                        fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                        fontFamily: '"JetBrains Mono", monospace',
+                      },
                     },
                   }}
                 />
@@ -721,6 +879,7 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
         )}
       </CardContent>
 
+      {/* Context Menu */}
       <Menu
         data-testid={`zone-menu-${area.id}`}
         anchorEl={anchorEl}

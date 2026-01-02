@@ -68,6 +68,187 @@ class ProactiveMaintenanceHandler:
 
         _LOGGER.debug("ProactiveMaintenanceHandler initialized")
 
+    def _validate_temperatures(
+        self,
+        area: "Area",
+        area_id: str,
+    ) -> tuple[float | None, float | None]:
+        """Validate and get current and target temperatures.
+
+        Returns:
+            Tuple of (current_temp, target_temp)
+        """
+        current_temp = self.temperature_tracker.get_latest_temperature(area_id)
+        target_temp = area.target_temperature
+        return current_temp, target_temp
+
+    def _check_temperature_trend(
+        self,
+        area: "Area",
+        area_id: str,
+        current_temp: float,
+        target_temp: float,
+    ) -> tuple[float | None, ProactiveMaintenanceResult | None]:
+        """Check temperature trend and validate it meets threshold.
+
+        Returns:
+            Tuple of (trend, early_exit_result). If early_exit_result is not None,
+            return it immediately to exit the check.
+        """
+        trend = self.temperature_tracker.get_trend(area_id)
+        if trend is None:
+            return None, ProactiveMaintenanceResult(
+                should_heat=False,
+                reason="No trend data available",
+                current_temp=current_temp,
+                target_temp=target_temp,
+            )
+
+        min_trend = area.boost_manager.proactive_maintenance_min_trend
+        if trend >= min_trend:  # min_trend is negative (e.g., -0.1)
+            return trend, ProactiveMaintenanceResult(
+                should_heat=False,
+                reason=f"Temperature stable or rising (trend: {trend:.2f}C/h)",
+                current_temp=current_temp,
+                target_temp=target_temp,
+                trend=trend,
+            )
+
+        return trend, None
+
+    def _check_hysteresis_threshold(
+        self,
+        area: "Area",
+        current_temp: float,
+        target_temp: float,
+        trend: float,
+    ) -> tuple[float, ProactiveMaintenanceResult | None]:
+        """Check if temperature is below hysteresis threshold.
+
+        Returns:
+            Tuple of (threshold_temp, early_exit_result). If early_exit_result is not None,
+            return it immediately.
+        """
+        hysteresis = self._get_hysteresis(area)
+        threshold_temp = target_temp - hysteresis
+
+        if current_temp <= threshold_temp:
+            return threshold_temp, ProactiveMaintenanceResult(
+                should_heat=False,
+                reason="Already below hysteresis threshold",
+                current_temp=current_temp,
+                target_temp=target_temp,
+                trend=trend,
+            )
+
+        return threshold_temp, None
+
+    async def _calculate_heating_decision(
+        self,
+        area: "Area",
+        area_id: str,
+        current_temp: float,
+        target_temp: float,
+        trend: float,
+        threshold_temp: float,
+        time_to_threshold: float,
+    ) -> ProactiveMaintenanceResult:
+        """Calculate if proactive heating should start based on predictions.
+
+        Returns:
+            ProactiveMaintenanceResult with final decision
+        """
+        # Get predicted heating time
+        predicted_heating_time = await self._get_predicted_heating_time(
+            area_id, current_temp, target_temp
+        )
+        if predicted_heating_time is None:
+            predicted_heating_time = await self._estimate_heating_from_cooling(
+                area_id, current_temp, target_temp
+            )
+
+        if predicted_heating_time is None:
+            return ProactiveMaintenanceResult(
+                should_heat=False,
+                reason="Insufficient learning data for prediction",
+                current_temp=current_temp,
+                target_temp=target_temp,
+                trend=trend,
+                time_to_threshold=time_to_threshold,
+            )
+
+        # Apply sensitivity and margin
+        margin = area.boost_manager.get_effective_margin_minutes()
+        sensitivity = area.boost_manager.proactive_maintenance_sensitivity
+        adjusted_heating_time = predicted_heating_time * sensitivity + margin
+        should_heat = adjusted_heating_time >= time_to_threshold
+
+        if should_heat:
+            self._log_proactive_heating_start(
+                area_id,
+                trend,
+                time_to_threshold,
+                adjusted_heating_time,
+                predicted_heating_time,
+                margin,
+                sensitivity,
+                current_temp,
+                target_temp,
+                threshold_temp,
+            )
+
+        return ProactiveMaintenanceResult(
+            should_heat=should_heat,
+            reason="Proactive heating triggered" if should_heat else "Not yet time to heat",
+            time_to_threshold=time_to_threshold,
+            predicted_heating_time=predicted_heating_time,
+            current_temp=current_temp,
+            target_temp=target_temp,
+            trend=trend,
+        )
+
+    def _log_proactive_heating_start(
+        self,
+        area_id: str,
+        trend: float,
+        time_to_threshold: float,
+        adjusted_heating_time: float,
+        predicted_heating_time: float,
+        margin: float,
+        sensitivity: float,
+        current_temp: float,
+        target_temp: float,
+        threshold_temp: float,
+    ) -> None:
+        """Log proactive heating start event."""
+        _LOGGER.info(
+            "Proactive heating triggered for %s: trend=%.2fC/h, "
+            "time_to_threshold=%.1f min, predicted_heating=%.1f min (adjusted)",
+            area_id,
+            trend,
+            time_to_threshold,
+            adjusted_heating_time,
+        )
+
+        if self.area_logger:
+            self.area_logger.log_event(
+                area_id,
+                "proactive_maintenance",
+                f"Proactive heating started - predicted {predicted_heating_time} min to maintain {target_temp:.1f}C",
+                {
+                    "trigger": "falling_trend",
+                    "trend": trend,
+                    "time_to_threshold": time_to_threshold,
+                    "predicted_heating_time": predicted_heating_time,
+                    "adjusted_heating_time": adjusted_heating_time,
+                    "margin": margin,
+                    "sensitivity": sensitivity,
+                    "current_temp": current_temp,
+                    "target_temp": target_temp,
+                    "threshold_temp": threshold_temp,
+                },
+            )
+
     async def async_check_area(
         self,
         area: "Area",
@@ -96,7 +277,7 @@ class ProactiveMaintenanceHandler:
 
         # Check if already in proactive heating
         if area.boost_manager.proactive_maintenance_active:
-            return await self._check_continue_proactive_heating(area)
+            return self._check_continue_proactive_heating(area)
 
         # Check cooldown period
         if area.boost_manager.is_proactive_cooldown_active(current_time):
@@ -105,55 +286,30 @@ class ProactiveMaintenanceHandler:
                 reason="Cooldown period active",
             )
 
-        # Get current and target temperature
-        current_temp = self.temperature_tracker.get_latest_temperature(area_id)
+        # Validate temperatures
+        current_temp, target_temp = self._validate_temperatures(area, area_id)
         if current_temp is None:
             return ProactiveMaintenanceResult(
                 should_heat=False,
                 reason="No temperature data available",
             )
-
-        target_temp = area.target_temperature
         if target_temp is None:
             return ProactiveMaintenanceResult(
                 should_heat=False,
                 reason="No target temperature set",
             )
 
-        # Get temperature trend
-        trend = self.temperature_tracker.get_trend(area_id)
-        if trend is None:
-            return ProactiveMaintenanceResult(
-                should_heat=False,
-                reason="No trend data available",
-                current_temp=current_temp,
-                target_temp=target_temp,
-            )
+        # Check temperature trend
+        trend, early_exit = self._check_temperature_trend(area, area_id, current_temp, target_temp)
+        if early_exit:
+            return early_exit
 
-        # Check if trend indicates falling temperature
-        min_trend = area.boost_manager.proactive_maintenance_min_trend
-        if trend >= min_trend:  # min_trend is negative (e.g., -0.1)
-            return ProactiveMaintenanceResult(
-                should_heat=False,
-                reason=f"Temperature stable or rising (trend: {trend:.2f}C/h)",
-                current_temp=current_temp,
-                target_temp=target_temp,
-                trend=trend,
-            )
-
-        # Calculate hysteresis threshold
-        hysteresis = self._get_hysteresis(area)
-        threshold_temp = target_temp - hysteresis
-
-        # Check if already below threshold (regular heating should handle)
-        if current_temp <= threshold_temp:
-            return ProactiveMaintenanceResult(
-                should_heat=False,
-                reason="Already below hysteresis threshold",
-                current_temp=current_temp,
-                target_temp=target_temp,
-                trend=trend,
-            )
+        # Check hysteresis threshold
+        threshold_temp, early_exit = self._check_hysteresis_threshold(
+            area, current_temp, target_temp, trend
+        )
+        if early_exit:
+            return early_exit
 
         # Calculate time until threshold is reached
         time_to_threshold = self.temperature_tracker.predict_time_to_temperature(
@@ -168,75 +324,18 @@ class ProactiveMaintenanceHandler:
                 trend=trend,
             )
 
-        # Get predicted heating time
-        predicted_heating_time = await self._get_predicted_heating_time(
-            area_id, current_temp, target_temp
-        )
-        if predicted_heating_time is None:
-            # Fallback: use learned cooling data if available
-            predicted_heating_time = await self._estimate_heating_from_cooling(
-                area_id, current_temp, target_temp
-            )
-
-        if predicted_heating_time is None:
-            return ProactiveMaintenanceResult(
-                should_heat=False,
-                reason="Insufficient learning data for prediction",
-                current_temp=current_temp,
-                target_temp=target_temp,
-                trend=trend,
-                time_to_threshold=time_to_threshold,
-            )
-
-        # Apply sensitivity and margin
-        margin = area.boost_manager.get_effective_margin_minutes()
-        sensitivity = area.boost_manager.proactive_maintenance_sensitivity
-        adjusted_heating_time = predicted_heating_time * sensitivity + margin
-
-        # Decision: start heating if predicted time >= time to threshold
-        should_heat = adjusted_heating_time >= time_to_threshold
-
-        if should_heat:
-            _LOGGER.info(
-                "Proactive heating triggered for %s: trend=%.2fC/h, "
-                "time_to_threshold=%.1f min, predicted_heating=%.1f min (adjusted)",
-                area_id,
-                trend,
-                time_to_threshold,
-                adjusted_heating_time,
-            )
-
-            # Log event
-            if self.area_logger:
-                self.area_logger.log_event(
-                    area_id,
-                    "proactive_maintenance",
-                    f"Proactive heating started - predicted {predicted_heating_time} min to maintain {target_temp:.1f}C",
-                    {
-                        "trigger": "falling_trend",
-                        "trend": trend,
-                        "time_to_threshold": time_to_threshold,
-                        "predicted_heating_time": predicted_heating_time,
-                        "adjusted_heating_time": adjusted_heating_time,
-                        "margin": margin,
-                        "sensitivity": sensitivity,
-                        "current_temp": current_temp,
-                        "target_temp": target_temp,
-                        "threshold_temp": threshold_temp,
-                    },
-                )
-
-        return ProactiveMaintenanceResult(
-            should_heat=should_heat,
-            reason="Proactive heating triggered" if should_heat else "Not yet time to heat",
-            time_to_threshold=time_to_threshold,
-            predicted_heating_time=predicted_heating_time,
-            current_temp=current_temp,
-            target_temp=target_temp,
-            trend=trend,
+        # Make final heating decision
+        return await self._calculate_heating_decision(
+            area,
+            area_id,
+            current_temp,
+            target_temp,
+            trend,
+            threshold_temp,
+            time_to_threshold,
         )
 
-    async def _check_continue_proactive_heating(
+    def _check_continue_proactive_heating(
         self,
         area: "Area",
     ) -> ProactiveMaintenanceResult:
