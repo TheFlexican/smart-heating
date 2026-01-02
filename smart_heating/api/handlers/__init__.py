@@ -8,6 +8,7 @@ from .areas import (
     handle_hide_area,
     handle_set_area_heating_curve,
     handle_set_area_hysteresis,
+    handle_set_area_pid,
     handle_set_area_preset_config,
     handle_set_auto_preset,
     handle_set_heating_type,
@@ -118,6 +119,7 @@ __all__ = [
     "handle_set_area_preset_config",
     "handle_set_manual_override",
     "handle_set_area_heating_curve",
+    "handle_set_area_pid",
     # Devices
     "handle_get_devices",
     "handle_refresh_devices",

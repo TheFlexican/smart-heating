@@ -23,7 +23,6 @@ def compute_area_candidate(
     overhead: float,
     advanced_enabled: bool,
     heating_curve_enabled: bool,
-    pid_enabled: bool,
 ) -> Optional[float]:
     """Compute boiler setpoint candidate for a single area.
 
@@ -49,9 +48,8 @@ def compute_area_candidate(
         area_manager, area_id, candidate, outside_temp, advanced_enabled, heating_curve_enabled
     )
 
-    candidate = apply_pid_adjustment(
-        area_manager, area_id, candidate, pid_enabled, advanced_enabled
-    )
+    # PID adjustment (area-level setting, no global flag needed)
+    candidate = apply_pid_adjustment(area_manager, area_id, candidate)
 
     return candidate
 

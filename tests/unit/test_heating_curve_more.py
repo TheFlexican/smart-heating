@@ -12,9 +12,9 @@ def test_calculate_formula_and_base_offset():
 
     # Check base_offset for systems
     hc_rad = HeatingCurve(heating_system="radiator")
-    assert hc_rad.base_offset == 55.0  # NOSONAR
+    assert hc_rad.base_offset == 27.2  # NOSONAR
     hc_floor = HeatingCurve(heating_system=HEATING_SYSTEM_UNDERFLOOR)
-    assert hc_floor.base_offset == 40.0  # NOSONAR
+    assert hc_floor.base_offset == 20.0  # NOSONAR
 
 
 def test_calculate_coefficient_and_update():

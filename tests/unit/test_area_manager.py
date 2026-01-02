@@ -934,7 +934,6 @@ class TestAdvancedControlLoading:
             "advanced_control_enabled": True,
             "heating_curve_enabled": True,
             "pwm_enabled": True,
-            "pid_enabled": True,
             "overshoot_protection_enabled": True,
             "default_heating_curve_coefficient": 1.5,
         }
@@ -947,6 +946,5 @@ class TestAdvancedControlLoading:
             assert area_manager.advanced_control_enabled is True
             assert area_manager.heating_curve_enabled is True
             assert area_manager.pwm_enabled is True
-            assert area_manager.pid_enabled is True
             assert area_manager.overshoot_protection_enabled is True
             assert area_manager.default_heating_curve_coefficient == 1.5

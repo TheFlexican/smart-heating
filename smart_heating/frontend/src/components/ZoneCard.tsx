@@ -364,6 +364,35 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
         />,
       )
     }
+
+    // PID badge - show when PID is enabled and current mode is in active modes
+    if (area.pid_enabled) {
+      // Determine current mode: preset_mode or 'schedule' if schedule is active
+      const currentMode = area.preset_mode || 'schedule'
+
+      // Check if current mode is in active modes
+      const activeModes = area.pid_active_modes || []
+      if (activeModes.includes(currentMode)) {
+        const pidMode = area.pid_automatic_gains ? 'Auto' : 'Manual'
+        badges.push(
+          <Chip
+            key="pid"
+            data-testid="pid-active-badge"
+            label="PID"
+            size="small"
+            sx={{
+              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+              fontWeight: 600,
+              background: `linear-gradient(135deg, ${alpha(thermalColors.accent.amber, 0.9)} 0%, ${alpha('#d97706', 0.9)} 100%)`,
+              color: '#ffffff',
+              '& .MuiChip-icon': { color: '#ffffff' },
+            }}
+            title={t('settingsCards.pidBadgeTooltip', { mode: pidMode })}
+          />,
+        )
+      }
+    }
+
     return badges
   }
 

@@ -658,7 +658,6 @@ class TestDeviceControl:
         # Add missing attributes
         mock_area_manager.advanced_control_enabled = False
         mock_area_manager.heating_curve_enabled = False
-        mock_area_manager.pid_enabled = False
         mock_area_manager.pwm_enabled = False
 
         # Mock the gateway state to return None to avoid minimum setpoint calculation

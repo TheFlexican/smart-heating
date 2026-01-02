@@ -83,6 +83,7 @@ from .handlers import (
     handle_set_advanced_control_config,
     handle_set_area_heating_curve,
     handle_set_area_hysteresis,
+    handle_set_area_pid,
     handle_set_area_preset_config,
     handle_set_auto_preset,
     handle_set_boost_mode,
@@ -831,6 +832,7 @@ class SmartHeatingAPIView(HomeAssistantView):
             "/heating_curve": lambda: handle_set_area_heating_curve(
                 self.hass, self.area_manager, area_id, data
             ),
+            "/pid": lambda: handle_set_area_pid(self.hass, self.area_manager, area_id, data),
             "/switch_shutdown": lambda: handle_set_switch_shutdown(
                 self.hass, self.area_manager, area_id, data
             ),

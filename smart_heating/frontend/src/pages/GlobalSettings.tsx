@@ -115,7 +115,6 @@ export default function GlobalSettings({
   const [advancedControlEnabled, setAdvancedControlEnabled] = useState(false)
   const [heatingCurveEnabled, setHeatingCurveEnabled] = useState(false)
   const [pwmEnabled, setPwmEnabled] = useState(false)
-  const [pidEnabled, setPidEnabled] = useState(false)
   const [overshootProtectionEnabled, setOvershootProtectionEnabled] = useState(false)
   const [defaultCoefficient, setDefaultCoefficient] = useState<number>(1)
 
@@ -155,7 +154,6 @@ export default function GlobalSettings({
       setAdvancedControlEnabled(!!cfg.advanced_control_enabled)
       setHeatingCurveEnabled(!!cfg.heating_curve_enabled)
       setPwmEnabled(!!cfg.pwm_enabled)
-      setPidEnabled(!!cfg.pid_enabled)
       setOvershootProtectionEnabled(!!cfg.overshoot_protection_enabled)
       setDefaultCoefficient(Number(cfg.default_heating_curve_coefficient || 1))
     } catch (err) {
@@ -298,9 +296,6 @@ export default function GlobalSettings({
         case 'pwm_enabled':
           setPwmEnabled(Boolean(value))
           break
-        case 'pid_enabled':
-          setPidEnabled(Boolean(value))
-          break
         case 'overshoot_protection_enabled':
           setOvershootProtectionEnabled(Boolean(value))
           break
@@ -322,7 +317,6 @@ export default function GlobalSettings({
         advanced_control_enabled: false,
         heating_curve_enabled: false,
         pwm_enabled: false,
-        pid_enabled: false,
         overshoot_protection_enabled: false,
         default_heating_curve_coefficient: 1,
       })
@@ -594,7 +588,6 @@ export default function GlobalSettings({
             advancedControlEnabled={advancedControlEnabled}
             heatingCurveEnabled={heatingCurveEnabled}
             pwmEnabled={pwmEnabled}
-            pidEnabled={pidEnabled}
             overshootProtectionEnabled={overshootProtectionEnabled}
             defaultCoefficient={defaultCoefficient}
             onToggleAdvancedControl={handleToggleAdvancedControl}
