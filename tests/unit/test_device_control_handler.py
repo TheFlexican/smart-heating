@@ -167,7 +167,7 @@ def test_compute_area_candidate_with_heating_curve_and_pid():
     hass.states.get = MagicMock(return_value=ws)
 
     # Compute candidate with heating curve enabled
-    cand = handler._compute_area_candidate("a1", 0.0, True, True, False)
+    cand = handler._compute_area_candidate("a1", 0.0, True, True)
     assert isinstance(cand, float)
 
     # Now test PID path: assign a fake pid
@@ -176,8 +176,11 @@ def test_compute_area_candidate_with_heating_curve_and_pid():
     pid_controller_manager._pids["a1"] = MagicMock()
     pid_controller_manager._pids["a1"].update.return_value = 1.5
     area.current_temperature = 19.0
+    area.pid_enabled = True
+    area.pid_active_modes = ["home"]
+    area.preset_mode = "home"
     # candidate before pid is target + overhead = 21.0
-    cand2 = handler._compute_area_candidate("a1", 0.0, True, False, True)
+    cand2 = handler._compute_area_candidate("a1", 0.0, True, False)
     assert abs(cand2 - (21.0 + 1.5)) < 1e-6
 
 
@@ -313,7 +316,7 @@ def test_compute_candidate_and_enforce_minimum(monkeypatch):
 
     # area missing
     area_manager.get_area.return_value = None
-    assert handler._compute_area_candidate("nope", 2.0, False, False, False) is None
+    assert handler._compute_area_candidate("nope", 2.0, False, False) is None
 
     # patch internal steps to control return values
     class BoostManager:
@@ -338,7 +341,7 @@ def test_compute_candidate_and_enforce_minimum(monkeypatch):
     monkeypatch.setattr(heating_curve_manager, "_apply_heating_curve", lambda *a, **k: 25.0)
     monkeypatch.setattr(pid_controller_manager, "apply_pid_adjustment", lambda *a, **k: 26.0)
 
-    cand = handler._compute_area_candidate("a1", 2.0, True, True, True)
+    cand = handler._compute_area_candidate("a1", 2.0, True, True)
     assert cand == 26.0  # NOSONAR
 
     # enforce minimum

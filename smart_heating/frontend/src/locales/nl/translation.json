@@ -641,7 +641,24 @@
     "customOverheadTemp": "Aangepaste Overhead Temperatuur",
     "customOverheadTempDescription": "Overschrijf standaard overhead temperatuur (vloerverwarming: +10°C, radiatoren: +20°C). Laat leeg voor standaardwaarden.",
     "customOverheadTempPlaceholder": "bijv., 8.0",
-    "heatingTypeExplanation": "OpenTherm ketel setpoint = Doeltemperatuur + Overhead. Vloerverwarming heeft lagere overhead (5-10°C) nodig voor efficiënte werking bij 30-40°C watertemperatuur. Radiatoren hebben hogere overhead (20°C) nodig voor 50-60°C watertemperatuur."
+    "heatingTypeExplanation": "OpenTherm ketel setpoint = Doeltemperatuur + Overhead. Vloerverwarming heeft lagere overhead (5-10°C) nodig voor efficiënte werking bij 30-40°C watertemperatuur. Radiatoren hebben hogere overhead (20°C) nodig voor 50-60°C watertemperatuur.",
+    "pidControlTitle": "PID Regeling",
+    "pidControlDescription": "Verfijn temperatuurregeling met PID algoritme",
+    "enablePid": "PID Regeling Inschakelen",
+    "automaticGains": "Automatische Versterking Gebruiken",
+    "pidActiveModes": "Actief in modi",
+    "pidFloorHeatingWarning": "Niet aanbevolen voor vloerverwarming - gebruik alleen verwarmingscurve. Optioneel voor radiatoren met snellere thermische respons.",
+    "pidBadgeTooltip": "PID Regeling: {{mode}}",
+    "modeLabels": {
+      "schedule": "Schema",
+      "home": "Thuis",
+      "away": "Weg",
+      "sleep": "Slapen",
+      "comfort": "Comfort",
+      "eco": "Eco",
+      "boost": "Boost",
+      "manual": "Handmatig"
+    }
   },
   "hysteresisHelp": {
     "title": "Hysterese Begrijpen",

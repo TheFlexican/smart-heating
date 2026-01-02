@@ -45,7 +45,6 @@ async def handle_get_config(  # NOSONAR
         "advanced_control_enabled": area_manager.advanced_control_enabled,
         "heating_curve_enabled": area_manager.heating_curve_enabled,
         "pwm_enabled": area_manager.pwm_enabled,
-        "pid_enabled": area_manager.pid_enabled,
         "overshoot_protection_enabled": area_manager.overshoot_protection_enabled,
         "default_heating_curve_coefficient": area_manager.default_heating_curve_coefficient,
     }
@@ -219,9 +218,6 @@ async def handle_set_advanced_control_config(area_manager: AreaManager, data: di
         updated = True
     if "pwm_enabled" in data:
         area_manager.pwm_enabled = bool(data["pwm_enabled"])
-        updated = True
-    if "pid_enabled" in data:
-        area_manager.pid_enabled = bool(data["pid_enabled"])
         updated = True
     if "overshoot_protection_enabled" in data:
         area_manager.overshoot_protection_enabled = bool(data["overshoot_protection_enabled"])

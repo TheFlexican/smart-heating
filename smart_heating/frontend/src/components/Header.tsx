@@ -276,10 +276,8 @@ const Header = ({ wsConnected = false, transportMode = 'websocket' }: HeaderProp
             </Typography>
           </Box>
         </Box>
-
         {/* Spacer */}
         <Box sx={{ flexGrow: 1 }} />
-
         {/* Navigation Actions */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center' }}>
           <Tooltip title={t('header.analytics', 'Analytics')}>

@@ -201,4 +201,17 @@ export const setNightBoostConfig = async (
   })
 }
 
+export const setAreaPid = async (
+  areaId: string,
+  enabled: boolean,
+  automaticGains: boolean,
+  activeModes: string[],
+): Promise<void> => {
+  await apiClient.post(`/areas/${areaId}/pid`, {
+    enabled,
+    automatic_gains: automaticGains,
+    active_modes: activeModes,
+  })
+}
+
 export default {}

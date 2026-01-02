@@ -125,6 +125,11 @@ export interface Zone {
   // Per-area heating curve coefficient (optional)
   heating_curve_coefficient?: number | null
 
+  // PID control settings (area-level)
+  pid_enabled?: boolean
+  pid_automatic_gains?: boolean
+  pid_active_modes?: string[]
+
   // TRV (thermostatic radiator valve) configuration for this area
   // Each entry defines an entity to track and how to interpret it
   trv_entities?: TrvEntityConfig[]

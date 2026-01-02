@@ -639,7 +639,24 @@
     "customOverheadTemp": "Custom Overhead Temperature",
     "customOverheadTempDescription": "Override default overhead temperature (floor heating: +10°C, radiator: +20°C). Leave empty to use defaults.",
     "customOverheadTempPlaceholder": "e.g., 8.0",
-    "heatingTypeExplanation": "OpenTherm boiler setpoint = Target temperature + Overhead. Floor heating needs lower overhead (5-10°C) for efficient operation at 30-40°C water temperature. Radiators need higher overhead (20°C) for 50-60°C water temperature."
+    "heatingTypeExplanation": "OpenTherm boiler setpoint = Target temperature + Overhead. Floor heating needs lower overhead (5-10°C) for efficient operation at 30-40°C water temperature. Radiators need higher overhead (20°C) for 50-60°C water temperature.",
+    "pidControlTitle": "PID Control",
+    "pidControlDescription": "Fine-tune temperature control with PID algorithm",
+    "enablePid": "Enable PID Control",
+    "automaticGains": "Use Automatic Gains",
+    "pidActiveModes": "Active in modes",
+    "pidFloorHeatingWarning": "Not recommended for floor heating - use heating curve only. Optional for radiators with faster thermal response.",
+    "pidBadgeTooltip": "PID Control: {{mode}}",
+    "modeLabels": {
+      "schedule": "Schedule",
+      "home": "Home",
+      "away": "Away",
+      "sleep": "Sleep",
+      "comfort": "Comfort",
+      "eco": "Eco",
+      "boost": "Boost",
+      "manual": "Manual"
+    }
   },
   "hysteresisHelp": {
     "title": "Understanding Hysteresis",

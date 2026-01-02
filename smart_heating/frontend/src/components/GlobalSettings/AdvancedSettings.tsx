@@ -31,7 +31,6 @@ export const AdvancedSettings: React.FC<{
   advancedControlEnabled: boolean
   heatingCurveEnabled: boolean
   pwmEnabled: boolean
-  pidEnabled: boolean
   overshootProtectionEnabled: boolean
   defaultCoefficient: number
   onToggleAdvancedControl: (field: string, value: boolean | number) => void
@@ -52,7 +51,6 @@ export const AdvancedSettings: React.FC<{
   advancedControlEnabled,
   heatingCurveEnabled,
   pwmEnabled,
-  pidEnabled,
   overshootProtectionEnabled,
   defaultCoefficient,
   onToggleAdvancedControl,
@@ -291,16 +289,6 @@ export const AdvancedSettings: React.FC<{
                 data-testid="global-pwm-switch"
                 checked={pwmEnabled}
                 onChange={e => onToggleAdvancedControl('pwm_enabled', e.target.checked)}
-                disabled={!advancedControlEnabled}
-              />
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography>{t('globalSettings.advanced.pid', 'PID Automatic Gains')}</Typography>
-              <Switch
-                data-testid="global-pid-switch"
-                checked={pidEnabled}
-                onChange={e => onToggleAdvancedControl('pid_enabled', e.target.checked)}
                 disabled={!advancedControlEnabled}
               />
             </Box>
