@@ -473,16 +473,6 @@ class AreaManager:
         self._config_service.pwm_enabled = value
 
     @property
-    def pid_enabled(self) -> bool:
-        """Get PID enabled state."""
-        return self._config_service.pid_enabled
-
-    @pid_enabled.setter
-    def pid_enabled(self, value: bool) -> None:
-        """Set PID enabled state."""
-        self._config_service.pid_enabled = value
-
-    @property
     def overshoot_protection_enabled(self) -> bool:
         """Get overshoot protection enabled state."""
         return self._config_service.overshoot_protection_enabled

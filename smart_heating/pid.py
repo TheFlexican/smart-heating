@@ -30,6 +30,8 @@ class PID:
         kd: float = 0.0,
         deadband: float = DEADBAND,
         automatic_gains: bool = False,
+        integral_limit: float | None = None,
+        output_limit: float = 15.0,
     ) -> None:
         self.heating_system = heating_system
         self.automatic_gain_value = automatic_gain_value
@@ -41,6 +43,17 @@ class PID:
 
         self.deadband = deadband
         self.automatic_gains = automatic_gains
+
+        # Anti-windup protection: heating-type-aware defaults
+        # Floor heating has high thermal inertia -> larger integral limit
+        # Radiators have faster response -> smaller integral limit
+        if integral_limit is None:
+            self.integral_limit = 50.0 if heating_system == "floor_heating" else 10.0
+        else:
+            self.integral_limit = integral_limit
+
+        # Output clamping to prevent extreme boiler setpoint adjustments
+        self.output_limit = output_limit
 
         self._last_error = 0.0
         self._integral = 0.0
@@ -87,8 +100,10 @@ class PID:
         # P
         p = kp * error.value
 
-        # I
+        # I - with anti-windup protection
         self._integral += ki * error.value * dt
+        # Clamp integral to prevent windup
+        self._integral = max(-self.integral_limit, min(self.integral_limit, self._integral))
 
         # D
         d = 0.0
@@ -99,5 +114,7 @@ class PID:
         self._last_error = error.value
         self._last_time = now
 
+        # Calculate output and clamp to prevent extreme adjustments
         output = p + self._integral + d
+        output = max(-self.output_limit, min(self.output_limit, output))
         return output

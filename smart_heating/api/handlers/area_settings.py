@@ -479,6 +479,85 @@ async def handle_set_area_heating_curve(
         return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 
 
+def _validate_pid_active_modes(active_modes: list) -> tuple[bool, str | list]:
+    """Validate PID active modes list.
+
+    Args:
+        active_modes: List of mode names
+
+    Returns:
+        Tuple of (is_valid, error_message_or_validated_list)
+    """
+    if not isinstance(active_modes, list):
+        return False, "'active_modes' must be a list"
+
+    valid_modes = {"schedule", "home", "away", "sleep", "comfort", "eco", "boost", "manual"}
+    for mode in active_modes:
+        if mode not in valid_modes:
+            return False, f"Invalid mode '{mode}'. Valid modes: {valid_modes}"
+
+    return True, active_modes
+
+
+async def handle_set_area_pid(
+    hass: HomeAssistant, area_manager: AreaManager, area_id: str, data: dict
+) -> web.Response:
+    """Set per-area PID control settings.
+
+    Args:
+        hass: Home Assistant instance
+        area_manager: AreaManager instance
+        area_id: Area identifier
+        data: Request data with 'enabled', 'automatic_gains', and 'active_modes'
+
+    Returns:
+        JSON response with success status
+    """
+    try:
+        area = area_manager.get_area(area_id)
+        if not area:
+            return web.json_response({"error": f"Area {area_id} not found"}, status=404)
+
+        # Handle enabled flag
+        if "enabled" in data:
+            try:
+                area.pid_enabled = bool(data["enabled"])
+            except (TypeError, ValueError) as err:
+                return web.json_response({"error": f"Invalid 'enabled' value: {err}"}, status=400)
+
+        # Handle automatic_gains flag
+        if "automatic_gains" in data:
+            try:
+                area.pid_automatic_gains = bool(data["automatic_gains"])
+            except (TypeError, ValueError) as err:
+                return web.json_response(
+                    {"error": f"Invalid 'automatic_gains' value: {err}"}, status=400
+                )
+
+        # Handle active_modes list
+        if "active_modes" in data:
+            is_valid, result = _validate_pid_active_modes(data["active_modes"])
+            if not is_valid:
+                return web.json_response({"error": result}, status=400)
+            area.pid_active_modes = result
+
+        await area_manager.async_save()
+        await _refresh_coordinator(hass)
+
+        _LOGGER.info(
+            "PID settings updated for %s: enabled=%s, automatic_gains=%s, active_modes=%s",
+            area.name,
+            area.pid_enabled,
+            area.pid_automatic_gains,
+            area.pid_active_modes,
+        )
+
+        return web.json_response({"success": True})
+    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError, AttributeError) as err:
+        _LOGGER.error("Error setting area PID for %s", area_id, exc_info=True)
+        return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
+
+
 def _update_area_global_flags(area: Area, data: dict) -> None:
     """Update use_global_* flags on an area."""
     flag_mapping = {

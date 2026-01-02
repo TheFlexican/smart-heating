@@ -62,6 +62,7 @@ import { NightBoostSection } from '../components/AreaDetail/NightBoostSection'
 import { SmartNightBoostSection } from '../components/AreaDetail/SmartNightBoostSection'
 import { ProactiveMaintenanceSection } from '../components/AreaDetail/ProactiveMaintenanceSection'
 import { HeatingControlSection } from '../components/AreaDetail/HeatingControlSection'
+import { PidControlSection } from '../components/AreaDetail/PidControlSection'
 import { HistoryManagementSection } from '../components/AreaDetail/HistoryManagementSection'
 
 const ZoneDetail = () => {
@@ -553,6 +554,7 @@ const ZoneDetail = () => {
       }),
       ProactiveMaintenanceSection({ area, onUpdate: handleDataUpdate, t }),
       HeatingControlSection({ area, onUpdate: handleDataUpdate, t }),
+      PidControlSection({ area, onUpdate: handleDataUpdate, t }),
       HistoryManagementSection({
         historyRetention,
         setHistoryRetention,

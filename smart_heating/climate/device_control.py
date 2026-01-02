@@ -243,7 +243,6 @@ class DeviceControlHandler:
         overhead: float,
         advanced_enabled: bool,
         heating_curve_enabled: bool,
-        pid_enabled: bool,
     ):
         """Compute area candidate setpoint (delegates to heating curve manager).
 
@@ -259,7 +258,6 @@ class DeviceControlHandler:
             overhead,
             advanced_enabled,
             heating_curve_enabled,
-            pid_enabled,
         )
 
     def _enforce_minimum_setpoints(
@@ -292,12 +290,8 @@ class DeviceControlHandler:
             heating_curve_enabled,
         )
 
-    def _apply_pid_adjustment(
-        self, area_id: str, candidate: float, pid_enabled: bool, advanced_enabled: bool
-    ):
+    def _apply_pid_adjustment(self, area_id: str, candidate: float):
         """Apply PID adjustment (delegated to controller manager)."""
         from .controllers.pid_controller_manager import apply_pid_adjustment
 
-        return apply_pid_adjustment(
-            self.area_manager, area_id, candidate, pid_enabled, advanced_enabled
-        )
+        return apply_pid_adjustment(self.area_manager, area_id, candidate)

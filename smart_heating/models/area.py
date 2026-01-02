@@ -139,6 +139,11 @@ class Area:
         # Area-specific heating curve coefficient (optional, if None use global default)
         self.heating_curve_coefficient: float | None = None
 
+        # Area-specific PID control settings
+        self.pid_enabled: bool = False  # Enable PID control for this area
+        self.pid_automatic_gains: bool = True  # Use automatic gain calculation
+        self.pid_active_modes: list[str] = ["schedule", "home", "comfort"]  # Modes where PID runs
+
         # Initialize manager instances for composition
         self.device_manager = AreaDeviceManager(self)
         self.sensor_manager = AreaSensorManager(self)
@@ -472,6 +477,12 @@ class Area:
             # Heating type configuration
             "heating_type": self.heating_type,
             "custom_overhead_temp": self.custom_overhead_temp,
+            # Heating curve coefficient (area-specific override)
+            "heating_curve_coefficient": self.heating_curve_coefficient,
+            # PID control settings (area-specific)
+            "pid_enabled": self.pid_enabled,
+            "pid_automatic_gains": self.pid_automatic_gains,
+            "pid_active_modes": self.pid_active_modes,
             # TRV entities configured for this area
             "trv_entities": self.trv_entities,
         }
@@ -531,6 +542,14 @@ class Area:
         # Heating type configuration
         area.heating_type = data.get("heating_type", "radiator")
         area.custom_overhead_temp = data.get("custom_overhead_temp")
+
+        # Heating curve coefficient (area-specific override)
+        area.heating_curve_coefficient = data.get("heating_curve_coefficient")
+
+        # PID control settings (area-specific)
+        area.pid_enabled = data.get("pid_enabled", False)
+        area.pid_automatic_gains = data.get("pid_automatic_gains", True)
+        area.pid_active_modes = data.get("pid_active_modes", ["schedule", "home", "comfort"])
 
         # TRV entities configuration (backwards compatible - default to empty list)
         area.trv_entities = data.get("trv_entities", [])

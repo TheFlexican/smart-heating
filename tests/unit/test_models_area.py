@@ -1207,6 +1207,147 @@ class TestAreaHiddenAndManualOverride:
         assert area2.hidden is True
 
 
+class TestAreaPIDPersistence:
+    """Test PID settings persistence in Area model."""
+
+    def test_area_default_pid_settings(self):
+        """Test area initializes with default PID settings."""
+        area = Area(
+            area_id=TEST_AREA_ID,
+            name=TEST_AREA_NAME,
+            target_temperature=TEST_TEMPERATURE,
+        )
+
+        assert area.pid_enabled is False
+        assert area.pid_automatic_gains is True
+        assert area.pid_active_modes == ["schedule", "home", "comfort"]
+
+    def test_pid_settings_in_to_dict(self):
+        """Test PID settings are included in to_dict."""
+        area = Area(
+            area_id=TEST_AREA_ID,
+            name=TEST_AREA_NAME,
+            target_temperature=TEST_TEMPERATURE,
+        )
+        area.pid_enabled = True
+        area.pid_automatic_gains = False
+        area.pid_active_modes = ["home", "away"]
+
+        data = area.to_dict()
+
+        assert data["pid_enabled"] is True
+        assert data["pid_automatic_gains"] is False
+        assert data["pid_active_modes"] == ["home", "away"]
+
+    def test_pid_settings_from_dict(self):
+        """Test loading PID settings from dict."""
+        data = {
+            "area_id": TEST_AREA_ID,
+            "area_name": TEST_AREA_NAME,
+            "target_temperature": TEST_TEMPERATURE,
+            "pid_enabled": True,
+            "pid_automatic_gains": False,
+            "pid_active_modes": ["schedule", "comfort", "eco"],
+        }
+
+        area = Area.from_dict(data)
+
+        assert area.pid_enabled is True
+        assert area.pid_automatic_gains is False
+        assert area.pid_active_modes == ["schedule", "comfort", "eco"]
+
+    def test_pid_settings_defaults_when_missing(self):
+        """Test PID settings use defaults when not in dict."""
+        data = {
+            "area_id": TEST_AREA_ID,
+            "area_name": TEST_AREA_NAME,
+            "target_temperature": TEST_TEMPERATURE,
+        }
+
+        area = Area.from_dict(data)
+
+        # Should use defaults
+        assert area.pid_enabled is False
+        assert area.pid_automatic_gains is True
+        assert area.pid_active_modes == ["schedule", "home", "comfort"]
+
+    def test_pid_settings_roundtrip(self):
+        """Test PID settings survive to_dict -> from_dict roundtrip."""
+        area1 = Area(
+            area_id=TEST_AREA_ID,
+            name=TEST_AREA_NAME,
+            target_temperature=TEST_TEMPERATURE,
+        )
+        area1.pid_enabled = True
+        area1.pid_automatic_gains = False
+        area1.pid_active_modes = ["home", "schedule"]
+
+        data = area1.to_dict()
+        area2 = Area.from_dict(data)
+
+        assert area2.pid_enabled == area1.pid_enabled
+        assert area2.pid_automatic_gains == area1.pid_automatic_gains
+        assert area2.pid_active_modes == area1.pid_active_modes
+
+    def test_heating_curve_coefficient_persists(self):
+        """Test heating_curve_coefficient is persisted (bug fix verification)."""
+        area1 = Area(
+            area_id=TEST_AREA_ID,
+            name=TEST_AREA_NAME,
+            target_temperature=TEST_TEMPERATURE,
+        )
+        area1.heating_curve_coefficient = 2.5
+
+        data = area1.to_dict()
+        assert "heating_curve_coefficient" in data
+        assert data["heating_curve_coefficient"] == 2.5
+
+        area2 = Area.from_dict(data)
+        assert area2.heating_curve_coefficient == 2.5
+
+    def test_heating_curve_coefficient_none_persists(self):
+        """Test heating_curve_coefficient None is persisted."""
+        area1 = Area(
+            area_id=TEST_AREA_ID,
+            name=TEST_AREA_NAME,
+            target_temperature=TEST_TEMPERATURE,
+        )
+        area1.heating_curve_coefficient = None
+
+        data = area1.to_dict()
+        area2 = Area.from_dict(data)
+        assert area2.heating_curve_coefficient is None
+
+    def test_pid_active_modes_empty_list(self):
+        """Test PID active modes can be empty list."""
+        area = Area(
+            area_id=TEST_AREA_ID,
+            name=TEST_AREA_NAME,
+            target_temperature=TEST_TEMPERATURE,
+        )
+        area.pid_active_modes = []
+
+        data = area.to_dict()
+        area2 = Area.from_dict(data)
+
+        assert area2.pid_active_modes == []
+
+    def test_pid_active_modes_all_valid_modes(self):
+        """Test PID active modes with all valid modes."""
+        area = Area(
+            area_id=TEST_AREA_ID,
+            name=TEST_AREA_NAME,
+            target_temperature=TEST_TEMPERATURE,
+        )
+        all_modes = ["schedule", "home", "away", "sleep", "comfort", "eco", "boost", "manual"]
+        area.pid_active_modes = all_modes
+
+        data = area.to_dict()
+        area2 = Area.from_dict(data)
+
+        assert area2.pid_active_modes == all_modes
+
+
 class TestAreaFromDictCompatibility:
     """Test from_dict compatibility with different data formats."""
 

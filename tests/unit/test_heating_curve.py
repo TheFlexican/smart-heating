@@ -14,9 +14,9 @@ def test_calculate_basic():
 
 def test_base_offset():
     hc1 = HeatingCurve(heating_system=HEATING_SYSTEM_UNDERFLOOR)
-    assert abs(hc1.base_offset - 40.0) < 0.001
+    assert abs(hc1.base_offset - 20.0) < 0.001
     hc2 = HeatingCurve()
-    assert abs(hc2.base_offset - 55.0) < 0.001
+    assert abs(hc2.base_offset - 27.2) < 0.001
 
 
 def test_calculate_coefficient_and_update():
@@ -80,8 +80,8 @@ def test_calculate_coefficient():
 def test_default_base_offsets():
     hc_floor = HeatingCurve(heating_system=HEATING_SYSTEM_UNDERFLOOR, coefficient=1.0)
     hc_rad = HeatingCurve(heating_system=HEATING_SYSTEM_RADIATOR, coefficient=1.0)
-    assert hc_floor.base_offset == pytest.approx(40.0, rel=1e-3)
-    assert hc_rad.base_offset == pytest.approx(55.0, rel=1e-3)
+    assert hc_floor.base_offset == pytest.approx(20.0, rel=1e-3)
+    assert hc_rad.base_offset == pytest.approx(27.2, rel=1e-3)
 
 
 def test_autotune_branches():

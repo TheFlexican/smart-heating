@@ -79,7 +79,6 @@ class PersistenceService:
             "advanced_control_enabled": data.get("advanced_control_enabled", False),
             "heating_curve_enabled": data.get("heating_curve_enabled", False),
             "pwm_enabled": data.get("pwm_enabled", False),
-            "pid_enabled": data.get("pid_enabled", False),
             "overshoot_protection_enabled": data.get("overshoot_protection_enabled", False),
             "default_heating_curve_coefficient": data.get("default_heating_curve_coefficient", 1.0),
             "default_min_consumption": data.get("default_min_consumption", 0.0),
@@ -120,7 +119,6 @@ class PersistenceService:
             "advanced_control_enabled": global_config.get("advanced_control_enabled"),
             "heating_curve_enabled": global_config.get("heating_curve_enabled"),
             "pwm_enabled": global_config.get("pwm_enabled"),
-            "pid_enabled": global_config.get("pid_enabled"),
             "overshoot_protection_enabled": global_config.get("overshoot_protection_enabled"),
             "default_heating_curve_coefficient": global_config.get(
                 "default_heating_curve_coefficient"

@@ -265,7 +265,6 @@ class OpenThermHandler(BaseDeviceHandler):
         # Advanced control configuration
         advanced_enabled = self.area_manager.advanced_control_enabled
         heating_curve_enabled = self.area_manager.heating_curve_enabled
-        pid_enabled = self.area_manager.pid_enabled
 
         # Collect setpoint candidates per area
         setpoint_candidates = [
@@ -278,7 +277,6 @@ class OpenThermHandler(BaseDeviceHandler):
                     overhead,
                     advanced_enabled,
                     heating_curve_enabled,
-                    pid_enabled,
                 )
                 for aid in heating_area_ids
             )
