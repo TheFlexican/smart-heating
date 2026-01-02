@@ -1,10 +1,9 @@
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import timedelta
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-import logging
 from homeassistant.util import dt as dt_util
-from smart_heating.features.learning_engine import MIN_LEARNING_EVENTS, HeatingEvent, LearningEngine
+from smart_heating.features.learning_engine import HeatingEvent, LearningEngine
 
 
 def test_heating_event_metrics():

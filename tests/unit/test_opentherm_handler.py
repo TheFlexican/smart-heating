@@ -1,8 +1,8 @@
 """Tests for OpenTherm gateway handler."""
 
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from smart_heating.climate.devices.opentherm_handler import OpenThermHandler
 
 

@@ -63,8 +63,7 @@ from .import_export import (
     handle_restore_backup,
     handle_validate_config,
 )
-from .logs import handle_get_area_logs
-from .logs import handle_get_area_device_logs
+from .logs import handle_get_area_device_logs, handle_get_area_logs
 from .opentherm import (
     handle_calibrate_opentherm,
     handle_clear_opentherm_logs,
@@ -82,13 +81,13 @@ from .schedules import (
 )
 from .sensors import (
     handle_add_presence_sensor,
+    handle_add_trv_entity,
     handle_add_window_sensor,
     handle_get_binary_sensor_entities,
-    handle_get_weather_entities,
     handle_get_trv_candidates,
-    handle_add_trv_entity,
-    handle_remove_trv_entity,
+    handle_get_weather_entities,
     handle_remove_presence_sensor,
+    handle_remove_trv_entity,
     handle_remove_window_sensor,
 )
 from .system import handle_call_service, handle_get_entity_state, handle_get_status

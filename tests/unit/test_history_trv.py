@@ -1,8 +1,9 @@
 """Tests for history tracker TRV recording."""
 
 import asyncio
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 from smart_heating.storage.history import HistoryTracker
 
 

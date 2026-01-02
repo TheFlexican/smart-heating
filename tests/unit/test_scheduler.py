@@ -4,10 +4,10 @@ Tests schedule checking, application, midnight crossing, smart night boost,
 and preset/temperature handling.
 """
 
+import asyncio
 from datetime import datetime, time
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import asyncio
 import pytest
 from homeassistant.core import HomeAssistant
 from smart_heating.features.scheduler import ScheduleExecutor

@@ -1,8 +1,8 @@
 """Tests for ManualOverrideDetector."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from smart_heating.core.coordination.manual_override_detector import ManualOverrideDetector
 from smart_heating.models import Area
 

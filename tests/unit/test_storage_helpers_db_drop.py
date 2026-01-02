@@ -1,6 +1,6 @@
-import pytest
 from unittest.mock import Mock
 
+import pytest
 from smart_heating import storage_helpers
 
 

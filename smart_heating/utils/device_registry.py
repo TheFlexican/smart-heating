@@ -1,7 +1,7 @@
 """Device registry utilities for Smart Heating."""
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry as ar

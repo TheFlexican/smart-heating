@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
-
 from smart_heating import storage_helpers
 from smart_heating.const import DOMAIN
 

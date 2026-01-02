@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_state_change_event
 
-from ..exceptions import SmartHeatingError, ValidationError
+from ..exceptions import SmartHeatingError
 
 _LOGGER = logging.getLogger(__name__)
 

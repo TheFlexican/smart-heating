@@ -1,7 +1,6 @@
 """Test custom exceptions."""
 
 import pytest
-
 from smart_heating.exceptions import (
     AreaNotFoundError,
     ConfigurationError,
@@ -147,9 +146,9 @@ def test_catch_order_specific_before_base():
 
     try:
         raise ValidationError("specific error")
-    except ValidationError as e:
+    except ValidationError:
         caught_exception = "ValidationError"
-    except SmartHeatingError as e:
+    except SmartHeatingError:
         caught_exception = "SmartHeatingError"
 
     assert caught_exception == "ValidationError"

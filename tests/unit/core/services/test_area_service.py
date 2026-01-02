@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 from homeassistant.core import HomeAssistant
-
 from smart_heating.core.services.area_service import AreaService
 from smart_heating.models import Area
 

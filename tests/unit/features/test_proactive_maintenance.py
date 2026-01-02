@@ -1,9 +1,8 @@
 """Tests for ProactiveMaintenanceHandler."""
 
-import pytest
-from datetime import datetime, timedelta
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from smart_heating.features.proactive_maintenance import (
     ProactiveMaintenanceHandler,
     ProactiveMaintenanceResult,

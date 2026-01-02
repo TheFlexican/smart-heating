@@ -492,7 +492,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
       ws.send(JSON.stringify({ id: messageIdRef.current++, type: 'smart_heating/subscribe' }))
     },
-    [transportMode, stopPollingFallback, updateMetrics, setupKeepalivePing],
+    [transportMode, stopPollingFallback, updateMetrics, setupKeepalivePing, isIOS],
   )
 
   // Helper: Handle auth_invalid message
@@ -810,6 +810,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     recordDisconnection,
     scheduleReconnect,
     handleMaxReconnectFailure,
+    isIOS,
   ])
 
   // Assign to ref for use in callbacks that can't depend on connect directly
@@ -1005,7 +1006,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       globalThis.removeEventListener('resume', handleResume)
       disconnect()
     }
-  }, [connect, disconnect])
+  }, [connect, disconnect, isIOS])
 
   return {
     isConnected,

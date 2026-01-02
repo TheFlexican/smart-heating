@@ -1,13 +1,11 @@
 """Tests for LearningEngine helper functions and branches."""
 
-import asyncio
 from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.util import dt as dt_util
-
-from smart_heating.features.learning_engine import LearningEngine, HeatingEvent
+from smart_heating.features.learning_engine import LearningEngine
 
 
 @pytest.mark.asyncio

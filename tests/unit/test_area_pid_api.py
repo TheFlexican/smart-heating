@@ -1,12 +1,11 @@
 """Tests for area PID settings API endpoint."""
 
-import pytest
 from unittest.mock import AsyncMock, Mock, patch
-from aiohttp import web
 
+import pytest
 from smart_heating.api.handlers.area_settings import (
-    handle_set_area_pid,
     _validate_pid_active_modes,
+    handle_set_area_pid,
 )
 from smart_heating.models.area import Area
 

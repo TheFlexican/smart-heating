@@ -1,7 +1,7 @@
+import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock
 
-import asyncio
 import pytest
 from smart_heating.api.handlers.opentherm import handle_calibrate_opentherm
 from smart_heating.const import DOMAIN

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from ..const import TIMEZONE_SUFFIX
 from typing import Any, Dict
+
+from ..const import TIMEZONE_SUFFIX
 
 
 @dataclass

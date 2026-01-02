@@ -8,7 +8,7 @@ from homeassistant.exceptions import HomeAssistantError
 from ..const import DOMAIN
 from ..core.area_manager import AreaManager
 from ..core.coordinator import SmartHeatingCoordinator
-from ..exceptions import SafetySensorError, SmartHeatingError
+from ..exceptions import SmartHeatingError
 
 _LOGGER = logging.getLogger(__name__)
 

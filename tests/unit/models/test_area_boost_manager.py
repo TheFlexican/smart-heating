@@ -1,8 +1,8 @@
 """Test AreaBoostManager."""
 
-import pytest
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 
+import pytest
 from smart_heating.const import PRESET_BOOST, PRESET_NONE
 from smart_heating.models.area import Area
 from smart_heating.models.area_boost_manager import AreaBoostManager

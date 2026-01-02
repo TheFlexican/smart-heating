@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING
 
 from homeassistant.exceptions import HomeAssistantError
 

@@ -1,10 +1,10 @@
 """Tests for Debouncer."""
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock
 
-from smart_heating.core.coordination.debouncer import Debouncer, DEFAULT_DEBOUNCE_DELAY
+import pytest
+from smart_heating.core.coordination.debouncer import DEFAULT_DEBOUNCE_DELAY, Debouncer
 
 
 class TestDebouncer:

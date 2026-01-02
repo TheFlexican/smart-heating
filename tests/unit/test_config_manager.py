@@ -3,8 +3,8 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from smart_heating.storage.config_manager import CURRENT_VERSION, ConfigManager
 from smart_heating.const import DOMAIN
+from smart_heating.storage.config_manager import CURRENT_VERSION, ConfigManager
 
 
 @pytest.fixture

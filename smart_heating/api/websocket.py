@@ -9,13 +9,13 @@ from typing import Any, Callable
 
 from homeassistant.components.websocket_api import async_register_command
 from homeassistant.components.websocket_api.connection import ActiveConnection
-from homeassistant.components.websocket_api.messages import result_message
 from homeassistant.components.websocket_api.decorators import websocket_command
-from homeassistant.core import HomeAssistant, callback, Event
+from homeassistant.components.websocket_api.messages import result_message
+from homeassistant.core import Event, HomeAssistant, callback
 
 from ..const import DOMAIN
-from ..core.coordinator import SmartHeatingCoordinator
 from ..core.area_manager import AreaManager
+from ..core.coordinator import SmartHeatingCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 

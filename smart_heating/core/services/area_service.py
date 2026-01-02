@@ -6,7 +6,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
-from ...exceptions import SmartHeatingError, ValidationError
+from ...exceptions import SmartHeatingError
 from ...models import Area
 
 _LOGGER = logging.getLogger(__name__)

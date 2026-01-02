@@ -10,7 +10,6 @@ from homeassistant.const import ATTR_TEMPERATURE
 from ....const import (
     DEBUG_SENTINEL_TEMP,
     DEFAULT_TRV_IDLE_TEMP,
-    SUPPORT_TURN_OFF_FLAG,
     TEMP_COMPARISON_TOLERANCE,
 )
 

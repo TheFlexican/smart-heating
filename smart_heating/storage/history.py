@@ -256,7 +256,6 @@ class HistoryTracker:
 
     def _ensure_trvs_column(self) -> None:
         """Ensure the 'trvs' column exists in the DB table."""
-        from sqlalchemy import inspect, text
 
         if not getattr(self, "_db_engine", None):
             raise RuntimeError(RECORDER_ENGINE_UNAVAILABLE)

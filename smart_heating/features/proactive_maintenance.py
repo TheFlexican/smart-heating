@@ -8,7 +8,7 @@ is reached, maintaining constant room temperature.
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
 

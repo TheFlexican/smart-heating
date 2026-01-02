@@ -12,7 +12,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from ...core.area_manager import AreaManager
-from ...exceptions import SmartHeatingError, ValidationError
+from ...exceptions import SmartHeatingError
 from ...models import Area
 
 _LOGGER = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ async def _discover_devices(hass: HomeAssistant, area_manager: AreaManager) -> w
     return web.json_response({"devices": devices})
 
 
-from typing import Any, Iterable
+from typing import Any
 
 
 def _get_discoverable_entities(entity_reg: Any, hass: HomeAssistant) -> list:

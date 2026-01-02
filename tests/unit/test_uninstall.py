@@ -1,7 +1,7 @@
-import pytest
 import types
 from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 import smart_heating as sh_init
 
 

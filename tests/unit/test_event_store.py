@@ -1,16 +1,14 @@
 """Unit tests for EventStore (JSON-path logic and DB fallback)."""
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from homeassistant.util import dt as dt_util
-
 from smart_heating.const import (
     EVENT_RETENTION_DAYS,
-    EVENT_STORAGE_JSON,
     EVENT_STORAGE_DATABASE,
+    EVENT_STORAGE_JSON,
 )
 from smart_heating.storage.event_store import EventStore
 

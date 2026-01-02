@@ -8,7 +8,6 @@ from homeassistant.exceptions import HomeAssistantError
 
 from ...const import TEMP_COMPARISON_TOLERANCE
 from ...exceptions import DeviceError
-from ...models import DeviceEvent
 
 if TYPE_CHECKING:
     from ...area_manager import AreaManager

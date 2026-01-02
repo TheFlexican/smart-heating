@@ -11,7 +11,7 @@ from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from ..const import DOMAIN, STATE_INITIALIZED, UPDATE_INTERVAL
-from ..exceptions import SmartHeatingError, ValidationError
+from ..exceptions import SmartHeatingError
 from ..models import Area
 from .area_manager import AreaManager
 from .coordination.debouncer import Debouncer
