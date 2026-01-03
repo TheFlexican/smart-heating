@@ -145,13 +145,38 @@ export const AvailableDevicesList: React.FC<AvailableDevicesListProps> = ({
                 }
                 secondary={
                   <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
-                    <Chip label={String(device.type).replaceAll('_', ' ')} size="small" />
+                    <Chip
+                      label={String(device.type).replaceAll('_', ' ')}
+                      size="small"
+                      sx={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        background: (() => {
+                          if (device.type === 'thermostat')
+                            return 'linear-gradient(135deg, #ff6b35 0%, #f59e0b 100%)'
+                          if (device.type === 'temperature_sensor')
+                            return 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)'
+                          if (device.type === 'valve')
+                            return 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)'
+                          return 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
+                        })(),
+                        color: '#ffffff',
+                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+                        border: 'none',
+                      }}
+                    />
                     {device.subtype && (
                       <Chip
                         label={device.subtype}
                         size="small"
-                        color="primary"
-                        variant="outlined"
+                        sx={{
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          color: '#ffffff',
+                          boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
+                          border: 'none',
+                        }}
                       />
                     )}
                     <Typography variant="caption" color="text.secondary" component="span">
@@ -159,7 +184,7 @@ export const AvailableDevicesList: React.FC<AvailableDevicesListProps> = ({
                     </Typography>
                   </Box>
                 }
-                secondaryTypographyProps={{ component: 'div' }}
+                slotProps={{ secondary: { component: 'div' } }}
               />
             </ListItem>
           ))}

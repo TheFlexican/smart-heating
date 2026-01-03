@@ -124,9 +124,20 @@ export const TrvList: React.FC<TrvListProps> = ({
                         {open !== undefined && (
                           <Chip
                             label={open ? t('areaDetail.trvOpen') : t('areaDetail.trvClosed')}
-                            color={open ? 'success' : 'default'}
                             size="small"
                             data-testid={`trv-open-${trv.entity_id}`}
+                            sx={{
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              background: open
+                                ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                                : 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+                              color: '#ffffff',
+                              boxShadow: open
+                                ? '0 2px 8px rgba(16, 185, 129, 0.3)'
+                                : '0 2px 6px rgba(0, 0, 0, 0.15)',
+                              border: 'none',
+                            }}
                           />
                         )}
                         <Typography

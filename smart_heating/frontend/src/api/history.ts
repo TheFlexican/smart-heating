@@ -37,6 +37,7 @@ export const getHistory = async (
   areaId: string,
   options?: {
     hours?: number
+    days?: number
     startTime?: string
     endTime?: string
   },
@@ -44,6 +45,10 @@ export const getHistory = async (
   const params = new URLSearchParams()
   if (options?.hours) {
     params.append('hours', options.hours.toString())
+  }
+  if (options?.days) {
+    // Convert days to hours for backend
+    params.append('hours', (options.days * 24).toString())
   }
   if (options?.startTime) {
     params.append('start_time', options.startTime)

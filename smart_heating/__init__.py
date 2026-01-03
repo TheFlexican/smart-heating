@@ -294,8 +294,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Pass area_logger to schedule executor
     schedule_executor.area_logger = area_logger
 
+    # Set up proactive maintenance handler with temperature tracker
+    try:
+        _LOGGER.debug("Setting up proactive maintenance handler...")
+        schedule_executor.set_proactive_handler(
+            temperature_tracker=coordinator._temperature_tracker,
+            area_logger=area_logger,
+        )
+        _LOGGER.debug("Proactive maintenance handler set successfully")
+    except Exception as e:
+        _LOGGER.error("Failed to set up proactive handler: %s", e, exc_info=True)
+
+    _LOGGER.debug("About to start schedule executor...")
     hass.data[DOMAIN]["schedule_executor"] = schedule_executor
+    _LOGGER.debug("Calling async_start()...")
     await schedule_executor.async_start()
+    _LOGGER.debug("async_start() completed")
     _LOGGER.info("Schedule executor started")
 
     # Forward the setup to platforms

@@ -79,7 +79,7 @@ export const HeatingControlSection = ({
                     try {
                       await setAreaHysteresis(area.id, {
                         use_global: false,
-                        hysteresis: value as number,
+                        hysteresis: value,
                       })
                       onUpdate()
                     } catch (error) {

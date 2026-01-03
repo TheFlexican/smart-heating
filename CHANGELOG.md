@@ -17,6 +17,11 @@
 - tests: Add unit tests for each new component and ensure lint/format passes.
 
 ### Bug Fixes & Improvements
+- fix(api): Fixed TypeError in OpenTherm gateway configuration handler
+  - Added missing imports for `ConfigurationError` and `ValidationError` exceptions
+  - Removed incorrect `await` on `hass.config_entries.async_update_entry()` (returns bool, not awaitable)
+  - Exception handling now works correctly when updating config entry options
+  - Added test coverage for error handling scenarios
 - fix(websocket): Prevent false positive ping/pong timeout disconnections (#issue)
   - Fixed issue where WebSocket connections disconnected every 30 seconds
   - Root cause: Timeout check was triggered before first ping was sent

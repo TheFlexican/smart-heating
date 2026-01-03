@@ -98,6 +98,8 @@ class TestProactiveMaintenanceHandler:
         """Create mock area."""
         area = MagicMock()
         area.area_id = "living_room"
+        area.name = "Living Room"
+        area.current_temperature = 19.8
         area.target_temperature = 20.0
         area.boost_manager = mock_boost_manager
         area.hysteresis_override = None  # Explicitly set to None so _get_hysteresis uses default
@@ -143,6 +145,7 @@ class TestProactiveMaintenanceHandler:
     ):
         """Test stopping proactive heating when target is reached."""
         mock_area.boost_manager.proactive_maintenance_active = True
+        mock_area.current_temperature = 20.0  # At target
         mock_temperature_tracker.get_latest_temperature.return_value = 20.0  # At target
 
         result = await handler.async_check_area(mock_area)
@@ -165,6 +168,7 @@ class TestProactiveMaintenanceHandler:
         self, handler, mock_area, mock_temperature_tracker
     ):
         """Test check when no temperature data available."""
+        mock_area.current_temperature = None
         mock_temperature_tracker.get_latest_temperature.return_value = None
 
         result = await handler.async_check_area(mock_area)
@@ -223,6 +227,7 @@ class TestProactiveMaintenanceHandler:
         self, handler, mock_area, mock_temperature_tracker
     ):
         """Test check when temperature is already below hysteresis threshold."""
+        mock_area.current_temperature = 19.0  # Below 19.5 threshold
         mock_temperature_tracker.get_latest_temperature.return_value = 19.0  # Below 19.5 threshold
         mock_temperature_tracker.get_trend.return_value = -0.3
 
@@ -352,6 +357,7 @@ class TestProactiveMaintenanceHandler:
         self, handler, mock_area, mock_temperature_tracker, mock_learning_engine, mock_area_logger
     ):
         """Test that event is logged when proactive heating is triggered."""
+        mock_area.current_temperature = 19.8
         mock_temperature_tracker.get_latest_temperature.return_value = 19.8
         mock_temperature_tracker.get_trend.return_value = -0.3
         mock_temperature_tracker.predict_time_to_temperature.return_value = 30.0
@@ -359,10 +365,13 @@ class TestProactiveMaintenanceHandler:
 
         await handler.async_check_area(mock_area)
 
-        mock_area_logger.log_event.assert_called_once()
+        # Verify that log_event was called (multiple times during the check process)
+        assert mock_area_logger.log_event.called
+        # Verify the final call indicates proactive heating was triggered
         call_args = mock_area_logger.log_event.call_args
         assert call_args[0][0] == "living_room"  # area_id
         assert call_args[0][1] == "proactive_maintenance"  # event_type
+        assert "heating started" in call_args[0][2].lower()  # message indicates heating started
 
     @pytest.mark.asyncio
     async def test_handler_without_learning_engine(

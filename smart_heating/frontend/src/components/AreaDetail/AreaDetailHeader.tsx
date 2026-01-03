@@ -10,16 +10,40 @@ export interface AreaDetailHeaderProps {
   onToggle: () => Promise<void>
 }
 
-const getStateColor = (state: string) => {
+const getStateStyle = (state: string) => {
   switch (state) {
     case 'heating':
-      return 'error'
+      return {
+        background: 'linear-gradient(135deg, #ff6b35 0%, #f59e0b 100%)',
+        color: '#ffffff',
+        fontWeight: 700,
+        boxShadow: '0 2px 8px rgba(255, 107, 53, 0.3)',
+        border: 'none',
+      }
     case 'idle':
-      return 'info'
+      return {
+        background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+        color: '#ffffff',
+        fontWeight: 700,
+        boxShadow: '0 2px 8px rgba(6, 182, 212, 0.3)',
+        border: 'none',
+      }
     case 'off':
-      return 'default'
+      return {
+        background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+        color: '#ffffff',
+        fontWeight: 600,
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+        border: 'none',
+      }
     default:
-      return 'default'
+      return {
+        background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+        color: '#ffffff',
+        fontWeight: 600,
+        boxShadow: '0 2px 6px rgba(139, 92, 246, 0.3)',
+        border: 'none',
+      }
   }
 }
 
@@ -68,15 +92,27 @@ export const AreaDetailHeader: React.FC<AreaDetailHeaderProps> = ({
             <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
               <Chip
                 label={state.toUpperCase()}
-                color={getStateColor(state)}
                 size="small"
-                sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
+                sx={{
+                  fontSize: { xs: '0.7rem', sm: '0.8125rem' },
+                  ...getStateStyle(state),
+                }}
               />
               <Chip
                 label={enabled ? 'ENABLED' : 'DISABLED'}
-                color={enabled ? 'success' : 'default'}
                 size="small"
-                sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
+                sx={{
+                  fontSize: { xs: '0.7rem', sm: '0.8125rem' },
+                  fontWeight: 700,
+                  background: enabled
+                    ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                    : 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+                  color: '#ffffff',
+                  boxShadow: enabled
+                    ? '0 2px 8px rgba(16, 185, 129, 0.3)'
+                    : '0 2px 6px rgba(0, 0, 0, 0.15)',
+                  border: 'none',
+                }}
               />
             </Box>
           </Box>

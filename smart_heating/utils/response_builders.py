@@ -132,4 +132,9 @@ def build_area_response(
         # Heating type configuration
         "heating_type": getattr(area, "heating_type", "radiator"),
         "custom_overhead_temp": getattr(area, "custom_overhead_temp", None),
+        "heating_curve_coefficient": getattr(area, "heating_curve_coefficient", None),
+        # PID control configuration
+        "pid_enabled": getattr(area, "pid_enabled", False),
+        "pid_automatic_gains": getattr(area, "pid_automatic_gains", True),
+        "pid_active_modes": getattr(area, "pid_active_modes", ["schedule", "home", "comfort"]),
     }

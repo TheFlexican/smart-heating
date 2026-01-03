@@ -51,8 +51,21 @@ export const HistoryManagementSection = ({
               label={
                 storageBackend === 'database' ? 'Database (MariaDB/PostgreSQL)' : 'JSON (File)'
               }
-              color={storageBackend === 'database' ? 'primary' : 'default'}
               size="small"
+              sx={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                background:
+                  storageBackend === 'database'
+                    ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+                    : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                color: '#ffffff',
+                boxShadow:
+                  storageBackend === 'database'
+                    ? '0 2px 8px rgba(59, 130, 246, 0.3)'
+                    : '0 2px 8px rgba(245, 158, 11, 0.3)',
+                border: 'none',
+              }}
             />
             {storageBackend === 'database' && databaseStats?.total_entries !== undefined && (
               <Typography variant="caption" color="text.secondary">
@@ -137,7 +150,7 @@ export const HistoryManagementSection = ({
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2, mb: 3 }}>
           <Slider
             value={historyRetention}
-            onChange={(_, value) => setHistoryRetention(value as number)}
+            onChange={(_, value) => setHistoryRetention(value)}
             min={1}
             max={365}
             step={1}

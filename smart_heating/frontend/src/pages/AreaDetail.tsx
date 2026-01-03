@@ -616,13 +616,15 @@ const ZoneDetail = () => {
         onToggle={handleToggle}
       />
 
-      {/* Tabs */}
+      {/* Tabs - Thermal Gradient Design */}
       <Paper
         elevation={0}
         sx={{
           borderBottom: 1,
           borderColor: 'divider',
           bgcolor: 'background.paper',
+          px: { xs: 1, sm: 2 },
+          pt: 1,
         }}
       >
         <Tabs
@@ -631,21 +633,130 @@ const ZoneDetail = () => {
           variant="scrollable"
           scrollButtons="auto"
           sx={{
+            minHeight: 'auto',
+            '& .MuiTabs-indicator': {
+              display: 'none', // Hide default indicator, we'll use custom styling
+            },
             '& .MuiTab-root': {
               fontSize: { xs: '0.75rem', sm: '0.875rem' },
-              minWidth: { xs: 'auto', sm: 160 },
-              px: { xs: 1, sm: 2 },
+              fontWeight: 600,
+              minWidth: { xs: 'auto', sm: 120 },
+              minHeight: 48,
+              px: { xs: 1.5, sm: 2.5 },
+              py: 1,
+              mr: { xs: 0.5, sm: 1 },
+              mb: 1,
+              borderRadius: '14px',
+              textTransform: 'none',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              color: 'text.secondary',
+              opacity: 0.7,
+              background: 'transparent',
+              border: theme =>
+                `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'}`,
+              '& .MuiTab-iconWrapper': {
+                marginBottom: 0,
+                marginRight: { xs: 0.5, sm: 1 },
+                fontSize: '1.2rem',
+                transition: 'all 0.3s ease',
+              },
+              '&:hover': {
+                opacity: 1,
+                transform: 'translateY(-2px)',
+                background: theme =>
+                  theme.palette.mode === 'dark'
+                    ? 'rgba(255, 255, 255, 0.05)'
+                    : 'rgba(0, 0, 0, 0.03)',
+                border: theme =>
+                  `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+              },
+              '&.Mui-selected': {
+                opacity: 1,
+                color: '#ffffff',
+                fontWeight: 700,
+                transform: 'translateY(-2px)',
+                border: 'none',
+                '& .MuiTab-iconWrapper': {
+                  transform: 'scale(1.1)',
+                },
+              },
+              // Individual tab colors
+              "&[data-tab='overview'].Mui-selected": {
+                background: 'linear-gradient(135deg, #ff6b35 0%, #f59e0b 100%)',
+                boxShadow: '0 4px 16px rgba(255, 107, 53, 0.4)',
+              },
+              "&[data-tab='devices'].Mui-selected": {
+                background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+                boxShadow: '0 4px 16px rgba(6, 182, 212, 0.4)',
+              },
+              "&[data-tab='schedule'].Mui-selected": {
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                boxShadow: '0 4px 16px rgba(139, 92, 246, 0.4)',
+              },
+              "&[data-tab='history'].Mui-selected": {
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)',
+              },
+              "&[data-tab='settings'].Mui-selected": {
+                background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+                boxShadow: '0 4px 16px rgba(100, 116, 139, 0.4)',
+              },
+              "&[data-tab='learning'].Mui-selected": {
+                background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                boxShadow: '0 4px 16px rgba(244, 63, 94, 0.4)',
+              },
+              "&[data-tab='logs'].Mui-selected": {
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                boxShadow: '0 4px 16px rgba(245, 158, 11, 0.4)',
+              },
             },
           }}
         >
-          <Tab data-testid="area-detail-tab-overview" label={t('tabs.overview')} />
-          <Tab data-testid="area-detail-tab-devices" label={t('tabs.devices')} />
-          <Tab data-testid="area-detail-tab-schedule" label={t('tabs.schedule')} />
-          <Tab data-testid="area-detail-tab-history" label={t('tabs.history')} />
-          <Tab data-testid="area-detail-tab-settings" label={t('tabs.settings')} />
-          <Tab data-testid="area-detail-tab-learning" label={t('tabs.learning')} />
+          <Tab
+            data-testid="area-detail-tab-overview"
+            data-tab="overview"
+            label={t('tabs.overview')}
+            icon={<ThermostatIcon />}
+            iconPosition="start"
+          />
+          <Tab
+            data-testid="area-detail-tab-devices"
+            data-tab="devices"
+            label={t('tabs.devices')}
+            icon={<SensorsIcon />}
+            iconPosition="start"
+          />
+          <Tab
+            data-testid="area-detail-tab-schedule"
+            data-tab="schedule"
+            label={t('tabs.schedule')}
+            icon={<TuneIcon />}
+            iconPosition="start"
+          />
+          <Tab
+            data-testid="area-detail-tab-history"
+            data-tab="history"
+            label={t('tabs.history')}
+            icon={<LocalFireDepartmentIcon />}
+            iconPosition="start"
+          />
+          <Tab
+            data-testid="area-detail-tab-settings"
+            data-tab="settings"
+            label={t('tabs.settings')}
+            icon={<PowerSettingsNewIcon />}
+            iconPosition="start"
+          />
+          <Tab
+            data-testid="area-detail-tab-learning"
+            data-tab="learning"
+            label={t('tabs.learning')}
+            icon={<AcUnitIcon />}
+            iconPosition="start"
+          />
           <Tab
             data-testid="tab-logs"
+            data-tab="logs"
             label={t('tabs.logs')}
             icon={<ArticleIcon />}
             iconPosition="start"

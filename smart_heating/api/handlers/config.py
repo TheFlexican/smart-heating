@@ -9,6 +9,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 from ...const import DOMAIN
 from ...core.area_manager import AreaManager
+from ...exceptions import ConfigurationError, ValidationError
 from ...utils import get_coordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -166,7 +167,7 @@ async def handle_set_opentherm_gateway(
             # Build new options preserving existing ones
             new_options = dict(entry.options or {})
             new_options["opentherm_gateway_id"] = gateway_id or ""
-            await hass.config_entries.async_update_entry(entry, options=new_options)
+            hass.config_entries.async_update_entry(entry, options=new_options)
             _LOGGER.debug(
                 "HA ConfigEntry options updated with OpenTherm gateway: %s",
                 gateway_id,

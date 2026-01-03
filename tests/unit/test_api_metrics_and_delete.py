@@ -28,8 +28,8 @@ async def test_metrics_advanced_invalid_days(hass, mock_area_manager):
 
     api_view = SmartHeatingAPIView(hass, mock_area_manager)
 
-    # invalid days -> 400
-    req = make_mocked_request("GET", "/api/smart_heating/metrics/advanced?days=5")
+    # invalid days -> 400 (valid values are 1, 3, 5, 7, 30 - so use 2)
+    req = make_mocked_request("GET", "/api/smart_heating/metrics/advanced?days=2")
     resp = await api_view.get(req, "metrics/advanced")
     assert resp.status == 400
 

@@ -127,6 +127,9 @@ class HeatingCycleHandler:
             target_temp,
         )
 
+        _LOGGER.debug(
+            "Heating start for %s (area_logger=%s)", area_id, self.area_logger is not None
+        )
         if self.area_logger:
             self.area_logger.log_event(
                 area_id,
@@ -138,6 +141,9 @@ class HeatingCycleHandler:
                     "state": "heating",
                 },
             )
+            _LOGGER.debug("Heating log written for %s", area_id)
+        else:
+            _LOGGER.debug("No area_logger for heating start in %s", area_id)
 
         return heating_areas, max_target_temp
 
@@ -208,6 +214,12 @@ class HeatingCycleHandler:
             target_temp,
         )
 
+        _LOGGER.debug(
+            "Heating stop for %s (area_logger=%s, still_heating=%s)",
+            area_id,
+            self.area_logger is not None,
+            thermostats_still_heating,
+        )
         if self.area_logger and not thermostats_still_heating:
             self.area_logger.log_event(
                 area_id,
@@ -218,6 +230,14 @@ class HeatingCycleHandler:
                     "target_temp": target_temp,
                     "state": "idle",
                 },
+            )
+            _LOGGER.debug("Heating stop log written for %s", area_id)
+        else:
+            _LOGGER.debug(
+                "Skipped heating stop log for %s (logger=%s, still_heating=%s)",
+                area_id,
+                self.area_logger is not None,
+                thermostats_still_heating,
             )
 
     async def async_handle_cooling_required(

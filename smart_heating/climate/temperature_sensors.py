@@ -133,11 +133,29 @@ class TemperatureSensorHandler:
             Temperature in Celsius or None if unavailable
         """
         state = self.hass.states.get(thermostat_id)
-        if not state or state.state in ("unknown", "unavailable"):
+        if not state:
+            _LOGGER.debug(
+                "Thermostat %s not found in state registry",
+                thermostat_id,
+            )
+            return None
+
+        if state.state in ("unknown", "unavailable"):
+            _LOGGER.debug(
+                "Thermostat %s state is %s",
+                thermostat_id,
+                state.state,
+            )
             return None
 
         current_temp = state.attributes.get("current_temperature")
         if current_temp is None:
+            _LOGGER.debug(
+                "Thermostat %s has no current_temperature attribute (state=%s, attributes=%s)",
+                thermostat_id,
+                state.state,
+                list(state.attributes.keys()),
+            )
             return None
 
         try:
@@ -203,10 +221,23 @@ class TemperatureSensorHandler:
                 temps.append(temp)
 
         # Read from thermostats
-        for thermostat_id in area.get_thermostats():
+        thermostat_list = area.get_thermostats()
+        _LOGGER.debug(
+            "Checking %d thermostats for area %s: %s",
+            len(thermostat_list),
+            area.area_id,
+            thermostat_list,
+        )
+        for thermostat_id in thermostat_list:
             temp = self.get_temperature_from_thermostat(thermostat_id)
             if temp is not None:
                 temps.append(temp)
+                _LOGGER.debug(
+                    "Got temperature %.1f°C from thermostat %s for area %s",
+                    temp,
+                    thermostat_id,
+                    area.area_id,
+                )
 
         return temps
 

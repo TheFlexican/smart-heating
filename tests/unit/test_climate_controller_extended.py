@@ -665,13 +665,14 @@ class TestDeviceControl:
 
         await controller._async_control_opentherm_gateway(True, 21.0)
 
-        # Should set to target + 20°C overhead
+        # Should set to 55°C (minimum setpoint for radiator enforced)
+        # Even though target + overhead = 41°C (21 + 20), radiator minimum is 55°C
         mock_hass.services.async_call.assert_called_once_with(
             "opentherm_gw",
             "set_control_setpoint",
             {
                 "gateway_id": "climate.boiler",
-                "temperature": 41.0,  # 21 + 20
+                "temperature": 55.0,  # Minimum setpoint for radiator
             },
             blocking=False,
         )

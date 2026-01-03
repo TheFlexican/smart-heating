@@ -150,5 +150,7 @@ describe('API additional endpoints', () => {
     expect(mockedClient.get).toHaveBeenCalledWith('/metrics/advanced?days=7')
     await metrics.getAdvancedMetrics(1, 'a1')
     expect(mockedClient.get).toHaveBeenCalledWith('/metrics/advanced?minutes=1&area_id=a1')
+    await metrics.getAdvancedMetrics(1, undefined, true)
+    expect(mockedClient.get).toHaveBeenCalledWith('/metrics/advanced?days=1')
   })
 })

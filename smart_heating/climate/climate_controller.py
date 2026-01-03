@@ -272,6 +272,31 @@ class ClimateController:
 
         current_temp = area.current_temperature
         if current_temp is None:
+            _LOGGER.warning(
+                "Area %s: No temperature data available - controlling devices in fallback mode with target %.1f°C",
+                area_id,
+                target_temp,
+            )
+            # Fallback: Control devices based on target temperature without feedback
+            # This handles the case where temperature sensors are temporarily unavailable (e.g., after HA restart)
+            # Turn on heating to reach target temperature
+            await self._async_control_thermostats(area, True, target_temp)
+            await self._async_control_switches(area, True)
+            await self._async_control_valves(area, True, target_temp)
+            area.state = "heating_no_feedback"
+
+            if hasattr(self, "area_logger") and self.area_logger:
+                self.area_logger.log_event(
+                    area_id,
+                    "climate_control",
+                    "Temperature unavailable - heating in fallback mode",
+                    {
+                        "target_temp": target_temp,
+                        "current_temp": None,
+                        "mode": "fallback_heating",
+                        "reason": "No temperature sensors available",
+                    },
+                )
             return None, None
 
         # Calculate modes and thresholds

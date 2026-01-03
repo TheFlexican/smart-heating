@@ -31,6 +31,7 @@ EVENT_TYPES = [
     "sensor",
     "preset",
     "mode",
+    "proactive_maintenance",
 ]
 
 

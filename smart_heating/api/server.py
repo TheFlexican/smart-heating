@@ -159,52 +159,68 @@ class SmartHeatingAPIView(HomeAssistantView):
             return None, web.json_response({"error": error_msg}, status=503)
         return comp, None
 
+    def _validate_time_param(
+        self, param_name: str, param_value: str | None, valid_values: list[int]
+    ) -> tuple[int | None, web.Response | None]:
+        """Validate a time parameter (minutes, hours, or days).
+
+        Args:
+            param_name: Name of the parameter (for error messages)
+            param_value: The query string value
+            valid_values: List of valid integer values
+
+        Returns:
+            Tuple of (parsed_value, error_response). If error_response is not None, parsing failed.
+        """
+        if param_value is None:
+            return None, None
+
+        try:
+            value = int(param_value)
+        except ValueError:
+            return None, web.json_response(
+                {"error": f"{param_name} must be an integer"}, status=400
+            )
+
+        if value not in valid_values:
+            valid_str = ", ".join(str(v) for v in valid_values)
+            return None, web.json_response(
+                {"error": f"{param_name} must be {valid_str}"}, status=400
+            )
+
+        return value, None
+
     def _parse_advanced_metrics_query(
         self, request: web.Request
-    ) -> tuple[int | None, int | None, web.Response | None]:
-        """Parse advanced metrics query params and return (minutes, days, error_response).
+    ) -> tuple[int | None, int | None, int | None, web.Response | None]:
+        """Parse advanced metrics query params and return (minutes, hours, days, error_response).
 
-        Returns an error Response when parameters are invalid, otherwise returns (minutes, days, None).
+        Returns an error Response when parameters are invalid, otherwise returns (minutes, hours, days, None).
         """
-        minutes_q = request.query.get("minutes")
-        days_q = request.query.get("days")
+        # Validate minutes parameter
+        minutes, err = self._validate_time_param(
+            "minutes", request.query.get("minutes"), [1, 2, 3, 5]
+        )
+        if err:
+            return None, None, None, err
 
-        minutes = None
-        days = None
-
-        if minutes_q is not None:
-            try:
-                minutes = int(minutes_q)
-            except ValueError:
-                return (
-                    None,
-                    None,
-                    web.json_response({"error": "minutes must be an integer"}, status=400),
-                )
-            if minutes not in [1, 2, 3, 5]:
-                return (
-                    None,
-                    None,
-                    web.json_response({"error": "minutes must be 1, 2, 3, or 5"}, status=400),
-                )
-
+        # Validate hours parameter (only if minutes not provided)
+        hours = None
         if minutes is None:
-            try:
-                days = int(days_q or "7")
-            except ValueError:
-                return (
-                    None,
-                    None,
-                    web.json_response({"error": "days must be an integer"}, status=400),
-                )
-            if days not in [1, 3, 7, 30]:
-                return (
-                    None,
-                    None,
-                    web.json_response({"error": "days must be 1, 3, 7, or 30"}, status=400),
-                )
+            hours, err = self._validate_time_param("hours", request.query.get("hours"), [1, 2, 5])
+            if err:
+                return None, None, None, err
 
-        return minutes, days, None
+        # Validate days parameter (only if minutes and hours not provided)
+        days = None
+        if minutes is None and hours is None:
+            days, err = self._validate_time_param(
+                "days", request.query.get("days", "1"), [1, 3, 5, 7, 30]
+            )
+            if err:
+                return None, None, None, err
+
+        return minutes, hours, days, None
 
     async def _handle_special_imports(self, endpoint: str, data: dict) -> web.Response | None:
         """Handle import and backup related special endpoints."""
@@ -542,16 +558,16 @@ class SmartHeatingAPIView(HomeAssistantView):
             )
 
         # Parse query params for advanced metrics and validate input
-        minutes, days, err_resp = self._parse_advanced_metrics_query(request)
+        minutes, hours, days, err_resp = self._parse_advanced_metrics_query(request)
         if err_resp:
             return err_resp
         area_id = request.query.get("area_id")
 
         metrics = await advanced_metrics.async_get_metrics(
-            days=days, minutes=minutes, area_id=area_id
+            days=days, hours=hours, minutes=minutes, area_id=area_id
         )
         return web.json_response(
-            {"success": True, "days": days, "area_id": area_id, "metrics": metrics}
+            {"success": True, "days": days, "hours": hours, "area_id": area_id, "metrics": metrics}
         )
 
     async def _handle_opentherm_metrics_get(

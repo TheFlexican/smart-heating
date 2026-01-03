@@ -81,8 +81,27 @@ export const PresenceSensorsSection = ({
                               isAway ? t('settingsCards.awayChip') : t('settingsCards.homeChip')
                             }
                             size="small"
-                            color={isAway ? 'warning' : 'success'}
-                            sx={{ height: '20px', fontSize: '0.7rem' }}
+                            sx={{
+                              height: '22px',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              letterSpacing: '0.03em',
+                              background: isAway
+                                ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                              color: '#ffffff',
+                              boxShadow: isAway
+                                ? '0 2px 8px rgba(245, 158, 11, 0.3)'
+                                : '0 2px 8px rgba(16, 185, 129, 0.3)',
+                              border: 'none',
+                              transition: 'all 0.2s ease',
+                              '&:hover': {
+                                transform: 'scale(1.05)',
+                                boxShadow: isAway
+                                  ? '0 4px 12px rgba(245, 158, 11, 0.4)'
+                                  : '0 4px 12px rgba(16, 185, 129, 0.4)',
+                              },
+                            }}
                           />
                         )}
                       </Box>

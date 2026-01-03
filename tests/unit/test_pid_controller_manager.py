@@ -6,6 +6,7 @@ import pytest
 from smart_heating.climate.controllers.pid_controller_manager import (
     _clear_pid_state,
     _get_current_area_mode,
+    _last_pid_update,
     _pids,
     _should_apply_pid,
     apply_pid_adjustment,
@@ -47,8 +48,10 @@ def mock_area_manager():
 def cleanup_pids():
     """Clear PID state before each test."""
     _pids.clear()
+    _last_pid_update.clear()
     yield
     _pids.clear()
+    _last_pid_update.clear()
 
 
 class TestGetCurrentAreaMode:
