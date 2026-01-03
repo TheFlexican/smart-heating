@@ -78,7 +78,7 @@ it('renders TRV position series and toggle when history contains trv entries', a
   )
 })
 
-it('defaults to 4h selector and exposes range buttons', async () => {
+it('defaults to 1h selector and exposes range buttons', async () => {
   // Reset mocks and set up a simple idle history
   vi.restoreAllMocks()
   const now = new Date().toISOString()
@@ -92,13 +92,14 @@ it('defaults to 4h selector and exposes range buttons', async () => {
   await waitFor(() => {
     expect(screen.getByTestId('history-range-1h')).toBeInTheDocument()
     expect(screen.getByTestId('history-range-2h')).toBeInTheDocument()
-    expect(screen.getByTestId('history-range-4h')).toBeInTheDocument()
-    expect(screen.getByTestId('history-range-8h')).toBeInTheDocument()
-    expect(screen.getByTestId('history-range-24h')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-5h')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-1d')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-3d')).toBeInTheDocument()
+    expect(screen.getByTestId('history-range-5d')).toBeInTheDocument()
     expect(screen.getByTestId('history-range-custom')).toBeInTheDocument()
 
-    // The 4h button should be selected by default (aria-pressed === true)
-    expect(screen.getByTestId('history-range-4h').getAttribute('aria-pressed')).toBe('true')
+    // The 1h button should be selected by default (aria-pressed === true)
+    expect(screen.getByTestId('history-range-1h').getAttribute('aria-pressed')).toBe('true')
   })
 
   // Additional basic smoke checks to ensure chart renders

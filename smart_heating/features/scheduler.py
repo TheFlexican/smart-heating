@@ -74,18 +74,22 @@ class ScheduleExecutor:
 
     async def async_start(self) -> None:
         """Start the schedule executor."""
-        _LOGGER.info("Starting schedule executor")
+        _LOGGER.debug("async_start() called")
+        _LOGGER.debug("Starting schedule executor")
 
         # Run immediately on start
+        _LOGGER.debug("About to call _async_check_schedules()...")
         await self._async_check_schedules()
+        _LOGGER.debug("_async_check_schedules() completed")
 
         # Set up recurring check
+        _LOGGER.debug("Setting up recurring interval...")
         self._unsub_interval = async_track_time_interval(
             self.hass,
             self._async_check_schedules,
             SCHEDULE_CHECK_INTERVAL,
         )
-        _LOGGER.info("Schedule executor started, checking every %s", SCHEDULE_CHECK_INTERVAL)
+        _LOGGER.debug("Schedule executor started, checking every %s", SCHEDULE_CHECK_INTERVAL)
 
     def async_stop(self) -> None:
         """Stop the schedule executor."""
@@ -115,6 +119,7 @@ class ScheduleExecutor:
         Args:
             now: Current datetime (for testing, otherwise uses current time)
         """
+        _LOGGER.debug("_async_check_schedules() called (now=%s)", now)
         # Get current UTC time and convert to HA's configured timezone
         if now is None:
             now = dt_util.utcnow()
@@ -156,8 +161,22 @@ class ScheduleExecutor:
             await self._handle_smart_boost(area, now)
 
         # Handle proactive temperature maintenance
+        _LOGGER.debug(
+            "Proactive check for %s: handler=%s, enabled=%s",
+            area.name,
+            self.proactive_handler is not None,
+            area.boost_manager.proactive_maintenance_enabled,
+        )
         if self.proactive_handler and area.boost_manager.proactive_maintenance_enabled:
+            _LOGGER.debug("🔥 Calling proactive handler for %s", area.name)
             await self._handle_proactive_maintenance(area, now)
+        else:
+            _LOGGER.debug(
+                "⏭️  Skipping proactive for %s (handler: %s, enabled: %s)",
+                area.name,
+                self.proactive_handler is not None,
+                area.boost_manager.proactive_maintenance_enabled,
+            )
 
         if not area.schedules:
             return

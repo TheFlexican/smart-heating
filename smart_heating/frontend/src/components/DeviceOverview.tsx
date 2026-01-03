@@ -160,7 +160,26 @@ const DeviceOverview = ({ areas }: DeviceOverviewProps) => {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Chip label={device.type.replaceAll('_', ' ')} size="small" variant="outlined" />
+                  <Chip
+                    label={device.type.replaceAll('_', ' ')}
+                    size="small"
+                    sx={{
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      background: (() => {
+                        if (device.type === 'number')
+                          return 'linear-gradient(135deg, #ff6b35 0%, #f59e0b 100%)'
+                        if (device.type === 'sensor')
+                          return 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)'
+                        if (device.type === 'switch')
+                          return 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)'
+                        return 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
+                      })(),
+                      color: '#ffffff',
+                      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+                      border: 'none',
+                    }}
+                  />
                 </TableCell>
                 <TableCell>
                   <Chip

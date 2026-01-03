@@ -701,6 +701,20 @@ class SmartHeatingCoordinator(DataUpdateCoordinator):
             for area_id, area in areas.items():
                 data["areas"][area_id] = self._build_area_data(area_id, area)
 
+                # Record temperature for trend tracking and proactive maintenance
+                if area.current_temperature is not None:
+                    self._temperature_tracker.record_temperature(
+                        area_id=area_id,
+                        temperature=area.current_temperature,
+                        target=area.target_temperature,
+                    )
+                    _LOGGER.debug(
+                        "Recorded temperature for %s: %.1f°C (target: %s°C)",
+                        area_id,
+                        area.current_temperature,
+                        area.target_temperature if area.target_temperature is not None else "N/A",
+                    )
+
             _LOGGER.debug("Smart Heating data updated successfully: %d areas", len(areas))
             return data
 

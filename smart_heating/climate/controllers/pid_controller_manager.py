@@ -1,6 +1,7 @@
 """PID controller manager."""
 
 import logging
+import time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -10,6 +11,9 @@ _LOGGER = logging.getLogger(__name__)
 
 # Module-level storage for PID controllers per area
 _pids: dict[str, Any] = {}  # dict[str, PID]
+
+# Track last PID update time per area to implement throttling
+_last_pid_update: dict[str, float] = {}
 
 
 def _get_current_area_mode(area: Any) -> str:
@@ -38,6 +42,8 @@ def _clear_pid_state(area_id: str) -> None:
     """
     if area_id in _pids:
         del _pids[area_id]
+    if area_id in _last_pid_update:
+        del _last_pid_update[area_id]
 
 
 def _should_apply_pid(area: Any, current_mode: str) -> bool:
@@ -74,6 +80,11 @@ def apply_pid_adjustment(
     Returns:
         Adjusted setpoint with PID output added, or original candidate if PID not active
     """
+    from ...const import (
+        PID_UPDATE_INTERVAL_AIRCO,
+        PID_UPDATE_INTERVAL_FLOOR_HEATING,
+        PID_UPDATE_INTERVAL_RADIATOR,
+    )
     from ...pid import PID, Error
 
     area = area_manager.get_area(area_id)
@@ -101,6 +112,32 @@ def apply_pid_adjustment(
         )
         _pids[area_id] = pid
 
+    # Determine update interval based on heating type
+    update_intervals = {
+        "radiator": PID_UPDATE_INTERVAL_RADIATOR,
+        "floor_heating": PID_UPDATE_INTERVAL_FLOOR_HEATING,
+        "airco": PID_UPDATE_INTERVAL_AIRCO,
+    }
+    min_update_interval = update_intervals.get(area.heating_type, PID_UPDATE_INTERVAL_RADIATOR)
+
+    # Check if enough time has passed since last PID update
+    now = time.monotonic()
+    last_update = _last_pid_update.get(area_id, 0)
+    time_since_update = now - last_update
+
+    if time_since_update < min_update_interval:
+        # Not enough time has passed, return last PID output
+        _LOGGER.debug(
+            "PID throttled for %s: %.0f seconds since last update (min: %d seconds)",
+            area_id,
+            time_since_update,
+            min_update_interval,
+        )
+        # Return last PID output if available (maintain previous adjustment)
+        if hasattr(pid, "_last_output"):
+            return candidate + pid._last_output
+        return candidate
+
     # Calculate error
     err = area.target_temperature - (area.current_temperature or 0.0)
 
@@ -113,11 +150,34 @@ def apply_pid_adjustment(
     # Update PID and get output
     pid_out = pid.update(Error(err), hv)
 
+    # Store last output and update time
+    pid._last_output = pid_out
+    _last_pid_update[area_id] = now
+
     _LOGGER.debug(
-        "PID adjustment for %s: mode=%s, output=%.2f°C",
+        "PID adjustment for %s: mode=%s, output=%.2f°C, interval=%ds",
         area_id,
         current_mode,
         pid_out,
+        min_update_interval,
     )
 
-    return candidate + pid_out
+    # Enforce minimum setpoint per heating type to prevent PID from going too low
+    from ...const import MIN_SETPOINT_FLOOR_HEATING, MIN_SETPOINT_RADIATOR
+
+    min_safe = (
+        MIN_SETPOINT_RADIATOR if area.heating_type == "radiator" else MIN_SETPOINT_FLOOR_HEATING
+    )
+    adjusted = candidate + pid_out
+
+    if adjusted < min_safe:
+        _LOGGER.info(
+            "PID output capped for %s: %.1f°C → %.1f°C (min for %s)",
+            area_id,
+            adjusted,
+            min_safe,
+            area.heating_type,
+        )
+        return min_safe
+
+    return adjusted

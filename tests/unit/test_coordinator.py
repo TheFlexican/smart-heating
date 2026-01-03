@@ -234,6 +234,55 @@ class TestCoordinatorDataUpdate:
         with pytest.raises(UpdateFailed, match="Test error"):
             await coordinator._async_update_data()
 
+    async def test_async_update_data_records_temperature(
+        self, coordinator: SmartHeatingCoordinator
+    ):
+        """Test that temperature is recorded to temperature tracker during update."""
+        # Create mock area with temperature
+        mock_area = MagicMock()
+        mock_area.area_id = TEST_AREA_ID
+        mock_area.name = "Living Room"
+        mock_area.enabled = True
+        mock_area.state = "heat"
+        mock_area.current_temperature = 19.5
+        mock_area.target_temperature = 21.0
+        mock_area.devices = {}
+        mock_area.schedules = {}
+        mock_area.preset_mode = "comfort"
+        mock_area.boost_manager.boost_mode_active = False
+        mock_area.hvac_mode = "heat"
+        mock_area.hysteresis_override = None
+        mock_area.manual_override = False
+        mock_area.hidden = False
+        mock_area.shutdown_switches_when_idle = True
+        mock_area.window_sensors = []
+        mock_area.presence_sensors = []
+        mock_area.boost_manager.night_boost_enabled = False
+        mock_area.boost_manager.smart_boost_enabled = False
+        mock_area.boost_manager.weather_entity_id = None
+        mock_area.get_effective_target_temperature.return_value = 21.0
+
+        coordinator.area_manager.get_all_areas.return_value = {TEST_AREA_ID: mock_area}
+
+        # Verify temperature tracker is empty before update
+        assert coordinator._temperature_tracker.get_latest_temperature(TEST_AREA_ID) is None
+
+        # Run update
+        await coordinator._async_update_data()
+
+        # Verify temperature was recorded
+        recorded_temp = coordinator._temperature_tracker.get_latest_temperature(TEST_AREA_ID)
+        assert recorded_temp == 19.5
+
+        # Verify trend calculation works after multiple updates
+        mock_area.current_temperature = 19.3  # Temperature dropping
+        await coordinator._async_update_data()
+
+        # Now we should have enough data for trend calculation
+        trend = coordinator._temperature_tracker.get_trend(TEST_AREA_ID)
+        # Trend should be negative (temperature is dropping)
+        assert trend is not None
+
 
 class TestStateChangeHandling:
     """Test state change event handling."""

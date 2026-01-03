@@ -419,6 +419,7 @@
     "heating": "Heating",
     "schedule": "Schedule",
     "smartBoost": "Smart Boost",
+    "proactiveMaintenance": "Proactive",
     "sensors": "Sensors",
     "mode": "Mode",
     "noClimateDevices": "No climate/temperature devices available. Toggle off the filter to see all devices.",

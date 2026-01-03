@@ -69,12 +69,25 @@ def _apply_heating_curve(
         return candidate
 
     area = area_manager.get_area(area_id)
-    coefficient = area.heating_curve_coefficient or area_manager.default_heating_curve_coefficient
-    hc = _heating_curves.get(area_id) or HeatingCurve(
-        heating_system=("underfloor" if area.heating_type == "floor_heating" else "radiator"),
-        coefficient=coefficient,
+    # Use area-specific coefficient if set, otherwise use global default
+    coefficient = (
+        area.heating_curve_coefficient
+        if area.heating_curve_coefficient is not None
+        else area_manager.default_heating_curve_coefficient
     )
-    _heating_curves[area_id] = hc
+
+    # Get or create heating curve instance
+    hc = _heating_curves.get(area_id)
+    if hc is None:
+        hc = HeatingCurve(
+            heating_system=("underfloor" if area.heating_type == "floor_heating" else "radiator"),
+            coefficient=coefficient,
+        )
+        _heating_curves[area_id] = hc
+    else:
+        # Update coefficient in case it changed
+        hc._coefficient = coefficient
+
     if outside_temp is not None:
         hc.update(area.target_temperature, outside_temp)
         if hc.value is not None:

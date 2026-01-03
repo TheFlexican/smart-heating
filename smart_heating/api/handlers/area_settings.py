@@ -453,6 +453,13 @@ async def handle_set_area_heating_curve(
         if not area:
             return web.json_response({"error": f"Area {area_id} not found"}, status=404)
 
+        _LOGGER.info(
+            "Setting heating curve for area %s: data=%s, current_coefficient=%s",
+            area_id,
+            data,
+            area.heating_curve_coefficient,
+        )
+
         # Handle use_global flag
         if "use_global" in data:
             use_global = bool(data["use_global"])
@@ -473,8 +480,14 @@ async def handle_set_area_heating_curve(
         await area_manager.async_save()
         await _refresh_coordinator(hass)
 
+        _LOGGER.info(
+            "Heating curve updated for area %s: new_coefficient=%s",
+            area_id,
+            area.heating_curve_coefficient,
+        )
+
         return web.json_response({"success": True})
-    except (HomeAssistantError, SmartHeatingError, KeyError, ValueError, AttributeError) as err:
+    except Exception as err:
         _LOGGER.error("Error setting area heating curve for %s", area_id, exc_info=True)
         return web.json_response({"error": ERROR_INTERNAL, "message": str(err)}, status=500)
 

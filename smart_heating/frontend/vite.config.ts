@@ -9,7 +9,7 @@ export default defineConfig({
     assetsDir: 'assets',
     rollupOptions: {
       output: {
-        entryFileNames: 'smart-heating.js',
+        entryFileNames: 'smart-heating-[hash].js',
         chunkFileNames: 'chunks/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
       },

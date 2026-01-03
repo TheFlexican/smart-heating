@@ -62,7 +62,7 @@ describe('OpenThermMetrics', () => {
     render(<OpenThermMetrics />)
 
     await waitFor(() => {
-      expect(metricsApi.getAdvancedMetrics).toHaveBeenCalledWith(7)
+      expect(metricsApi.getAdvancedMetrics).toHaveBeenCalledWith(1, undefined, true, false)
     })
 
     // Charts are rendered via mocked recharts components
@@ -82,7 +82,7 @@ describe('OpenThermMetrics', () => {
     })
   })
 
-  it('changes time range when toggle button is clicked', async () => {
+  it('changes time range when days toggle button is clicked', async () => {
     const user = userEvent.setup()
     render(<OpenThermMetrics />)
 
@@ -90,7 +90,7 @@ describe('OpenThermMetrics', () => {
       expect(screen.getByTestId('line-chart')).toBeInTheDocument()
     })
 
-    const button3d = screen.getByRole('button', { name: /3d/i })
+    const button3d = screen.getByTestId('days-3d')
     const initialCallCount = vi.mocked(metricsApi.getAdvancedMetrics).mock.calls.length
     await user.click(button3d)
 
@@ -98,6 +98,69 @@ describe('OpenThermMetrics', () => {
       expect(vi.mocked(metricsApi.getAdvancedMetrics).mock.calls.length).toBeGreaterThan(
         initialCallCount,
       )
+      // Last call should be with 3 days
+      const lastCall = vi.mocked(metricsApi.getAdvancedMetrics).mock.calls[
+        vi.mocked(metricsApi.getAdvancedMetrics).mock.calls.length - 1
+      ]
+      expect(lastCall).toEqual([3, undefined, true, false])
+    })
+  })
+
+  it('changes time range when hours toggle button is clicked', async () => {
+    const user = userEvent.setup()
+    render(<OpenThermMetrics />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('line-chart')).toBeInTheDocument()
+    })
+
+    const button2h = screen.getByTestId('hours-2h')
+    const initialCallCount = vi.mocked(metricsApi.getAdvancedMetrics).mock.calls.length
+    await user.click(button2h)
+
+    await waitFor(() => {
+      expect(vi.mocked(metricsApi.getAdvancedMetrics).mock.calls.length).toBeGreaterThan(
+        initialCallCount,
+      )
+      // Last call should be with 2 hours
+      const lastCall = vi.mocked(metricsApi.getAdvancedMetrics).mock.calls[
+        vi.mocked(metricsApi.getAdvancedMetrics).mock.calls.length - 1
+      ]
+      expect(lastCall).toEqual([2, undefined, false, true])
+    })
+  })
+
+  it('switches between hours and days correctly', async () => {
+    const user = userEvent.setup()
+    render(<OpenThermMetrics />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('line-chart')).toBeInTheDocument()
+    })
+
+    // Initially on 1d
+    expect(vi.mocked(metricsApi.getAdvancedMetrics)).toHaveBeenCalledWith(1, undefined, true, false)
+
+    // Switch to 5h
+    const button5h = screen.getByTestId('hours-5h')
+    await user.click(button5h)
+
+    await waitFor(() => {
+      const lastCall = vi.mocked(metricsApi.getAdvancedMetrics).mock.calls[
+        vi.mocked(metricsApi.getAdvancedMetrics).mock.calls.length - 1
+      ]
+      expect(lastCall).toEqual([5, undefined, false, true])
+    })
+
+    // Switch back to 5d
+    const button5d = screen.getByTestId('days-5d')
+    await user.click(button5d)
+
+    await waitFor(() => {
+      const lastCall = vi.mocked(metricsApi.getAdvancedMetrics).mock.calls[
+        vi.mocked(metricsApi.getAdvancedMetrics).mock.calls.length - 1
+      ]
+      expect(lastCall).toEqual([5, undefined, true, false])
     })
   })
 

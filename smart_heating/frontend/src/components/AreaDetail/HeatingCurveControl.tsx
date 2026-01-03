@@ -58,7 +58,14 @@ export const HeatingCurveControl: React.FC<HeatingCurveControlProps> = ({ area, 
             <Switch
               data-testid="heating-curve-override-switch"
               checked={!useGlobalHeatingCurve}
-              onChange={e => setUseGlobalHeatingCurve(!e.target.checked)}
+              onChange={e => {
+                const useAreaSpecific = e.target.checked
+                setUseGlobalHeatingCurve(!useAreaSpecific)
+                // When enabling area-specific, initialize with a default value if empty
+                if (useAreaSpecific && areaHeatingCurveCoefficient === null) {
+                  setAreaHeatingCurveCoefficient(1.5)
+                }
+              }}
             />
           }
           label={t('settingsCards.heatingCurveUseArea', 'Use area-specific coefficient')}
@@ -71,22 +78,38 @@ export const HeatingCurveControl: React.FC<HeatingCurveControlProps> = ({ area, 
             setAreaHeatingCurveCoefficient(e.target.value ? Number(e.target.value) : null)
           }
           disabled={useGlobalHeatingCurve || area.heating_type === 'airco'}
-          slotProps={{ htmlInput: { step: 0.1, min: 0.1, max: 10 } }}
-          inputProps={{ 'data-testid': 'heating-curve-control' }}
+          slotProps={{
+            htmlInput: { step: 0.1, min: 0.1, max: 10 },
+          }}
           helperText={getHelperText(area, useGlobalHeatingCurve, t)}
         />
         <Button
           variant="contained"
           onClick={async () => {
             try {
+              // Validate that we have a value when using area-specific
+              if (!useGlobalHeatingCurve && areaHeatingCurveCoefficient === null) {
+                alert(t('settingsCards.heatingCurveRequired', 'Please enter a coefficient value'))
+                return
+              }
+
+              console.log('[HeatingCurve] Saving:', {
+                areaId: area.id,
+                useGlobal: useGlobalHeatingCurve,
+                coefficient: areaHeatingCurveCoefficient,
+              })
+
               await setAreaHeatingCurve(
                 area.id,
                 useGlobalHeatingCurve,
                 areaHeatingCurveCoefficient ?? undefined,
               )
+
+              console.log('[HeatingCurve] Save successful')
               onUpdate()
             } catch (err) {
-              console.error('Failed to save heating curve coefficient', err)
+              console.error('[HeatingCurve] Failed to save heating curve coefficient:', err)
+              alert(`Failed to save: ${err}`)
             }
           }}
         >

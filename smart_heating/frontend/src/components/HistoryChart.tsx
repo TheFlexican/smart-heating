@@ -64,7 +64,7 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
   const [data, setData] = useState<HistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [timeRange, setTimeRange] = useState<number>(4)
+  const [timeRange, setTimeRange] = useState<string>('1h')
   const [customRange, setCustomRange] = useState(false)
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
@@ -85,8 +85,10 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
           endTime: new Date(endTime).toISOString(),
         })
       } else {
-        // Preset time range
-        result = await getHistory(areaId, { hours: timeRange })
+        // Preset time range - parse hours or days
+        const value = Number.parseInt(timeRange)
+        const isDays = timeRange.endsWith('d')
+        result = await getHistory(areaId, isDays ? { days: value } : { hours: value })
       }
 
       setData(result.entries || [])
@@ -195,20 +197,23 @@ const HistoryChart = ({ areaId }: HistoryChartProps) => {
             }}
             size="small"
           >
-            <ToggleButton data-testid="history-range-1h" value={1}>
+            <ToggleButton data-testid="history-range-1h" value="1h">
               1h
             </ToggleButton>
-            <ToggleButton data-testid="history-range-2h" value={2}>
+            <ToggleButton data-testid="history-range-2h" value="2h">
               2h
             </ToggleButton>
-            <ToggleButton data-testid="history-range-4h" value={4}>
-              4h
+            <ToggleButton data-testid="history-range-5h" value="5h">
+              5h
             </ToggleButton>
-            <ToggleButton data-testid="history-range-8h" value={8}>
-              8h
+            <ToggleButton data-testid="history-range-1d" value="1d">
+              1d
             </ToggleButton>
-            <ToggleButton data-testid="history-range-24h" value={24}>
-              24h
+            <ToggleButton data-testid="history-range-3d" value="3d">
+              3d
+            </ToggleButton>
+            <ToggleButton data-testid="history-range-5d" value="5d">
+              5d
             </ToggleButton>
             <ToggleButton data-testid="history-range-custom" value="custom">
               Custom

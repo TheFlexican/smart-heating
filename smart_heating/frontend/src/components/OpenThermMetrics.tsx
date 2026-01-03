@@ -30,19 +30,31 @@ import { useTranslation } from 'react-i18next'
 import { getAdvancedMetrics } from '../api/metrics'
 import { AdvancedMetricPoint } from '../types'
 
+type TimeRangeType = 'hours' | 'days'
+type HoursRange = 1 | 2 | 5
+type DaysRange = 1 | 3 | 5
+
 export default function OpenThermMetrics() {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [metrics, setMetrics] = useState<AdvancedMetricPoint[]>([])
-  const [timeRange, setTimeRange] = useState<1 | 3 | 7 | 30>(7)
+  const [timeRangeType, setTimeRangeType] = useState<TimeRangeType>('days')
+  const [hoursRange, setHoursRange] = useState<HoursRange>(1)
+  const [daysRange, setDaysRange] = useState<DaysRange>(1)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
 
   const loadData = useCallback(async () => {
     try {
       setError(null)
-      const metricsData = await getAdvancedMetrics(timeRange)
+      const value = timeRangeType === 'hours' ? hoursRange : daysRange
+      const metricsData = await getAdvancedMetrics(
+        value,
+        undefined,
+        timeRangeType === 'days',
+        timeRangeType === 'hours',
+      )
       setMetrics(metricsData.metrics || [])
       setLastUpdate(new Date())
     } catch (err) {
@@ -51,7 +63,8 @@ export default function OpenThermMetrics() {
     } finally {
       setLoading(false)
     }
-  }, [timeRange, t])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeRangeType, hoursRange, daysRange])
 
   useEffect(() => {
     setLoading(true)
@@ -63,6 +76,20 @@ export default function OpenThermMetrics() {
     const iv = setInterval(() => loadData(), 30000)
     return () => clearInterval(iv)
   }, [autoRefresh, loadData])
+
+  const handleHoursChange = (_: React.MouseEvent<HTMLElement>, value: HoursRange | null) => {
+    if (value) {
+      setTimeRangeType('hours')
+      setHoursRange(value)
+    }
+  }
+
+  const handleDaysChange = (_: React.MouseEvent<HTMLElement>, value: DaysRange | null) => {
+    if (value) {
+      setTimeRangeType('days')
+      setDaysRange(value)
+    }
+  }
 
   const heatingCurveData = metrics.map(m => ({
     time: new Date(m.timestamp).toLocaleTimeString(),
@@ -137,17 +164,42 @@ export default function OpenThermMetrics() {
             }
             label={t('advancedMetrics.autoRefresh', 'Auto-refresh (30s)')}
           />
-          <ToggleButtonGroup
-            value={timeRange}
-            exclusive
-            onChange={(_, v) => v && setTimeRange(v)}
-            size="small"
-          >
-            <ToggleButton value={1}>1d</ToggleButton>
-            <ToggleButton value={3}>3d</ToggleButton>
-            <ToggleButton value={7}>7d</ToggleButton>
-            <ToggleButton value={30}>30d</ToggleButton>
-          </ToggleButtonGroup>
+          <Stack direction="column" spacing={1}>
+            <ToggleButtonGroup
+              value={timeRangeType === 'hours' ? hoursRange : null}
+              exclusive
+              onChange={handleHoursChange}
+              size="small"
+              data-testid="hours-toggle-group"
+            >
+              <ToggleButton value={1} data-testid="hours-1h">
+                1h
+              </ToggleButton>
+              <ToggleButton value={2} data-testid="hours-2h">
+                2h
+              </ToggleButton>
+              <ToggleButton value={5} data-testid="hours-5h">
+                5h
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <ToggleButtonGroup
+              value={timeRangeType === 'days' ? daysRange : null}
+              exclusive
+              onChange={handleDaysChange}
+              size="small"
+              data-testid="days-toggle-group"
+            >
+              <ToggleButton value={1} data-testid="days-1d">
+                1d
+              </ToggleButton>
+              <ToggleButton value={3} data-testid="days-3d">
+                3d
+              </ToggleButton>
+              <ToggleButton value={5} data-testid="days-5d">
+                5d
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
         </Stack>
       </Box>
 

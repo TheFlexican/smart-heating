@@ -139,6 +139,8 @@ const DraggableSettings = ({
               display: 'grid',
               gridTemplateColumns,
               gap: 2,
+              width: '100%',
+              overflow: 'hidden',
             }}
           >
             {orderedSections.map(section => (
@@ -179,6 +181,8 @@ const SortableSettingCard = ({ section, expanded, onExpandedChange }: SortableSe
       style={style}
       sx={{
         opacity: isDragging ? 0.5 : 1,
+        minWidth: 0,
+        overflow: 'hidden',
       }}
     >
       <SettingsSection

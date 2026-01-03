@@ -91,8 +91,15 @@ export const AssignedDevicesList: React.FC<AssignedDevicesListProps> = ({
                           data-testid={`device-heating-chip-${device.id}`}
                           label="heating"
                           size="small"
-                          color="error"
-                          sx={{ height: 20, fontSize: '0.7rem' }}
+                          sx={{
+                            height: 22,
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            background: 'linear-gradient(135deg, #ff6b35 0%, #f59e0b 100%)',
+                            color: '#ffffff',
+                            boxShadow: '0 2px 8px rgba(255, 107, 53, 0.3)',
+                            border: 'none',
+                          }}
                         />
                       )}
                   </Box>
@@ -128,7 +135,7 @@ export const AssignedDevicesList: React.FC<AssignedDevicesListProps> = ({
                     )}
                   </Box>
                 }
-                secondaryTypographyProps={{ component: 'div' }}
+                slotProps={{ secondary: { component: 'div' } }}
               />
             </ListItem>
           ))}

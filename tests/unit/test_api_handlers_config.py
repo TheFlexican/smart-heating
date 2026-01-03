@@ -105,8 +105,8 @@ async def test_handle_set_opentherm_gateway_updates_config_entry(hass: HomeAssis
     coordinator.config_entry.options = {}
     coordinator.hass = hass
 
-    # Mock hass.config_entries.async_update_entry
-    hass.config_entries.async_update_entry = AsyncMock()
+    # Mock hass.config_entries.async_update_entry - returns bool, not awaitable
+    hass.config_entries.async_update_entry = MagicMock(return_value=True)
 
     await handle_set_opentherm_gateway(area_manager, coordinator, {"gateway_id": "gateway1"})
 
@@ -115,6 +115,36 @@ async def test_handle_set_opentherm_gateway_updates_config_entry(hass: HomeAssis
 
     # Verify HA config_entry async_update_entry was called
     hass.config_entries.async_update_entry.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_handle_set_opentherm_gateway_handles_config_entry_error(hass: HomeAssistant):
+    """Verify API handler gracefully handles ConfigEntry update errors."""
+    from homeassistant.exceptions import HomeAssistantError
+
+    # Prepare area manager and coordinator
+    area_manager = MagicMock(spec=AreaManager)
+    area_manager.set_opentherm_gateway = AsyncMock()
+
+    coordinator = MagicMock()
+    coordinator.config_entry = MagicMock()
+    coordinator.config_entry.options = {}
+    coordinator.hass = hass
+
+    # Mock async_update_entry to raise HomeAssistantError
+    hass.config_entries.async_update_entry = MagicMock(
+        side_effect=HomeAssistantError("Update failed")
+    )
+
+    # Should not raise exception, should log and continue
+    response = await handle_set_opentherm_gateway(
+        area_manager, coordinator, {"gateway_id": "gateway1"}
+    )
+
+    # Verify it still returns success
+    assert response.status == 200
+    body = json.loads(response.body.decode())
+    assert body["success"] is True
 
 
 class TestConfigHandlers:

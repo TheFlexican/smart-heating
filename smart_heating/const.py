@@ -15,6 +15,11 @@ CONF_MQTT_BASE_TOPIC: Final = "mqtt_base_topic"
 DEFAULT_UPDATE_INTERVAL: Final = 30  # seconds
 DEFAULT_MQTT_BASE_TOPIC: Final = "zigbee2mqtt"
 
+# PID control update intervals (longer to prevent excessive cycling)
+PID_UPDATE_INTERVAL_RADIATOR: Final = 180  # 3 minutes for radiators
+PID_UPDATE_INTERVAL_FLOOR_HEATING: Final = 300  # 5 minutes for floor heating
+PID_UPDATE_INTERVAL_AIRCO: Final = 120  # 2 minutes for air conditioning
+
 # Update interval
 UPDATE_INTERVAL: Final = timedelta(seconds=DEFAULT_UPDATE_INTERVAL)
 
