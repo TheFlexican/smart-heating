@@ -1063,11 +1063,11 @@ class SmartHeatingAPIView(HomeAssistantView):
 
 
 class SmartHeatingUIView(HomeAssistantView):
-    """UI view for Smart Heating (no auth required for serving static HTML)."""
+    """UI view for Smart Heating."""
 
     url = "/smart_heating_ui"
     name = "smart_heating:ui"
-    requires_auth = False
+    requires_auth = False  # Allow loading without auth, inject token if available
 
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the UI view.

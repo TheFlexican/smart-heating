@@ -111,12 +111,13 @@ class AreaScheduleManager:
 
         Priority order:
         1. Boost mode (if active)
-        2. Window open (reduce temperature)
-        3. Preset mode temperature
-        4. Schedule temperature
-        5. Base target temperature
-        6. Night boost adjustment
-        7. Presence boost (if detected)
+        2. Proactive maintenance (if active)
+        3. Window open (reduce temperature)
+        4. Preset mode temperature
+        5. Schedule temperature
+        6. Base target temperature
+        7. Night boost adjustment
+        8. Presence boost (if detected)
 
         Args:
             current_time: Current time (defaults to now)
@@ -137,12 +138,25 @@ class AreaScheduleManager:
         if self.area.boost_manager.boost_mode_active:
             return self.area.boost_manager.boost_temp
 
-        # Priority 2: Window open actions
+        # Priority 2: Proactive maintenance - force heating by raising target
+        # This ensures heating starts before temperature drops below hysteresis threshold
+        if self.area.boost_manager.proactive_maintenance_active:
+            # Get base target first
+            base_target, _ = self.get_base_target_from_preset_or_schedule(current_time)
+            # Return base target to trigger heating (current temp will be below this)
+            _LOGGER.debug(
+                "Proactive maintenance active for %s: maintaining target %.1f°C",
+                self.area.area_id,
+                base_target,
+            )
+            return base_target
+
+        # Priority 3: Window open actions
         window_temp = self.area.sensor_manager.get_window_open_temperature()
         if window_temp is not None:
             return window_temp
 
-        # Priority 3-5: Get base target from preset or schedule
+        # Priority 4-6: Get base target from preset or schedule
         target, source = self.get_base_target_from_preset_or_schedule(current_time)
 
         # Log what we're starting with for debugging

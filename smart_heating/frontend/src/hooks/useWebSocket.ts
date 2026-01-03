@@ -119,20 +119,17 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const reconnectAttempts = useRef(0)
   const wsFailureCount = useRef(0)
   const maxReconnectAttempts = 10 // Increased for mobile
-  const maxWsFailuresBeforeFallback = 3 // Fall back to polling after 3 WebSocket failures
+  const maxWsFailuresBeforeFallback = 10 // More resilient before giving up on WebSocket
   const wsRetryIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
   const messageIdRef = useRef(1)
   const isAuthenticatedRef = useRef(false)
   const pingIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
-  const lastPongRef = useRef<number>(Date.now())
-  const lastPingSentRef = useRef<number>(0) // Track when we last sent a ping
   const intentionalCloseRef = useRef(false)
   const optionsRef = useRef(options)
   const connectionStartTimeRef = useRef<number | null>(null)
   const metricsRef = useRef<WebSocketMetrics>(metrics)
-  const iosHeartbeatRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
-  // Detect iOS for platform-specific optimizations
+  // Detect iOS for logging purposes
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
 
   // Keep latest options and metrics in refs to avoid recreating callbacks
@@ -386,59 +383,35 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   )
 
   // Helper: Setup keepalive ping
-  const setupKeepalivePing = useCallback(
-    (ws: WebSocket) => {
-      // iOS Safari needs very aggressive keepalive to prevent disconnections
-      // Use 8s for iOS (Safari aggressively suspends connections)
-      // Use 30s for other browsers
-      const pingInterval = isIOS ? 8000 : 30000
-      const pongTimeout = isIOS ? 12000 : 20000 // Shorter timeout for iOS
+  const setupKeepalivePing = useCallback((ws: WebSocket) => {
+    // Use 30s for all platforms (industry standard)
+    // Server heartbeat (55s) handles dead connection detection
+    const PING_INTERVAL = 30000
 
-      if (pingIntervalRef.current) {
-        clearInterval(pingIntervalRef.current)
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current)
+    }
+
+    console.log('[WebSocket] Setting up keepalive with 30s interval')
+
+    pingIntervalRef.current = setInterval(() => {
+      if (ws.readyState !== WebSocket.OPEN) {
+        console.warn('[WebSocket] Connection not open, clearing interval')
+        if (pingIntervalRef.current) {
+          clearInterval(pingIntervalRef.current)
+          pingIntervalRef.current = undefined
+        }
+        return
       }
 
-      // Reset ping/pong tracking on new connection
-      lastPongRef.current = Date.now()
-      lastPingSentRef.current = 0 // No ping sent yet
-
-      console.log(
-        `[WebSocket] Setting up keepalive with ${pingInterval / 1000}s interval (iOS: ${isIOS})`,
-      )
-
-      pingIntervalRef.current = setInterval(() => {
-        if (ws.readyState !== WebSocket.OPEN) {
-          console.warn('[WebSocket] Keepalive found connection not OPEN, clearing interval')
-          return
-        }
-
-        // Only check for missing pong if we've sent a ping previously
-        if (lastPingSentRef.current > 0) {
-          const timeSinceLastPong = Date.now() - lastPongRef.current
-          if (timeSinceLastPong > pongTimeout) {
-            console.warn(
-              `[WebSocket] No pong received in ${pongTimeout / 1000}s, forcing reconnect`,
-            )
-            ws.close()
-            return
-          }
-        }
-
-        // Send ping and track when it was sent
-        try {
-          ws.send(JSON.stringify({ id: messageIdRef.current++, type: 'ping' }))
-          lastPingSentRef.current = Date.now()
-          if (isIOS) {
-            console.debug('[WebSocket] iOS ping sent')
-          }
-        } catch (err) {
-          console.error('[WebSocket] Failed to send ping:', err)
-          ws.close()
-        }
-      }, pingInterval)
-    },
-    [isIOS],
-  )
+      try {
+        ws.send(JSON.stringify({ id: messageIdRef.current++, type: 'ping' }))
+      } catch (err) {
+        console.error('[WebSocket] Failed to send ping:', err)
+        ws.close()
+      }
+    }, PING_INTERVAL)
+  }, [])
 
   // Forward ref for connect function to break circular dependency
   const connectRef = useRef<(() => void) | null>(null)
@@ -465,34 +438,9 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       optionsRef.current?.onConnect?.()
       setupKeepalivePing(ws)
 
-      // iOS Safari: Additional heartbeat monitor to detect silent connection drops
-      if (isIOS && !iosHeartbeatRef.current) {
-        console.log('[WebSocket] iOS: Starting heartbeat monitor')
-        iosHeartbeatRef.current = setInterval(() => {
-          if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-            console.warn('[WebSocket] iOS: Heartbeat detected closed connection, reconnecting')
-            if (iosHeartbeatRef.current) {
-              clearInterval(iosHeartbeatRef.current)
-              iosHeartbeatRef.current = undefined
-            }
-            reconnectAttempts.current = 0
-            connectRef.current?.()
-          } else {
-            // Verify connection is actually working by checking last pong time
-            const timeSinceLastPong = Date.now() - lastPongRef.current
-            if (timeSinceLastPong > 25000) {
-              console.warn(
-                `[WebSocket] iOS: Heartbeat detected stale connection (${timeSinceLastPong}ms since pong)`,
-              )
-              wsRef.current.close()
-            }
-          }
-        }, 20000) // Check every 20 seconds
-      }
-
       ws.send(JSON.stringify({ id: messageIdRef.current++, type: 'smart_heating/subscribe' }))
     },
-    [transportMode, stopPollingFallback, updateMetrics, setupKeepalivePing, isIOS],
+    [transportMode, stopPollingFallback, updateMetrics, setupKeepalivePing],
   )
 
   // Helper: Handle auth_invalid message
@@ -557,7 +505,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const handleLegacyMessage = useCallback((message: WebSocketMessage) => {
     switch (message.type) {
       case 'pong':
-        lastPongRef.current = Date.now()
+        // Pong received - no action needed (server heartbeat handles connection health)
         break
       case 'areas_updated':
         if (message.data?.areas) {
@@ -603,36 +551,26 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   )
 
   // Helper: Schedule reconnection attempt with exponential backoff
-  const scheduleReconnect = useCallback(
-    (connectFn: () => void) => {
-      // iOS Safari: Use faster reconnection schedule
-      // First attempt: immediate (0ms)
-      // Second attempt: 500ms
-      // Third attempt: 1s
-      // Fourth+ attempts: exponential backoff up to 10s max (not 30s)
-      let delay: number
-      if (isIOS) {
-        if (reconnectAttempts.current === 0) {
-          delay = 0 // Immediate first retry for iOS
-        } else if (reconnectAttempts.current === 1) {
-          delay = 500 // Quick second retry
-        } else {
-          delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts.current - 2), 10000)
-        }
-        console.log(
-          `[WebSocket] iOS: Scheduling reconnect attempt ${reconnectAttempts.current + 1} in ${delay}ms`,
-        )
-      } else {
-        delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000)
-      }
+  const scheduleReconnect = useCallback((connectFn: () => void) => {
+    // Exponential backoff with jitter (industry standard)
+    // Prevents thundering herd when server restarts
+    const baseDelay = 1000 // Start at 1 second
+    const maxDelay = 30000 // Cap at 30 seconds
+    const jitter = Math.random() * 1000 // 0-1000ms randomization
 
-      reconnectTimeoutRef.current = setTimeout(() => {
-        reconnectAttempts.current++
-        connectFn()
-      }, delay)
-    },
-    [isIOS],
-  )
+    const exponentialDelay = Math.min(baseDelay * Math.pow(2, reconnectAttempts.current), maxDelay)
+
+    const delay = exponentialDelay + jitter
+
+    console.log(
+      `[WebSocket] Reconnect attempt ${reconnectAttempts.current + 1} in ${Math.round(delay)}ms`,
+    )
+
+    reconnectTimeoutRef.current = setTimeout(() => {
+      reconnectAttempts.current++
+      connectFn()
+    }, delay)
+  }, [])
 
   // Helper: Handle max reconnect attempts reached
   const handleMaxReconnectFailure = useCallback(() => {
@@ -708,6 +646,9 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         (wsRef.current.readyState === WebSocket.OPEN ||
           wsRef.current.readyState === WebSocket.CONNECTING)
       ) {
+        if (isIOS) {
+          console.log('[WebSocket] iOS: Connection already exists, skipping new connection')
+        }
         return
       }
 
@@ -720,6 +661,13 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       // Connect to Home Assistant WebSocket API
       const protocol = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:'
       const wsUrl = `${protocol}//${globalThis.location.host}/api/websocket`
+
+      if (isIOS) {
+        console.log('[WebSocket] iOS: Connecting to', wsUrl)
+        console.log('[WebSocket] iOS: User agent:', navigator.userAgent)
+        console.log('[WebSocket] iOS: Protocol:', protocol)
+        console.log('[WebSocket] iOS: Host:', globalThis.location.host)
+      }
 
       const ws = new WebSocket(wsUrl)
       wsRef.current = ws
@@ -774,12 +722,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
           pingIntervalRef.current = undefined
         }
 
-        // Clear iOS heartbeat monitor
-        if (iosHeartbeatRef.current) {
-          clearInterval(iosHeartbeatRef.current)
-          iosHeartbeatRef.current = undefined
-        }
-
         // Don't reconnect if this was an intentional close
         if (intentionalCloseRef.current) {
           console.log('[WebSocket] Closed intentionally, not reconnecting')
@@ -810,7 +752,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     recordDisconnection,
     scheduleReconnect,
     handleMaxReconnectFailure,
-    isIOS,
   ])
 
   // Assign to ref for use in callbacks that can't depend on connect directly
@@ -826,11 +767,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     if (pingIntervalRef.current) {
       clearInterval(pingIntervalRef.current)
       pingIntervalRef.current = undefined
-    }
-
-    if (iosHeartbeatRef.current) {
-      clearInterval(iosHeartbeatRef.current)
-      iosHeartbeatRef.current = undefined
     }
 
     if (wsRef.current) {
@@ -873,62 +809,37 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         console.log('[WebSocket] Page hidden')
-        if (isIOS) {
-          console.log('[WebSocket] iOS: Page hidden, connection may be suspended by Safari')
-        }
+        // Don't close - let it naturally timeout
       } else {
-        console.log('[WebSocket] Page visible - checking connection')
-        // Reconnect if connection was lost while page was hidden
-        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-          console.log('[WebSocket] Reconnecting after page became visible')
-          reconnectAttempts.current = 0
-          connect()
-        } else if (isIOS) {
-          // On iOS, even if connection appears open, verify with a ping
-          console.log('[WebSocket] iOS: Sending verification ping after page visible')
-          try {
-            wsRef.current.send(JSON.stringify({ id: messageIdRef.current++, type: 'ping' }))
-          } catch (err) {
-            console.error('[WebSocket] iOS: Failed to send verification ping, reconnecting', err)
+        console.log('[WebSocket] Page visible')
+
+        // Debounce: Wait 500ms before reconnecting
+        // Prevents rapid reconnects when quickly switching tabs
+        setTimeout(() => {
+          if (!document.hidden && (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN)) {
+            console.log('[WebSocket] Reconnecting after page visible')
             reconnectAttempts.current = 0
             connect()
           }
-        }
+        }, 500)
       }
     }
 
-    // Handle globalThis focus (iOS Safari specific)
+    // Handle window focus
     const handleFocus = () => {
       console.log('[WebSocket] Window focused')
       if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
         console.log('[WebSocket] Reconnecting after window focus')
         reconnectAttempts.current = 0
         connect()
-      } else if (isIOS) {
-        // iOS Safari: verify connection is actually working
-        console.log('[WebSocket] iOS: Verifying connection after focus')
-        try {
-          wsRef.current.send(JSON.stringify({ id: messageIdRef.current++, type: 'ping' }))
-        } catch (err) {
-          console.error('[WebSocket] iOS: Connection verification failed, reconnecting', err)
-          reconnectAttempts.current = 0
-          connect()
-        }
       }
     }
 
-    // Handle pagehide event (iOS specific - fires before unload)
+    // Handle pagehide event (fires before unload)
     const handlePageHide = (event: PageTransitionEvent) => {
       if (event.persisted) {
-        // Page is being cached (bfcache) - keep connection alive
+        // Page is being cached (bfcache) - will reconnect when restored
         console.log('[WebSocket] Page hidden (bfcache) - will reconnect when restored')
-        if (isIOS) {
-          // On iOS, clear the ping interval to reduce battery usage
-          if (pingIntervalRef.current) {
-            clearInterval(pingIntervalRef.current)
-            pingIntervalRef.current = undefined
-          }
-        }
       } else {
         // Page is being unloaded - close connection gracefully
         console.log('[WebSocket] Page unloading - closing connection')
@@ -958,12 +869,9 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       }
     }
 
-    // Handle online/offline events (network state changes - critical for iOS)
+    // Handle online/offline events (network state changes)
     const handleOnline = () => {
-      console.log('[WebSocket] Network online')
-      if (isIOS) {
-        console.log('[WebSocket] iOS: Network online, reconnecting')
-      }
+      console.log('[WebSocket] Network online - reconnecting')
       reconnectAttempts.current = 0
       connect()
     }
@@ -975,14 +883,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       }
     }
 
-    // iOS-specific: Handle resume event (when device wakes from sleep)
+    // Handle resume event (when device wakes from sleep)
     const handleResume = () => {
-      if (isIOS) {
-        console.log('[WebSocket] iOS: Device resumed from sleep, verifying connection')
-        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-          reconnectAttempts.current = 0
-          connect()
-        }
+      console.log('[WebSocket] Device resumed from sleep')
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        reconnectAttempts.current = 0
+        connect()
       }
     }
 
