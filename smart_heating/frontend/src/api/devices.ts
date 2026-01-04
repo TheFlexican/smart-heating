@@ -16,8 +16,4 @@ export const refreshDevices = async (): Promise<{
   return response.data
 }
 
-export const setHideDevicesPanel = async (hide: boolean): Promise<void> => {
-  await apiClient.post('/hide_devices_panel', { hide_devices_panel: hide })
-}
-
 export default {}

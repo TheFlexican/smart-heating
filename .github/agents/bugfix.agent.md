@@ -91,7 +91,7 @@ This agent orchestrates specialized agents (backend, frontend, testing, quality)
 1. **SonarQube MCP Server** - Code quality analysis, issue detection
 2. **SonarQube for IDE** - Real-time quality feedback, security scanning
 3. **TypeScript Compiler** - Type checking (`tsc --noEmit`)
-4. **Linters** - ESLint, Ruff, Black for code formatting
+4. **Linters** - ESLint and Ruff for code formatting
 
 ### Deployment Tools
 1. **deploy_test.sh** - Deploy to Docker test environment
@@ -206,7 +206,7 @@ Docs:
    ├─ Address BLOCKER/HIGH severity issues
    ├─ Verify no new code smells introduced
    ├─ Check TypeScript compilation (no errors)
-   └─ Run linters (ESLint, Ruff, Black)
+   └─ Run linters (ESLint, Ruff)
 
 8. DOCUMENTATION PHASE
    ├─ Update CHANGELOG.md

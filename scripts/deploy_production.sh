@@ -46,59 +46,37 @@ else
 fi
 echo ""
 
-# Need to stop Home Assistant for changes to take effect
-echo -e "${YELLOW}[4/4]${NC} Stopping Home Assistant..."
-ssh root@192.168.2.2 -p 22222 "ha core stop"
+echo -e "${YELLOW}[2/3]${NC} Packing integration files..."
 
-# echo -e "${YELLOW}[2/3]${NC} Backing up current installation..."
-# BACKUP_DIR="/Users/ralf/backup/smart_heating_backup_$(date +%Y%m%d_%H%M%S)"
-# cp -R /Volumes/config/custom_components/smart_heating "$BACKUP_DIR"
-# echo -e "${GREEN}✓${NC} Backup created: $BACKUP_DIR"
-# echo ""
-
-echo -e "${YELLOW}[3/3]${NC} Syncing files to production..."
-
-# Check if destination is accessible
-if [[ ! -d "/Volumes/config/custom_components" ]]; then
-    echo -e "${RED}✗${NC} Destination not accessible: /Volumes/config/custom_components"
-    echo "  Please ensure the network mount is connected"
-    exit 1
-fi
-
-# Use rsync for much faster incremental sync (no compression/decompression overhead)
-# --ignore-errors: continue even if some files fail (but still report exit code)
-# Exit code 23 = partial transfer (some files failed, but most succeeded)
-# Temporarily disable exit-on-error for rsync since we handle the exit code ourselves
-set +e
-rsync -av --delete --ignore-errors \
+# Create tarball excluding unnecessary files
+cd "$INTEGRATION_DIR"
+tar czf /tmp/smart_heating_sync.tar.gz \
     --exclude='frontend/node_modules' \
     --exclude='frontend/src' \
     --exclude='__pycache__' \
     --exclude='.pytest_cache' \
+    --exclude='*.pyc' \
     --exclude='.DS_Store' \
     --exclude='coverage' \
-    --exclude='coverage_html' \
     --exclude='venv' \
-    --exclude='frontend/test-results/' \
-    --exclude='frontend/tests/' \
-    "$INTEGRATION_DIR/" /Volumes/config/custom_components/smart_heating/
+    --exclude='._*' \
+    .
 
-RSYNC_EXIT=$?
-set -e
-if [[ $RSYNC_EXIT -eq 0 ]]; then
-    echo -e "${GREEN}✓${NC} All files synced successfully"
-elif [[ $RSYNC_EXIT -eq 23 ]]; then
-    echo -e "${YELLOW}⚠${NC} Files synced with warnings (some files may have failed)"
-    echo "  This is usually safe - core files were transferred"
-else
-    echo -e "${RED}✗${NC} Sync failed with exit code: $RSYNC_EXIT"
-    exit 1
-fi
-echo ""
+cd - > /dev/null
 
-# Need to start Home Assistant for changes to take effect
-echo -e "${YELLOW}[4/4]${NC} Starting Home Assistant..."
-ssh root@192.168.2.2 -p 22222 "ha core start"
+# Extract in production container
+echo -e "${YELLOW}[2/3]${NC} Copying current folder to backup..."
+cp -R /Volumes/config/custom_components/smart_heating /Users/ralf/backup/smart_heating_backup_$(date +%Y%m%d_%H%M%S)
+
+echo -e "${YELLOW}[2/3]${NC} Unpacking integration files..."
+tar xzf /tmp/smart_heating_sync.tar.gz -C /Volumes/config/custom_components/smart_heating
+
+# Need to restart Home Assistant for changes to take effect
+echo -e "${YELLOW}[2/3]${NC} Restarting Home Assistant..."
+ssh root@192.168.2.2 -p 22222 "ha core restart"
+
+# Clean up
+rm /tmp/smart_heating_sync.tar.gz
 
 echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
 echo -e "${GREEN}  Sync Complete!${NC}"

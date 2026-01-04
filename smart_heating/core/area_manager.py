@@ -433,16 +433,6 @@ class AreaManager:
         self._config_service.hysteresis = value
 
     @property
-    def hide_devices_panel(self) -> bool:
-        """Get hide devices panel setting."""
-        return self._config_service.hide_devices_panel
-
-    @hide_devices_panel.setter
-    def hide_devices_panel(self, value: bool) -> None:
-        """Set hide devices panel setting."""
-        self._config_service.hide_devices_panel = value
-
-    @property
     def advanced_control_enabled(self) -> bool:
         """Get advanced control enabled state."""
         return self._config_service.advanced_control_enabled

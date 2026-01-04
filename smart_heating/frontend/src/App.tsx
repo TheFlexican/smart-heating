@@ -4,13 +4,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider, CssBaseline, Box, Snackbar, Alert, CircularProgress } from '@mui/material'
 import Header from './components/Header'
 import ZoneList from './components/ZoneList'
-import DevicePanel from './components/DevicePanel'
 import MobileBottomNav from './components/MobileBottomNav'
 import { VacationModeBanner } from './components/VacationModeBanner'
-import { Zone, Device } from './types'
+import { Zone } from './types'
 import { getZones } from './api/areas'
-import { getDevices } from './api/devices'
-import { getConfig } from './api/config'
 import { getSafetySensor } from './api/safety'
 import { useWebSocket } from './hooks/useWebSocket'
 import { createHATheme } from './theme'
@@ -44,8 +41,6 @@ interface ZonesOverviewProps {
   areas: Zone[]
   loading: boolean
   showHidden: boolean
-  hideDevicesPanel: boolean
-  availableDevices: Device[]
   handleZonesUpdate: () => void
   setShowHidden: (value: boolean) => void
   onAreasReorder: (areas: Zone[]) => void
@@ -59,8 +54,6 @@ const ZonesOverview = ({
   areas,
   loading,
   showHidden,
-  hideDevicesPanel,
-  availableDevices,
   handleZonesUpdate,
   setShowHidden,
   onAreasReorder,
@@ -116,23 +109,16 @@ const ZonesOverview = ({
           onPatchArea={onPatchArea}
         />
       </Box>
-      {!hideDevicesPanel && (
-        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-          <DevicePanel devices={availableDevices} onUpdate={handleZonesUpdate} />
-        </Box>
-      )}
     </Box>
   </Box>
 )
 
 function App() {
   const [areas, setAreas] = useState<Zone[]>([])
-  const [availableDevices, setAvailableDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
   const [wsConnected, setWsConnected] = useState(false)
   const [showConnectionAlert, setShowConnectionAlert] = useState(false)
   const [showHidden, setShowHidden] = useState(false)
-  const [hideDevicesPanel, setHideDevicesPanel] = useState(false)
   const [safetyAlertActive, setSafetyAlertActive] = useState(false)
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>(() => {
     // Load theme preference from localStorage
@@ -146,10 +132,8 @@ function App() {
   const loadData = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true)
-      const [areasData, devicesData, configData, safetySensorData] = await Promise.all([
+      const [areasData, safetySensorData] = await Promise.all([
         getZones(),
-        getDevices(),
-        getConfig(),
         getSafetySensor().catch(() => null),
       ])
 
@@ -185,13 +169,6 @@ function App() {
       } else {
         setSafetyAlertActive(false)
       }
-
-      // Store hide devices panel setting
-      setHideDevicesPanel(configData.hide_devices_panel || false)
-
-      // Filter out devices already assigned to areas
-      const assignedDeviceIds = new Set(areasData.flatMap(area => area.devices.map(d => d.id)))
-      setAvailableDevices(devicesData.filter(device => !assignedDeviceIds.has(device.id)))
     } catch (error) {
       console.error('Failed to load data:', error)
     } finally {
@@ -221,17 +198,6 @@ function App() {
 
       // Merge updated list with saved order or previous client order
       setAreas(prev => mergeZones(prev, updatedZones, savedOrder))
-
-      // Reload devices to update available list
-      const assignedDeviceIds = new Set<string>()
-      for (const area of updatedZones) {
-        for (const d of area.devices) {
-          assignedDeviceIds.add(d.id)
-        }
-      }
-      getDevices().then(devicesData => {
-        setAvailableDevices(devicesData.filter(device => !assignedDeviceIds.has(device.id)))
-      })
 
       // Also refresh safety sensor status
       getSafetySensor()
@@ -299,8 +265,6 @@ function App() {
                   areas={areas}
                   loading={loading}
                   showHidden={showHidden}
-                  hideDevicesPanel={hideDevicesPanel}
-                  availableDevices={availableDevices}
                   handleZonesUpdate={handleZonesUpdate}
                   setShowHidden={setShowHidden}
                   transportMode={transportMode}

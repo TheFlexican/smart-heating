@@ -101,6 +101,7 @@ class TestProactiveMaintenanceHandler:
         area.name = "Living Room"
         area.current_temperature = 19.8
         area.target_temperature = 20.0
+        area.get_effective_target_temperature = MagicMock(return_value=20.0)
         area.boost_manager = mock_boost_manager
         area.hysteresis_override = None  # Explicitly set to None so _get_hysteresis uses default
         return area
@@ -180,6 +181,7 @@ class TestProactiveMaintenanceHandler:
     async def test_check_area_no_target_temperature(self, handler, mock_area):
         """Test check when no target temperature set."""
         mock_area.target_temperature = None
+        mock_area.get_effective_target_temperature.return_value = None
 
         result = await handler.async_check_area(mock_area)
 
@@ -234,7 +236,7 @@ class TestProactiveMaintenanceHandler:
         result = await handler.async_check_area(mock_area)
 
         assert result.should_heat is False
-        assert "already below" in result.reason.lower()
+        assert "significantly below" in result.reason.lower()
 
     @pytest.mark.asyncio
     async def test_check_area_cannot_predict_time(

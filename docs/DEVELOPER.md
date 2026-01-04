@@ -77,7 +77,7 @@ bash scripts/deploy_test.sh
 
 ## Linters, formatting and pre-commit
 
-- Backend uses `black` and `ruff` (pre-commit hooks may run automatically on commit).
+- Backend uses `ruff` as the single linter/formatter (pre-commit hooks may run automatically on commit).
 - Frontend uses `eslint` and `prettier` - run `npm run lint` under `smart_heating/frontend`.
 
 ## CI, quality gating and release notes

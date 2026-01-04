@@ -200,7 +200,7 @@ export const AdvancedSettings: React.FC<{
         </Box>
       </Paper>
 
-      {/* Advanced Control Accordion */}
+      {/* Advanced Control Accordion */
       <Accordion sx={{ mt: 3 }}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography variant="h6">
