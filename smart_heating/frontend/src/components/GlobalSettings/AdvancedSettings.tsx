@@ -26,8 +26,6 @@ export const AdvancedSettings: React.FC<{
   onHysteresisChange: (e: Event | React.SyntheticEvent, v: number | number[]) => void
   onHysteresisCommit: (e: Event | React.SyntheticEvent, v: number | number[]) => void
   onOpenHysteresisHelp: () => void
-  hideDevicesPanel: boolean
-  onToggleHideDevicesPanel: (hide: boolean) => void
   advancedControlEnabled: boolean
   heatingCurveEnabled: boolean
   pwmEnabled: boolean
@@ -46,8 +44,6 @@ export const AdvancedSettings: React.FC<{
   onHysteresisChange,
   onHysteresisCommit,
   onOpenHysteresisHelp,
-  hideDevicesPanel,
-  onToggleHideDevicesPanel,
   advancedControlEnabled,
   heatingCurveEnabled,
   pwmEnabled,
@@ -202,47 +198,6 @@ export const AdvancedSettings: React.FC<{
             />
           </Box>
         </Box>
-      </Paper>
-
-      {/* UI Settings */}
-      <Paper sx={{ p: 3, mt: 3 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          {t('globalSettings.ui.title', 'User Interface')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          {t('globalSettings.ui.description', 'Customize the user interface to your preferences.')}
-        </Typography>
-
-        <Stack spacing={2}>
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              p: 2,
-              border: 1,
-              borderColor: 'divider',
-              borderRadius: 1,
-            }}
-          >
-            <Box>
-              <Typography variant="subtitle1">
-                {t('globalSettings.ui.hideDevicesPanel', 'Hide Available Devices Panel')}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {t(
-                  'globalSettings.ui.hideDevicesPanelDescription',
-                  "Hide the sidebar with available devices when you're done setting up zones.",
-                )}
-              </Typography>
-            </Box>
-            <Switch
-              checked={hideDevicesPanel}
-              onChange={e => onToggleHideDevicesPanel(e.target.checked)}
-              color="primary"
-            />
-          </Box>
-        </Stack>
       </Paper>
 
       {/* Advanced Control Accordion */}

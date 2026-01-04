@@ -75,7 +75,6 @@ class PersistenceService:
                 "frost_protection_temp", DEFAULT_FROST_PROTECTION_TEMP
             ),
             "hysteresis": data.get("hysteresis", 0.5),
-            "hide_devices_panel": data.get("hide_devices_panel", False),
             "advanced_control_enabled": data.get("advanced_control_enabled", False),
             "heating_curve_enabled": data.get("heating_curve_enabled", False),
             "pwm_enabled": data.get("pwm_enabled", False),
@@ -114,7 +113,6 @@ class PersistenceService:
             "frost_protection_enabled": global_config.get("frost_protection_enabled"),
             "frost_protection_temp": global_config.get("frost_protection_temp"),
             "hysteresis": global_config.get("hysteresis"),
-            "hide_devices_panel": global_config.get("hide_devices_panel"),
             "global_presence_sensors": global_config.get("global_presence_sensors"),
             "advanced_control_enabled": global_config.get("advanced_control_enabled"),
             "heating_curve_enabled": global_config.get("heating_curve_enabled"),

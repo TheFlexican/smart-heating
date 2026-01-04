@@ -78,7 +78,7 @@ class ProactiveMaintenanceHandler:
             Tuple of (current_temp, target_temp)
         """
         current_temp = area.current_temperature
-        target_temp = area.target_temperature
+        target_temp = area.get_effective_target_temperature()
         return current_temp, target_temp
 
     def _check_temperature_trend(
@@ -154,7 +154,11 @@ class ProactiveMaintenanceHandler:
         target_temp: float,
         trend: float,
     ) -> tuple[float, ProactiveMaintenanceResult | None]:
-        """Check if temperature is below hysteresis threshold.
+        """Check if temperature is significantly below hysteresis threshold.
+
+        Proactive maintenance should only skip if we're so far below threshold that
+        normal heating should already be active. A small margin (0.1°C) below threshold
+        is still within proactive range.
 
         Returns:
             Tuple of (threshold_temp, early_exit_result). If early_exit_result is not None,
@@ -163,18 +167,21 @@ class ProactiveMaintenanceHandler:
         hysteresis = self._get_hysteresis(area)
         threshold_temp = target_temp - hysteresis
 
-        if current_temp <= threshold_temp:
+        # Only skip proactive if temperature is significantly below threshold
+        # (more than 0.2°C below = normal heating should handle it)
+        skip_margin = 0.2
+        if current_temp < (threshold_temp - skip_margin):
             _LOGGER.info(
-                "⚠️  %s already below threshold: current=%.1f°C <= threshold=%.1f°C - normal heating will handle this",
+                "⚠️  %s significantly below threshold: current=%.1f°C < %.1f°C - normal heating will handle this",
                 area.name,
                 current_temp,
-                threshold_temp,
+                threshold_temp - skip_margin,
             )
             if self.area_logger:
                 self.area_logger.log_event(
                     area.area_id,
                     "proactive_maintenance",
-                    f"Proactive maintenance check: Already below threshold ({current_temp:.1f}°C <= {threshold_temp:.1f}°C)",
+                    f"Proactive maintenance check: Significantly below threshold ({current_temp:.1f}°C < {threshold_temp - skip_margin:.1f}°C)",
                     {
                         "current_temp": current_temp,
                         "target_temp": target_temp,
@@ -184,7 +191,7 @@ class ProactiveMaintenanceHandler:
                 )
             return threshold_temp, ProactiveMaintenanceResult(
                 should_heat=False,
-                reason="Already below hysteresis threshold",
+                reason="Significantly below hysteresis threshold - normal heating active",
                 current_temp=current_temp,
                 target_temp=target_temp,
                 trend=trend,
@@ -731,7 +738,7 @@ class ProactiveMaintenanceHandler:
         """
         area_id = area.area_id
         current_temp = area.current_temperature
-        target_temp = area.target_temperature
+        target_temp = area.get_effective_target_temperature()
 
         if current_temp is None or target_temp is None:
             return ProactiveMaintenanceResult(

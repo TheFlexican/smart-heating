@@ -352,12 +352,13 @@ class Area:
 
         Priority order:
         1. Boost mode (if active)
-        2. Window open (reduce temperature)
-        3. Preset mode temperature
-        4. Schedule temperature
-        5. Base target temperature
-        6. Night boost adjustment
-        7. Presence boost (if detected)
+        2. Proactive maintenance (if active)
+        3. Window open (reduce temperature)
+        4. Preset mode temperature
+        5. Schedule temperature
+        6. Base target temperature
+        7. Night boost adjustment
+        8. Presence boost (if detected)
 
         Args:
             current_time: Current time (defaults to now)

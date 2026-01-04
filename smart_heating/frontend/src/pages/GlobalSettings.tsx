@@ -35,7 +35,7 @@ import {
   removeSafetySensor,
   type SafetySensorResponse,
 } from '../api/safety'
-import { setHideDevicesPanel as setHideDevicesPanelApi } from '../api/devices'
+
 import { getConfig, getAdvancedControlConfig, setAdvancedControlConfig } from '../api/config'
 import { setOpenthermGateway, getOpenthermGateways, calibrateOpentherm } from '../api/opentherm'
 import { PresenceSensorConfig, WindowSensorConfig, SafetySensorConfig } from '../types'
@@ -110,7 +110,7 @@ export default function GlobalSettings({
   const [hysteresisHelpOpen, setHysteresisHelpOpen] = useState(false)
   const [safetySensor, setSafetySensor] = useState<SafetySensorResponse | null>(null)
   const [safetySensorDialogOpen, setSafetySensorDialogOpen] = useState(false)
-  const [hideDevicesPanel, setHideDevicesPanel] = useState(false)
+
   // Advanced control state
   const [advancedControlEnabled, setAdvancedControlEnabled] = useState(false)
   const [heatingCurveEnabled, setHeatingCurveEnabled] = useState(false)
@@ -138,7 +138,6 @@ export default function GlobalSettings({
   const loadConfig = async () => {
     try {
       const config = await getConfig()
-      setHideDevicesPanel(config.hide_devices_panel || false)
 
       // Load OpenTherm configuration
       setOpenthermGatewayId(config.opentherm_gateway_id || '')
@@ -262,21 +261,6 @@ export default function GlobalSettings({
       await loadHysteresis()
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleToggleHideDevicesPanel = async (hide: boolean) => {
-    try {
-      setHideDevicesPanel(hide)
-      await setHideDevicesPanelApi(hide)
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 2000)
-      // Reload to apply changes
-      setTimeout(() => globalThis.location.reload(), 500)
-    } catch (err) {
-      setError('Failed to save setting')
-      console.error('Error saving hide devices panel:', err)
-      setHideDevicesPanel(!hide)
     }
   }
 
@@ -583,8 +567,6 @@ export default function GlobalSettings({
             onHysteresisChange={handleHysteresisChange}
             onHysteresisCommit={handleHysteresisCommit}
             onOpenHysteresisHelp={() => setHysteresisHelpOpen(true)}
-            hideDevicesPanel={hideDevicesPanel}
-            onToggleHideDevicesPanel={handleToggleHideDevicesPanel}
             advancedControlEnabled={advancedControlEnabled}
             heatingCurveEnabled={heatingCurveEnabled}
             pwmEnabled={pwmEnabled}

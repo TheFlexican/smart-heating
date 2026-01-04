@@ -20,12 +20,4 @@ describe('API - Devices', () => {
     expect(refresh.success).toBe(true)
     expect(mockedClient.get).toHaveBeenCalledWith('/devices/refresh')
   })
-
-  it('setHideDevicesPanel toggles the flag', async () => {
-    mockedClient.post.mockResolvedValue({ data: {} } as any)
-    await api.setHideDevicesPanel(true)
-    expect(mockedClient.post).toHaveBeenCalledWith('/hide_devices_panel', {
-      hide_devices_panel: true,
-    })
-  })
 })

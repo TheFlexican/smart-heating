@@ -65,7 +65,6 @@ def mock_area_manager():
     manager.frost_protection_temp = 5.0
     manager.get_safety_sensors.return_value = []
     manager.is_safety_alert_active.return_value = False
-    manager.hide_devices_panel = False
     manager.advanced_control_enabled = False
     manager.heating_curve_enabled = False
     manager.pwm_enabled = False
@@ -162,7 +161,6 @@ class TestConfigHandlers:
         assert body["opentherm_gateway_id"] == "climate.gateway"
         assert body["trv_heating_temp"] == pytest.approx(22.0)
         assert body["safety_alert_active"] is False
-        assert body["hide_devices_panel"] is False
 
     @pytest.mark.asyncio
     async def test_handle_get_global_presets(self, mock_area_manager):
@@ -244,52 +242,6 @@ class TestConfigHandlers:
         assert mock_area_manager.hysteresis == pytest.approx(0.8)
         mock_area_manager.async_save.assert_called_once()
         mock_coordinator.async_request_refresh.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_handle_set_hide_devices_panel_true(self, mock_area_manager):
-        """Test setting hide_devices_panel to true."""
-        from smart_heating.api.handlers.config import handle_set_hide_devices_panel
-
-        data = {"hide_devices_panel": True}
-
-        response = await handle_set_hide_devices_panel(mock_area_manager, data)
-
-        assert response.status == 200
-        body = json.loads(response.body.decode())
-        assert body["success"] is True
-
-        assert mock_area_manager.hide_devices_panel is True
-        mock_area_manager.async_save.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_handle_set_hide_devices_panel_false(self, mock_area_manager):
-        """Test setting hide_devices_panel to false."""
-        from smart_heating.api.handlers.config import handle_set_hide_devices_panel
-
-        data = {"hide_devices_panel": False}
-
-        response = await handle_set_hide_devices_panel(mock_area_manager, data)
-
-        assert response.status == 200
-        body = json.loads(response.body.decode())
-        assert body["success"] is True
-
-        assert mock_area_manager.hide_devices_panel is False
-        mock_area_manager.async_save.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_handle_set_hide_devices_panel_missing_value(self, mock_area_manager):
-        """Test setting hide_devices_panel with missing value."""
-        from smart_heating.api.handlers.config import handle_set_hide_devices_panel
-
-        data = {}
-
-        response = await handle_set_hide_devices_panel(mock_area_manager, data)
-
-        assert response.status == 400
-        body = json.loads(response.body.decode())
-        assert "error" in body
-        assert "Missing hide_devices_panel value" in body["error"]
 
     @pytest.mark.asyncio
     async def test_handle_set_hysteresis_value_out_of_range_low(

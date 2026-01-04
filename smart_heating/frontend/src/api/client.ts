@@ -36,7 +36,7 @@ export const getAuthToken = (): string | null => {
       }
     }
   } catch {
-    // Ignore localStorage access errors
+    // Ignore localStorage errors
   }
 
   return null
@@ -48,13 +48,73 @@ export const getAuthToken = (): string | null => {
  */
 export const apiClient = axios.create({
   baseURL: '/api/smart_heating',
+  withCredentials: true, // Send cookies for session-based auth
 })
 
-// Add auth token to all requests
+// Add auth token to requests if available (for non-session auth contexts)
 apiClient.interceptors.request.use(config => {
   const token = getAuthToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  // If no token, rely on session cookies (mobile app)
   return config
 })
+
+// Handle 401 errors by refreshing token and retrying once
+apiClient.interceptors.response.use(
+  response => response,
+  async error => {
+    const originalRequest = error.config
+
+    // If 401 and haven't retried yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true
+
+      const requestUrl = originalRequest.url || 'unknown'
+      console.warn(`[API] 401 Unauthorized on ${requestUrl} - attempting to refresh token`)
+
+      // Small delay to allow parent window to refresh token
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Get fresh token (parent window in HA iframe should have refreshed it)
+      const newToken = getAuthToken()
+
+      if (newToken) {
+        console.log(`[API] Got fresh token (length: ${newToken.length}), retrying request`)
+
+        // Update authorization header with fresh token
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
+
+        // Retry original request
+        try {
+          return await apiClient(originalRequest)
+        } catch (retryError: any) {
+          if (retryError.response?.status === 401) {
+            console.error('[API] Still 401 after retry - token may be genuinely invalid')
+            console.error(
+              '[API] User may need to reload page or re-authenticate with Home Assistant',
+            )
+          }
+          throw retryError
+        }
+      } else {
+        console.error('[API] No token available after 401 - cannot retry request')
+        console.error('[API] Possible causes:')
+        console.error('  1. Not running in Home Assistant iframe')
+        console.error('  2. Parent window token expired')
+        console.error('  3. No token in localStorage')
+        console.error('[API] User should reload the page or re-authenticate')
+      }
+    }
+
+    // Log other error types for debugging
+    if (error.response?.status && error.response.status !== 401) {
+      console.warn(
+        `[API] Request failed with status ${error.response.status}: ${originalRequest.url}`,
+      )
+    }
+
+    return Promise.reject(error)
+  },
+)

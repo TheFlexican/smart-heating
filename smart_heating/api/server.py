@@ -90,7 +90,6 @@ from .handlers import (
     handle_set_global_presence,
     handle_set_global_presets,
     handle_set_heating_type,
-    handle_set_hide_devices_panel,
     handle_set_history_config,
     handle_set_hvac_mode,
     handle_set_hysteresis_value,
@@ -896,7 +895,6 @@ class SmartHeatingAPIView(HomeAssistantView):
             "history/cleanup": lambda: handle_cleanup_history(self.hass),
             "global_presets": lambda: handle_set_global_presets(self.area_manager, data),
             "global_presence": lambda: handle_set_global_presence(self.area_manager, data),
-            "hide_devices_panel": lambda: handle_set_hide_devices_panel(self.area_manager, data),
             "config/advanced_control": lambda: handle_set_advanced_control_config(
                 self.area_manager, data
             ),
@@ -1063,11 +1061,11 @@ class SmartHeatingAPIView(HomeAssistantView):
 
 
 class SmartHeatingUIView(HomeAssistantView):
-    """UI view for Smart Heating (no auth required for serving static HTML)."""
+    """UI view for Smart Heating."""
 
     url = "/smart_heating_ui"
     name = "smart_heating:ui"
-    requires_auth = False
+    requires_auth = False  # Allow loading without auth, inject token if available
 
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the UI view.

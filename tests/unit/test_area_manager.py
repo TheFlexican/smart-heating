@@ -38,7 +38,6 @@ class TestAreaManagerInitialization:
         assert area_manager.global_eco_temp == DEFAULT_ECO_TEMP
         assert area_manager.global_comfort_temp == DEFAULT_COMFORT_TEMP
         assert area_manager.global_away_temp == DEFAULT_AWAY_TEMP
-        assert area_manager.hide_devices_panel is False
 
     def test_storage_configuration(self, area_manager: AreaManager):
         """Test storage configuration."""
@@ -103,31 +102,6 @@ class TestAreaManagerLoading:
             assert area_manager.hysteresis == 0.5
             assert area_manager.frost_protection_enabled is True
             assert area_manager.frost_protection_temp == 5.0
-
-    async def test_async_load_with_hide_devices_panel(self, area_manager: AreaManager):
-        """Test loading hide_devices_panel setting."""
-        storage_data = {
-            "hide_devices_panel": True,
-            "areas": [],
-        }
-
-        with patch.object(
-            area_manager._persistence_service._store, "async_load", return_value=storage_data
-        ):
-            await area_manager.async_load()
-            assert area_manager.hide_devices_panel is True
-
-    async def test_async_load_without_hide_devices_panel(self, area_manager: AreaManager):
-        """Test loading without hide_devices_panel (defaults to False)."""
-        storage_data = {
-            "areas": [],
-        }
-
-        with patch.object(
-            area_manager._persistence_service._store, "async_load", return_value=storage_data
-        ):
-            await area_manager.async_load()
-            assert area_manager.hide_devices_panel is False
 
 
 class TestAreaManagerSaving:

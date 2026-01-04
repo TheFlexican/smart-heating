@@ -462,8 +462,8 @@ class ClimateController:
             area.hysteresis_override if area.hysteresis_override is not None else self._hysteresis
         )
         hvac_mode = area.hvac_mode if hasattr(area, "hvac_mode") else "heat"
-        should_heat = current_temp < (target_temp - hysteresis)
-        should_cool = current_temp > (target_temp + hysteresis)
+        should_heat = current_temp <= (target_temp - hysteresis)
+        should_cool = current_temp >= (target_temp + hysteresis)
         should_stop_heat = current_temp >= target_temp
         should_stop_cool = current_temp <= target_temp
         heating = hvac_mode in ["heat", "heat_cool", "auto"] and should_heat

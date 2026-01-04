@@ -42,9 +42,6 @@ class ConfigService:
         # Global Hysteresis
         self.hysteresis: float = 0.5
 
-        # UI Settings
-        self.hide_devices_panel: bool = False
-
         # Advanced control features (disabled by default)
         self.advanced_control_enabled: bool = False
         self.heating_curve_enabled: bool = False
@@ -80,7 +77,6 @@ class ConfigService:
             "frost_protection_temp", DEFAULT_FROST_PROTECTION_TEMP
         )
         self.hysteresis = data.get("hysteresis", 0.5)
-        self.hide_devices_panel = data.get("hide_devices_panel", False)
         self.advanced_control_enabled = data.get("advanced_control_enabled", False)
         self.heating_curve_enabled = data.get("heating_curve_enabled", False)
         self.pwm_enabled = data.get("pwm_enabled", False)
@@ -108,7 +104,6 @@ class ConfigService:
             "frost_protection_enabled": self.frost_protection_enabled,
             "frost_protection_temp": self.frost_protection_temp,
             "hysteresis": self.hysteresis,
-            "hide_devices_panel": self.hide_devices_panel,
             "global_presence_sensors": self.global_presence_sensors,
             "advanced_control_enabled": self.advanced_control_enabled,
             "heating_curve_enabled": self.heating_curve_enabled,

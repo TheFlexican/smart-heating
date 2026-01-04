@@ -11,8 +11,6 @@ import {
   Slider,
   Menu,
   ListItemText,
-  List,
-  ListItem,
   ListItemIcon,
   MenuItem,
   FormControlLabel,
@@ -28,7 +26,6 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import ThermostatIcon from '@mui/icons-material/Thermostat'
-import SensorsIcon from '@mui/icons-material/Sensors'
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import AcUnitIcon from '@mui/icons-material/AcUnit'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
@@ -43,7 +40,6 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import { Zone } from '../types'
 import {
   setZoneTemperature,
-  removeDeviceFromZone,
   hideZone,
   unhideZone,
   setManualOverride,
@@ -152,15 +148,6 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
     }
   }
 
-  const handleRemoveDevice = async (deviceId: string) => {
-    try {
-      await removeDeviceFromZone(area.id, deviceId)
-      onUpdate()
-    } catch (error) {
-      console.error('Failed to remove device:', error)
-    }
-  }
-
   const handleToggleHidden = async (event: React.MouseEvent) => {
     event.stopPropagation()
     try {
@@ -231,6 +218,16 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
       return `0 0 30px ${thermalColors.heat.glow}, 0 0 60px rgba(255, 107, 53, 0.2)`
     }
     return 'none'
+  }
+
+  const getHoverBoxShadow = () => {
+    if (isDragging) {
+      return '0 24px 48px rgba(0, 0, 0, 0.5)'
+    }
+    if (area.state === 'heating') {
+      return `0 20px 40px rgba(0, 0, 0, 0.4), ${getStateGlow()}`
+    }
+    return '0 20px 40px rgba(0, 0, 0, 0.4)'
   }
 
   const getStateIcon = () => {
@@ -315,6 +312,16 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
     return `${temp.toFixed(1)}°C`
   }
 
+  const getTemperatureGradient = () => {
+    if (area.state === 'heating') {
+      return `linear-gradient(135deg, ${thermalColors.heat.primary} 0%, ${thermalColors.heat.secondary} 100%)`
+    }
+    if (area.state === 'idle') {
+      return `linear-gradient(135deg, ${thermalColors.cool.primary} 0%, ${thermalColors.cool.secondary} 100%)`
+    }
+    return 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)'
+  }
+
   const renderBadges = () => {
     const badges: React.ReactElement[] = []
     if (area.presence_sensors && area.presence_sensors.length > 0 && presenceState) {
@@ -396,85 +403,6 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
     return badges
   }
 
-  const isValidState = (state: string | undefined): boolean => {
-    return state !== undefined && state !== 'unavailable' && state !== 'unknown'
-  }
-
-  const getThermostatStatus = (device: any): string[] => {
-    const parts = []
-    if (device.hvac_action && device.hvac_action !== 'idle' && device.hvac_action !== 'off') {
-      const key = `area.${device.hvac_action}`
-      const translatedAction = t(key, { defaultValue: device.hvac_action })
-      parts.push(`[${translatedAction}]`)
-    }
-    const currentTemp = formatTemperature(device.current_temperature)
-    if (currentTemp) {
-      parts.push(currentTemp)
-    }
-    const areaTarget = area.target_temperature
-    if (
-      areaTarget !== undefined &&
-      areaTarget !== null &&
-      device.current_temperature !== undefined &&
-      device.current_temperature !== null &&
-      areaTarget > device.current_temperature
-    ) {
-      const targetTemp = formatTemperature(areaTarget)
-      if (targetTemp) parts.push(`→ ${targetTemp}`)
-    }
-    if (parts.length === 0 && device.state) {
-      const key = `area.${device.state}`
-      const translatedState = t(key, { defaultValue: device.state })
-      parts.push(translatedState)
-    }
-    return parts
-  }
-
-  const getTemperatureSensorStatus = (device: any): string[] => {
-    const parts = []
-    const temp = formatTemperature(device.temperature)
-    if (temp) {
-      parts.push(temp)
-    } else if (isValidState(device.state)) {
-      parts.push(`${device.state}°C`)
-    }
-    return parts
-  }
-
-  const getValveStatus = (device: any): string[] => {
-    const parts = []
-    if (device.position !== undefined && device.position !== null) {
-      parts.push(`${device.position}%`)
-    } else if (isValidState(device.state)) {
-      parts.push(`${device.state}%`)
-    }
-    return parts
-  }
-
-  const getGenericDeviceStatus = (device: any): string[] => {
-    const parts = []
-    if (isValidState(device.state)) {
-      const key = `area.${device.state}`
-      const translatedState = t(key, { defaultValue: device.state })
-      parts.push(translatedState)
-    }
-    return parts
-  }
-
-  const getDeviceStatusText = (device: any): string => {
-    let parts: string[] = []
-    if (device.type === 'thermostat') {
-      parts = getThermostatStatus(device)
-    } else if (device.type === 'temperature_sensor') {
-      parts = getTemperatureSensorStatus(device)
-    } else if (device.type === 'valve') {
-      parts = getValveStatus(device)
-    } else {
-      parts = getGenericDeviceStatus(device)
-    }
-    return parts.length > 0 ? parts.join(' · ') : 'unavailable'
-  }
-
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -510,11 +438,7 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
         },
         '&:hover': {
           transform: isDragging ? undefined : 'translateY(-6px)',
-          boxShadow: isDragging
-            ? '0 24px 48px rgba(0, 0, 0, 0.5)'
-            : area.state === 'heating'
-              ? `0 20px 40px rgba(0, 0, 0, 0.4), ${getStateGlow()}`
-              : '0 20px 40px rgba(0, 0, 0, 0.4)',
+          boxShadow: getHoverBoxShadow(),
         },
       }}
     >
@@ -691,12 +615,7 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
                 fontSize: { xs: '2rem', sm: '2.5rem' },
                 fontWeight: 600,
                 fontFamily: '"JetBrains Mono", monospace',
-                background:
-                  area.state === 'heating'
-                    ? `linear-gradient(135deg, ${thermalColors.heat.primary} 0%, ${thermalColors.heat.secondary} 100%)`
-                    : area.state === 'idle'
-                      ? `linear-gradient(135deg, ${thermalColors.cool.primary} 0%, ${thermalColors.cool.secondary} 100%)`
-                      : 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)',
+                background: getTemperatureGradient(),
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -809,103 +728,6 @@ const ZoneCard = ({ area, onUpdate, onPatchArea }: ZoneCardProps) => {
             }
           />
         </Box>
-
-        {/* Device Count */}
-        <Box
-          display="flex"
-          alignItems="center"
-          gap={1}
-          mb={area.devices.length > 0 ? 2 : 0}
-          sx={{ opacity: 0.8 }}
-        >
-          <SensorsIcon fontSize="small" sx={{ opacity: 0.7 }} />
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-          >
-            {t('area.deviceCount', { count: area.devices.length })}
-          </Typography>
-        </Box>
-
-        {/* Devices List */}
-        {area.devices.length > 0 && (
-          <List
-            dense
-            sx={{
-              mt: 1,
-              p: 1,
-              bgcolor: theme =>
-                theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.01)',
-              borderRadius: 2,
-            }}
-          >
-            {area.devices.map(device => (
-              <ListItem
-                key={device.id}
-                secondaryAction={
-                  <IconButton
-                    edge="end"
-                    size="small"
-                    onClick={e => {
-                      e.stopPropagation()
-                      handleRemoveDevice(device.id)
-                    }}
-                    sx={{
-                      color: 'text.secondary',
-                      opacity: 0.6,
-                      p: 0.5,
-                      '&:hover': {
-                        opacity: 1,
-                        color: 'error.main',
-                      },
-                    }}
-                  >
-                    <RemoveCircleOutlineIcon fontSize="small" />
-                  </IconButton>
-                }
-                sx={{
-                  py: 0.75,
-                  pr: 5,
-                  borderRadius: 1.5,
-                  '&:hover': {
-                    bgcolor: theme =>
-                      theme.palette.mode === 'dark'
-                        ? 'rgba(255, 255, 255, 0.04)'
-                        : 'rgba(0, 0, 0, 0.02)',
-                  },
-                }}
-              >
-                <ListItemText
-                  primary={
-                    <Typography
-                      variant="body2"
-                      color="text.primary"
-                      sx={{
-                        fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                        wordBreak: 'break-word',
-                        fontWeight: 500,
-                      }}
-                    >
-                      {device.name || device.id}
-                    </Typography>
-                  }
-                  secondary={getDeviceStatusText(device)}
-                  slotProps={{
-                    secondary: {
-                      variant: 'caption',
-                      color: 'text.secondary',
-                      sx: {
-                        fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                        fontFamily: '"JetBrains Mono", monospace',
-                      },
-                    },
-                  }}
-                />
-              </ListItem>
-            ))}
-          </List>
-        )}
       </CardContent>
 
       {/* Context Menu */}

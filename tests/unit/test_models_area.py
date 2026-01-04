@@ -904,6 +904,44 @@ class TestAreaEffectiveTargetTemperature:
         # This tests the actual priority in the implementation
         assert temp == pytest.approx(17.0)  # 20.0 - 3.0
 
+    def test_effective_temperature_with_proactive_maintenance(self):
+        """Test proactive maintenance maintains target temperature."""
+        area = Area(TEST_AREA_ID, TEST_AREA_NAME)
+        area.target_temperature = 21.0
+        area.boost_manager.proactive_maintenance_active = True
+
+        temp = area.get_effective_target_temperature()
+
+        # Should return target temperature to trigger heating
+        assert temp == pytest.approx(21.0)
+
+    def test_effective_temperature_priority_boost_over_proactive(self):
+        """Test boost mode takes priority over proactive maintenance."""
+        area = Area(TEST_AREA_ID, TEST_AREA_NAME)
+        area.target_temperature = 21.0
+        area.boost_manager.boost_mode_active = True
+        area.boost_manager.boost_temp = 25.0
+        area.boost_manager.proactive_maintenance_active = True
+        area.preset_mode = "boost"
+
+        temp = area.get_effective_target_temperature()
+
+        # Boost should take priority over proactive
+        assert temp == pytest.approx(25.0)
+
+    def test_effective_temperature_priority_proactive_over_window(self):
+        """Test proactive maintenance takes priority over window open."""
+        area = Area(TEST_AREA_ID, TEST_AREA_NAME)
+        area.target_temperature = 21.0
+        area.boost_manager.proactive_maintenance_active = True
+        area.add_window_sensor("binary_sensor.window", "reduce_temperature", 3.0)
+        area.window_is_open = True
+
+        temp = area.get_effective_target_temperature()
+
+        # Proactive should take priority over window (maintains temperature)
+        assert temp == pytest.approx(21.0)
+
 
 class TestAreaStateSetter:
     """Test area state setter."""
