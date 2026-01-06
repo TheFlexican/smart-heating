@@ -74,8 +74,8 @@ export const HeatingControlSection = ({
               </Alert>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
                 <Slider
-                  value={area.hysteresis_override || 0.5}
-                  onChange={async (_e, value) => {
+                  value={area.hysteresis_override ?? 0.5}
+                  onChangeCommitted={async (_e, value) => {
                     try {
                       await setAreaHysteresis(area.id, {
                         use_global: false,

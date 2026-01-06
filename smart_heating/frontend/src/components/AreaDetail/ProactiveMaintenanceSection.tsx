@@ -102,7 +102,7 @@ export const ProactiveMaintenanceSection = ({
                   { value: 1, label: t('settingsCards.balanced', 'Balanced') },
                   { value: 2, label: t('settingsCards.aggressive', 'Aggressive') },
                 ]}
-                onChange={(_, value) =>
+                onChangeCommitted={(_, value) =>
                   updateProactiveMaintenance(
                     area.id,
                     { proactive_maintenance_sensitivity: value as number },
@@ -117,11 +117,12 @@ export const ProactiveMaintenanceSection = ({
             <TextField
               label={t('settingsCards.marginMinutes', 'Safety Margin (minutes)')}
               type="number"
-              value={
+              defaultValue={
                 area.proactive_maintenance_margin_minutes ??
                 (area.heating_type === 'floor_heating' ? 15 : 5)
               }
-              onChange={e =>
+              key={`margin-${area.proactive_maintenance_margin_minutes}`}
+              onBlur={e =>
                 updateProactiveMaintenance(
                   area.id,
                   { proactive_maintenance_margin_minutes: Number.parseInt(e.target.value, 10) },
@@ -143,8 +144,9 @@ export const ProactiveMaintenanceSection = ({
             <TextField
               label={t('settingsCards.cooldownMinutes', 'Cooldown Period (minutes)')}
               type="number"
-              value={area.proactive_maintenance_cooldown_minutes ?? 10}
-              onChange={e =>
+              defaultValue={area.proactive_maintenance_cooldown_minutes ?? 10}
+              key={`cooldown-${area.proactive_maintenance_cooldown_minutes}`}
+              onBlur={e =>
                 updateProactiveMaintenance(
                   area.id,
                   { proactive_maintenance_cooldown_minutes: Number.parseInt(e.target.value, 10) },
@@ -166,8 +168,9 @@ export const ProactiveMaintenanceSection = ({
             <TextField
               label={t('settingsCards.minTrendLabel', 'Minimum Trend Threshold (°C/hour)')}
               type="number"
-              value={area.proactive_maintenance_min_trend ?? -0.1}
-              onChange={e =>
+              defaultValue={area.proactive_maintenance_min_trend ?? -0.1}
+              key={`min-trend-${area.proactive_maintenance_min_trend}`}
+              onBlur={e =>
                 updateProactiveMaintenance(
                   area.id,
                   {
