@@ -569,11 +569,10 @@ class ProactiveMaintenanceHandler:
         Returns:
             ProactiveMaintenanceResult if invalid, None if OK
         """
-        if time_to_threshold is None or time_to_threshold <= 0:
+        if time_to_threshold is None:
             _LOGGER.info(
-                "❌ Cannot predict time to threshold for %s (prediction returned: %s)",
+                "❌ Cannot predict time to threshold for %s (no trend data)",
                 area.name,
-                time_to_threshold,
             )
             return ProactiveMaintenanceResult(
                 should_heat=False,
@@ -582,6 +581,34 @@ class ProactiveMaintenanceHandler:
                 target_temp=target_temp,
                 trend=trend,
             )
+
+        # Special case: time_to_threshold = 0 means we're AT threshold with falling temp
+        # This should trigger heating, not be rejected as invalid
+        if time_to_threshold == 0.0:
+            _LOGGER.info(
+                "🚨 %s is AT threshold now (%.1f°C) with falling trend (%.2f°C/h) - continuing to heating decision",
+                area.name,
+                current_temp,
+                trend,
+            )
+            # Return None to continue processing (not an error)
+            return None
+
+        # Negative time_to_threshold should not happen, but handle it
+        if time_to_threshold < 0:
+            _LOGGER.warning(
+                "⚠️  Invalid negative time_to_threshold for %s: %.1f",
+                area.name,
+                time_to_threshold,
+            )
+            return ProactiveMaintenanceResult(
+                should_heat=False,
+                reason="Invalid time prediction",
+                current_temp=current_temp,
+                target_temp=target_temp,
+                trend=trend,
+            )
+
         return None
 
     async def async_check_area(
