@@ -1,4 +1,5 @@
 import { Alert, Box, FormControlLabel, Slider, Switch, Typography } from '@mui/material'
+import { useState, useEffect } from 'react'
 import TuneIcon from '@mui/icons-material/Tune'
 import { Zone } from '../../types'
 import { SettingSection } from '../DraggableSettings'
@@ -8,6 +9,51 @@ export interface HeatingControlSectionProps {
   area: Zone
   onUpdate: () => void
   t: (key: string, options?: any) => string
+}
+
+const HysteresisSlider = ({ area, onUpdate }: { area: Zone; onUpdate: () => void }) => {
+  const [sliderValue, setSliderValue] = useState<number>(area.hysteresis_override ?? 0.5)
+
+  // Update local state when area prop changes
+  useEffect(() => {
+    setSliderValue(area.hysteresis_override ?? 0.5)
+  }, [area.hysteresis_override])
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+      <Slider
+        value={sliderValue}
+        onChange={(_e, value) => {
+          // Update local state immediately for smooth UX
+          setSliderValue(value as number)
+        }}
+        onChangeCommitted={async (_e, value) => {
+          try {
+            await setAreaHysteresis(area.id, {
+              use_global: false,
+              hysteresis: value,
+            })
+            onUpdate()
+          } catch (error) {
+            console.error('Failed to update hysteresis:', error)
+            // Revert on error
+            setSliderValue(area.hysteresis_override ?? 0.5)
+          }
+        }}
+        min={0}
+        max={2}
+        step={0.1}
+        marks={[
+          { value: 0, label: '0.0°C' },
+          { value: 1, label: '1.0°C' },
+          { value: 2, label: '2.0°C' },
+        ]}
+        valueLabelDisplay="on"
+        valueLabelFormat={value => `${value}°C`}
+        sx={{ flexGrow: 1 }}
+      />
+    </Box>
+  )
 }
 
 export const HeatingControlSection = ({
@@ -72,33 +118,7 @@ export const HeatingControlSection = ({
               <Alert severity="warning" sx={{ mb: 2 }}>
                 {t('settingsCards.usingAreaHysteresis')}
               </Alert>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-                <Slider
-                  value={area.hysteresis_override ?? 0.5}
-                  onChangeCommitted={async (_e, value) => {
-                    try {
-                      await setAreaHysteresis(area.id, {
-                        use_global: false,
-                        hysteresis: value,
-                      })
-                      onUpdate()
-                    } catch (error) {
-                      console.error('Failed to update hysteresis:', error)
-                    }
-                  }}
-                  min={0}
-                  max={2}
-                  step={0.1}
-                  marks={[
-                    { value: 0, label: '0.0°C' },
-                    { value: 1, label: '1.0°C' },
-                    { value: 2, label: '2.0°C' },
-                  ]}
-                  valueLabelDisplay="on"
-                  valueLabelFormat={value => `${value}°C`}
-                  sx={{ flexGrow: 1 }}
-                />
-              </Box>
+              <HysteresisSlider area={area} onUpdate={onUpdate} />
             </>
           )}
 

@@ -1,4 +1,5 @@
 import { Box, Switch, Typography, Alert, Slider, TextField } from '@mui/material'
+import { useState, useEffect } from 'react'
 import ThermostatAutoIcon from '@mui/icons-material/ThermostatAuto'
 import { TFunction } from 'i18next'
 import { Zone } from '../../types'
@@ -18,6 +19,48 @@ const updateProactiveMaintenance = async (
     console.error('Failed to update proactive maintenance:', error)
     throw error
   }
+}
+
+const SensitivitySlider = ({
+  area,
+  onUpdate,
+  t,
+}: {
+  area: Zone
+  onUpdate: () => void
+  t: TFunction
+}) => {
+  const [sliderValue, setSliderValue] = useState<number>(
+    area.proactive_maintenance_sensitivity ?? 1,
+  )
+
+  useEffect(() => {
+    setSliderValue(area.proactive_maintenance_sensitivity ?? 1)
+  }, [area.proactive_maintenance_sensitivity])
+
+  return (
+    <Slider
+      value={sliderValue}
+      min={0.5}
+      max={2}
+      step={0.1}
+      marks={[
+        { value: 0.5, label: t('settingsCards.conservative', 'Conservative') },
+        { value: 1, label: t('settingsCards.balanced', 'Balanced') },
+        { value: 2, label: t('settingsCards.aggressive', 'Aggressive') },
+      ]}
+      onChange={(_, value) => setSliderValue(value as number)}
+      onChangeCommitted={(_, value) =>
+        updateProactiveMaintenance(
+          area.id,
+          { proactive_maintenance_sensitivity: value as number },
+          onUpdate,
+        )
+      }
+      valueLabelDisplay="auto"
+      data-testid="proactive-maintenance-sensitivity"
+    />
+  )
 }
 
 export const ProactiveMaintenanceSection = ({
@@ -92,26 +135,7 @@ export const ProactiveMaintenanceSection = ({
                   'Higher sensitivity starts heating earlier. Lower is more conservative.',
                 )}
               </Typography>
-              <Slider
-                value={area.proactive_maintenance_sensitivity ?? 1}
-                min={0.5}
-                max={2}
-                step={0.1}
-                marks={[
-                  { value: 0.5, label: t('settingsCards.conservative', 'Conservative') },
-                  { value: 1, label: t('settingsCards.balanced', 'Balanced') },
-                  { value: 2, label: t('settingsCards.aggressive', 'Aggressive') },
-                ]}
-                onChangeCommitted={(_, value) =>
-                  updateProactiveMaintenance(
-                    area.id,
-                    { proactive_maintenance_sensitivity: value as number },
-                    onUpdate,
-                  )
-                }
-                valueLabelDisplay="auto"
-                data-testid="proactive-maintenance-sensitivity"
-              />
+              <SensitivitySlider area={area} onUpdate={onUpdate} t={t} />
             </Box>
 
             <TextField
