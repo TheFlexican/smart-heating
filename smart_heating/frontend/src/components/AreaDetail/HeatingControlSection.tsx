@@ -86,11 +86,11 @@ export const HeatingControlSection = ({
                       console.error('Failed to update hysteresis:', error)
                     }
                   }}
-                  min={0.1}
+                  min={0}
                   max={2}
                   step={0.1}
                   marks={[
-                    { value: 0.1, label: '0.1°C' },
+                    { value: 0, label: '0.0°C' },
                     { value: 1, label: '1.0°C' },
                     { value: 2, label: '2.0°C' },
                   ]}

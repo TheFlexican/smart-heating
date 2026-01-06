@@ -163,6 +163,31 @@ export const ProactiveMaintenanceSection = ({
               data-testid="proactive-maintenance-cooldown"
             />
 
+            <TextField
+              label={t('settingsCards.minTrendLabel', 'Minimum Trend Threshold (°C/hour)')}
+              type="number"
+              value={area.proactive_maintenance_min_trend ?? -0.1}
+              onChange={e =>
+                updateProactiveMaintenance(
+                  area.id,
+                  {
+                    proactive_maintenance_min_trend: Number.parseFloat(e.target.value),
+                  },
+                  onUpdate,
+                )
+              }
+              fullWidth
+              helperText={t(
+                'settingsCards.minTrendHelper',
+                'Minimum temperature drop rate to trigger proactive heating. Lower values (e.g., -0.05) are more sensitive.',
+              )}
+              slotProps={{
+                htmlInput: { min: -0.5, max: -0.01, step: 0.01 },
+              }}
+              sx={{ mb: 3 }}
+              data-testid="proactive-maintenance-min-trend"
+            />
+
             <Box sx={{ mt: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 <strong>{t('settingsCards.howItWorksTitle', 'How it works')}</strong>
