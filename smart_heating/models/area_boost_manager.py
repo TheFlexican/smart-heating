@@ -4,6 +4,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.util import dt as dt_util
+
 if TYPE_CHECKING:
     from .area import Area
 
@@ -72,7 +74,7 @@ class AreaBoostManager:
 
         self.boost_mode_active = True
         self.boost_duration = duration
-        self.boost_end_time = datetime.now() + timedelta(minutes=duration)
+        self.boost_end_time = dt_util.now() + timedelta(minutes=duration)
         self.area.preset_mode = PRESET_BOOST
 
         if temp is not None:
@@ -105,7 +107,7 @@ class AreaBoostManager:
             return False
 
         # Check if boost has expired
-        if self.boost_end_time and datetime.now() >= self.boost_end_time:
+        if self.boost_end_time and dt_util.now() >= self.boost_end_time:
             self.cancel_boost()
             return False
 
@@ -120,7 +122,7 @@ class AreaBoostManager:
         if not self.boost_mode_active or not self.boost_end_time:
             return False
 
-        if datetime.now() >= self.boost_end_time:
+        if dt_util.now() >= self.boost_end_time:
             self.cancel_boost()
             return True
 
@@ -139,7 +141,7 @@ class AreaBoostManager:
             return False
 
         if current_time is None:
-            current_time = datetime.now()
+            current_time = dt_util.now()
 
         # Validate time period
         if self.night_boost_start_time == self.night_boost_end_time:
@@ -219,7 +221,7 @@ class AreaBoostManager:
             Adjusted temperature with night boost
         """
         if current_time is None:
-            current_time = datetime.now()
+            current_time = dt_util.now()
 
         if not self.is_night_boost_active(current_time):
             _LOGGER.debug(
@@ -271,20 +273,20 @@ class AreaBoostManager:
         Called when the system predicts a temperature drop and starts heating preemptively.
         """
         self.proactive_maintenance_active = True
-        self.proactive_maintenance_started_at = datetime.now()
+        self.proactive_maintenance_started_at = dt_util.now()
         _LOGGER.info(
             "Proactive maintenance started for area %s",
             self.area.area_id,
         )
 
     def end_proactive_maintenance(self) -> None:
-        """End proactive temperature maintenance.
+        """End proactive maintenance maintenance.
 
         Called when target temperature is reached or conditions change.
         """
         if self.proactive_maintenance_active:
             self.proactive_maintenance_active = False
-            self.proactive_maintenance_ended_at = datetime.now()
+            self.proactive_maintenance_ended_at = dt_util.now()
             _LOGGER.info(
                 "Proactive maintenance ended for area %s",
                 self.area.area_id,
@@ -305,7 +307,7 @@ class AreaBoostManager:
             return False
 
         if current_time is None:
-            current_time = datetime.now()
+            current_time = dt_util.now()
 
         cooldown_end = self.proactive_maintenance_ended_at + timedelta(
             minutes=self.proactive_maintenance_cooldown_minutes

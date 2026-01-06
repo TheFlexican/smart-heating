@@ -158,7 +158,15 @@ class ScheduleExecutor:
 
         # Handle smart night boost prediction
         if area.boost_manager.smart_boost_enabled and self.learning_engine:
-            await self._handle_smart_boost(area, now)
+            try:
+                await self._handle_smart_boost(area, now)
+            except Exception as err:
+                _LOGGER.error(
+                    "Error in smart boost for %s: %s",
+                    area.name,
+                    err,
+                    exc_info=True,
+                )
 
         # Handle proactive temperature maintenance
         _LOGGER.debug(
@@ -583,16 +591,32 @@ class ScheduleExecutor:
         if not self.proactive_handler:
             return
 
-        result = await self.proactive_handler.async_check_area(area, now)
+        try:
+            result = await self.proactive_handler.async_check_area(area, now)
 
-        if result.should_heat:
-            # Should be heating - start if not already active
-            if not area.boost_manager.proactive_maintenance_active:
-                await self._start_proactive_heating(area, result)
-        else:
-            # Should not be heating - end if currently active
-            if area.boost_manager.proactive_maintenance_active:
-                await self._stop_proactive_heating(area, result)
+            if result.should_heat:
+                # Should be heating - start if not already active
+                if not area.boost_manager.proactive_maintenance_active:
+                    await self._start_proactive_heating(area, result)
+            else:
+                # Should not be heating - end if currently active
+                if area.boost_manager.proactive_maintenance_active:
+                    await self._stop_proactive_heating(area, result)
+        except Exception as err:
+            _LOGGER.error(
+                "Error in proactive maintenance for %s: %s",
+                area.name,
+                err,
+                exc_info=True,
+            )
+            # Log to area logger if available
+            if self.area_logger:
+                self.area_logger.log_event(
+                    area.area_id,
+                    "proactive_maintenance",
+                    f"Error during proactive maintenance: {err}",
+                    {"error": str(err), "error_type": type(err).__name__},
+                )
 
     async def _handle_smart_boost_schedule_maintenance(self, area, now: datetime) -> bool:
         """Maintain steady temperature during active schedules using predictive heating.

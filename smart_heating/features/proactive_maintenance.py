@@ -598,131 +598,155 @@ class ProactiveMaintenanceHandler:
         Returns:
             ProactiveMaintenanceResult with decision and details
         """
-        if current_time is None:
-            current_time = datetime.now()
+        try:
+            if current_time is None:
+                from homeassistant.util import dt as dt_util
 
-        area_id = area.area_id
-        _LOGGER.info("🔍 Proactive maintenance check for %s started", area.name)
+                current_time = dt_util.now()
 
-        if self.area_logger:
-            self.area_logger.log_event(
-                area_id,
-                "proactive_maintenance",
-                "Proactive maintenance check started",
-                {"enabled": area.boost_manager.proactive_maintenance_enabled},
+            area_id = area.area_id
+            _LOGGER.info("🔍 Proactive maintenance check for %s started", area.name)
+
+            if self.area_logger:
+                self.area_logger.log_event(
+                    area_id,
+                    "proactive_maintenance",
+                    "Proactive maintenance check started",
+                    {"enabled": area.boost_manager.proactive_maintenance_enabled},
+                )
+
+            # Check if feature is enabled
+            result = self._check_feature_enabled(area, area_id)
+            if result:
+                return result
+
+            # Check if already in proactive heating
+            if area.boost_manager.proactive_maintenance_active:
+                _LOGGER.info(
+                    "🔥 Proactive heating already active for %s - checking if should continue",
+                    area.name,
+                )
+                return self._check_continue_proactive_heating(area)
+
+            # Check cooldown period
+            result = self._check_cooldown_active(area, area_id, current_time)
+            if result:
+                return result
+
+            # Validate temperatures
+            current_temp, target_temp = self._validate_temperatures(area)
+            result = self._validate_and_log_temperatures(area, area_id, current_temp, target_temp)
+            if result:
+                return result
+
+            # Check temperature trend
+            trend, early_exit = self._check_temperature_trend(
+                area, area_id, current_temp, target_temp
             )
+            if early_exit:
+                return early_exit
 
-        # Check if feature is enabled
-        result = self._check_feature_enabled(area, area_id)
-        if result:
-            return result
+            _LOGGER.info("📉 %s temperature trend: %.3f°C/h (falling)", area.name, trend)
 
-        # Check if already in proactive heating
-        if area.boost_manager.proactive_maintenance_active:
+            if self.area_logger:
+                self.area_logger.log_event(
+                    area_id,
+                    "proactive_maintenance",
+                    f"Temperature falling at {trend:.3f}°C/h - analyzing heating need",
+                    {
+                        "current_temp": current_temp,
+                        "target_temp": target_temp,
+                        "trend": trend,
+                        "status": "temperature_falling",
+                    },
+                )
+
+            # Check hysteresis threshold
+            threshold_temp, early_exit = self._check_hysteresis_threshold(
+                area, current_temp, target_temp, trend
+            )
+            if early_exit:
+                return early_exit
+
+            hysteresis = self._get_hysteresis(area)
             _LOGGER.info(
-                "🔥 Proactive heating already active for %s - checking if should continue",
+                "📊 %s hysteresis threshold: %.1f°C (target %.1f°C - %.1f°C hysteresis)",
                 area.name,
+                threshold_temp,
+                target_temp,
+                hysteresis,
             )
-            return self._check_continue_proactive_heating(area)
 
-        # Check cooldown period
-        result = self._check_cooldown_active(area, area_id, current_time)
-        if result:
-            return result
+            if self.area_logger:
+                self.area_logger.log_event(
+                    area_id,
+                    "proactive_maintenance",
+                    f"Hysteresis check: threshold={threshold_temp:.1f}°C (target {target_temp:.1f}°C - {hysteresis:.1f}°C)",
+                    {
+                        "threshold_temp": threshold_temp,
+                        "hysteresis": hysteresis,
+                        "current_temp": current_temp,
+                    },
+                )
 
-        # Validate temperatures
-        current_temp, target_temp = self._validate_temperatures(area)
-        result = self._validate_and_log_temperatures(area, area_id, current_temp, target_temp)
-        if result:
-            return result
+            # Calculate time until threshold is reached
+            time_to_threshold = self.temperature_tracker.predict_time_to_temperature(
+                area_id, threshold_temp
+            )
+            result = self._validate_time_to_threshold(
+                area, time_to_threshold, current_temp, target_temp, trend
+            )
+            if result:
+                return result
 
-        # Check temperature trend
-        trend, early_exit = self._check_temperature_trend(area, area_id, current_temp, target_temp)
-        if early_exit:
-            return early_exit
+            _LOGGER.info(
+                "⏱️  %s will reach threshold (%.1f°C) in %.1f minutes at current trend",
+                area.name,
+                threshold_temp,
+                time_to_threshold,
+            )
 
-        _LOGGER.info("📉 %s temperature trend: %.3f°C/h (falling)", area.name, trend)
+            if self.area_logger:
+                self.area_logger.log_event(
+                    area_id,
+                    "proactive_maintenance",
+                    f"Prediction: Will reach threshold ({threshold_temp:.1f}°C) in {time_to_threshold:.1f} minutes",
+                    {
+                        "time_to_threshold": time_to_threshold,
+                        "threshold_temp": threshold_temp,
+                        "trend": trend,
+                    },
+                )
 
-        if self.area_logger:
-            self.area_logger.log_event(
+            # Make final heating decision
+            return await self._calculate_heating_decision(
+                area,
                 area_id,
-                "proactive_maintenance",
-                f"Temperature falling at {trend:.3f}°C/h - analyzing heating need",
-                {
-                    "current_temp": current_temp,
-                    "target_temp": target_temp,
-                    "trend": trend,
-                    "status": "temperature_falling",
-                },
+                current_temp,
+                target_temp,
+                trend,
+                threshold_temp,
+                time_to_threshold,
             )
-
-        # Check hysteresis threshold
-        threshold_temp, early_exit = self._check_hysteresis_threshold(
-            area, current_temp, target_temp, trend
-        )
-        if early_exit:
-            return early_exit
-
-        hysteresis = self._get_hysteresis(area)
-        _LOGGER.info(
-            "📊 %s hysteresis threshold: %.1f°C (target %.1f°C - %.1f°C hysteresis)",
-            area.name,
-            threshold_temp,
-            target_temp,
-            hysteresis,
-        )
-
-        if self.area_logger:
-            self.area_logger.log_event(
-                area_id,
-                "proactive_maintenance",
-                f"Hysteresis check: threshold={threshold_temp:.1f}°C (target {target_temp:.1f}°C - {hysteresis:.1f}°C)",
-                {
-                    "threshold_temp": threshold_temp,
-                    "hysteresis": hysteresis,
-                    "current_temp": current_temp,
-                },
+        except Exception as err:
+            _LOGGER.error(
+                "Unexpected error in proactive maintenance check for %s: %s",
+                area.name if hasattr(area, "name") else "unknown",
+                err,
+                exc_info=True,
             )
-
-        # Calculate time until threshold is reached
-        time_to_threshold = self.temperature_tracker.predict_time_to_temperature(
-            area_id, threshold_temp
-        )
-        result = self._validate_time_to_threshold(
-            area, time_to_threshold, current_temp, target_temp, trend
-        )
-        if result:
-            return result
-
-        _LOGGER.info(
-            "⏱️  %s will reach threshold (%.1f°C) in %.1f minutes at current trend",
-            area.name,
-            threshold_temp,
-            time_to_threshold,
-        )
-
-        if self.area_logger:
-            self.area_logger.log_event(
-                area_id,
-                "proactive_maintenance",
-                f"Prediction: Will reach threshold ({threshold_temp:.1f}°C) in {time_to_threshold:.1f} minutes",
-                {
-                    "time_to_threshold": time_to_threshold,
-                    "threshold_temp": threshold_temp,
-                    "trend": trend,
-                },
+            if self.area_logger and hasattr(area, "area_id"):
+                self.area_logger.log_event(
+                    area.area_id,
+                    "proactive_maintenance",
+                    f"Error during proactive maintenance check: {err}",
+                    {"error": str(err), "error_type": type(err).__name__},
+                )
+            # Return safe default on error
+            return ProactiveMaintenanceResult(
+                should_heat=False,
+                reason=f"Error during check: {str(err)}",
             )
-
-        # Make final heating decision
-        return await self._calculate_heating_decision(
-            area,
-            area_id,
-            current_temp,
-            target_temp,
-            trend,
-            threshold_temp,
-            time_to_threshold,
-        )
 
     def _check_continue_proactive_heating(
         self,

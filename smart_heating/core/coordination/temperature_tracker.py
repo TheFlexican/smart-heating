@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
 
+from homeassistant.util import dt as dt_util
+
 _LOGGER = logging.getLogger(__name__)
 
 # Maximum number of temperature samples to keep per area
@@ -66,7 +68,7 @@ class TemperatureTracker:
             self._history[area_id] = deque(maxlen=self._max_samples)
 
         sample = TemperatureSample(
-            timestamp=datetime.now(),
+            timestamp=dt_util.now(),
             temperature=temperature,
             target=target,
         )
@@ -93,7 +95,7 @@ class TemperatureTracker:
         if area_id not in self._history or len(self._history[area_id]) < 2:
             return None
 
-        now = datetime.now()
+        now = dt_util.now()
         cutoff = now - self._trend_window
 
         # Get samples within the trend window
@@ -231,7 +233,7 @@ class TemperatureTracker:
         if len(samples) < 2:
             return None
 
-        now = datetime.now()
+        now = dt_util.now()
         cutoff = now - self._trend_window
 
         # Count samples within trend window
