@@ -116,7 +116,7 @@ class Area:
         )
 
         # Hysteresis override - None means use global setting
-        self.hysteresis_override: float | None = None  # Area-specific hysteresis in °C (0.1-2.0)
+        self.hysteresis_override: float | None = None  # Area-specific hysteresis in °C (0.0-2.0)
 
         # Primary temperature sensor - which device to use for temperature reading
         self.primary_temperature_sensor: str | None = (
