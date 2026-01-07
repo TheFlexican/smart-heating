@@ -106,10 +106,14 @@ class AreaBoostManager:
         if not self.boost_mode_active:
             return False
 
-        # Check if boost has expired
-        if self.boost_end_time and dt_util.now() >= self.boost_end_time:
-            self.cancel_boost()
-            return False
+        # Check if boost has expired (handle naive stored end times)
+        if self.boost_end_time:
+            boost_end = self.boost_end_time
+            if boost_end.tzinfo is None:
+                boost_end = dt_util.as_utc(boost_end)
+            if dt_util.now() >= boost_end:
+                self.cancel_boost()
+                return False
 
         return True
 
@@ -122,7 +126,11 @@ class AreaBoostManager:
         if not self.boost_mode_active or not self.boost_end_time:
             return False
 
-        if dt_util.now() >= self.boost_end_time:
+        # Compare with timezone-aware end time if necessary
+        boost_end = self.boost_end_time
+        if boost_end.tzinfo is None:
+            boost_end = dt_util.as_utc(boost_end)
+        if dt_util.now() >= boost_end:
             self.cancel_boost()
             return True
 

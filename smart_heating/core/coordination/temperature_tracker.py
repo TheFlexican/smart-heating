@@ -98,8 +98,13 @@ class TemperatureTracker:
         now = dt_util.now()
         cutoff = now - self._trend_window
 
-        # Get samples within the trend window
-        samples = [s for s in self._history[area_id] if s.timestamp >= cutoff]
+        # Get samples within the trend window (handle naive timestamps from tests)
+        def _to_aware(ts: datetime) -> datetime:
+            if ts.tzinfo is None:
+                return dt_util.as_utc(ts)
+            return dt_util.as_utc(ts)
+
+        samples = [s for s in self._history[area_id] if _to_aware(s.timestamp) >= cutoff]
 
         if len(samples) < 2:
             return None
@@ -236,8 +241,13 @@ class TemperatureTracker:
         now = dt_util.now()
         cutoff = now - self._trend_window
 
-        # Count samples within trend window
-        valid_samples = [s for s in samples if s.timestamp >= cutoff]
+        # Count samples within trend window (normalize timestamps)
+        def _to_aware(ts: datetime) -> datetime:
+            if ts.tzinfo is None:
+                return dt_util.as_utc(ts)
+            return dt_util.as_utc(ts)
+
+        valid_samples = [s for s in samples if _to_aware(s.timestamp) >= cutoff]
         sample_count = len(valid_samples)
 
         if sample_count < 2:
