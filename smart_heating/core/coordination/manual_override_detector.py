@@ -116,6 +116,7 @@ class ManualOverrideDetector:
         This filters out:
         - Changes that match the expected target (from schedules/presets)
         - Stale changes that are lower than current target
+        - Idle state setpoint changes (when system sets thermostat to current_temp)
 
         Args:
             _entity_id: Thermostat entity ID (unused, kept for API consistency)
@@ -149,7 +150,99 @@ class ManualOverrideDetector:
             )
             return False
 
+        # Check if this could be an automated idle setpoint adjustment
+        # During idle states, the system may set thermostat to current_temp
+        # if current_temp >= (target - hysteresis) to prevent unnecessary cycling
+        if self._is_likely_idle_setpoint_adjustment(new_temp, expected_temp, area):
+            return False
+
         return True
+
+    def _is_likely_idle_setpoint_adjustment(
+        self,
+        new_temp: float,
+        expected_temp: float,
+        area: "Area",
+    ) -> bool:
+        """Check if temperature change is likely an automated idle setpoint adjustment.
+
+        During idle states, the temperature setter may set the thermostat to current_temp
+        if current_temp is at or above (target - hysteresis). This prevents the system
+        from incorrectly detecting this as a manual override.
+
+        The idle setpoint logic in temperature_setter.py:
+        - Sets thermostat to current_temp when current_temp >= (target - hysteresis)
+        - This prevents unnecessary heating cycles when room is already warm enough
+
+        Args:
+            new_temp: New temperature that was set
+            expected_temp: Expected target temperature from schedule/preset
+            area: Area instance
+
+        Returns:
+            True if this looks like an idle setpoint adjustment, False otherwise
+        """
+        current_temp = area.current_temperature
+        if current_temp is None:
+            return False
+
+        # Ensure current_temp is a number (not a mock or other object)
+        try:
+            current_temp = float(current_temp)
+        except (TypeError, ValueError):
+            return False
+
+        # Get hysteresis value for this area
+        hysteresis = self._get_hysteresis(area)
+
+        # Check if new_temp matches current_temp (within tolerance)
+        temp_matches_current = abs(new_temp - current_temp) < 0.15
+
+        # The idle setpoint logic sets thermostat to current_temp when:
+        # current_temp >= (target - hysteresis)
+        # So we should accept ANY current_temp that is >= (target - hysteresis)
+        # This includes temperatures ABOVE the target (room is warmer than needed)
+        current_above_threshold = current_temp >= (expected_temp - hysteresis - 0.1)
+
+        if temp_matches_current and current_above_threshold:
+            _LOGGER.info(
+                "Temperature change for %s to %.1f°C matches current temp %.1f°C "
+                "(>= threshold %.1f°C) - ignoring (likely automated idle setpoint adjustment)",
+                area.name,
+                new_temp,
+                current_temp,
+                expected_temp - hysteresis,
+            )
+            return True
+
+        return False
+
+    def _get_hysteresis(self, area: "Area") -> float:
+        """Get the hysteresis value for an area.
+
+        Args:
+            area: Area instance
+
+        Returns:
+            Hysteresis value in degrees Celsius
+        """
+        # Check for area-specific hysteresis override
+        if hasattr(area, "hysteresis_override") and area.hysteresis_override is not None:
+            try:
+                return float(area.hysteresis_override)
+            except (TypeError, ValueError):
+                pass
+
+        # Fall back to global hysteresis from area manager
+        if hasattr(area, "area_manager") and area.area_manager is not None:
+            if hasattr(area.area_manager, "hysteresis"):
+                try:
+                    return float(area.area_manager.hysteresis)
+                except (TypeError, ValueError):
+                    pass
+
+        # Default hysteresis
+        return 0.5
 
     async def _apply_override(
         self,
