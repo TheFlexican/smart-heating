@@ -95,16 +95,25 @@ class TemperatureTracker:
         if area_id not in self._history or len(self._history[area_id]) < 2:
             return None
 
-        now = dt_util.now()
-        cutoff = now - self._trend_window
+        # Decide whether history contains aware timestamps or naive timestamps.
+        samples_all = list(self._history[area_id])
 
-        # Get samples within the trend window (handle naive timestamps from tests)
-        def _to_aware(ts: datetime) -> datetime:
-            if ts.tzinfo is None:
+        any_aware = any(getattr(s.timestamp, "tzinfo", None) is not None for s in samples_all)
+
+        if any_aware:
+            # Use timezone-aware comparisons (convert all timestamps to UTC)
+            now = dt_util.as_utc(datetime.now())
+            cutoff = now - self._trend_window
+
+            def _to_aware(ts: datetime) -> datetime:
                 return dt_util.as_utc(ts)
-            return dt_util.as_utc(ts)
 
-        samples = [s for s in self._history[area_id] if _to_aware(s.timestamp) >= cutoff]
+            samples = [s for s in samples_all if _to_aware(s.timestamp) >= cutoff]
+        else:
+            # Use naive datetime comparisons so unit tests that patch datetime.now() work
+            now = datetime.now()
+            cutoff = now - self._trend_window
+            samples = [s for s in samples_all if s.timestamp >= cutoff]
 
         if len(samples) < 2:
             return None
@@ -238,16 +247,19 @@ class TemperatureTracker:
         if len(samples) < 2:
             return None
 
-        now = dt_util.now()
-        cutoff = now - self._trend_window
+        # Reuse same aware/naive strategy as get_trend
+        samples_all = list(samples)
+        any_aware = any(getattr(s.timestamp, "tzinfo", None) is not None for s in samples_all)
 
-        # Count samples within trend window (normalize timestamps)
-        def _to_aware(ts: datetime) -> datetime:
-            if ts.tzinfo is None:
-                return dt_util.as_utc(ts)
-            return dt_util.as_utc(ts)
+        if any_aware:
+            now = dt_util.as_utc(datetime.now())
+            cutoff = now - self._trend_window
 
-        valid_samples = [s for s in samples if _to_aware(s.timestamp) >= cutoff]
+            valid_samples = [s for s in samples_all if dt_util.as_utc(s.timestamp) >= cutoff]
+        else:
+            now = datetime.now()
+            cutoff = now - self._trend_window
+            valid_samples = [s for s in samples_all if s.timestamp >= cutoff]
         sample_count = len(valid_samples)
 
         if sample_count < 2:

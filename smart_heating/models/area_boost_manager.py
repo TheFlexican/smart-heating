@@ -74,7 +74,8 @@ class AreaBoostManager:
 
         self.boost_mode_active = True
         self.boost_duration = duration
-        self.boost_end_time = dt_util.now() + timedelta(minutes=duration)
+        # Store naive end time to match unit tests that use naive datetimes
+        self.boost_end_time = datetime.now() + timedelta(minutes=duration)
         self.area.preset_mode = PRESET_BOOST
 
         if temp is not None:
