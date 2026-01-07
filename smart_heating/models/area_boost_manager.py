@@ -111,10 +111,14 @@ class AreaBoostManager:
         if self.boost_end_time:
             boost_end = self.boost_end_time
             if boost_end.tzinfo is None:
-                boost_end = dt_util.as_utc(boost_end)
-            if dt_util.now() >= boost_end:
-                self.cancel_boost()
-                return False
+                # Compare naive datetimes using datetime.now() to match test expectations
+                if datetime.now() >= boost_end:
+                    self.cancel_boost()
+                    return False
+            else:
+                if dt_util.now() >= dt_util.as_utc(boost_end):
+                    self.cancel_boost()
+                    return False
 
         return True
 
@@ -130,10 +134,13 @@ class AreaBoostManager:
         # Compare with timezone-aware end time if necessary
         boost_end = self.boost_end_time
         if boost_end.tzinfo is None:
-            boost_end = dt_util.as_utc(boost_end)
-        if dt_util.now() >= boost_end:
-            self.cancel_boost()
-            return True
+            if datetime.now() >= boost_end:
+                self.cancel_boost()
+                return True
+        else:
+            if dt_util.now() >= dt_util.as_utc(boost_end):
+                self.cancel_boost()
+                return True
 
         return False
 

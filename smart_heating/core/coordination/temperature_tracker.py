@@ -101,8 +101,8 @@ class TemperatureTracker:
         any_aware = any(getattr(s.timestamp, "tzinfo", None) is not None for s in samples_all)
 
         if any_aware:
-            # Use timezone-aware comparisons (convert all timestamps to UTC)
-            now = dt_util.as_utc(datetime.now())
+            # Use timezone-aware comparisons (use dt_util.now() for consistency)
+            now = dt_util.now()
             cutoff = now - self._trend_window
 
             def _to_aware(ts: datetime) -> datetime:
@@ -252,7 +252,7 @@ class TemperatureTracker:
         any_aware = any(getattr(s.timestamp, "tzinfo", None) is not None for s in samples_all)
 
         if any_aware:
-            now = dt_util.as_utc(datetime.now())
+            now = dt_util.now()
             cutoff = now - self._trend_window
 
             valid_samples = [s for s in samples_all if dt_util.as_utc(s.timestamp) >= cutoff]
