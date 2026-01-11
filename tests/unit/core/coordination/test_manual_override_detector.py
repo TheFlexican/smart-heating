@@ -212,3 +212,66 @@ class TestManualOverrideDetector:
         assert sample_area.manual_override is True
         assert sample_area.target_temperature == 22.0
         area_manager.async_save.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_idle_setpoint_above_target_not_manual_override(self, area_manager, sample_area):
+        """Test that idle setpoint above target is not falsely detected as manual override.
+
+        When the room is in idle state and current_temp is above the schedule target,
+        the system intentionally sets the thermostat to current_temp to prevent unnecessary
+        heating cycles. This should NOT be detected as a manual override.
+
+        Example scenario:
+        - Schedule target: 20.1°C
+        - Current room temp: 20.5°C
+        - Hysteresis: 0.5°C
+        - System sets thermostat to 20.5°C (current temp) during idle
+        - This should NOT trigger manual override!
+        """
+        detector = ManualOverrideDetector()
+        area_manager.get_all_areas = MagicMock(return_value={"living_room": sample_area})
+
+        # Setup: target from schedule is 20.1°C, current temp is 20.5°C
+        sample_area.get_effective_target_temperature.return_value = 20.1
+        sample_area.current_temperature = 20.5
+        sample_area.hysteresis_override = None  # Use default
+        area_manager.hysteresis = 0.5  # Default hysteresis
+
+        # The system sets thermostat to current_temp (20.5°C) during idle state
+        # This should NOT be detected as manual override
+        result = await detector.async_detect_and_apply_override(
+            "climate.thermostat_lr", 20.5, area_manager
+        )
+
+        # This should NOT trigger manual override - it's an automated idle setpoint
+        assert result is False
+        assert sample_area.manual_override is False
+        area_manager.async_save.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_idle_setpoint_slightly_above_target_not_manual_override(
+        self, area_manager, sample_area
+    ):
+        """Test idle setpoint just above target is not falsely detected as manual.
+
+        When current_temp is just slightly above target (e.g., 0.4°C above with 0.5 hysteresis),
+        the idle setpoint logic sets thermostat to current_temp. This should not be
+        falsely detected as a manual change.
+        """
+        detector = ManualOverrideDetector()
+        area_manager.get_all_areas = MagicMock(return_value={"living_room": sample_area})
+
+        # Setup: target is 20.0°C, current temp is 20.4°C (within idle range)
+        sample_area.get_effective_target_temperature.return_value = 20.0
+        sample_area.current_temperature = 20.4
+        sample_area.hysteresis_override = None
+        area_manager.hysteresis = 0.5
+
+        # System sets thermostat to current_temp during idle
+        result = await detector.async_detect_and_apply_override(
+            "climate.thermostat_lr", 20.4, area_manager
+        )
+
+        assert result is False
+        assert sample_area.manual_override is False
+        area_manager.async_save.assert_not_called()

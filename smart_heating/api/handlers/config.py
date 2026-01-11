@@ -248,10 +248,10 @@ async def handle_set_hysteresis_value(
 
     if "hysteresis" in data:
         hysteresis = float(data["hysteresis"])
-        # Validate range
+        # Validate range (minimum 0.1°C enforced to prevent extremely small values)
         if hysteresis < 0.1 or hysteresis > 2.0:
             return web.json_response(
-                {"error": "Hysteresis must be between 0.1 and 2.0°C"}, status=400
+                {"error": "Hysteresis must be between 0.0 and 2.0°C"}, status=400
             )
 
         # Update area manager

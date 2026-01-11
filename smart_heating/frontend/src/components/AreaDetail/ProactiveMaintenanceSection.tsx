@@ -1,4 +1,5 @@
 import { Box, Switch, Typography, Alert, Slider, TextField } from '@mui/material'
+import { useState, useEffect } from 'react'
 import ThermostatAutoIcon from '@mui/icons-material/ThermostatAuto'
 import { TFunction } from 'i18next'
 import { Zone } from '../../types'
@@ -18,6 +19,48 @@ const updateProactiveMaintenance = async (
     console.error('Failed to update proactive maintenance:', error)
     throw error
   }
+}
+
+const SensitivitySlider = ({
+  area,
+  onUpdate,
+  t,
+}: {
+  area: Zone
+  onUpdate: () => void
+  t: TFunction
+}) => {
+  const [sliderValue, setSliderValue] = useState<number>(
+    area.proactive_maintenance_sensitivity ?? 1,
+  )
+
+  useEffect(() => {
+    setSliderValue(area.proactive_maintenance_sensitivity ?? 1)
+  }, [area.proactive_maintenance_sensitivity])
+
+  return (
+    <Slider
+      value={sliderValue}
+      min={0.5}
+      max={2}
+      step={0.1}
+      marks={[
+        { value: 0.5, label: t('settingsCards.conservative', 'Conservative') },
+        { value: 1, label: t('settingsCards.balanced', 'Balanced') },
+        { value: 2, label: t('settingsCards.aggressive', 'Aggressive') },
+      ]}
+      onChange={(_, value) => setSliderValue(value as number)}
+      onChangeCommitted={(_, value) =>
+        updateProactiveMaintenance(
+          area.id,
+          { proactive_maintenance_sensitivity: value as number },
+          onUpdate,
+        )
+      }
+      valueLabelDisplay="auto"
+      data-testid="proactive-maintenance-sensitivity"
+    />
+  )
 }
 
 export const ProactiveMaintenanceSection = ({
@@ -92,36 +135,18 @@ export const ProactiveMaintenanceSection = ({
                   'Higher sensitivity starts heating earlier. Lower is more conservative.',
                 )}
               </Typography>
-              <Slider
-                value={area.proactive_maintenance_sensitivity ?? 1}
-                min={0.5}
-                max={2}
-                step={0.1}
-                marks={[
-                  { value: 0.5, label: t('settingsCards.conservative', 'Conservative') },
-                  { value: 1, label: t('settingsCards.balanced', 'Balanced') },
-                  { value: 2, label: t('settingsCards.aggressive', 'Aggressive') },
-                ]}
-                onChange={(_, value) =>
-                  updateProactiveMaintenance(
-                    area.id,
-                    { proactive_maintenance_sensitivity: value as number },
-                    onUpdate,
-                  )
-                }
-                valueLabelDisplay="auto"
-                data-testid="proactive-maintenance-sensitivity"
-              />
+              <SensitivitySlider area={area} onUpdate={onUpdate} t={t} />
             </Box>
 
             <TextField
               label={t('settingsCards.marginMinutes', 'Safety Margin (minutes)')}
               type="number"
-              value={
+              defaultValue={
                 area.proactive_maintenance_margin_minutes ??
                 (area.heating_type === 'floor_heating' ? 15 : 5)
               }
-              onChange={e =>
+              key={`margin-${area.proactive_maintenance_margin_minutes}`}
+              onBlur={e =>
                 updateProactiveMaintenance(
                   area.id,
                   { proactive_maintenance_margin_minutes: Number.parseInt(e.target.value, 10) },
@@ -143,8 +168,9 @@ export const ProactiveMaintenanceSection = ({
             <TextField
               label={t('settingsCards.cooldownMinutes', 'Cooldown Period (minutes)')}
               type="number"
-              value={area.proactive_maintenance_cooldown_minutes ?? 10}
-              onChange={e =>
+              defaultValue={area.proactive_maintenance_cooldown_minutes ?? 10}
+              key={`cooldown-${area.proactive_maintenance_cooldown_minutes}`}
+              onBlur={e =>
                 updateProactiveMaintenance(
                   area.id,
                   { proactive_maintenance_cooldown_minutes: Number.parseInt(e.target.value, 10) },
@@ -161,6 +187,32 @@ export const ProactiveMaintenanceSection = ({
               }}
               sx={{ mb: 3 }}
               data-testid="proactive-maintenance-cooldown"
+            />
+
+            <TextField
+              label={t('settingsCards.minTrendLabel', 'Minimum Trend Threshold (°C/hour)')}
+              type="number"
+              defaultValue={area.proactive_maintenance_min_trend ?? -0.1}
+              key={`min-trend-${area.proactive_maintenance_min_trend}`}
+              onBlur={e =>
+                updateProactiveMaintenance(
+                  area.id,
+                  {
+                    proactive_maintenance_min_trend: Number.parseFloat(e.target.value),
+                  },
+                  onUpdate,
+                )
+              }
+              fullWidth
+              helperText={t(
+                'settingsCards.minTrendHelper',
+                'Minimum temperature drop rate to trigger proactive heating. Lower values (e.g., -0.05) are more sensitive.',
+              )}
+              slotProps={{
+                htmlInput: { min: -0.5, max: -0.01, step: 0.01 },
+              }}
+              sx={{ mb: 3 }}
+              data-testid="proactive-maintenance-min-trend"
             />
 
             <Box sx={{ mt: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>

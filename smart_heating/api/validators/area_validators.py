@@ -104,9 +104,9 @@ def apply_hysteresis_setting(area: Area, area_id: str, data: dict) -> web.Respon
             status=400,
         )
 
-    # Validate range
-    if hysteresis < 0.1 or hysteresis > 2.0:
-        return web.json_response({"error": "Hysteresis must be between 0.1 and 2.0°C"}, status=400)
+    # Validate range (allow 0.0 for exact temperature control)
+    if hysteresis < 0.0 or hysteresis > 2.0:
+        return web.json_response({"error": "Hysteresis must be between 0.0 and 2.0°C"}, status=400)
 
     area.hysteresis_override = float(hysteresis)
     _LOGGER.info("Area %s: Setting hysteresis_override to %.1f°C", area_id, hysteresis)
